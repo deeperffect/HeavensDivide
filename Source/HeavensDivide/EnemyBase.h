@@ -78,6 +78,7 @@ protected:
 	virtual void HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
 
 	void InitializeTargetFromCharacterManager();
+	bool EnsureTargetFromCharacterManager();
 	void InitializeHealthBar();
 	virtual void UpdateEnemyBehavior(float DeltaSeconds);
 	virtual bool ShouldSkipMovement() const;

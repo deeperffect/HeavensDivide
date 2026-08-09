@@ -21,7 +21,17 @@ void AMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
-	if (bIsDead || !CurrentTarget || IsPlayerTargetDead())
+	if (bIsDead || IsPlayerTargetDead())
+	{
+		StopAttackTimer();
+		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+		{
+			MovementComponent->StopMovementImmediately();
+		}
+		return;
+	}
+
+	if (!EnsureTargetFromCharacterManager())
 	{
 		StopAttackTimer();
 		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())

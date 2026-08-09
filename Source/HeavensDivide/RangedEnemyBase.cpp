@@ -19,7 +19,17 @@ void ARangedEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ARangedEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
-	if (bIsDead || !CurrentTarget || IsPlayerTargetDead())
+	if (bIsDead || IsPlayerTargetDead())
+	{
+		StopAttackTimer();
+		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+		{
+			MovementComponent->StopMovementImmediately();
+		}
+		return;
+	}
+
+	if (!EnsureTargetFromCharacterManager())
 	{
 		StopAttackTimer();
 		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())

@@ -17,6 +17,7 @@
 AEnemyBase::AEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 
@@ -165,20 +166,41 @@ void AEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACha
 
 void AEnemyBase::InitializeTargetFromCharacterManager()
 {
+	EnsureTargetFromCharacterManager();
+}
+
+bool AEnemyBase::EnsureTargetFromCharacterManager()
+{
+	if (CurrentTarget)
+	{
+		return true;
+	}
+
 	ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	if (!SurvivorController)
 	{
-		return;
+		return false;
 	}
 
 	ObservedCharacterManager = SurvivorController->GetCharacterManager();
 	if (!ObservedCharacterManager)
 	{
-		return;
+		return false;
 	}
 
 	SetTarget(ObservedCharacterManager->GetActiveCharacter());
-	ObservedCharacterManager->OnCharacterSwapped.AddDynamic(this, &AEnemyBase::HandlePlayerCharacterSwapped);
+	if (!ObservedCharacterManager->OnCharacterSwapped.IsAlreadyBound(this, &AEnemyBase::HandlePlayerCharacterSwapped))
+	{
+		ObservedCharacterManager->OnCharacterSwapped.AddDynamic(this, &AEnemyBase::HandlePlayerCharacterSwapped);
+	}
+
+	if (!CurrentTarget)
+	{
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Enemy %s target acquired: %s"), *GetNameSafe(this), *GetNameSafe(CurrentTarget));
+	return true;
 }
 
 void AEnemyBase::InitializeHealthBar()
@@ -212,7 +234,16 @@ void AEnemyBase::InitializeHealthBar()
 
 void AEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
-	if (bIsDead || !CurrentTarget || IsPlayerTargetDead() || ShouldSkipMovement())
+	if (bIsDead || IsPlayerTargetDead() || ShouldSkipMovement())
+	{
+		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+		{
+			MovementComponent->StopMovementImmediately();
+		}
+		return;
+	}
+
+	if (!EnsureTargetFromCharacterManager())
 	{
 		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
 		{
