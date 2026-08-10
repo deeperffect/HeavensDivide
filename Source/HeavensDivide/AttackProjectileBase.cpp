@@ -48,7 +48,14 @@ void AAttackProjectileBase::BeginPlay()
 	SetLifeSpan(ProjectileLifetime);
 }
 
-void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType)
+void AAttackProjectileBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	DisableHoming();
+
+	Super::EndPlay(EndPlayReason);
+}
+
+void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType, AActor* InHomingTarget)
 {
 	GameplayOwner = InGameplayOwner;
 	SetOwner(InGameplayOwner);
@@ -74,14 +81,18 @@ void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVecto
 	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->Velocity = Direction * ProjectileSpeed;
 	SetActorRotation(Direction.Rotation());
+	ConfigureHoming(InHomingTarget);
 	bIsProjectileInitialized = true;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
-	UE_LOG(LogTemp, Log, TEXT("Projectile initialized: Owner=%s Direction=%s Damage=%.2f Speed=%.2f"),
+	UE_LOG(LogTemp, Log, TEXT("Projectile initialized: Owner=%s Direction=%s Damage=%.2f Speed=%.2f Homing=%s HomingTarget=%s HomingAcceleration=%.2f"),
 		*GetNameSafe(InGameplayOwner),
 		*Direction.ToString(),
 		ProjectileDamage,
-		ProjectileSpeed);
+		ProjectileSpeed,
+		ProjectileMovement->bIsHomingProjectile ? TEXT("true") : TEXT("false"),
+		*GetNameSafe(HomingTargetActor),
+		ProjectileMovement->HomingAccelerationMagnitude);
 }
 
 void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -186,4 +197,76 @@ void AAttackProjectileBase::LogProjectileFilterResult(AActor* OtherActor, bool b
 		*GetNameSafe(GameplayOwner),
 		*GetNameSafe(OtherActor),
 		bValidDamageTarget ? TEXT("true") : TEXT("false"));
+}
+
+void AAttackProjectileBase::HandleHomingTargetDestroyed(AActor* DestroyedActor)
+{
+	if (DestroyedActor == HomingTargetActor)
+	{
+		DisableHoming();
+	}
+}
+
+void AAttackProjectileBase::HandleHomingTargetDeath()
+{
+	DisableHoming();
+}
+
+void AAttackProjectileBase::ConfigureHoming(AActor* InHomingTarget)
+{
+	if (!ProjectileMovement)
+	{
+		return;
+	}
+
+	DisableHoming();
+
+	if (!bIsHoming || !InHomingTarget)
+	{
+		return;
+	}
+
+	HomingTargetActor = InHomingTarget;
+	USceneComponent* TargetComponent = InHomingTarget->GetRootComponent();
+	if (!TargetComponent)
+	{
+		DisableHoming();
+		return;
+	}
+
+	ProjectileMovement->bIsHomingProjectile = true;
+	ProjectileMovement->HomingTargetComponent = TargetComponent;
+	ProjectileMovement->HomingAccelerationMagnitude = HomingAccelerationMagnitude;
+
+	InHomingTarget->OnDestroyed.AddDynamic(this, &AAttackProjectileBase::HandleHomingTargetDestroyed);
+	if (AEnemyBase* EnemyTarget = Cast<AEnemyBase>(InHomingTarget))
+	{
+		if (UHealthComponent* TargetHealth = EnemyTarget->GetHealthComponent())
+		{
+			TargetHealth->OnDeath.AddDynamic(this, &AAttackProjectileBase::HandleHomingTargetDeath);
+		}
+	}
+}
+
+void AAttackProjectileBase::DisableHoming()
+{
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->bIsHomingProjectile = false;
+		ProjectileMovement->HomingTargetComponent = nullptr;
+	}
+
+	if (HomingTargetActor)
+	{
+		HomingTargetActor->OnDestroyed.RemoveDynamic(this, &AAttackProjectileBase::HandleHomingTargetDestroyed);
+		if (AEnemyBase* EnemyTarget = Cast<AEnemyBase>(HomingTargetActor))
+		{
+			if (UHealthComponent* TargetHealth = EnemyTarget->GetHealthComponent())
+			{
+				TargetHealth->OnDeath.RemoveDynamic(this, &AAttackProjectileBase::HandleHomingTargetDeath);
+			}
+		}
+	}
+
+	HomingTargetActor = nullptr;
 }

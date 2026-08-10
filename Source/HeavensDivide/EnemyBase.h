@@ -15,6 +15,7 @@ class ACharacterBase;
 class UCharacterManagerComponent;
 class UEnemyLightweightMovementComponent;
 class UExperienceComponent;
+class AExperiencePickup;
 
 UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
@@ -117,6 +118,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0", UIMin = "0"))
 	int32 XPReward = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards")
+	TSubclassOf<AExperiencePickup> ExperiencePickupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ExperiencePickupSpawnScatterRadius = 35.0f;
+
 	UFUNCTION()
 	virtual void HandleDeath();
 
@@ -129,7 +136,7 @@ protected:
 	void InitializeTargetFromCharacterManager();
 	bool EnsureTargetFromCharacterManager();
 	void CachePlayerExperienceComponent();
-	void AwardXPReward();
+	void SpawnExperiencePickup();
 	void InitializeHealthBar();
 	void UpdateHealthBarVisibility(float HealthPercent);
 	void StartBehaviorUpdates();
@@ -178,5 +185,5 @@ protected:
 	bool bCharacterMovementDisabledForProfiling = false;
 	bool bAnimationDisabledForProfiling = false;
 	bool bAnimationBudgetInitialized = false;
-	bool bXPRewardAwarded = false;
+	bool bExperiencePickupSpawned = false;
 };

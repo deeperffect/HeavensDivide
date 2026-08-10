@@ -9,6 +9,7 @@
 #include "CharacterManagerComponent.h"
 #include "EnemyHealthBarWidget.h"
 #include "EnemyLightweightMovementComponent.h"
+#include "ExperiencePickup.h"
 #include "ExperienceComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -145,7 +146,7 @@ void AEnemyBase::HandleDeath()
 	}
 
 	bIsDead = true;
-	AwardXPReward();
+	SpawnExperiencePickup();
 	UpdateAnimationBudgetSignificance();
 	CurrentTarget = nullptr;
 	StopEnemyBehavior();
@@ -278,23 +279,54 @@ void AEnemyBase::CachePlayerExperienceComponent()
 	CachedPlayerExperienceComponent = SurvivorController ? SurvivorController->GetExperienceComponent() : nullptr;
 }
 
-void AEnemyBase::AwardXPReward()
+void AEnemyBase::SpawnExperiencePickup()
 {
-	if (bXPRewardAwarded || XPReward <= 0)
+	if (bExperiencePickupSpawned || XPReward <= 0)
 	{
+		return;
+	}
+
+	bExperiencePickupSpawned = true;
+
+	if (!ExperiencePickupClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy %s could not drop XP: ExperiencePickupClass is not configured."), *GetNameSafe(this));
 		return;
 	}
 
 	CachePlayerExperienceComponent();
-	if (!CachedPlayerExperienceComponent)
+	if (!CachedPlayerExperienceComponent || !ObservedCharacterManager || !GetWorld())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy %s could not award XP: ExperienceComponent invalid."), *GetNameSafe(this));
+		UE_LOG(LogTemp, Warning, TEXT("Enemy %s could not drop XP: shared player references invalid."), *GetNameSafe(this));
 		return;
 	}
 
-	bXPRewardAwarded = true;
-	CachedPlayerExperienceComponent->AddXP(XPReward);
-	UE_LOG(LogTemp, Log, TEXT("Enemy died: %s awarded %d XP"), *GetNameSafe(this), XPReward);
+	FVector SpawnLocation = GetActorLocation();
+	if (ExperiencePickupSpawnScatterRadius > 0.0f)
+	{
+		const FVector2D RandomOffset = FMath::RandPointInCircle(ExperiencePickupSpawnScatterRadius);
+		SpawnLocation.X += RandomOffset.X;
+		SpawnLocation.Y += RandomOffset.Y;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AExperiencePickup* Pickup = GetWorld()->SpawnActor<AExperiencePickup>(
+		ExperiencePickupClass,
+		SpawnLocation,
+		FRotator::ZeroRotator,
+		SpawnParameters);
+
+	if (!Pickup)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy %s failed to spawn XP pickup class %s."), *GetNameSafe(this), *GetNameSafe(ExperiencePickupClass.Get()));
+		return;
+	}
+
+	Pickup->InitializePickup(XPReward, CachedPlayerExperienceComponent, ObservedCharacterManager);
+	UE_LOG(LogTemp, Log, TEXT("Enemy died: %s dropped %d XP"), *GetNameSafe(this), XPReward);
 }
 
 void AEnemyBase::InitializeHealthBar()
@@ -426,15 +458,15 @@ void AEnemyBase::InitializeEnemyMovementMode()
 		}
 	}
 
+	if (UCapsuleComponent* EnemyCapsule = GetCapsuleComponent())
+	{
+		EnemyCapsule->SetCollisionObjectType(ECC_GameTraceChannel1);
+		EnemyCapsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		EnemyCapsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
+	}
+
 	if (bUseLightweightMovement)
 	{
-		if (UCapsuleComponent* EnemyCapsule = GetCapsuleComponent())
-		{
-			EnemyCapsule->SetCollisionObjectType(ECC_GameTraceChannel1);
-			EnemyCapsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-			EnemyCapsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
-		}
-
 		if (USkeletalMeshComponent* MeshComponent = GetMesh())
 		{
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);

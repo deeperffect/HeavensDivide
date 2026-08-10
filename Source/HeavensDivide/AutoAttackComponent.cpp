@@ -56,23 +56,31 @@ void UAutoAttackComponent::StartAutoAttack()
 		return;
 	}
 
-	GetWorld()->GetTimerManager().SetTimer(
-		AttackTimerHandle,
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] StartAutoAttack called Owner=%s Component=%p TimerActive=%s"),
+		GetWorld()->GetTimeSeconds(),
+		*GetNameSafe(GetOwner()),
 		this,
-		&UAutoAttackComponent::HandleAttackTimer,
-		AttackInterval,
-		true,
-		AttackInterval);
+		GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
+
+	ScheduleNextAttackTimer(AttackInterval);
 }
 
 void UAutoAttackComponent::StopAutoAttack()
 {
 	if (UWorld* World = GetWorld())
 	{
+		UE_LOG(LogTemp, Log, TEXT("[%.2f] StopAutoAttack called Owner=%s Component=%p TimerActive=%s"),
+			World->GetTimeSeconds(),
+			*GetNameSafe(GetOwner()),
+			this,
+			World->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
 		World->GetTimerManager().ClearTimer(AttackTimerHandle);
 	}
 
 	CurrentAttackTarget.Reset();
+	bIsAttacking = false;
+	bAttackNotifyConsumed = false;
+	ActiveAttackSequence = 0;
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->ClearFacingOverride();
@@ -85,12 +93,23 @@ void UAutoAttackComponent::SetAttackInterval(float NewInterval)
 
 	if (GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
 	{
-		StartAutoAttack();
+		UE_LOG(LogTemp, Log, TEXT("[%.2f] SetAttackInterval restarting timer Owner=%s Component=%p AttackInterval=%.3f"),
+			GetWorld()->GetTimeSeconds(),
+			*GetNameSafe(GetOwner()),
+			this,
+			AttackInterval);
+		ScheduleNextAttackTimer(AttackInterval);
 	}
 }
 
 void UAutoAttackComponent::PerformAttackTrace()
 {
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Notify Fired"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
+	if (!TryConsumeAttackNotify())
+	{
+		return;
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("PerformAttackTrace Called"));
 
 	if (!OwnerCharacter || !GetWorld())
@@ -181,6 +200,12 @@ void UAutoAttackComponent::PerformAttackTrace()
 
 void UAutoAttackComponent::SpawnAutoAttackProjectile()
 {
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Notify Fired"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
+	if (!TryConsumeAttackNotify())
+	{
+		return;
+	}
+
 	UE_LOG(LogTemp, Log, TEXT("SpawnAutoAttackProjectile Called"));
 
 	if (!CanAutoAttack())
@@ -242,9 +267,11 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
-	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, AttackDamage, ProjectileSpeed, EProjectileTargetType::Enemies);
+	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, AttackDamage, ProjectileSpeed, EProjectileTargetType::Enemies, TargetEnemy);
 
-	UE_LOG(LogTemp, Log, TEXT("Projectile spawned: Target=%s SpawnLocation=%s Direction=%s"),
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Spawned: Target=%s SpawnLocation=%s Direction=%s"),
+		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0,
+		ActiveAttackSequence,
 		*GetNameSafe(TargetEnemy),
 		*SpawnLocation.ToString(),
 		*ProjectileDirection.ToString());
@@ -279,9 +306,60 @@ void UAutoAttackComponent::HandleAttackTimer()
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("AutoAttack fired"));
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack Timer Fired Owner=%s Component=%p"),
+		GetWorld()->GetTimeSeconds(),
+		*GetNameSafe(GetOwner()),
+		this);
+	UE_LOG(LogTemp, Log, TEXT("Attack Ready"));
+
+	if (bIsAttacking)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));
+		ScheduleNextAttackTimer(AttackInterval);
+		return;
+	}
+
+	if (!CanStartAttackNow())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
+		const double NextReadyTime = LastAttackStartTime + AttackInterval;
+		const float Delay = FMath::Max(0.01f, static_cast<float>(NextReadyTime - GetWorld()->GetTimeSeconds()));
+		ScheduleNextAttackTimer(Delay);
+		return;
+	}
 
 	StartTargetedAttack();
+	ScheduleNextAttackTimer(AttackInterval);
+}
+
+void UAutoAttackComponent::ScheduleNextAttackTimer(float Delay)
+{
+	if (!CanAutoAttack())
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const float SafeDelay = FMath::Max(0.01f, Delay);
+	World->GetTimerManager().ClearTimer(AttackTimerHandle);
+	World->GetTimerManager().SetTimer(
+		AttackTimerHandle,
+		this,
+		&UAutoAttackComponent::HandleAttackTimer,
+		SafeDelay,
+		false);
+
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] AutoAttack timer scheduled Owner=%s Component=%p Delay=%.3f TimerActive=%s"),
+		World->GetTimeSeconds(),
+		*GetNameSafe(GetOwner()),
+		this,
+		SafeDelay,
+		World->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
 }
 
 bool UAutoAttackComponent::PlayAttackMontage()
@@ -317,7 +395,16 @@ bool UAutoAttackComponent::PlayAttackMontage()
 
 	UE_LOG(LogTemp, Log, TEXT("AnimInstance valid: %s"), *GetNameSafe(AnimInstance));
 
-	const float PlayResult = AnimInstance->Montage_Play(AttackMontage);
+	const float ActualPlayRate = CalculateAttackMontagePlayRate(AttackMontage);
+	const float MontageLength = AttackMontage->GetPlayLength();
+	const float CalculatedPlayRate = AttackInterval > KINDA_SMALL_NUMBER ? MontageLength / AttackInterval : MaxAttackMontagePlayRate;
+	UE_LOG(LogTemp, Log, TEXT("Attack Montage Rate: AttackInterval=%.3f MontageLength=%.3f CalculatedPlayRate=%.3f ActualPlayRate=%.3f"),
+		AttackInterval,
+		MontageLength,
+		CalculatedPlayRate,
+		ActualPlayRate);
+
+	const float PlayResult = AnimInstance->Montage_Play(AttackMontage, ActualPlayRate);
 	UE_LOG(LogTemp, Log, TEXT("Attack montage play result: %.3f"), PlayResult);
 	if (PlayResult <= 0.0f)
 	{
@@ -328,7 +415,31 @@ bool UAutoAttackComponent::PlayAttackMontage()
 	MontageEndedDelegate.BindUObject(this, &UAutoAttackComponent::HandleAttackMontageEnded);
 	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, AttackMontage);
 
+	bIsAttacking = true;
+	bAttackNotifyConsumed = false;
+	LastAttackStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastAttackStartTime;
+	ActiveAttackSequence = ++AttackSequence;
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Started"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
 	return true;
+}
+
+float UAutoAttackComponent::CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const
+{
+	const float SafeMaxPlayRate = FMath::Max(1.0f, MaxAttackMontagePlayRate);
+
+	if (!bScaleMontageWithAttackInterval || !Montage)
+	{
+		return 1.0f;
+	}
+
+	const float MontageLength = Montage->GetPlayLength();
+	if (MontageLength <= KINDA_SMALL_NUMBER || AttackInterval <= KINDA_SMALL_NUMBER)
+	{
+		return SafeMaxPlayRate;
+	}
+
+	const float CalculatedPlayRate = MontageLength / AttackInterval;
+	return FMath::Clamp(FMath::Max(1.0f, CalculatedPlayRate), 1.0f, SafeMaxPlayRate);
 }
 
 void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -338,15 +449,31 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 		return;
 	}
 
+	bIsAttacking = false;
+	bAttackNotifyConsumed = false;
 	CurrentAttackTarget.Reset();
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->ClearFacingOverride();
 	}
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Finished"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
+	ActiveAttackSequence = 0;
 }
 
 void UAutoAttackComponent::StartTargetedAttack()
 {
+	if (bIsAttacking)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));
+		return;
+	}
+
+	if (!CanStartAttackNow())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
+		return;
+	}
+
 	AEnemyBase* TargetEnemy = FindNearestEnemyTarget();
 	if (!TargetEnemy)
 	{
@@ -381,6 +508,35 @@ void UAutoAttackComponent::StartTargetedAttack()
 void UAutoAttackComponent::StartProjectileAttack()
 {
 	StartTargetedAttack();
+}
+
+bool UAutoAttackComponent::CanStartAttackNow() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	return World->GetTimeSeconds() >= LastAttackStartTime + AttackInterval;
+}
+
+bool UAutoAttackComponent::TryConsumeAttackNotify()
+{
+	if (!bIsAttacking)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Notify Skipped: No Active Attack"));
+		return false;
+	}
+
+	if (bAttackNotifyConsumed)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Notify Skipped: Already Consumed"));
+		return false;
+	}
+
+	bAttackNotifyConsumed = true;
+	return true;
 }
 
 AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const

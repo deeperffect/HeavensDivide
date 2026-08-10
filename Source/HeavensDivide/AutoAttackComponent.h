@@ -46,6 +46,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float AttackInterval = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation")
+	bool bScaleMontageWithAttackInterval = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float MaxAttackMontagePlayRate = 3.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack")
 	bool bAutoAttackEnabled = true;
 
@@ -90,10 +96,14 @@ private:
 	void HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode);
 
 	void HandleAttackTimer();
+	void ScheduleNextAttackTimer(float Delay);
 	bool PlayAttackMontage();
+	float CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const;
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void StartTargetedAttack();
 	void StartProjectileAttack();
+	bool CanStartAttackNow() const;
+	bool TryConsumeAttackNotify();
 	AEnemyBase* FindNearestEnemyTarget() const;
 	FVector GetProjectileSpawnLocation() const;
 	FVector GetEnemyAimLocation(const AEnemyBase* Enemy) const;
@@ -105,4 +115,9 @@ private:
 	TWeakObjectPtr<AEnemyBase> CurrentAttackTarget;
 
 	FTimerHandle AttackTimerHandle;
+	double LastAttackStartTime = -DBL_MAX;
+	int32 AttackSequence = 0;
+	int32 ActiveAttackSequence = 0;
+	bool bIsAttacking = false;
+	bool bAttackNotifyConsumed = false;
 };
