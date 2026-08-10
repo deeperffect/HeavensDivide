@@ -22,10 +22,11 @@ AAttackProjectileBase::AAttackProjectileBase()
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
 	CollisionComponent->SetupAttachment(Root);
 	CollisionComponent->InitSphereRadius(16.0f);
-	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CollisionComponent->SetCollisionObjectType(ECC_WorldDynamic);
 	CollisionComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
 	CollisionComponent->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	CollisionComponent->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 
 	VisualMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("VisualMesh"));
 	VisualMesh->SetupAttachment(CollisionComponent);
@@ -73,6 +74,8 @@ void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVecto
 	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->Velocity = Direction * ProjectileSpeed;
 	SetActorRotation(Direction.Rotation());
+	bIsProjectileInitialized = true;
+	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	UE_LOG(LogTemp, Log, TEXT("Projectile initialized: Owner=%s Direction=%s Damage=%.2f Speed=%.2f"),
 		*GetNameSafe(InGameplayOwner),
@@ -83,14 +86,22 @@ void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVecto
 
 void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!bIsProjectileInitialized)
+	{
+		LogProjectileFilterResult(OtherActor, false);
+		return;
+	}
+
 	if (!OtherActor || OtherActor == this || OtherActor == GameplayOwner)
 	{
+		LogProjectileFilterResult(OtherActor, false);
 		return;
 	}
 
 	const AActor* GameplayOwnerOwner = GameplayOwner ? GameplayOwner->GetOwner() : nullptr;
 	if (GameplayOwnerOwner && OtherActor->GetOwner() == GameplayOwnerOwner)
 	{
+		LogProjectileFilterResult(OtherActor, false);
 		return;
 	}
 
@@ -99,15 +110,18 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		AEnemyBase* HitEnemy = Cast<AEnemyBase>(OtherActor);
 		if (!HitEnemy || HitEnemy->IsDead())
 		{
+			LogProjectileFilterResult(OtherActor, false);
 			return;
 		}
 
 		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
 		if (!EnemyHealth || EnemyHealth->IsDead())
 		{
+			LogProjectileFilterResult(OtherActor, false);
 			return;
 		}
 
+		LogProjectileFilterResult(OtherActor, true);
 		EnemyHealth->ApplyDamage(ProjectileDamage);
 		UE_LOG(LogTemp, Log, TEXT("Projectile hit enemy: %s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(HitEnemy),
@@ -122,12 +136,14 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 	{
 		if (Cast<AEnemyBase>(OtherActor))
 		{
+			LogProjectileFilterResult(OtherActor, false);
 			return;
 		}
 
 		ACharacterBase* HitPlayerCharacter = Cast<ACharacterBase>(OtherActor);
 		if (!HitPlayerCharacter)
 		{
+			LogProjectileFilterResult(OtherActor, false);
 			return;
 		}
 
@@ -135,15 +151,18 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
 		if (!CharacterManager || CharacterManager->GetActiveCharacter() != HitPlayerCharacter)
 		{
+			LogProjectileFilterResult(OtherActor, false);
 			return;
 		}
 
 		UHealthComponent* PlayerHealth = SurvivorController->GetPlayerHealthComponent();
 		if (!PlayerHealth || PlayerHealth->IsDead())
 		{
+			LogProjectileFilterResult(OtherActor, false);
 			return;
 		}
 
+		LogProjectileFilterResult(OtherActor, true);
 		PlayerHealth->ApplyDamage(ProjectileDamage);
 		UE_LOG(LogTemp, Log, TEXT("Projectile hit active player: %s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(HitPlayerCharacter),
@@ -152,4 +171,19 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 
 		Destroy();
 	}
+}
+
+void AAttackProjectileBase::LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const
+{
+	if (!bDebugProjectileFiltering)
+	{
+		return;
+	}
+
+	const TCHAR* ProjectileSide = TargetType == EProjectileTargetType::ActivePlayer ? TEXT("Enemy Projectile") : TEXT("Player Projectile");
+	UE_LOG(LogTemp, Log, TEXT("%s Owner=%s Hit=%s Valid Damage Target=%s"),
+		ProjectileSide,
+		*GetNameSafe(GameplayOwner),
+		*GetNameSafe(OtherActor),
+		bValidDamageTarget ? TEXT("true") : TEXT("false"));
 }

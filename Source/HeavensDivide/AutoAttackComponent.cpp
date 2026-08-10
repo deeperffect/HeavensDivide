@@ -123,12 +123,15 @@ void UAutoAttackComponent::PerformAttackTrace()
 
 	TArray<FHitResult> HitResults;
 	const FCollisionShape TraceShape = FCollisionShape::MakeSphere(AttackRadius);
-	GetWorld()->SweepMultiByChannel(
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+	GetWorld()->SweepMultiByObjectType(
 		HitResults,
 		HitboxCenter,
 		HitboxCenter,
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		TraceShape,
 		QueryParams);
 
@@ -239,7 +242,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
-	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, AttackDamage, ProjectileSpeed);
+	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, AttackDamage, ProjectileSpeed, EProjectileTargetType::Enemies);
 
 	UE_LOG(LogTemp, Log, TEXT("Projectile spawned: Target=%s SpawnLocation=%s Direction=%s"),
 		*GetNameSafe(TargetEnemy),
@@ -391,11 +394,15 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(AutoAttackTargeting), false, OwnerCharacter);
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 
-	GetWorld()->OverlapMultiByChannel(
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+
+	GetWorld()->OverlapMultiByObjectType(
 		OverlapResults,
 		OwnerCharacter->GetActorLocation(),
 		FQuat::Identity,
-		ECC_Pawn,
+		ObjectQueryParams,
 		FCollisionShape::MakeSphere(TargetingRange),
 		QueryParams);
 

@@ -6,6 +6,7 @@
 #include "CharacterManagerComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "ExperienceComponent.h"
 #include "HealthComponent.h"
 #include "InputActionValue.h"
 #include "PlayerCameraRig.h"
@@ -17,6 +18,7 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	bAutoManageActiveCameraTarget = false;
 	CharacterManager = CreateDefaultSubobject<UCharacterManagerComponent>(TEXT("CharacterManager"));
 	PlayerHealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("PlayerHealthComponent"));
+	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 }
 
 void ASurvivorPlayerController::BeginPlay()
@@ -79,6 +81,11 @@ UCharacterManagerComponent* ASurvivorPlayerController::GetCharacterManager() con
 UHealthComponent* ASurvivorPlayerController::GetPlayerHealthComponent() const
 {
 	return PlayerHealthComponent;
+}
+
+UExperienceComponent* ASurvivorPlayerController::GetExperienceComponent() const
+{
+	return ExperienceComponent;
 }
 
 bool ASurvivorPlayerController::IsPlayerDead() const

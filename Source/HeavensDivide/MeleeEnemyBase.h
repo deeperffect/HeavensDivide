@@ -24,6 +24,7 @@ protected:
 	virtual void StopEnemyBehavior() override;
 	virtual void HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter) override;
 	virtual void HandleDeath() override;
+	virtual bool ShouldForceHighAnimationBudgetSignificance() const override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackRange = 150.0f;
@@ -44,7 +45,7 @@ protected:
 	float AttackHitForwardOffset = 90.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Hit")
-	bool bDebugAttackHit = true;
+	bool bDebugAttackHit = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack")
 	bool bIsAttacking = false;

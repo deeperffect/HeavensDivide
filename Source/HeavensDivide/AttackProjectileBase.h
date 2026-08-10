@@ -55,10 +55,17 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Projectile")
 	EProjectileTargetType TargetType = EProjectileTargetType::Enemies;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Debug")
+	bool bDebugProjectileFiltering = false;
+
 private:
 	UFUNCTION()
 	void HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	void LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const;
+
 	UPROPERTY()
 	TObjectPtr<AActor> GameplayOwner;
+
+	bool bIsProjectileInitialized = false;
 };

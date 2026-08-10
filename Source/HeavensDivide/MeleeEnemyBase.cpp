@@ -7,7 +7,6 @@
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "DrawDebugHelpers.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
@@ -24,38 +23,26 @@ void AMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 	if (bIsDead || IsPlayerTargetDead())
 	{
 		StopAttackTimer();
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		return;
 	}
 
 	if (!EnsureTargetFromCharacterManager())
 	{
 		StopAttackTimer();
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		return;
 	}
 
 	if (bIsAttacking)
 	{
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		return;
 	}
 
 	if (IsTargetInAttackRange())
 	{
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		FaceTarget();
 		StartAttackTimer();
 		return;
@@ -73,6 +60,7 @@ bool AMeleeEnemyBase::ShouldSkipMovement() const
 void AMeleeEnemyBase::StopEnemyBehavior()
 {
 	bIsAttacking = false;
+	StopEnemyMovement();
 	StopAttackTimer();
 }
 
@@ -94,6 +82,11 @@ void AMeleeEnemyBase::HandleDeath()
 	StopAttackTimer();
 
 	Super::HandleDeath();
+}
+
+bool AMeleeEnemyBase::ShouldForceHighAnimationBudgetSignificance() const
+{
+	return bIsAttacking;
 }
 
 bool AMeleeEnemyBase::IsTargetInAttackRange() const
@@ -176,6 +169,7 @@ void AMeleeEnemyBase::StartAttack()
 	}
 
 	bIsAttacking = true;
+	UpdateAnimationBudgetSignificance();
 
 	FOnMontageEnded MontageEndedDelegate;
 	MontageEndedDelegate.BindUObject(this, &AMeleeEnemyBase::HandleAttackMontageEnded);
@@ -249,5 +243,6 @@ void AMeleeEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInte
 	}
 
 	bIsAttacking = false;
+	UpdateAnimationBudgetSignificance();
 	UE_LOG(LogTemp, Log, TEXT("Enemy Attack Finished"));
 }

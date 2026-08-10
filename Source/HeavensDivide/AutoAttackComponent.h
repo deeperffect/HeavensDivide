@@ -83,7 +83,7 @@ protected:
 	float AttackForwardOffset = 120.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Trace")
-	bool bDebugAttackTrace = true;
+	bool bDebugAttackTrace = false;
 
 private:
 	UFUNCTION()

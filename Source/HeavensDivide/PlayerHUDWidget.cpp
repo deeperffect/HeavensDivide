@@ -4,6 +4,7 @@
 
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
+#include "ExperienceComponent.h"
 #include "HealthComponent.h"
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
@@ -30,6 +31,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 	}
 
 	UnbindCharacterHealth();
+	UnbindPlayerExperience();
 
 	if (CharacterManager)
 	{
@@ -41,6 +43,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 	Samurai = CharacterManager ? CharacterManager->GetSamurai() : nullptr;
 	Ninja = CharacterManager ? CharacterManager->GetNinja() : nullptr;
 	PlayerHealth = SurvivorPlayerController->GetPlayerHealthComponent();
+	PlayerExperience = SurvivorPlayerController->GetExperienceComponent();
 
 	if (CharacterManager)
 	{
@@ -48,6 +51,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 	}
 
 	BindCharacterHealth();
+	BindPlayerExperience();
 	BroadcastInitialState();
 }
 
@@ -55,6 +59,7 @@ void UPlayerHUDWidget::NativeDestruct()
 {
 	StopHealthChipChase();
 	UnbindCharacterHealth();
+	UnbindPlayerExperience();
 
 	if (CharacterManager)
 	{
@@ -126,6 +131,26 @@ float UPlayerHUDWidget::GetDelayedHealthPercent() const
 	return DelayedHealthPercent;
 }
 
+int32 UPlayerHUDWidget::GetCurrentXP() const
+{
+	return PlayerExperience ? PlayerExperience->GetCurrentXP() : 0;
+}
+
+int32 UPlayerHUDWidget::GetCurrentLevel() const
+{
+	return PlayerExperience ? PlayerExperience->GetCurrentLevel() : 1;
+}
+
+int32 UPlayerHUDWidget::GetXPToNextLevel() const
+{
+	return PlayerExperience ? PlayerExperience->GetXPToNextLevel() : 0;
+}
+
+float UPlayerHUDWidget::GetXPPercent() const
+{
+	return PlayerExperience ? PlayerExperience->GetXPPercent() : 0.0f;
+}
+
 bool UPlayerHUDWidget::IsSamuraiActive() const
 {
 	return Samurai && GetActiveCharacter() == Samurai;
@@ -147,6 +172,20 @@ void UPlayerHUDWidget::HandleCharacterSwapped(ACharacterBase* OldCharacter, ACha
 {
 	ActiveCharacterChanged.Broadcast(NewCharacter);
 	OnActiveCharacterChanged(NewCharacter);
+}
+
+void UPlayerHUDWidget::HandlePlayerXPChanged(int32 CurrentXP, int32 XPToNextLevel, float XPPercent)
+{
+	PlayerXPUpdated.Broadcast(CurrentXP, XPToNextLevel, XPPercent);
+	OnPlayerXPUpdated(CurrentXP, XPToNextLevel, XPPercent);
+}
+
+void UPlayerHUDWidget::HandlePlayerLevelUp(int32 NewLevel)
+{
+	PlayerLevelUp.Broadcast(NewLevel);
+	OnPlayerLevelUp(NewLevel);
+	PlayerLevelUpdated.Broadcast(NewLevel);
+	OnPlayerLevelUpdated(NewLevel);
 }
 
 void UPlayerHUDWidget::BindCharacterHealth()
@@ -173,6 +212,30 @@ void UPlayerHUDWidget::UnbindCharacterHealth()
 	PlayerHealth = nullptr;
 }
 
+void UPlayerHUDWidget::BindPlayerExperience()
+{
+	if (PlayerExperience)
+	{
+		PlayerExperience->OnXPChanged.AddUniqueDynamic(this, &UPlayerHUDWidget::HandlePlayerXPChanged);
+		PlayerExperience->OnLevelUp.AddUniqueDynamic(this, &UPlayerHUDWidget::HandlePlayerLevelUp);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PlayerHUDWidget: shared ExperienceComponent invalid."));
+	}
+}
+
+void UPlayerHUDWidget::UnbindPlayerExperience()
+{
+	if (PlayerExperience)
+	{
+		PlayerExperience->OnXPChanged.RemoveDynamic(this, &UPlayerHUDWidget::HandlePlayerXPChanged);
+		PlayerExperience->OnLevelUp.RemoveDynamic(this, &UPlayerHUDWidget::HandlePlayerLevelUp);
+	}
+
+	PlayerExperience = nullptr;
+}
+
 void UPlayerHUDWidget::BroadcastInitialState()
 {
 	if (PlayerHealth)
@@ -191,6 +254,20 @@ void UPlayerHUDWidget::BroadcastInitialState()
 			PlayerHealth->GetCurrentHealth(),
 			PlayerHealth->GetMaxHealth(),
 			HealthPercent);
+	}
+
+	if (PlayerExperience)
+	{
+		PlayerXPUpdated.Broadcast(
+			PlayerExperience->GetCurrentXP(),
+			PlayerExperience->GetXPToNextLevel(),
+			PlayerExperience->GetXPPercent());
+		OnPlayerXPUpdated(
+			PlayerExperience->GetCurrentXP(),
+			PlayerExperience->GetXPToNextLevel(),
+			PlayerExperience->GetXPPercent());
+		PlayerLevelUpdated.Broadcast(PlayerExperience->GetCurrentLevel());
+		OnPlayerLevelUpdated(PlayerExperience->GetCurrentLevel());
 	}
 
 	ActiveCharacterChanged.Broadcast(GetActiveCharacter());

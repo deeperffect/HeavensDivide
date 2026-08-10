@@ -7,7 +7,6 @@
 #include "AttackProjectileBase.h"
 #include "CharacterBase.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "TimerManager.h"
 
 void ARangedEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -22,38 +21,26 @@ void ARangedEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 	if (bIsDead || IsPlayerTargetDead())
 	{
 		StopAttackTimer();
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		return;
 	}
 
 	if (!EnsureTargetFromCharacterManager())
 	{
 		StopAttackTimer();
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		return;
 	}
 
 	if (bIsAttacking)
 	{
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		return;
 	}
 
 	if (IsTargetInAttackRange())
 	{
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-		}
+		StopEnemyMovement();
 		FaceTarget();
 		StartAttackTimer();
 		return;
@@ -71,6 +58,7 @@ bool ARangedEnemyBase::ShouldSkipMovement() const
 void ARangedEnemyBase::StopEnemyBehavior()
 {
 	bIsAttacking = false;
+	StopEnemyMovement();
 	StopAttackTimer();
 }
 
@@ -92,6 +80,11 @@ void ARangedEnemyBase::HandleDeath()
 	StopAttackTimer();
 
 	Super::HandleDeath();
+}
+
+bool ARangedEnemyBase::ShouldForceHighAnimationBudgetSignificance() const
+{
+	return bIsAttacking;
 }
 
 bool ARangedEnemyBase::IsTargetInAttackRange() const
@@ -173,6 +166,7 @@ void ARangedEnemyBase::StartAttack()
 	}
 
 	bIsAttacking = true;
+	UpdateAnimationBudgetSignificance();
 
 	FOnMontageEnded MontageEndedDelegate;
 	MontageEndedDelegate.BindUObject(this, &ARangedEnemyBase::HandleAttackMontageEnded);
@@ -227,6 +221,7 @@ void ARangedEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInt
 	}
 
 	bIsAttacking = false;
+	UpdateAnimationBudgetSignificance();
 	UE_LOG(LogTemp, Log, TEXT("Enemy Ranged Attack Finished"));
 }
 

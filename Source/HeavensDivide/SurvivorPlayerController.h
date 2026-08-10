@@ -9,6 +9,7 @@
 class UInputAction;
 class UInputMappingContext;
 class UCharacterManagerComponent;
+class UExperienceComponent;
 class UHealthComponent;
 class UPlayerHUDWidget;
 class ACharacterBase;
@@ -31,6 +32,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	UHealthComponent* GetPlayerHealthComponent() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player")
+	UExperienceComponent* GetExperienceComponent() const;
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
@@ -56,6 +60,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
 	TObjectPtr<UHealthComponent> PlayerHealthComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	TObjectPtr<UExperienceComponent> ExperienceComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
 	TSubclassOf<APlayerCameraRig> PlayerCameraRigClass;
