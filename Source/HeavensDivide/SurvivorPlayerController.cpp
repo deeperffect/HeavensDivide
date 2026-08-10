@@ -11,6 +11,10 @@
 #include "InputActionValue.h"
 #include "PlayerCameraRig.h"
 #include "PlayerHUDWidget.h"
+#include "PlayerUpgradeComponent.h"
+#include "NinjaCharacter.h"
+#include "SamuraiCharacter.h"
+#include "SharedPlayerStatsComponent.h"
 #include "AutoAttackComponent.h"
 
 ASurvivorPlayerController::ASurvivorPlayerController()
@@ -19,6 +23,8 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	CharacterManager = CreateDefaultSubobject<UCharacterManagerComponent>(TEXT("CharacterManager"));
 	PlayerHealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("PlayerHealthComponent"));
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
+	SharedPlayerStatsComponent = CreateDefaultSubobject<USharedPlayerStatsComponent>(TEXT("SharedPlayerStatsComponent"));
+	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
 }
 
 void ASurvivorPlayerController::BeginPlay()
@@ -29,6 +35,10 @@ void ASurvivorPlayerController::BeginPlay()
 	if (CharacterManager)
 	{
 		CharacterManager->InitializeParty();
+		if (PlayerUpgradeComponent)
+		{
+			PlayerUpgradeComponent->RebuildAllUpgradeModifiers();
+		}
 		CharacterManager->OnCharacterSwapped.AddDynamic(this, &ASurvivorPlayerController::HandleCharacterSwapped);
 	}
 	InitializePlayerCameraRig();
@@ -37,6 +47,12 @@ void ASurvivorPlayerController::BeginPlay()
 	if (PlayerHealthComponent)
 	{
 		PlayerHealthComponent->OnDeath.AddDynamic(this, &ASurvivorPlayerController::HandlePlayerDeath);
+	}
+
+	if (SharedPlayerStatsComponent)
+	{
+		SharedPlayerStatsComponent->OnStatsChanged.AddDynamic(this, &ASurvivorPlayerController::HandleSharedPlayerStatsChanged);
+		ApplySharedMoveSpeedToParty();
 	}
 
 	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
@@ -86,6 +102,16 @@ UHealthComponent* ASurvivorPlayerController::GetPlayerHealthComponent() const
 UExperienceComponent* ASurvivorPlayerController::GetExperienceComponent() const
 {
 	return ExperienceComponent;
+}
+
+USharedPlayerStatsComponent* ASurvivorPlayerController::GetSharedPlayerStats() const
+{
+	return SharedPlayerStatsComponent;
+}
+
+UPlayerUpgradeComponent* ASurvivorPlayerController::GetPlayerUpgrades() const
+{
+	return PlayerUpgradeComponent;
 }
 
 bool ASurvivorPlayerController::IsPlayerDead() const
@@ -199,6 +225,7 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 		return;
 	}
 
+	ApplySharedMoveSpeedToParty();
 	SetCameraFollowTarget(NewCharacter);
 }
 
@@ -239,6 +266,31 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
+}
+
+void ASurvivorPlayerController::HandleSharedPlayerStatsChanged()
+{
+	ApplySharedMoveSpeedToParty();
+}
+
+void ASurvivorPlayerController::ApplySharedMoveSpeedToParty()
+{
+	const float MoveSpeedMultiplier = SharedPlayerStatsComponent ? SharedPlayerStatsComponent->GetFinalMoveSpeedMultiplier() : 1.0f;
+
+	if (!CharacterManager)
+	{
+		return;
+	}
+
+	if (ACharacterBase* Samurai = CharacterManager->GetSamurai())
+	{
+		Samurai->ApplySharedMoveSpeedMultiplier(MoveSpeedMultiplier);
+	}
+
+	if (ACharacterBase* Ninja = CharacterManager->GetNinja())
+	{
+		Ninja->ApplySharedMoveSpeedMultiplier(MoveSpeedMultiplier);
+	}
 }
 
 void ASurvivorPlayerController::UpdateMouseFacingTarget()

@@ -5,6 +5,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "AttackProjectileBase.h"
+#include "CharacterStatsComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
 #include "EnemyBase.h"
@@ -30,6 +31,10 @@ void UAutoAttackComponent::BeginPlay()
 	}
 
 	OwnerCharacter->OnCharacterModeChanged.AddDynamic(this, &UAutoAttackComponent::HandleOwnerCharacterModeChanged);
+	if (UCharacterStatsComponent* CharacterStats = OwnerCharacter->GetCharacterStats())
+	{
+		CharacterStats->OnStatsChanged.AddDynamic(this, &UAutoAttackComponent::HandleCharacterStatsChanged);
+	}
 
 	if (CanAutoAttack())
 	{
@@ -44,6 +49,10 @@ void UAutoAttackComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->OnCharacterModeChanged.RemoveDynamic(this, &UAutoAttackComponent::HandleOwnerCharacterModeChanged);
+		if (UCharacterStatsComponent* CharacterStats = OwnerCharacter->GetCharacterStats())
+		{
+			CharacterStats->OnStatsChanged.RemoveDynamic(this, &UAutoAttackComponent::HandleCharacterStatsChanged);
+		}
 	}
 
 	Super::EndPlay(EndPlayReason);
@@ -62,7 +71,7 @@ void UAutoAttackComponent::StartAutoAttack()
 		this,
 		GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
 
-	ScheduleNextAttackTimer(AttackInterval);
+	ScheduleNextAttackTimer(GetEffectiveAttackInterval());
 }
 
 void UAutoAttackComponent::StopAutoAttack()
@@ -97,8 +106,8 @@ void UAutoAttackComponent::SetAttackInterval(float NewInterval)
 			GetWorld()->GetTimeSeconds(),
 			*GetNameSafe(GetOwner()),
 			this,
-			AttackInterval);
-		ScheduleNextAttackTimer(AttackInterval);
+			GetEffectiveAttackInterval());
+		ScheduleNextAttackTimer(GetEffectiveAttackInterval());
 	}
 }
 
@@ -128,12 +137,14 @@ void UAutoAttackComponent::PerformAttackTrace()
 
 	const FVector AttackOrigin = OwnerCharacter->GetActorLocation();
 	const FVector HitboxCenter = AttackOrigin + AttackForward * AttackForwardOffset;
+	const float EffectiveAttackRadius = GetEffectiveAttackRadius();
+	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
 
 	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace origin: %s"), *AttackOrigin.ToString());
 	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace direction: %s"), *AttackForward.ToString());
 	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace sphere center: %s"), *HitboxCenter.ToString());
 	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace AttackRadius: %.2f AttackRange: %.2f AttackForwardOffset: %.2f"),
-		AttackRadius,
+		EffectiveAttackRadius,
 		AttackRange,
 		AttackForwardOffset);
 
@@ -141,7 +152,7 @@ void UAutoAttackComponent::PerformAttackTrace()
 	QueryParams.AddIgnoredActor(OwnerCharacter);
 
 	TArray<FHitResult> HitResults;
-	const FCollisionShape TraceShape = FCollisionShape::MakeSphere(AttackRadius);
+	const FCollisionShape TraceShape = FCollisionShape::MakeSphere(EffectiveAttackRadius);
 	FCollisionObjectQueryParams ObjectQueryParams;
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
 	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
@@ -177,10 +188,10 @@ void UAutoAttackComponent::PerformAttackTrace()
 		}
 
 		DamagedEnemies.Add(HitEnemy);
-		EnemyHealth->ApplyDamage(AttackDamage);
+		EnemyHealth->ApplyDamage(EffectiveAttackDamage);
 		UE_LOG(LogTemp, Log, TEXT("AutoAttack damaged enemy: %s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(HitEnemy),
-			AttackDamage,
+			EffectiveAttackDamage,
 			EnemyHealth->GetCurrentHealth());
 	}
 
@@ -189,7 +200,7 @@ void UAutoAttackComponent::PerformAttackTrace()
 		const FColor DebugColor = DamagedEnemies.Num() > 0 ? FColor::Red : FColor::Cyan;
 		constexpr float DebugDuration = 1.5f;
 		DrawDebugLine(GetWorld(), AttackOrigin, HitboxCenter, DebugColor, false, DebugDuration, 0, 4.0f);
-		DrawDebugSphere(GetWorld(), HitboxCenter, AttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
+		DrawDebugSphere(GetWorld(), HitboxCenter, EffectiveAttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
 		UE_LOG(LogTemp, Log, TEXT("AutoAttack debug trace drawn."));
 	}
 	else
@@ -239,6 +250,10 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 
 	const FVector SpawnLocation = GetProjectileSpawnLocation();
 	const FVector AimLocation = GetEnemyAimLocation(TargetEnemy);
+	const float EffectiveProjectileSpeed = GetEffectiveProjectileSpeed();
+	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
+	const float EffectiveHomingStrengthMultiplier = GetEffectiveHomingStrengthMultiplier();
+	const int32 EffectiveProjectileCount = GetEffectiveProjectileCount();
 	FVector ProjectileDirection = AimLocation - SpawnLocation;
 	ProjectileDirection.Z = 0.0f;
 
@@ -267,14 +282,15 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
-	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, AttackDamage, ProjectileSpeed, EProjectileTargetType::Enemies, TargetEnemy);
+	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, EffectiveAttackDamage, EffectiveProjectileSpeed, EProjectileTargetType::Enemies, TargetEnemy, EffectiveHomingStrengthMultiplier);
 
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Spawned: Target=%s SpawnLocation=%s Direction=%s"),
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Spawned: Target=%s SpawnLocation=%s Direction=%s ProjectileCount=%d"),
 		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0,
 		ActiveAttackSequence,
 		*GetNameSafe(TargetEnemy),
 		*SpawnLocation.ToString(),
-		*ProjectileDirection.ToString());
+		*ProjectileDirection.ToString(),
+		EffectiveProjectileCount);
 
 	if (bDebugTargeting)
 	{
@@ -298,6 +314,14 @@ void UAutoAttackComponent::HandleOwnerCharacterModeChanged(ECharacterMode OldMod
 	StopAutoAttack();
 }
 
+void UAutoAttackComponent::HandleCharacterStatsChanged()
+{
+	if (CanAutoAttack() && GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
+	{
+		ScheduleNextAttackTimer(GetEffectiveAttackInterval());
+	}
+}
+
 void UAutoAttackComponent::HandleAttackTimer()
 {
 	if (!CanAutoAttack())
@@ -315,21 +339,21 @@ void UAutoAttackComponent::HandleAttackTimer()
 	if (bIsAttacking)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));
-		ScheduleNextAttackTimer(AttackInterval);
+		ScheduleNextAttackTimer(GetEffectiveAttackInterval());
 		return;
 	}
 
 	if (!CanStartAttackNow())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
-		const double NextReadyTime = LastAttackStartTime + AttackInterval;
+		const double NextReadyTime = LastAttackStartTime + GetEffectiveAttackInterval();
 		const float Delay = FMath::Max(0.01f, static_cast<float>(NextReadyTime - GetWorld()->GetTimeSeconds()));
 		ScheduleNextAttackTimer(Delay);
 		return;
 	}
 
 	StartTargetedAttack();
-	ScheduleNextAttackTimer(AttackInterval);
+	ScheduleNextAttackTimer(GetEffectiveAttackInterval());
 }
 
 void UAutoAttackComponent::ScheduleNextAttackTimer(float Delay)
@@ -397,9 +421,10 @@ bool UAutoAttackComponent::PlayAttackMontage()
 
 	const float ActualPlayRate = CalculateAttackMontagePlayRate(AttackMontage);
 	const float MontageLength = AttackMontage->GetPlayLength();
-	const float CalculatedPlayRate = AttackInterval > KINDA_SMALL_NUMBER ? MontageLength / AttackInterval : MaxAttackMontagePlayRate;
+	const float EffectiveAttackInterval = GetEffectiveAttackInterval();
+	const float CalculatedPlayRate = EffectiveAttackInterval > KINDA_SMALL_NUMBER ? MontageLength / EffectiveAttackInterval : MaxAttackMontagePlayRate;
 	UE_LOG(LogTemp, Log, TEXT("Attack Montage Rate: AttackInterval=%.3f MontageLength=%.3f CalculatedPlayRate=%.3f ActualPlayRate=%.3f"),
-		AttackInterval,
+		EffectiveAttackInterval,
 		MontageLength,
 		CalculatedPlayRate,
 		ActualPlayRate);
@@ -433,12 +458,13 @@ float UAutoAttackComponent::CalculateAttackMontagePlayRate(const UAnimMontage* M
 	}
 
 	const float MontageLength = Montage->GetPlayLength();
-	if (MontageLength <= KINDA_SMALL_NUMBER || AttackInterval <= KINDA_SMALL_NUMBER)
+	const float EffectiveAttackInterval = GetEffectiveAttackInterval();
+	if (MontageLength <= KINDA_SMALL_NUMBER || EffectiveAttackInterval <= KINDA_SMALL_NUMBER)
 	{
 		return SafeMaxPlayRate;
 	}
 
-	const float CalculatedPlayRate = MontageLength / AttackInterval;
+	const float CalculatedPlayRate = MontageLength / EffectiveAttackInterval;
 	return FMath::Clamp(FMath::Max(1.0f, CalculatedPlayRate), 1.0f, SafeMaxPlayRate);
 }
 
@@ -518,7 +544,7 @@ bool UAutoAttackComponent::CanStartAttackNow() const
 		return false;
 	}
 
-	return World->GetTimeSeconds() >= LastAttackStartTime + AttackInterval;
+	return World->GetTimeSeconds() >= LastAttackStartTime + GetEffectiveAttackInterval();
 }
 
 bool UAutoAttackComponent::TryConsumeAttackNotify()
@@ -537,6 +563,46 @@ bool UAutoAttackComponent::TryConsumeAttackNotify()
 
 	bAttackNotifyConsumed = true;
 	return true;
+}
+
+float UAutoAttackComponent::GetEffectiveAttackInterval() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	const float AttackSpeedMultiplier = CharacterStats ? CharacterStats->GetFinalAttackSpeedMultiplier() : 1.0f;
+	return FMath::Max(0.01f, AttackInterval / FMath::Max(0.01f, AttackSpeedMultiplier));
+}
+
+float UAutoAttackComponent::GetEffectiveAttackDamage() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	const float DamageMultiplier = CharacterStats ? CharacterStats->GetFinalDamageMultiplier() : 1.0f;
+	return AttackDamage * DamageMultiplier;
+}
+
+float UAutoAttackComponent::GetEffectiveAttackRadius() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	const float AttackAreaMultiplier = CharacterStats ? CharacterStats->GetFinalAttackAreaMultiplier() : 1.0f;
+	return AttackRadius * AttackAreaMultiplier;
+}
+
+float UAutoAttackComponent::GetEffectiveProjectileSpeed() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	const float ProjectileSpeedMultiplier = CharacterStats ? CharacterStats->GetFinalProjectileSpeedMultiplier() : 1.0f;
+	return ProjectileSpeed * ProjectileSpeedMultiplier;
+}
+
+float UAutoAttackComponent::GetEffectiveHomingStrengthMultiplier() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	return CharacterStats ? CharacterStats->GetFinalHomingStrengthMultiplier() : 1.0f;
+}
+
+int32 UAutoAttackComponent::GetEffectiveProjectileCount() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	return CharacterStats ? CharacterStats->GetFinalProjectileCount() : 1;
 }
 
 AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const

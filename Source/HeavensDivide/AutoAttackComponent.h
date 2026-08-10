@@ -95,6 +95,9 @@ private:
 	UFUNCTION()
 	void HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode);
 
+	UFUNCTION()
+	void HandleCharacterStatsChanged();
+
 	void HandleAttackTimer();
 	void ScheduleNextAttackTimer(float Delay);
 	bool PlayAttackMontage();
@@ -104,6 +107,12 @@ private:
 	void StartProjectileAttack();
 	bool CanStartAttackNow() const;
 	bool TryConsumeAttackNotify();
+	float GetEffectiveAttackInterval() const;
+	float GetEffectiveAttackDamage() const;
+	float GetEffectiveAttackRadius() const;
+	float GetEffectiveProjectileSpeed() const;
+	float GetEffectiveHomingStrengthMultiplier() const;
+	int32 GetEffectiveProjectileCount() const;
 	AEnemyBase* FindNearestEnemyTarget() const;
 	FVector GetProjectileSpawnLocation() const;
 	FVector GetEnemyAimLocation(const AEnemyBase* Enemy) const;

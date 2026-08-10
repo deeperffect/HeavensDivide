@@ -4,6 +4,7 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "CharacterStatsComponent.h"
 #include "Components/SceneComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -36,6 +37,8 @@ ACharacterBase::ACharacterBase()
 	VisualRoot = CreateDefaultSubobject<USceneComponent>(TEXT("VisualRoot"));
 	VisualRoot->SetupAttachment(RootComponent);
 	GetMesh()->SetupAttachment(VisualRoot);
+
+	CharacterStatsComponent = CreateDefaultSubobject<UCharacterStatsComponent>(TEXT("CharacterStatsComponent"));
 }
 
 void ACharacterBase::BeginPlay()
@@ -45,6 +48,11 @@ void ACharacterBase::BeginPlay()
 	if (VisualRoot && GetMesh() && GetMesh()->GetAttachParent() != VisualRoot)
 	{
 		GetMesh()->AttachToComponent(VisualRoot, FAttachmentTransformRules::KeepRelativeTransform);
+	}
+
+	if (const UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		BaseMaxWalkSpeed = MovementComponent->MaxWalkSpeed;
 	}
 }
 
@@ -186,6 +194,27 @@ void ACharacterBase::LogVisibilityState(const FString& Context) const
 		(MeshComponent && MeshComponent->bHiddenInGame) ? TEXT("true") : TEXT("false"),
 		MeshComponent ? *MeshComponent->GetComponentLocation().ToString() : TEXT("None"),
 		MeshComponent ? *MeshComponent->GetRelativeScale3D().ToString() : TEXT("None"));
+}
+
+UCharacterStatsComponent* ACharacterBase::GetCharacterStats() const
+{
+	return CharacterStatsComponent;
+}
+
+void ACharacterBase::ApplySharedMoveSpeedMultiplier(float MoveSpeedMultiplier)
+{
+	UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+	if (!MovementComponent)
+	{
+		return;
+	}
+
+	if (BaseMaxWalkSpeed <= 0.0f)
+	{
+		BaseMaxWalkSpeed = MovementComponent->MaxWalkSpeed;
+	}
+
+	MovementComponent->MaxWalkSpeed = BaseMaxWalkSpeed * FMath::Max(0.0f, MoveSpeedMultiplier);
 }
 
 ECharacterMode ACharacterBase::GetCharacterMode() const

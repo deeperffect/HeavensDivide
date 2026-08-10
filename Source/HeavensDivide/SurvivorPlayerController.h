@@ -11,7 +11,9 @@ class UInputMappingContext;
 class UCharacterManagerComponent;
 class UExperienceComponent;
 class UHealthComponent;
+class UPlayerUpgradeComponent;
 class UPlayerHUDWidget;
+class USharedPlayerStatsComponent;
 class ACharacterBase;
 class APlayerCameraRig;
 struct FInputActionValue;
@@ -35,6 +37,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	UExperienceComponent* GetExperienceComponent() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player")
+	USharedPlayerStatsComponent* GetSharedPlayerStats() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player")
+	UPlayerUpgradeComponent* GetPlayerUpgrades() const;
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
@@ -64,6 +72,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
 	TObjectPtr<UExperienceComponent> ExperienceComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	TObjectPtr<USharedPlayerStatsComponent> SharedPlayerStatsComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	TObjectPtr<UPlayerUpgradeComponent> PlayerUpgradeComponent;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
 	TSubclassOf<APlayerCameraRig> PlayerCameraRigClass;
 
@@ -88,6 +102,9 @@ protected:
 	void HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
 	UFUNCTION()
 	void HandlePlayerDeath();
+	UFUNCTION()
+	void HandleSharedPlayerStatsChanged();
+	void ApplySharedMoveSpeedToParty();
 	void UpdateMouseFacingTarget();
 	bool GetMouseWorldPosition(FVector& OutWorldPosition) const;
 };

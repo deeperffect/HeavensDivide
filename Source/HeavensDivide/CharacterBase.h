@@ -8,6 +8,7 @@
 
 class USceneComponent;
 class UAnimMontage;
+class UCharacterStatsComponent;
 
 UENUM(BlueprintType)
 enum class ECharacterMode : uint8
@@ -41,6 +42,9 @@ public:
 	void StopPlayerGameplay();
 	void PlayDeathMontage();
 	void LogVisibilityState(const FString& Context) const;
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	UCharacterStatsComponent* GetCharacterStats() const;
+	void ApplySharedMoveSpeedMultiplier(float MoveSpeedMultiplier);
 
 	UPROPERTY(BlueprintAssignable, Category = "Character")
 	FOnCharacterModeChanged OnCharacterModeChanged;
@@ -60,6 +64,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Visual")
 	TObjectPtr<USceneComponent> VisualRoot;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	TObjectPtr<UCharacterStatsComponent> CharacterStatsComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mouse Facing", meta = (ClampMin = "0.0", UIMin = "0.0", FormerlySerializedAs = "MouseFacingRotationSpeed"))
 	float FacingRotationSpeed = 12.0f;
 
@@ -75,4 +82,5 @@ protected:
 	bool bHasFacingTarget = false;
 	FVector FacingOverrideTarget = FVector::ZeroVector;
 	bool bHasFacingOverride = false;
+	float BaseMaxWalkSpeed = 0.0f;
 };

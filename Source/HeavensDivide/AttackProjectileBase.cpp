@@ -55,7 +55,7 @@ void AAttackProjectileBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
-void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType, AActor* InHomingTarget)
+void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType, AActor* InHomingTarget, float InHomingStrengthMultiplier)
 {
 	GameplayOwner = InGameplayOwner;
 	SetOwner(InGameplayOwner);
@@ -81,7 +81,7 @@ void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVecto
 	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->Velocity = Direction * ProjectileSpeed;
 	SetActorRotation(Direction.Rotation());
-	ConfigureHoming(InHomingTarget);
+	ConfigureHoming(InHomingTarget, InHomingStrengthMultiplier);
 	bIsProjectileInitialized = true;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
@@ -212,7 +212,7 @@ void AAttackProjectileBase::HandleHomingTargetDeath()
 	DisableHoming();
 }
 
-void AAttackProjectileBase::ConfigureHoming(AActor* InHomingTarget)
+void AAttackProjectileBase::ConfigureHoming(AActor* InHomingTarget, float InHomingStrengthMultiplier)
 {
 	if (!ProjectileMovement)
 	{
@@ -236,7 +236,7 @@ void AAttackProjectileBase::ConfigureHoming(AActor* InHomingTarget)
 
 	ProjectileMovement->bIsHomingProjectile = true;
 	ProjectileMovement->HomingTargetComponent = TargetComponent;
-	ProjectileMovement->HomingAccelerationMagnitude = HomingAccelerationMagnitude;
+	ProjectileMovement->HomingAccelerationMagnitude = HomingAccelerationMagnitude * FMath::Max(0.0f, InHomingStrengthMultiplier);
 
 	InHomingTarget->OnDestroyed.AddDynamic(this, &AAttackProjectileBase::HandleHomingTargetDestroyed);
 	if (AEnemyBase* EnemyTarget = Cast<AEnemyBase>(InHomingTarget))

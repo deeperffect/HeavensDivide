@@ -26,7 +26,7 @@ public:
 	AAttackProjectileBase();
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
-	void InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType = EProjectileTargetType::Enemies, AActor* InHomingTarget = nullptr);
+	void InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType = EProjectileTargetType::Enemies, AActor* InHomingTarget = nullptr, float InHomingStrengthMultiplier = 1.0f);
 
 protected:
 	virtual void BeginPlay() override;
@@ -75,7 +75,7 @@ private:
 	UFUNCTION()
 	void HandleHomingTargetDeath();
 
-	void ConfigureHoming(AActor* InHomingTarget);
+	void ConfigureHoming(AActor* InHomingTarget, float InHomingStrengthMultiplier);
 	void DisableHoming();
 	void LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const;
 
