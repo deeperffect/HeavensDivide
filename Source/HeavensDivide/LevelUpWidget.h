@@ -51,4 +51,8 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Level Up")
 	TObjectPtr<UPlayerUpgradeComponent> PlayerUpgrades;
+
+private:
+	bool bCategoryChoiceCommitted = false;
+	bool bUpgradeChoiceCommitted = false;
 };

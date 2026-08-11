@@ -9,6 +9,8 @@ void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayer
 {
 	SurvivorPlayerController = InPlayerController;
 	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
+	bCategoryChoiceCommitted = false;
+	bUpgradeChoiceCommitted = false;
 	RefreshCategoryChoices();
 }
 
@@ -25,6 +27,12 @@ void ULevelUpWidget::RefreshCategoryChoices()
 
 bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
 {
+	if (bCategoryChoiceCommitted)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LevelUpWidget category selection ignored: category already selected for this offer."));
+		return false;
+	}
+
 	if (!PlayerUpgrades)
 	{
 		return false;
@@ -43,6 +51,9 @@ bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
 		return false;
 	}
 
+	bCategoryChoiceCommitted = true;
+	bUpgradeChoiceCommitted = false;
+
 	const TArray<UUpgradeDefinition*> UpgradeChoices = PlayerUpgrades->GetCurrentUpgradeChoices();
 	UE_LOG(LogTemp, Log, TEXT("UPGRADE OFFER:"));
 	for (const UUpgradeDefinition* Upgrade : UpgradeChoices)
@@ -56,6 +67,12 @@ bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
 
 bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 {
+	if (bUpgradeChoiceCommitted)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LevelUpWidget upgrade selection ignored: upgrade already selected for this offer."));
+		return false;
+	}
+
 	if (!PlayerUpgrades)
 	{
 		return false;
@@ -73,6 +90,8 @@ bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 	{
 		return false;
 	}
+
+	bUpgradeChoiceCommitted = true;
 
 	UE_LOG(LogTemp, Log, TEXT("UPGRADE SELECTED: %s"), SelectedUpgrade ? *SelectedUpgrade->DisplayName.ToString() : TEXT("None"));
 	UE_LOG(LogTemp, Log, TEXT("New upgrade level = %d"), PlayerUpgrades->GetUpgradeLevel(SelectedUpgrade));

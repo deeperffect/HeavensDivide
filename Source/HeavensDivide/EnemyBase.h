@@ -86,7 +86,7 @@ protected:
 	float StopDistance = 150.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
-	bool bUseLightweightMovement = false;
+	bool bUseLightweightMovement = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread")
 	bool bUseCrowdSpread = true;

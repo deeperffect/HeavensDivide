@@ -11,6 +11,7 @@ class USceneComponent;
 class USphereComponent;
 class UCharacterManagerComponent;
 class UExperienceComponent;
+class USharedPlayerStatsComponent;
 
 UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AExperiencePickup : public AActor
@@ -21,6 +22,7 @@ public:
 	AExperiencePickup();
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Experience Pickup")
@@ -52,11 +54,15 @@ private:
 	UFUNCTION()
 	void HandlePickupOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	UFUNCTION()
+	void HandleSharedPlayerStatsChanged();
+
 	bool IsActiveCharacter(AActor* Actor) const;
 	ACharacterBase* GetActiveCharacter() const;
 	void BeginAttraction();
 	void Collect();
 	void CacheSharedPlayerState();
+	void ApplySharedPickupRadiusStats();
 	void CheckInitialActiveCharacterProximity();
 
 	UPROPERTY()
@@ -65,6 +71,11 @@ private:
 	UPROPERTY()
 	TObjectPtr<UCharacterManagerComponent> CharacterManager;
 
+	UPROPERTY()
+	TObjectPtr<USharedPlayerStatsComponent> SharedPlayerStats;
+
 	bool bAttracting = false;
 	bool bCollected = false;
+	float BasePickupRadius = 0.0f;
+	float BaseAttractionRadius = 0.0f;
 };

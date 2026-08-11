@@ -11,8 +11,17 @@
 #include "EnemyBase.h"
 #include "GameFramework/Character.h"
 #include "HealthComponent.h"
+#include "HAL/IConsoleManager.h"
+#include "Kismet/GameplayStatics.h"
+#include "SharedPlayerStatsComponent.h"
+#include "SurvivorPlayerController.h"
 #include "TimerManager.h"
 #include "Engine/OverlapResult.h"
+
+static TAutoConsoleVariable<int32> CVarHDLogAutoAttackCooldown(
+	TEXT("hd.LogAutoAttackCooldown"),
+	0,
+	TEXT("Logs player auto-attack cooldown transitions when enabled."));
 
 UAutoAttackComponent::UAutoAttackComponent()
 {
@@ -71,7 +80,7 @@ void UAutoAttackComponent::StartAutoAttack()
 		this,
 		GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
 
-	ScheduleNextAttackTimer(GetEffectiveAttackInterval());
+	ScheduleNextAttackTimerFromCooldown();
 }
 
 void UAutoAttackComponent::StopAutoAttack()
@@ -264,25 +273,14 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = OwnerCharacter;
-	SpawnParameters.Instigator = OwnerCharacter;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-	AAttackProjectileBase* Projectile = GetWorld()->SpawnActor<AAttackProjectileBase>(
-		ProjectileClass,
-		SpawnLocation,
-		ProjectileDirection.Rotation(),
-		SpawnParameters);
-
-	if (!Projectile)
+	const float SpreadAngleDegrees = 8.0f;
+	const float StartAngle = -0.5f * SpreadAngleDegrees * static_cast<float>(EffectiveProjectileCount - 1);
+	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn failed."));
-		OwnerCharacter->ClearFacingOverride();
-		return;
+		const float Angle = StartAngle + SpreadAngleDegrees * static_cast<float>(ProjectileIndex);
+		const FVector SpawnDirection = ProjectileDirection.RotateAngleAxis(Angle, FVector::UpVector).GetSafeNormal();
+		SpawnProjectileInstance(SpawnLocation, SpawnDirection, TargetEnemy, EffectiveAttackDamage, EffectiveProjectileSpeed, EffectiveHomingStrengthMultiplier);
 	}
-
-	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, EffectiveAttackDamage, EffectiveProjectileSpeed, EProjectileTargetType::Enemies, TargetEnemy, EffectiveHomingStrengthMultiplier);
 
 	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Spawned: Target=%s SpawnLocation=%s Direction=%s ProjectileCount=%d"),
 		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0,
@@ -303,22 +301,88 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	OwnerCharacter->ClearFacingOverride();
 }
 
+void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier)
+{
+	if (!OwnerCharacter || !ProjectileClass || !GetWorld())
+	{
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = OwnerCharacter;
+	SpawnParameters.Instigator = OwnerCharacter;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AAttackProjectileBase* Projectile = GetWorld()->SpawnActor<AAttackProjectileBase>(
+		ProjectileClass,
+		SpawnLocation,
+		ProjectileDirection.Rotation(),
+		SpawnParameters);
+
+	if (!Projectile)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn failed."));
+		return;
+	}
+
+	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, Damage, Speed, EProjectileTargetType::Enemies, TargetEnemy, HomingStrengthMultiplier);
+}
+
 void UAutoAttackComponent::HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode)
 {
 	if (NewMode == ECharacterMode::Active)
 	{
+		if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0 && GetWorld())
+		{
+			UE_LOG(LogTemp, Log, TEXT("[%s] Activated CurrentTime=%.2f NextReadyTime=%.2f RemainingCooldown=%.2f"),
+				*GetNameSafe(GetOwner()),
+				GetWorld()->GetTimeSeconds(),
+				NextAttackReadyTime,
+				FMath::Max(0.0, NextAttackReadyTime - GetWorld()->GetTimeSeconds()));
+		}
 		StartAutoAttack();
 		return;
 	}
 
+	if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0 && GetWorld())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Deactivated CurrentTime=%.2f NextReadyTime=%.2f"),
+			*GetNameSafe(GetOwner()),
+			GetWorld()->GetTimeSeconds(),
+			NextAttackReadyTime);
+	}
 	StopAutoAttack();
 }
 
 void UAutoAttackComponent::HandleCharacterStatsChanged()
 {
+	if (GetWorld() && LastAttackStartTime > -DBL_MAX / 2.0)
+	{
+		const float NewInterval = GetEffectiveAttackInterval();
+		const float OldInterval = FMath::Max(0.01f, AttackIntervalAtLastAttackStart);
+		const double CurrentTime = GetWorld()->GetTimeSeconds();
+		const double Elapsed = FMath::Max(0.0, CurrentTime - LastAttackStartTime);
+		const double CooldownProgress = FMath::Clamp(Elapsed / static_cast<double>(OldInterval), 0.0, 1.0);
+		NextAttackReadyTime = CurrentTime + static_cast<double>(NewInterval) * (1.0 - CooldownProgress);
+		AttackIntervalAtLastAttackStart = NewInterval;
+		LastAttackStartTime = CurrentTime - CooldownProgress * static_cast<double>(NewInterval);
+
+		if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[%s] Cooldown recalculated after stat change OldInterval=%.3f NewInterval=%.3f Progress=%.2f CurrentTime=%.2f NextReadyTime=%.2f RemainingCooldown=%.2f"),
+				*GetNameSafe(GetOwner()),
+				OldInterval,
+				NewInterval,
+				CooldownProgress,
+				CurrentTime,
+				NextAttackReadyTime,
+				FMath::Max(0.0, NextAttackReadyTime - CurrentTime));
+		}
+	}
+
 	if (CanAutoAttack() && GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
 	{
-		ScheduleNextAttackTimer(GetEffectiveAttackInterval());
+		ScheduleNextAttackTimerFromCooldown();
 	}
 }
 
@@ -339,21 +403,20 @@ void UAutoAttackComponent::HandleAttackTimer()
 	if (bIsAttacking)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));
-		ScheduleNextAttackTimer(GetEffectiveAttackInterval());
+		ScheduleNextAttackTimerFromCooldown();
 		return;
 	}
 
 	if (!CanStartAttackNow())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
-		const double NextReadyTime = LastAttackStartTime + GetEffectiveAttackInterval();
-		const float Delay = FMath::Max(0.01f, static_cast<float>(NextReadyTime - GetWorld()->GetTimeSeconds()));
+		const float Delay = FMath::Max(0.01f, static_cast<float>(NextAttackReadyTime - GetWorld()->GetTimeSeconds()));
 		ScheduleNextAttackTimer(Delay);
 		return;
 	}
 
 	StartTargetedAttack();
-	ScheduleNextAttackTimer(GetEffectiveAttackInterval());
+	ScheduleNextAttackTimerFromCooldown();
 }
 
 void UAutoAttackComponent::ScheduleNextAttackTimer(float Delay)
@@ -384,6 +447,28 @@ void UAutoAttackComponent::ScheduleNextAttackTimer(float Delay)
 		this,
 		SafeDelay,
 		World->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
+}
+
+void UAutoAttackComponent::ScheduleNextAttackTimerFromCooldown()
+{
+	if (!CanAutoAttack() || !GetWorld())
+	{
+		return;
+	}
+
+	const double CurrentTime = GetWorld()->GetTimeSeconds();
+	const float Delay = FMath::Max(0.01f, static_cast<float>(NextAttackReadyTime - CurrentTime));
+	ScheduleNextAttackTimer(Delay);
+
+	if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Cooldown schedule CurrentTime=%.2f NextReadyTime=%.2f Delay=%.3f %s"),
+			*GetNameSafe(GetOwner()),
+			CurrentTime,
+			NextAttackReadyTime,
+			Delay,
+			CurrentTime >= NextAttackReadyTime ? TEXT("READY IMMEDIATELY") : TEXT(""));
+	}
 }
 
 bool UAutoAttackComponent::PlayAttackMontage()
@@ -443,8 +528,17 @@ bool UAutoAttackComponent::PlayAttackMontage()
 	bIsAttacking = true;
 	bAttackNotifyConsumed = false;
 	LastAttackStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastAttackStartTime;
+	AttackIntervalAtLastAttackStart = GetEffectiveAttackInterval();
+	NextAttackReadyTime = LastAttackStartTime + AttackIntervalAtLastAttackStart;
 	ActiveAttackSequence = ++AttackSequence;
 	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Started"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
+	if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[%s] Attack started FinalInterval=%.3f NextReadyTime=%.2f"),
+			*GetNameSafe(GetOwner()),
+			AttackIntervalAtLastAttackStart,
+			NextAttackReadyTime);
+	}
 	return true;
 }
 
@@ -544,7 +638,7 @@ bool UAutoAttackComponent::CanStartAttackNow() const
 		return false;
 	}
 
-	return World->GetTimeSeconds() >= LastAttackStartTime + GetEffectiveAttackInterval();
+	return World->GetTimeSeconds() >= NextAttackReadyTime;
 }
 
 bool UAutoAttackComponent::TryConsumeAttackNotify()
@@ -576,7 +670,10 @@ float UAutoAttackComponent::GetEffectiveAttackDamage() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
 	const float DamageMultiplier = CharacterStats ? CharacterStats->GetFinalDamageMultiplier() : 1.0f;
-	return AttackDamage * DamageMultiplier;
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(OwnerCharacter ? OwnerCharacter->GetOwner() : nullptr);
+	const USharedPlayerStatsComponent* SharedStats = SurvivorController ? SurvivorController->GetSharedPlayerStats() : nullptr;
+	const float GlobalDamageMultiplier = SharedStats ? SharedStats->GetFinalDamageMultiplier() : 1.0f;
+	return AttackDamage * DamageMultiplier * GlobalDamageMultiplier;
 }
 
 float UAutoAttackComponent::GetEffectiveAttackRadius() const
@@ -603,6 +700,26 @@ int32 UAutoAttackComponent::GetEffectiveProjectileCount() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
 	return CharacterStats ? CharacterStats->GetFinalProjectileCount() : 1;
+}
+
+float UAutoAttackComponent::GetBaseAttackInterval() const
+{
+	return AttackInterval;
+}
+
+float UAutoAttackComponent::GetBaseAttackDamage() const
+{
+	return AttackDamage;
+}
+
+float UAutoAttackComponent::GetBaseAttackRadius() const
+{
+	return AttackRadius;
+}
+
+float UAutoAttackComponent::GetBaseProjectileSpeed() const
+{
+	return ProjectileSpeed;
 }
 
 AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const

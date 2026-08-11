@@ -2,14 +2,22 @@
 
 #include "PlayerUpgradeComponent.h"
 
+#include "AutoAttackComponent.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "CharacterStatsComponent.h"
+#include "HealthComponent.h"
+#include "HAL/IConsoleManager.h"
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
 #include "SurvivorPlayerController.h"
 #include "UpgradeDefinition.h"
+
+static TAutoConsoleVariable<int32> CVarHDLogPlayerUpgradeStats(
+	TEXT("hd.LogPlayerUpgradeStats"),
+	0,
+	TEXT("Logs player upgrade/stat summary after upgrade stat rebuilds when enabled."));
 
 UPlayerUpgradeComponent::UPlayerUpgradeComponent()
 {
@@ -48,6 +56,7 @@ bool UPlayerUpgradeComponent::AcquireUpgrade(UUpgradeDefinition* Upgrade)
 	AcquiredUpgradeDefinitions.FindOrAdd(Upgrade->UpgradeId) = Upgrade;
 
 	RebuildUpgradeModifiers(Upgrade, NewLevel);
+	LogPlayerUpgradeStats();
 
 	OnUpgradeAcquired.Broadcast(Upgrade, NewLevel);
 	OnUpgradeLevelChanged.Broadcast(Upgrade, NewLevel);
@@ -72,6 +81,42 @@ void UPlayerUpgradeComponent::RebuildAllUpgradeModifiers()
 			RebuildUpgradeModifiers(Upgrade, Level);
 		}
 	}
+
+	LogPlayerUpgradeStats();
+}
+
+void UPlayerUpgradeComponent::LogPlayerUpgradeStats() const
+{
+	if (CVarHDLogPlayerUpgradeStats.GetValueOnGameThread() == 0)
+	{
+		return;
+	}
+
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(GetOwner());
+	const UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
+	const USharedPlayerStatsComponent* SharedStats = SurvivorController ? SurvivorController->GetSharedPlayerStats() : nullptr;
+	const UHealthComponent* PlayerHealth = SurvivorController ? SurvivorController->GetPlayerHealthComponent() : nullptr;
+	const ACharacterBase* Samurai = CharacterManager ? CharacterManager->GetSamurai() : nullptr;
+	const ACharacterBase* Ninja = CharacterManager ? CharacterManager->GetNinja() : nullptr;
+	const UAutoAttackComponent* SamuraiAttack = Samurai ? Samurai->FindComponentByClass<UAutoAttackComponent>() : nullptr;
+	const UAutoAttackComponent* NinjaAttack = Ninja ? Ninja->FindComponentByClass<UAutoAttackComponent>() : nullptr;
+
+	UE_LOG(LogTemp, Log, TEXT("=== PLAYER UPGRADE STATS ==="));
+	UE_LOG(LogTemp, Log, TEXT("SHARED"));
+	UE_LOG(LogTemp, Log, TEXT("Move Speed Multiplier: %.3f"), SharedStats ? SharedStats->GetFinalMoveSpeedMultiplier() : 1.0f);
+	UE_LOG(LogTemp, Log, TEXT("Max Health: Current %.2f / Final %.2f"), PlayerHealth ? PlayerHealth->GetCurrentHealth() : 0.0f, PlayerHealth ? PlayerHealth->GetMaxHealth() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Pickup Radius Multiplier: %.3f"), SharedStats ? SharedStats->GetFinalPickupRadiusMultiplier() : 1.0f);
+	UE_LOG(LogTemp, Log, TEXT("Global Damage Multiplier: %.3f"), SharedStats ? SharedStats->GetFinalDamageMultiplier() : 1.0f);
+	UE_LOG(LogTemp, Log, TEXT("SAMURAI"));
+	UE_LOG(LogTemp, Log, TEXT("Damage: Base %.2f -> Final %.2f"), SamuraiAttack ? SamuraiAttack->GetBaseAttackDamage() : 0.0f, SamuraiAttack ? SamuraiAttack->GetEffectiveAttackDamage() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Attack Interval: Base %.3f -> Final %.3f"), SamuraiAttack ? SamuraiAttack->GetBaseAttackInterval() : 0.0f, SamuraiAttack ? SamuraiAttack->GetEffectiveAttackInterval() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Area Radius: Base %.2f -> Final %.2f"), SamuraiAttack ? SamuraiAttack->GetBaseAttackRadius() : 0.0f, SamuraiAttack ? SamuraiAttack->GetEffectiveAttackRadius() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("NINJA"));
+	UE_LOG(LogTemp, Log, TEXT("Damage: Base %.2f -> Final %.2f"), NinjaAttack ? NinjaAttack->GetBaseAttackDamage() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveAttackDamage() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Attack Interval: Base %.3f -> Final %.3f"), NinjaAttack ? NinjaAttack->GetBaseAttackInterval() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveAttackInterval() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Projectile Count: Base 1 -> Final %d"), NinjaAttack ? NinjaAttack->GetEffectiveProjectileCount() : 1);
+	UE_LOG(LogTemp, Log, TEXT("Projectile Speed: Base %.2f -> Final %.2f"), NinjaAttack ? NinjaAttack->GetBaseProjectileSpeed() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveProjectileSpeed() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("============================"));
 }
 
 bool UPlayerUpgradeComponent::IsCategoryUnlocked(EUpgradeCategory Category) const

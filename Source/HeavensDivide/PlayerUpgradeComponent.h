@@ -32,6 +32,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Upgrades")
 	void RebuildAllUpgradeModifiers();
 
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
+	void LogPlayerUpgradeStats() const;
+
 	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
 	bool IsCategoryUnlocked(EUpgradeCategory Category) const;
 

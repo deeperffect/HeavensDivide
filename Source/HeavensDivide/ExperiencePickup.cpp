@@ -8,6 +8,7 @@
 #include "Components/SphereComponent.h"
 #include "ExperienceComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "SharedPlayerStatsComponent.h"
 #include "SurvivorPlayerController.h"
 
 AExperiencePickup::AExperiencePickup()
@@ -38,15 +39,31 @@ void AExperiencePickup::BeginPlay()
 
 	AttractionRadius = FMath::Max(1.0f, AttractionRadius);
 	PickupRadius = FMath::Clamp(PickupRadius, 1.0f, AttractionRadius);
+	BasePickupRadius = PickupRadius;
+	BaseAttractionRadius = AttractionRadius;
 	XPValue = FMath::Max(0, XPValue);
 
 	if (PickupCollision)
 	{
-		PickupCollision->SetSphereRadius(AttractionRadius);
 		PickupCollision->OnComponentBeginOverlap.AddDynamic(this, &AExperiencePickup::HandlePickupOverlap);
 	}
 
 	CacheSharedPlayerState();
+	ApplySharedPickupRadiusStats();
+	if (SharedPlayerStats)
+	{
+		SharedPlayerStats->OnStatsChanged.AddDynamic(this, &AExperiencePickup::HandleSharedPlayerStatsChanged);
+	}
+}
+
+void AExperiencePickup::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (SharedPlayerStats)
+	{
+		SharedPlayerStats->OnStatsChanged.RemoveDynamic(this, &AExperiencePickup::HandleSharedPlayerStatsChanged);
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AExperiencePickup::Tick(float DeltaSeconds)
@@ -88,6 +105,8 @@ void AExperiencePickup::InitializePickup(int32 InXPValue, UExperienceComponent* 
 	XPValue = FMath::Max(0, InXPValue);
 	ExperienceComponent = InExperienceComponent;
 	CharacterManager = InCharacterManager;
+	CacheSharedPlayerState();
+	ApplySharedPickupRadiusStats();
 	CheckInitialActiveCharacterProximity();
 }
 
@@ -99,6 +118,12 @@ void AExperiencePickup::HandlePickupOverlap(UPrimitiveComponent* OverlappedCompo
 	}
 
 	BeginAttraction();
+}
+
+void AExperiencePickup::HandleSharedPlayerStatsChanged()
+{
+	ApplySharedPickupRadiusStats();
+	CheckInitialActiveCharacterProximity();
 }
 
 bool AExperiencePickup::IsActiveCharacter(AActor* Actor) const
@@ -169,6 +194,33 @@ void AExperiencePickup::CacheSharedPlayerState()
 	if (!CharacterManager)
 	{
 		CharacterManager = SurvivorController->GetCharacterManager();
+	}
+
+	if (!SharedPlayerStats)
+	{
+		SharedPlayerStats = SurvivorController->GetSharedPlayerStats();
+	}
+}
+
+void AExperiencePickup::ApplySharedPickupRadiusStats()
+{
+	if (BasePickupRadius <= 0.0f)
+	{
+		BasePickupRadius = PickupRadius;
+	}
+
+	if (BaseAttractionRadius <= 0.0f)
+	{
+		BaseAttractionRadius = AttractionRadius;
+	}
+
+	const float PickupRadiusMultiplier = SharedPlayerStats ? SharedPlayerStats->GetFinalPickupRadiusMultiplier() : 1.0f;
+	PickupRadius = FMath::Max(1.0f, BasePickupRadius * PickupRadiusMultiplier);
+	AttractionRadius = FMath::Max(PickupRadius, BaseAttractionRadius * PickupRadiusMultiplier);
+
+	if (PickupCollision)
+	{
+		PickupCollision->SetSphereRadius(AttractionRadius);
 	}
 }
 

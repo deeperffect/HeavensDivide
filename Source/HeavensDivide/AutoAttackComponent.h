@@ -36,6 +36,36 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Auto Attack|Projectile")
 	void SpawnAutoAttackProjectile();
 
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetEffectiveAttackInterval() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetEffectiveAttackDamage() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetEffectiveAttackRadius() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetEffectiveProjectileSpeed() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetEffectiveHomingStrengthMultiplier() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	int32 GetEffectiveProjectileCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetBaseAttackInterval() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetBaseAttackDamage() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetBaseAttackRadius() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetBaseProjectileSpeed() const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Auto Attack")
 	FOnAutoAttack OnAutoAttack;
 
@@ -100,6 +130,7 @@ private:
 
 	void HandleAttackTimer();
 	void ScheduleNextAttackTimer(float Delay);
+	void ScheduleNextAttackTimerFromCooldown();
 	bool PlayAttackMontage();
 	float CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const;
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
@@ -107,12 +138,7 @@ private:
 	void StartProjectileAttack();
 	bool CanStartAttackNow() const;
 	bool TryConsumeAttackNotify();
-	float GetEffectiveAttackInterval() const;
-	float GetEffectiveAttackDamage() const;
-	float GetEffectiveAttackRadius() const;
-	float GetEffectiveProjectileSpeed() const;
-	float GetEffectiveHomingStrengthMultiplier() const;
-	int32 GetEffectiveProjectileCount() const;
+	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier);
 	AEnemyBase* FindNearestEnemyTarget() const;
 	FVector GetProjectileSpawnLocation() const;
 	FVector GetEnemyAimLocation(const AEnemyBase* Enemy) const;
@@ -125,6 +151,8 @@ private:
 
 	FTimerHandle AttackTimerHandle;
 	double LastAttackStartTime = -DBL_MAX;
+	double NextAttackReadyTime = 0.0;
+	float AttackIntervalAtLastAttackStart = 1.0f;
 	int32 AttackSequence = 0;
 	int32 ActiveAttackSequence = 0;
 	bool bIsAttacking = false;

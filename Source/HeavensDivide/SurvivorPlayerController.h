@@ -130,6 +130,10 @@ protected:
 	void ResumeAfterLevelUpSelection();
 	void CloseLevelUpWidget();
 	void ApplySharedMoveSpeedToParty();
+	void ApplySharedHealthStats();
+	void ApplySharedPlayerStats();
 	void UpdateMouseFacingTarget();
 	bool GetMouseWorldPosition(FVector& OutWorldPosition) const;
+
+	float BasePlayerMaxHealth = 0.0f;
 };

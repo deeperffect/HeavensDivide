@@ -68,6 +68,7 @@ void ASurvivorPlayerController::BeginPlay()
 	if (PlayerHealthComponent)
 	{
 		PlayerHealthComponent->OnDeath.AddDynamic(this, &ASurvivorPlayerController::HandlePlayerDeath);
+		BasePlayerMaxHealth = PlayerHealthComponent->GetMaxHealth();
 	}
 
 	if (ExperienceComponent)
@@ -78,7 +79,7 @@ void ASurvivorPlayerController::BeginPlay()
 	if (SharedPlayerStatsComponent)
 	{
 		SharedPlayerStatsComponent->OnStatsChanged.AddDynamic(this, &ASurvivorPlayerController::HandleSharedPlayerStatsChanged);
-		ApplySharedMoveSpeedToParty();
+		ApplySharedPlayerStats();
 	}
 
 	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
@@ -148,6 +149,7 @@ bool ASurvivorPlayerController::IsPlayerDead() const
 void ASurvivorPlayerController::DebugGrantXP(int32 Amount)
 {
 #if !UE_BUILD_SHIPPING
+	UE_LOG(LogTemp, Log, TEXT("DebugGrantXP: Amount=%d"), Amount);
 	if (ExperienceComponent)
 	{
 		ExperienceComponent->AddXP(Amount);
@@ -441,7 +443,13 @@ void ASurvivorPlayerController::CloseLevelUpWidget()
 
 void ASurvivorPlayerController::HandleSharedPlayerStatsChanged()
 {
+	ApplySharedPlayerStats();
+}
+
+void ASurvivorPlayerController::ApplySharedPlayerStats()
+{
 	ApplySharedMoveSpeedToParty();
+	ApplySharedHealthStats();
 }
 
 void ASurvivorPlayerController::ApplySharedMoveSpeedToParty()
@@ -462,6 +470,21 @@ void ASurvivorPlayerController::ApplySharedMoveSpeedToParty()
 	{
 		Ninja->ApplySharedMoveSpeedMultiplier(MoveSpeedMultiplier);
 	}
+}
+
+void ASurvivorPlayerController::ApplySharedHealthStats()
+{
+	if (!PlayerHealthComponent || !SharedPlayerStatsComponent)
+	{
+		return;
+	}
+
+	if (BasePlayerMaxHealth <= 0.0f)
+	{
+		BasePlayerMaxHealth = PlayerHealthComponent->GetMaxHealth();
+	}
+
+	PlayerHealthComponent->SetMaxHealthPreservePercent(BasePlayerMaxHealth * SharedPlayerStatsComponent->GetFinalMaxHealthMultiplier());
 }
 
 void ASurvivorPlayerController::UpdateMouseFacingTarget()

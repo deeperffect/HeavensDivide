@@ -98,6 +98,11 @@ float USharedPlayerStatsComponent::GetFinalPickupRadiusMultiplier() const
 	return FMath::Max(0.0f, GetFinalStat(ESharedPlayerStatType::PickupRadiusMultiplier));
 }
 
+float USharedPlayerStatsComponent::GetFinalDamageMultiplier() const
+{
+	return FMath::Max(0.0f, GetFinalStat(ESharedPlayerStatType::DamageMultiplier));
+}
+
 float USharedPlayerStatsComponent::GetBaseStat(ESharedPlayerStatType Stat) const
 {
 	return 1.0f;

@@ -59,6 +59,16 @@ void UHealthComponent::Heal(float HealAmount)
 	}
 }
 
+void UHealthComponent::SetMaxHealthPreservePercent(float NewMaxHealth)
+{
+	NewMaxHealth = FMath::Max(0.0f, NewMaxHealth);
+	const float PreviousHealthPercent = GetHealthPercent();
+	MaxHealth = NewMaxHealth;
+	CurrentHealth = MaxHealth * PreviousHealthPercent;
+	bDeathBroadcast = CurrentHealth <= 0.0f;
+	BroadcastHealthChanged();
+}
+
 bool UHealthComponent::IsDead() const
 {
 	return CurrentHealth <= 0.0f;
