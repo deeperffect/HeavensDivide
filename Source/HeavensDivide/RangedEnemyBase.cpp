@@ -9,6 +9,12 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "TimerManager.h"
 
+void ARangedEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier)
+{
+	Super::ApplySpawnDifficultyScaling(HealthMultiplier, DamageMultiplier);
+	AttackDamage *= FMath::Max(0.0f, DamageMultiplier);
+}
+
 void ARangedEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopAttackTimer();

@@ -17,6 +17,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Attack")
 	void PerformAttackHit();
 
+	virtual void ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier) override;
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void UpdateEnemyBehavior(float DeltaSeconds) override;

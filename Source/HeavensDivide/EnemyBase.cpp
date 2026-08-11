@@ -138,6 +138,15 @@ UHealthComponent* AEnemyBase::GetHealthComponent() const
 	return HealthComponent;
 }
 
+void AEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier)
+{
+	if (HealthComponent)
+	{
+		const float BaseMaxHealth = HealthComponent->GetMaxHealth();
+		HealthComponent->SetMaxHealthPreservePercent(BaseMaxHealth * FMath::Max(0.0f, HealthMultiplier));
+	}
+}
+
 void AEnemyBase::HandleDeath()
 {
 	if (bIsDead)

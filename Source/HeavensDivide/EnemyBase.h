@@ -42,6 +42,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Enemy")
 	UHealthComponent* GetHealthComponent() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Scaling")
+	virtual void ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier);
+
 	UFUNCTION(BlueprintPure, Category = "Enemy|Movement")
 	FVector GetEnemyMovementVelocity() const;
 
