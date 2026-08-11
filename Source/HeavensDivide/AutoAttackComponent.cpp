@@ -23,6 +23,11 @@ static TAutoConsoleVariable<int32> CVarHDLogAutoAttackCooldown(
 	0,
 	TEXT("Logs player auto-attack cooldown transitions when enabled."));
 
+static TAutoConsoleVariable<int32> CVarHDLogNinjaProjectileSpread(
+	TEXT("hd.LogNinjaProjectileSpread"),
+	0,
+	TEXT("Logs Ninja multi-projectile target distribution when enabled."));
+
 UAutoAttackComponent::UAutoAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -263,6 +268,13 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
 	const float EffectiveHomingStrengthMultiplier = GetEffectiveHomingStrengthMultiplier();
 	const int32 EffectiveProjectileCount = GetEffectiveProjectileCount();
+	TArray<AEnemyBase*> TargetCandidates;
+	FindEnemyTargetsSorted(TargetCandidates);
+	if (TargetCandidates.Num() == 0)
+	{
+		TargetCandidates.Add(TargetEnemy);
+	}
+
 	FVector ProjectileDirection = AimLocation - SpawnLocation;
 	ProjectileDirection.Z = 0.0f;
 
@@ -275,11 +287,57 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 
 	const float SpreadAngleDegrees = 8.0f;
 	const float StartAngle = -0.5f * SpreadAngleDegrees * static_cast<float>(EffectiveProjectileCount - 1);
+	TArray<AEnemyBase*> AssignedTargets;
+	AssignedTargets.Reserve(EffectiveProjectileCount);
+	TMap<AEnemyBase*, int32> TargetUseCounts;
+	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
+	{
+		AEnemyBase* AssignedTarget = TargetCandidates[ProjectileIndex % TargetCandidates.Num()];
+		AssignedTargets.Add(AssignedTarget);
+		TargetUseCounts.FindOrAdd(AssignedTarget)++;
+	}
+
+	TMap<AEnemyBase*, int32> TargetUseIndices;
 	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
 	{
 		const float Angle = StartAngle + SpreadAngleDegrees * static_cast<float>(ProjectileIndex);
 		const FVector SpawnDirection = ProjectileDirection.RotateAngleAxis(Angle, FVector::UpVector).GetSafeNormal();
-		SpawnProjectileInstance(SpawnLocation, SpawnDirection, TargetEnemy, EffectiveAttackDamage, EffectiveProjectileSpeed, EffectiveHomingStrengthMultiplier);
+		AEnemyBase* AssignedTarget = AssignedTargets[ProjectileIndex];
+		const int32 SharedTargetCount = TargetUseCounts.FindRef(AssignedTarget);
+		const int32 SharedTargetIndex = TargetUseIndices.FindOrAdd(AssignedTarget)++;
+
+		FVector HomingTargetOffset = FVector::ZeroVector;
+		if (SharedTargetCount > 1 && SharedTargetHomingOffsetStep > 0.0f)
+		{
+			const float CenteredIndex = static_cast<float>(SharedTargetIndex) - 0.5f * static_cast<float>(SharedTargetCount - 1);
+			float AllowedOffset = MaxSharedTargetHomingOffset;
+			if (AssignedTarget)
+			{
+				if (const UCapsuleComponent* TargetCapsule = AssignedTarget->GetCapsuleComponent())
+				{
+					AllowedOffset = FMath::Min(AllowedOffset, TargetCapsule->GetScaledCapsuleRadius() * 0.65f);
+				}
+			}
+			const float OffsetMagnitude = FMath::Clamp(CenteredIndex * SharedTargetHomingOffsetStep, -AllowedOffset, AllowedOffset);
+			const FVector RightVector = FVector::CrossProduct(FVector::UpVector, SpawnDirection).GetSafeNormal();
+			HomingTargetOffset = RightVector * OffsetMagnitude;
+		}
+
+		const float FanCenterDistance = EffectiveProjectileCount > 1
+			? FMath::Abs(static_cast<float>(ProjectileIndex) - 0.5f * static_cast<float>(EffectiveProjectileCount - 1)) / (0.5f * static_cast<float>(EffectiveProjectileCount - 1))
+			: 0.0f;
+		const float ProjectileHomingStrengthMultiplier = EffectiveHomingStrengthMultiplier * (1.0f - OuterProjectileHomingStrengthReduction * FanCenterDistance);
+		SpawnProjectileInstance(SpawnLocation, SpawnDirection, AssignedTarget, EffectiveAttackDamage, EffectiveProjectileSpeed, ProjectileHomingStrengthMultiplier, HomingTargetOffset);
+
+		if (CVarHDLogNinjaProjectileSpread.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Ninja Attack Projectile %d/%d -> %s Offset=%s HomingStrengthMultiplier=%.2f"),
+				ProjectileIndex + 1,
+				EffectiveProjectileCount,
+				*GetNameSafe(AssignedTarget),
+				*HomingTargetOffset.ToString(),
+				ProjectileHomingStrengthMultiplier);
+		}
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Spawned: Target=%s SpawnLocation=%s Direction=%s ProjectileCount=%d"),
@@ -301,7 +359,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	OwnerCharacter->ClearFacingOverride();
 }
 
-void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier)
+void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier, const FVector& HomingTargetOffset)
 {
 	if (!OwnerCharacter || !ProjectileClass || !GetWorld())
 	{
@@ -325,7 +383,7 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		return;
 	}
 
-	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, Damage, Speed, EProjectileTargetType::Enemies, TargetEnemy, HomingStrengthMultiplier);
+	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, Damage, Speed, EProjectileTargetType::Enemies, TargetEnemy, HomingStrengthMultiplier, HomingTargetOffset);
 }
 
 void UAutoAttackComponent::HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode)
@@ -724,9 +782,37 @@ float UAutoAttackComponent::GetBaseProjectileSpeed() const
 
 AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 {
+	TArray<AEnemyBase*> SortedTargets;
+	FindEnemyTargetsSorted(SortedTargets);
+	AEnemyBase* BestEnemy = SortedTargets.Num() > 0 ? SortedTargets[0] : nullptr;
+
+	if (bDebugTargeting)
+	{
+		constexpr float DebugDuration = 1.5f;
+		DrawDebugSphere(GetWorld(), OwnerCharacter->GetActorLocation(), TargetingRange, 48, FColor::Green, false, DebugDuration, 0, 2.0f);
+		if (BestEnemy)
+		{
+			DrawDebugLine(GetWorld(), OwnerCharacter->GetActorLocation(), BestEnemy->GetActorLocation(), FColor::Green, false, DebugDuration, 0, 3.0f);
+			UE_LOG(LogTemp, Log, TEXT("Targeting selected enemy: %s Distance=%.2f"),
+				*GetNameSafe(BestEnemy),
+				FVector::Dist2D(OwnerCharacter->GetActorLocation(), BestEnemy->GetActorLocation()));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("Targeting found no living enemy in range %.2f."), TargetingRange);
+		}
+	}
+
+	return BestEnemy;
+}
+
+void UAutoAttackComponent::FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTargets) const
+{
+	OutTargets.Reset();
+
 	if (!OwnerCharacter || !GetWorld())
 	{
-		return nullptr;
+		return;
 	}
 
 	TArray<FOverlapResult> OverlapResults;
@@ -745,9 +831,8 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 		FCollisionShape::MakeSphere(TargetingRange),
 		QueryParams);
 
-	AEnemyBase* BestEnemy = nullptr;
-	float BestDistanceSquared = TNumericLimits<float>::Max();
 	const AActor* OwnerActor = OwnerCharacter->GetOwner();
+	TSet<AEnemyBase*> UniqueEnemies;
 
 	for (const FOverlapResult& OverlapResult : OverlapResults)
 	{
@@ -763,38 +848,26 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 			continue;
 		}
 
+		if (UniqueEnemies.Contains(Enemy))
+		{
+			continue;
+		}
+
 		UHealthComponent* EnemyHealth = Enemy->GetHealthComponent();
 		if (!EnemyHealth || EnemyHealth->IsDead())
 		{
 			continue;
 		}
 
-		const float DistanceSquared = FVector::DistSquared2D(OwnerCharacter->GetActorLocation(), Enemy->GetActorLocation());
-		if (DistanceSquared < BestDistanceSquared)
-		{
-			BestDistanceSquared = DistanceSquared;
-			BestEnemy = Enemy;
-		}
+		UniqueEnemies.Add(Enemy);
+		OutTargets.Add(Enemy);
 	}
 
-	if (bDebugTargeting)
+	OutTargets.Sort([this](const AEnemyBase& Left, const AEnemyBase& Right)
 	{
-		constexpr float DebugDuration = 1.5f;
-		DrawDebugSphere(GetWorld(), OwnerCharacter->GetActorLocation(), TargetingRange, 48, FColor::Green, false, DebugDuration, 0, 2.0f);
-		if (BestEnemy)
-		{
-			DrawDebugLine(GetWorld(), OwnerCharacter->GetActorLocation(), BestEnemy->GetActorLocation(), FColor::Green, false, DebugDuration, 0, 3.0f);
-			UE_LOG(LogTemp, Log, TEXT("Targeting selected enemy: %s Distance=%.2f"),
-				*GetNameSafe(BestEnemy),
-				FMath::Sqrt(BestDistanceSquared));
-		}
-		else
-		{
-			UE_LOG(LogTemp, Log, TEXT("Targeting found no living enemy in range %.2f."), TargetingRange);
-		}
-	}
-
-	return BestEnemy;
+		return FVector::DistSquared2D(OwnerCharacter->GetActorLocation(), Left.GetActorLocation())
+			< FVector::DistSquared2D(OwnerCharacter->GetActorLocation(), Right.GetActorLocation());
+	});
 }
 
 FVector UAutoAttackComponent::GetProjectileSpawnLocation() const

@@ -26,9 +26,10 @@ public:
 	AAttackProjectileBase();
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
-	void InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType = EProjectileTargetType::Enemies, AActor* InHomingTarget = nullptr, float InHomingStrengthMultiplier = 1.0f);
+	void InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType = EProjectileTargetType::Enemies, AActor* InHomingTarget = nullptr, float InHomingStrengthMultiplier = 1.0f, FVector InHomingTargetOffset = FVector::ZeroVector);
 
 protected:
+	virtual void Tick(float DeltaSeconds) override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
@@ -59,6 +60,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float HomingAccelerationMagnitude = 2500.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float NearTargetDistance = 400.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Homing", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float NearTargetHomingMultiplier = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Homing", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float OvershootHomingMultiplier = 6.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float HomingHitForgivenessRadius = 32.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float MinimumHomingAccelerationSpeedScale = 1.25f;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Projectile")
 	EProjectileTargetType TargetType = EProjectileTargetType::Enemies;
 
@@ -75,8 +91,11 @@ private:
 	UFUNCTION()
 	void HandleHomingTargetDeath();
 
-	void ConfigureHoming(AActor* InHomingTarget, float InHomingStrengthMultiplier);
+	void ConfigureHoming(AActor* InHomingTarget, float InHomingStrengthMultiplier, const FVector& InHomingTargetOffset);
 	void DisableHoming();
+	void UpdateHomingAssist();
+	bool TryApplyAssignedTargetHit(float DistanceToTarget);
+	FVector GetHomingTargetCenter() const;
 	void LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const;
 
 	UPROPERTY()
@@ -85,5 +104,14 @@ private:
 	UPROPERTY()
 	TObjectPtr<AActor> HomingTargetActor;
 
+	UPROPERTY()
+	TObjectPtr<USceneComponent> HomingOffsetTargetComponent;
+
+	float BaseConfiguredHomingAcceleration = 0.0f;
+	float ConfiguredHomingStrengthMultiplier = 1.0f;
+	FVector ConfiguredHomingTargetOffset = FVector::ZeroVector;
+	bool bWasApproachingHomingTarget = false;
+	bool bLoggedNearTargetSteering = false;
+	bool bLoggedOvershootRecovery = false;
 	bool bIsProjectileInitialized = false;
 };

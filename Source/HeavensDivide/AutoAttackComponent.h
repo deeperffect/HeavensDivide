@@ -109,6 +109,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile")
 	FVector ProjectileSpawnOffset = FVector(80.0f, 0.0f, 60.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float SharedTargetHomingOffsetStep = 30.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float MaxSharedTargetHomingOffset = 60.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
+	float OuterProjectileHomingStrengthReduction = 0.1f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Trace", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackRange = 100.0f;
 
@@ -138,8 +147,9 @@ private:
 	void StartProjectileAttack();
 	bool CanStartAttackNow() const;
 	bool TryConsumeAttackNotify();
-	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier);
+	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier, const FVector& HomingTargetOffset = FVector::ZeroVector);
 	AEnemyBase* FindNearestEnemyTarget() const;
+	void FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTargets) const;
 	FVector GetProjectileSpawnLocation() const;
 	FVector GetEnemyAimLocation(const AEnemyBase* Enemy) const;
 	bool CanAutoAttack() const;
