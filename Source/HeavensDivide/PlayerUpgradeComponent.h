@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "UpgradeDefinition.h"
 #include "PlayerUpgradeComponent.generated.h"
 
 class UUpgradeDefinition;
@@ -31,8 +32,50 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Upgrades")
 	void RebuildAllUpgradeModifiers();
 
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
+	bool IsCategoryUnlocked(EUpgradeCategory Category) const;
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
+	TArray<EUpgradeCategory> GetEligibleCategories() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	TArray<EUpgradeCategory> RollCategoryChoices(int32 ChoiceCount = 2);
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
+	TArray<UUpgradeDefinition*> GetEligibleUpgradesForCategory(EUpgradeCategory Category) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	TArray<UUpgradeDefinition*> RollUpgradeChoices(EUpgradeCategory Category, int32 ChoiceCount = 3) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	bool BeginUpgradeSelection(int32 CategoryChoiceCount = 2);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	bool SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount = 3);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	bool SelectUpgrade(UUpgradeDefinition* Upgrade);
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
+	TArray<EUpgradeCategory> GetCurrentCategoryChoices() const;
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
+	EUpgradeCategory GetSelectedCategory() const;
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
+	TArray<UUpgradeDefinition*> GetCurrentUpgradeChoices() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
 	bool DebugAcquireUpgrade(UUpgradeDefinition* Upgrade);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
+	bool DebugBeginUpgradeSelection(int32 CategoryChoiceCount = 2);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
+	bool DebugSelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount = 3);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
+	bool DebugSelectUpgrade(UUpgradeDefinition* Upgrade);
 
 	UFUNCTION(BlueprintPure, Category = "Upgrades")
 	TArray<UUpgradeDefinition*> GetEligibleUpgrades(const TArray<UUpgradeDefinition*>& CandidateUpgrades) const;
@@ -43,7 +86,22 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Upgrades")
 	FOnUpgradeLevelChanged OnUpgradeLevelChanged;
 
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades")
+	TArray<TObjectPtr<UUpgradeDefinition>> UpgradePool;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float CategoryBadLuckWeightPerMiss = 0.5f;
+
 private:
+	float GetBaseCategoryWeight(EUpgradeCategory Category) const;
+	float GetCategoryRollWeight(EUpgradeCategory Category) const;
+	bool HasAcquiredUpgradeInCategory(EUpgradeCategory Category) const;
+	EUpgradeCategory PickWeightedCategory(const TArray<EUpgradeCategory>& Categories, const TArray<float>& Weights) const;
+	void UpdateCategoryBadLuckHistory(const TArray<EUpgradeCategory>& OfferedCategories);
+	void ClearCurrentOffer();
+	FString CategoryToString(EUpgradeCategory Category) const;
+	FString UpgradeToLogString(const UUpgradeDefinition* Upgrade) const;
 	bool IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const;
 	void RebuildUpgradeModifiers(UUpgradeDefinition* Upgrade, int32 NewLevel);
 	void ClearUpgradeModifiers(UUpgradeDefinition* Upgrade);
@@ -55,4 +113,18 @@ private:
 
 	UPROPERTY()
 	TMap<FName, TObjectPtr<UUpgradeDefinition>> AcquiredUpgradeDefinitions;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (AllowPrivateAccess = "true"))
+	TArray<EUpgradeCategory> CurrentCategoryChoices;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (AllowPrivateAccess = "true"))
+	EUpgradeCategory SelectedCategory = EUpgradeCategory::Global;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (AllowPrivateAccess = "true"))
+	TArray<TObjectPtr<UUpgradeDefinition>> CurrentUpgradeChoices;
+
+	UPROPERTY()
+	TMap<EUpgradeCategory, int32> CategoryRollsSinceLastOffered;
+
+	bool bHasSelectedCategory = false;
 };

@@ -9,6 +9,7 @@
 #include "ExperienceComponent.h"
 #include "HealthComponent.h"
 #include "InputActionValue.h"
+#include "LevelUpWidget.h"
 #include "PlayerCameraRig.h"
 #include "PlayerHUDWidget.h"
 #include "PlayerUpgradeComponent.h"
@@ -16,6 +17,26 @@
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
 #include "AutoAttackComponent.h"
+
+namespace
+{
+FString UpgradeCategoryToLogString(EUpgradeCategory Category)
+{
+	switch (Category)
+	{
+	case EUpgradeCategory::Samurai:
+		return TEXT("Samurai");
+	case EUpgradeCategory::Ninja:
+		return TEXT("Ninja");
+	case EUpgradeCategory::Global:
+		return TEXT("Global");
+	case EUpgradeCategory::Synergy:
+		return TEXT("Synergy");
+	default:
+		return TEXT("Unknown");
+	}
+}
+}
 
 ASurvivorPlayerController::ASurvivorPlayerController()
 {
@@ -47,6 +68,11 @@ void ASurvivorPlayerController::BeginPlay()
 	if (PlayerHealthComponent)
 	{
 		PlayerHealthComponent->OnDeath.AddDynamic(this, &ASurvivorPlayerController::HandlePlayerDeath);
+	}
+
+	if (ExperienceComponent)
+	{
+		ExperienceComponent->OnLevelUp.AddDynamic(this, &ASurvivorPlayerController::HandlePlayerLevelUp);
 	}
 
 	if (SharedPlayerStatsComponent)
@@ -117,6 +143,18 @@ UPlayerUpgradeComponent* ASurvivorPlayerController::GetPlayerUpgrades() const
 bool ASurvivorPlayerController::IsPlayerDead() const
 {
 	return bIsPlayerDead;
+}
+
+void ASurvivorPlayerController::DebugGrantXP(int32 Amount)
+{
+#if !UE_BUILD_SHIPPING
+	if (ExperienceComponent)
+	{
+		ExperienceComponent->AddXP(Amount);
+	}
+#else
+	UE_LOG(LogTemp, Warning, TEXT("DebugGrantXP is disabled in shipping builds."));
+#endif
 }
 
 void ASurvivorPlayerController::SetupInputComponent()
@@ -266,6 +304,139 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
+}
+
+void ASurvivorPlayerController::HandlePlayerLevelUp(int32 NewLevel)
+{
+	++PendingLevelUpChoices;
+	UE_LOG(LogTemp, Log, TEXT("LEVEL UP RECEIVED: NewLevel=%d"), NewLevel);
+	UE_LOG(LogTemp, Log, TEXT("Pending selections = %d"), PendingLevelUpChoices);
+
+	if (!bLevelUpSelectionActive)
+	{
+		StartNextLevelUpSelection();
+	}
+}
+
+void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
+{
+	PendingLevelUpChoices = FMath::Max(0, PendingLevelUpChoices - 1);
+	UE_LOG(LogTemp, Log, TEXT("Pending selections remaining = %d"), PendingLevelUpChoices);
+
+	if (PendingLevelUpChoices > 0)
+	{
+		StartNextLevelUpSelection();
+		return;
+	}
+
+	bLevelUpSelectionActive = false;
+	CloseLevelUpWidget();
+	ResumeAfterLevelUpSelection();
+	UE_LOG(LogTemp, Log, TEXT("LEVEL-UP FLOW COMPLETE"));
+	UE_LOG(LogTemp, Log, TEXT("Gameplay resumed"));
+}
+
+void ASurvivorPlayerController::StartNextLevelUpSelection()
+{
+	if (PendingLevelUpChoices <= 0)
+	{
+		bLevelUpSelectionActive = false;
+		CloseLevelUpWidget();
+		ResumeAfterLevelUpSelection();
+		return;
+	}
+
+	if (!PlayerUpgradeComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Level-up selection skipped: PlayerUpgradeComponent missing."));
+		HandleLevelUpSelectionCompleted();
+		return;
+	}
+
+	bLevelUpSelectionActive = true;
+
+	if (!PlayerUpgradeComponent->BeginUpgradeSelection(2))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Level-up selection skipped: no eligible categories."));
+		HandleLevelUpSelectionCompleted();
+		return;
+	}
+
+	if (!EnsureLevelUpWidget())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Level-up selection skipped: LevelUpWidget could not be created."));
+		HandleLevelUpSelectionCompleted();
+		return;
+	}
+
+	PauseForLevelUpSelection();
+
+	const TArray<EUpgradeCategory> CategoryChoices = PlayerUpgradeComponent->GetCurrentCategoryChoices();
+	UE_LOG(LogTemp, Log, TEXT("CATEGORY OFFER:"));
+	for (const EUpgradeCategory Category : CategoryChoices)
+	{
+		UE_LOG(LogTemp, Log, TEXT("  %s"), *UpgradeCategoryToLogString(Category));
+	}
+
+	LevelUpWidget->InitializeLevelUpWidget(this);
+}
+
+bool ASurvivorPlayerController::EnsureLevelUpWidget()
+{
+	if (LevelUpWidget)
+	{
+		if (!LevelUpWidget->IsInViewport())
+		{
+			LevelUpWidget->AddToViewport(100);
+		}
+		return true;
+	}
+
+	if (!LevelUpWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("LevelUpWidgetClass is not assigned on SurvivorPlayerController."));
+		return false;
+	}
+
+	LevelUpWidget = CreateWidget<ULevelUpWidget>(this, LevelUpWidgetClass);
+	if (!LevelUpWidget)
+	{
+		return false;
+	}
+
+	LevelUpWidget->OnSelectionCompleted.AddDynamic(this, &ASurvivorPlayerController::HandleLevelUpSelectionCompleted);
+	LevelUpWidget->AddToViewport(100);
+	return true;
+}
+
+void ASurvivorPlayerController::PauseForLevelUpSelection()
+{
+	SetPause(true);
+	bShowMouseCursor = true;
+	bEnableClickEvents = true;
+	bEnableMouseOverEvents = true;
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	if (LevelUpWidget)
+	{
+		InputMode.SetWidgetToFocus(LevelUpWidget->TakeWidget());
+	}
+	SetInputMode(InputMode);
+}
+
+void ASurvivorPlayerController::ResumeAfterLevelUpSelection()
+{
+	SetPause(false);
+	ConfigureInputMode();
+}
+
+void ASurvivorPlayerController::CloseLevelUpWidget()
+{
+	if (LevelUpWidget)
+	{
+		LevelUpWidget->RemoveFromParent();
+	}
 }
 
 void ASurvivorPlayerController::HandleSharedPlayerStatsChanged()

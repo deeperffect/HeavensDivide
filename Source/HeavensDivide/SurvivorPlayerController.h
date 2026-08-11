@@ -11,6 +11,7 @@ class UInputMappingContext;
 class UCharacterManagerComponent;
 class UExperienceComponent;
 class UHealthComponent;
+class ULevelUpWidget;
 class UPlayerUpgradeComponent;
 class UPlayerHUDWidget;
 class USharedPlayerStatsComponent;
@@ -46,6 +47,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Player|Debug")
+	void DebugGrantXP(int32 Amount);
 
 protected:
 	virtual void BeginPlay() override;
@@ -87,11 +91,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UPlayerHUDWidget> PlayerHUDClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<ULevelUpWidget> LevelUpWidgetClass;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<ULevelUpWidget> LevelUpWidget;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player")
 	bool bIsPlayerDead = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up")
+	int32 PendingLevelUpChoices = 0;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up")
+	bool bLevelUpSelectionActive = false;
 
 	void Move(const FInputActionValue& Value);
 	void Swap(const FInputActionValue& Value);
@@ -103,7 +119,16 @@ protected:
 	UFUNCTION()
 	void HandlePlayerDeath();
 	UFUNCTION()
+	void HandlePlayerLevelUp(int32 NewLevel);
+	UFUNCTION()
+	void HandleLevelUpSelectionCompleted();
+	UFUNCTION()
 	void HandleSharedPlayerStatsChanged();
+	void StartNextLevelUpSelection();
+	bool EnsureLevelUpWidget();
+	void PauseForLevelUpSelection();
+	void ResumeAfterLevelUpSelection();
+	void CloseLevelUpWidget();
 	void ApplySharedMoveSpeedToParty();
 	void UpdateMouseFacingTarget();
 	bool GetMouseWorldPosition(FVector& OutWorldPosition) const;
