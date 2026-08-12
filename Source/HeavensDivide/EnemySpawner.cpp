@@ -317,12 +317,7 @@ int32 AEnemySpawner::GetCurrentSpawnBudget() const
 float AEnemySpawner::EvaluateDefaultHealthMultiplier() const
 {
 	const float Minutes = GetRunTimeMinutes();
-	if (Minutes <= 5.0f)
-	{
-		return FMath::Lerp(1.0f, 1.75f, Minutes / 5.0f);
-	}
-
-	return FMath::Lerp(1.75f, 3.0f, FMath::Clamp((Minutes - 5.0f) / 5.0f, 0.0f, 1.0f));
+	return 1.0f + Minutes * 0.5f;
 }
 
 float AEnemySpawner::EvaluateDefaultDamageMultiplier() const

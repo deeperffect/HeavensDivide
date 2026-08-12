@@ -17,11 +17,13 @@
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "HealthComponent.h"
+#include "HAL/IConsoleManager.h"
 #include "IAnimationBudgetAllocator.h"
 #include "Kismet/GameplayStatics.h"
 #include "SkeletalMeshComponentBudgeted.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
+#include "Engine/OverlapResult.h"
 #include "UObject/UnrealType.h"
 
 static TAutoConsoleVariable<int32> CVarDisableEnemyCharacterMovementForProfiling(
@@ -38,6 +40,11 @@ static TAutoConsoleVariable<int32> CVarLogEnemyAnimationBudgetSetup(
 	TEXT("hd.LogEnemyAnimationBudgetSetup"),
 	0,
 	TEXT("When set to 1, logs one-time Animation Budget Allocator setup details for spawned EnemyBase-derived enemies."));
+
+static TAutoConsoleVariable<int32> CVarDebugEnemySeparation(
+	TEXT("hd.DebugEnemySeparation"),
+	0,
+	TEXT("When set to 1, draws lightweight enemy separation debug for a small sampled subset of enemies."));
 
 AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<USkeletalMeshComponentBudgeted>(ACharacter::MeshComponentName))
@@ -78,6 +85,7 @@ void AEnemyBase::BeginPlay()
 	UpdateCharacterMovementProfilingState();
 	UpdateAnimationProfilingState();
 	StartBehaviorUpdates();
+	StartSeparationUpdates();
 }
 
 void AEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -95,6 +103,7 @@ void AEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	StopEnemyBehavior();
 	StopBehaviorUpdates();
+	StopSeparationUpdates();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -155,17 +164,14 @@ void AEnemyBase::HandleDeath()
 	}
 
 	bIsDead = true;
+	HideHealthBar();
 	SpawnExperiencePickup();
 	UpdateAnimationBudgetSignificance();
 	CurrentTarget = nullptr;
 	StopEnemyBehavior();
 	StopBehaviorUpdates();
+	StopSeparationUpdates();
 	StopEnemyMovement();
-
-	if (HealthBarWidgetComponent)
-	{
-		UpdateHealthBarVisibility(0.0f);
-	}
 
 	StopEnemyMovement();
 
@@ -392,6 +398,25 @@ void AEnemyBase::UpdateHealthBarVisibility(float HealthPercent)
 	}
 }
 
+void AEnemyBase::HideHealthBar()
+{
+	if (!HealthBarWidgetComponent)
+	{
+		return;
+	}
+
+	if (UUserWidget* HealthBarWidget = HealthBarWidgetComponent->GetUserWidgetObject())
+	{
+		HealthBarWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	HealthBarWidgetComponent->SetHiddenInGame(true);
+	HealthBarWidgetComponent->SetVisibility(false, true);
+	HealthBarWidgetComponent->SetComponentTickEnabled(false);
+	HealthBarWidgetComponent->Deactivate();
+	HealthBarWidgetComponent->SetWidget(nullptr);
+}
+
 void AEnemyBase::StartBehaviorUpdates()
 {
 	if (!GetWorld() || BehaviorUpdateInterval <= 0.0f || bIsDead)
@@ -429,6 +454,45 @@ void AEnemyBase::HandleBehaviorUpdateTimer()
 	}
 
 	UpdateEnemyBehavior(BehaviorUpdateInterval);
+}
+
+void AEnemyBase::StartSeparationUpdates()
+{
+	if (!GetWorld() || bIsDead || !IsUsingLightweightMovement() || !bUseEnemySeparation || SeparationRadius <= 0.0f || SeparationUpdateInterval <= 0.0f)
+	{
+		CachedEnemySeparationVector = FVector::ZeroVector;
+		return;
+	}
+
+	const float InitialDelay = FMath::FRandRange(0.0f, SeparationUpdateInterval);
+	GetWorld()->GetTimerManager().SetTimer(
+		SeparationUpdateTimerHandle,
+		this,
+		&AEnemyBase::HandleSeparationUpdateTimer,
+		SeparationUpdateInterval,
+		true,
+		InitialDelay);
+}
+
+void AEnemyBase::StopSeparationUpdates()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(SeparationUpdateTimerHandle);
+	}
+
+	CachedEnemySeparationVector = FVector::ZeroVector;
+}
+
+void AEnemyBase::HandleSeparationUpdateTimer()
+{
+	if (bIsDead || !IsUsingLightweightMovement() || !bUseEnemySeparation)
+	{
+		CachedEnemySeparationVector = FVector::ZeroVector;
+		return;
+	}
+
+	UpdateCachedEnemySeparation();
 }
 
 void AEnemyBase::ApplyDesiredMovementInput(float DeltaSeconds)
@@ -515,6 +579,111 @@ FVector AEnemyBase::ApplyCrowdSpreadToDirection(const FVector& DirectDirection) 
 	}
 
 	return SpreadDirection;
+}
+
+FVector AEnemyBase::ApplyEnemySeparationToDirection(const FVector& MovementDirection) const
+{
+	if (!IsUsingLightweightMovement() || !bUseEnemySeparation || SeparationStrength <= 0.0f || CachedEnemySeparationVector.IsNearlyZero())
+	{
+		return MovementDirection;
+	}
+
+	FVector SafeMovementDirection = MovementDirection;
+	SafeMovementDirection.Z = 0.0f;
+	if (!SafeMovementDirection.Normalize())
+	{
+		return MovementDirection;
+	}
+
+	FVector SeparationContribution = CachedEnemySeparationVector.GetClampedToMaxSize(MaxSeparationContribution) * SeparationStrength;
+	SeparationContribution.Z = 0.0f;
+
+	FVector FinalDirection = SafeMovementDirection + SeparationContribution;
+	FinalDirection.Z = 0.0f;
+	if (!FinalDirection.Normalize())
+	{
+		return SafeMovementDirection;
+	}
+
+	if (FVector::DotProduct(FinalDirection, SafeMovementDirection) < 0.35f)
+	{
+		FinalDirection = (SafeMovementDirection * 0.65f + FinalDirection * 0.35f).GetSafeNormal();
+	}
+
+	return FinalDirection;
+}
+
+void AEnemyBase::UpdateCachedEnemySeparation()
+{
+	CachedEnemySeparationVector = FVector::ZeroVector;
+
+	if (!GetWorld() || SeparationRadius <= 0.0f)
+	{
+		return;
+	}
+
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemySeparation), false, this);
+	QueryParams.AddIgnoredActor(this);
+
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+
+	GetWorld()->OverlapMultiByObjectType(
+		OverlapResults,
+		GetActorLocation(),
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(SeparationRadius),
+		QueryParams);
+
+	const FVector MyLocation = GetActorLocation();
+	FVector Separation = FVector::ZeroVector;
+	int32 NeighborCount = 0;
+
+	for (const FOverlapResult& OverlapResult : OverlapResults)
+	{
+		AEnemyBase* OtherEnemy = Cast<AEnemyBase>(OverlapResult.GetActor());
+		if (!OtherEnemy || OtherEnemy == this || OtherEnemy->IsDead())
+		{
+			continue;
+		}
+
+		FVector Away = MyLocation - OtherEnemy->GetActorLocation();
+		Away.Z = 0.0f;
+		const float Distance = Away.Size2D();
+		if (Distance > SeparationRadius)
+		{
+			continue;
+		}
+
+		if (Distance <= KINDA_SMALL_NUMBER)
+		{
+			const uint32 Seed = GetUniqueID() ^ OtherEnemy->GetUniqueID();
+			const float Angle = static_cast<float>(Seed % 360);
+			Away = FVector(FMath::Cos(FMath::DegreesToRadians(Angle)), FMath::Sin(FMath::DegreesToRadians(Angle)), 0.0f);
+		}
+		else
+		{
+			Away /= Distance;
+		}
+
+		const float Weight = FMath::Clamp(1.0f - (Distance / SeparationRadius), 0.0f, 1.0f);
+		Separation += Away * Weight;
+		++NeighborCount;
+	}
+
+	if (NeighborCount > 0)
+	{
+		CachedEnemySeparationVector = Separation.GetClampedToMaxSize(MaxSeparationContribution);
+	}
+
+	if (CVarDebugEnemySeparation.GetValueOnGameThread() != 0 && GetWorld() && (GetUniqueID() % 24 == 0))
+	{
+		const FVector DebugStart = GetActorLocation() + FVector(0.0f, 0.0f, 35.0f);
+		DrawDebugSphere(GetWorld(), GetActorLocation(), SeparationRadius, 16, FColor::Blue, false, SeparationUpdateInterval, 0, 1.0f);
+		DrawDebugLine(GetWorld(), DebugStart, DebugStart + CachedEnemySeparationVector * 180.0f, FColor::Magenta, false, SeparationUpdateInterval, 0, 2.0f);
+	}
 }
 
 void AEnemyBase::RequestEnemyMovement(const FVector& WorldDirection)
@@ -831,7 +1000,7 @@ void AEnemyBase::MoveTowardCurrentTarget()
 	if (ToTarget.Normalize())
 	{
 		DesiredDirectMovementDirection = ToTarget;
-		DesiredMovementDirection = ApplyCrowdSpreadToDirection(ToTarget);
+		DesiredMovementDirection = ApplyEnemySeparationToDirection(ApplyCrowdSpreadToDirection(ToTarget));
 		bHasDesiredMovementDirection = true;
 
 		if (bDebugCrowdSpread && GetWorld() && IsUsingLightweightMovement())

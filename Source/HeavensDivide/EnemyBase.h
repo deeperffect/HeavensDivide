@@ -100,6 +100,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread")
 	bool bDebugCrowdSpread = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation")
+	bool bUseEnemySeparation = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float SeparationRadius = 160.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float SeparationStrength = 0.55f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float MaxSeparationContribution = 0.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float SeparationUpdateInterval = 0.2f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Rotation", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float EnemyRotationSpeed = 720.0f;
 
@@ -142,14 +157,20 @@ protected:
 	void SpawnExperiencePickup();
 	void InitializeHealthBar();
 	void UpdateHealthBarVisibility(float HealthPercent);
+	void HideHealthBar();
 	void StartBehaviorUpdates();
 	void StopBehaviorUpdates();
 	void HandleBehaviorUpdateTimer();
+	void StartSeparationUpdates();
+	void StopSeparationUpdates();
+	void HandleSeparationUpdateTimer();
 	void ApplyDesiredMovementInput(float DeltaSeconds);
 	void StopDesiredMovement();
 	void InitializeEnemyMovementMode();
 	void InitializeCrowdSpread();
 	FVector ApplyCrowdSpreadToDirection(const FVector& DirectDirection) const;
+	FVector ApplyEnemySeparationToDirection(const FVector& MovementDirection) const;
+	void UpdateCachedEnemySeparation();
 	void RequestEnemyMovement(const FVector& WorldDirection);
 	void StopEnemyMovement();
 	bool IsUsingLightweightMovement() const;
@@ -181,8 +202,10 @@ protected:
 	TObjectPtr<UExperienceComponent> CachedPlayerExperienceComponent;
 
 	FTimerHandle BehaviorUpdateTimerHandle;
+	FTimerHandle SeparationUpdateTimerHandle;
 	FVector DesiredMovementDirection = FVector::ZeroVector;
 	FVector DesiredDirectMovementDirection = FVector::ZeroVector;
+	FVector CachedEnemySeparationVector = FVector::ZeroVector;
 	float CrowdSpreadBias = 0.0f;
 	bool bHasDesiredMovementDirection = false;
 	bool bCharacterMovementDisabledForProfiling = false;
