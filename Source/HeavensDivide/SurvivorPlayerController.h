@@ -19,6 +19,9 @@ class ACharacterBase;
 class APlayerCameraRig;
 struct FInputActionValue;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDashChargesChanged, int32, CurrentCharges, int32, MaxCharges);
+
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
 {
@@ -48,8 +51,47 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Player|Dash")
+	bool TryDash();
+
+	UFUNCTION(BlueprintPure, Category = "Player|Dash")
+	bool CanDash() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Dash")
+	float GetDashCooldownRemaining() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Dash")
+	int32 GetCurrentDashCharges() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Dash")
+	int32 GetMaxDashCharges() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Dash")
+	bool HasDashCharge() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Dash")
+	float GetDashRechargeRemaining() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Dash")
+	float GetDashRechargeNormalized() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Player|Debug")
 	void DebugGrantXP(int32 Amount);
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	FOnPlayerDash OnDashStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	FOnPlayerDash OnDashEnded;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	FOnDashChargesChanged OnDashChargesChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	FOnPlayerDash OnDashRechargeStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	FOnPlayerDash OnDashRechargeCompleted;
 
 protected:
 	virtual void BeginPlay() override;
@@ -66,6 +108,18 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> AssistAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	TObjectPtr<UInputAction> DashAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float DashDistance = 550.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float DashDuration = 0.18f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float DashRechargeTime = 5.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Characters")
 	TObjectPtr<UCharacterManagerComponent> CharacterManager;
@@ -110,7 +164,9 @@ protected:
 	bool bLevelUpSelectionActive = false;
 
 	void Move(const FInputActionValue& Value);
+	void StopMoveInput(const FInputActionValue& Value);
 	void Swap(const FInputActionValue& Value);
+	void Dash(const FInputActionValue& Value);
 	void ConfigureInputMode();
 	void InitializePlayerCameraRig();
 	void InitializePlayerHUD();
@@ -132,8 +188,25 @@ protected:
 	void ApplySharedMoveSpeedToParty();
 	void ApplySharedHealthStats();
 	void ApplySharedPlayerStats();
+	void ApplyDashChargeStats();
 	void UpdateMouseFacingTarget();
 	bool GetMouseWorldPosition(FVector& OutWorldPosition) const;
+	FVector GetDashDirection(const ACharacterBase* ActiveCharacter) const;
+	void HandleDashStep(float DeltaTime);
+	void FinishDash();
+	void ConsumeDashCharge();
+	void RestoreDashCharge(int32 ChargeAmount, const TCHAR* RestoreReason);
+	void StartDashRechargeIfNeeded();
+	void StopDashRecharge();
+	void HandleDashRechargeTimerElapsed();
+	void BroadcastDashChargesChanged();
 
 	float BasePlayerMaxHealth = 0.0f;
+	FTimerHandle DashRechargeTimerHandle;
+	FVector2D LastMovementInput = FVector2D::ZeroVector;
+	FVector ActiveDashDirection = FVector::ZeroVector;
+	float DashElapsedTime = 0.0f;
+	int32 CurrentDashCharges = 1;
+	int32 MaxDashCharges = 1;
+	bool bIsDashing = false;
 };

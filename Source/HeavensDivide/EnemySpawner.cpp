@@ -316,8 +316,8 @@ int32 AEnemySpawner::GetCurrentSpawnBudget() const
 
 float AEnemySpawner::EvaluateDefaultHealthMultiplier() const
 {
-	const float Minutes = GetRunTimeMinutes();
-	return 1.0f + Minutes * 0.5f;
+	const int32 CompletedMinutes = FMath::FloorToInt(GetRunTimeMinutes());
+	return 1.0f + CompletedMinutes * 0.5f;
 }
 
 float AEnemySpawner::EvaluateDefaultDamageMultiplier() const
@@ -398,8 +398,10 @@ void AEnemySpawner::HandleDistantEnemyCheckTimerElapsed()
 	PruneTrackedEnemies();
 
 	const float MaxDistanceSquared = FMath::Square(MaxEnemyDistanceFromPlayer);
-	int32 DespawnedCount = 0;
-	for (TWeakObjectPtr<AEnemyBase>& EnemyPtr : SpawnedEnemies)
+	TArray<TWeakObjectPtr<AEnemyBase>> EnemiesToDespawn;
+	EnemiesToDespawn.Reserve(MaxDistantDespawnsPerCheck);
+
+	for (const TWeakObjectPtr<AEnemyBase>& EnemyPtr : SpawnedEnemies)
 	{
 		AEnemyBase* Enemy = EnemyPtr.Get();
 		if (!Enemy || Enemy->IsDead())
@@ -409,14 +411,25 @@ void AEnemySpawner::HandleDistantEnemyCheckTimerElapsed()
 
 		if (FVector::DistSquared2D(Enemy->GetActorLocation(), ActivePlayer->GetActorLocation()) > MaxDistanceSquared)
 		{
-			Enemy->Destroy();
-			++DespawnedCount;
-			if (DespawnedCount >= MaxDistantDespawnsPerCheck)
+			EnemiesToDespawn.Add(Enemy);
+			if (EnemiesToDespawn.Num() >= MaxDistantDespawnsPerCheck)
 			{
 				break;
 			}
 		}
 	}
+
+	int32 DespawnedCount = 0;
+	for (const TWeakObjectPtr<AEnemyBase>& EnemyPtr : EnemiesToDespawn)
+	{
+		if (AEnemyBase* Enemy = EnemyPtr.Get())
+		{
+			Enemy->Destroy();
+			++DespawnedCount;
+		}
+	}
+
+	PruneTrackedEnemies();
 
 	if (DespawnedCount > 0 && CVarLogSpawnDirector.GetValueOnGameThread() != 0)
 	{

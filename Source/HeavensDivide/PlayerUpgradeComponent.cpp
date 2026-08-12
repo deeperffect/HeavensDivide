@@ -6,6 +6,7 @@
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "CharacterStatsComponent.h"
+#include "ExperienceComponent.h"
 #include "HealthComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "NinjaCharacter.h"
@@ -126,7 +127,8 @@ bool UPlayerUpgradeComponent::IsCategoryUnlocked(EUpgradeCategory Category) cons
 		return true;
 	}
 
-	return HasAcquiredUpgradeInCategory(EUpgradeCategory::Samurai)
+	return GetCurrentPlayerLevel() >= SynergyUnlockLevel
+		&& HasAcquiredUpgradeInCategory(EUpgradeCategory::Samurai)
 		&& HasAcquiredUpgradeInCategory(EUpgradeCategory::Ninja);
 }
 
@@ -335,6 +337,26 @@ TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetEligibleUpgrades(const T
 	return EligibleUpgrades;
 }
 
+int32 UPlayerUpgradeComponent::GetSpecialEffectLevel(EUpgradeSpecialEffect SpecialEffect) const
+{
+	if (SpecialEffect == EUpgradeSpecialEffect::None)
+	{
+		return 0;
+	}
+
+	int32 TotalLevel = 0;
+	for (const TPair<FName, TObjectPtr<UUpgradeDefinition>>& UpgradePair : AcquiredUpgradeDefinitions)
+	{
+		const UUpgradeDefinition* Upgrade = UpgradePair.Value;
+		if (IsValidUpgradeDefinition(Upgrade) && Upgrade->SpecialEffects.Contains(SpecialEffect))
+		{
+			TotalLevel += GetUpgradeLevel(UpgradePair.Value);
+		}
+	}
+
+	return TotalLevel;
+}
+
 bool UPlayerUpgradeComponent::IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const
 {
 	return Upgrade && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0;
@@ -349,6 +371,13 @@ float UPlayerUpgradeComponent::GetCategoryRollWeight(EUpgradeCategory Category) 
 {
 	const int32 MissCount = FMath::Max(0, CategoryRollsSinceLastOffered.FindRef(Category));
 	return FMath::Max(0.0f, GetBaseCategoryWeight(Category) + MissCount * CategoryBadLuckWeightPerMiss);
+}
+
+int32 UPlayerUpgradeComponent::GetCurrentPlayerLevel() const
+{
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(GetOwner());
+	const UExperienceComponent* Experience = SurvivorController ? SurvivorController->GetExperienceComponent() : nullptr;
+	return Experience ? Experience->GetCurrentLevel() : 1;
 }
 
 bool UPlayerUpgradeComponent::HasAcquiredUpgradeInCategory(EUpgradeCategory Category) const

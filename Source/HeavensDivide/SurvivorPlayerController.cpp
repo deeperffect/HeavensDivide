@@ -17,6 +17,18 @@
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
 #include "AutoAttackComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "TimerManager.h"
+
+static TAutoConsoleVariable<int32> CVarHDLogDash(
+	TEXT("hd.LogDash"),
+	0,
+	TEXT("Logs player dash start, block, and end events when enabled."));
+
+static TAutoConsoleVariable<int32> CVarHDLogDashCharges(
+	TEXT("hd.LogDashCharges"),
+	0,
+	TEXT("Logs player dash charge state changes when enabled."));
 
 namespace
 {
@@ -81,6 +93,7 @@ void ASurvivorPlayerController::BeginPlay()
 		SharedPlayerStatsComponent->OnStatsChanged.AddDynamic(this, &ASurvivorPlayerController::HandleSharedPlayerStatsChanged);
 		ApplySharedPlayerStats();
 	}
+	ApplyDashChargeStats();
 
 	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
 	if (!LocalPlayer)
@@ -100,6 +113,7 @@ void ASurvivorPlayerController::PlayerTick(float DeltaTime)
 	Super::PlayerTick(DeltaTime);
 
 	UpdateMouseFacingTarget();
+	HandleDashStep(DeltaTime);
 }
 
 void ASurvivorPlayerController::SetCameraFollowTarget(ACharacterBase* NewFollowTarget)
@@ -146,6 +160,110 @@ bool ASurvivorPlayerController::IsPlayerDead() const
 	return bIsPlayerDead;
 }
 
+bool ASurvivorPlayerController::TryDash()
+{
+	if (!CanDash())
+	{
+		if (CVarHDLogDash.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Dash blocked - charges=%d/%d recharge remaining=%.2f bIsDashing=%s"),
+				CurrentDashCharges,
+				MaxDashCharges,
+				GetDashRechargeRemaining(),
+				bIsDashing ? TEXT("true") : TEXT("false"));
+		}
+		return false;
+	}
+
+	ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+	if (!ActiveCharacter)
+	{
+		return false;
+	}
+
+	ActiveDashDirection = GetDashDirection(ActiveCharacter);
+	if (ActiveDashDirection.IsNearlyZero())
+	{
+		return false;
+	}
+
+	DashElapsedTime = 0.0f;
+	bIsDashing = true;
+	ConsumeDashCharge();
+	if (UCharacterMovementComponent* MovementComponent = ActiveCharacter->GetCharacterMovement())
+	{
+		MovementComponent->StopMovementImmediately();
+	}
+	ActiveCharacter->StartDashVisual(DashDuration, ActiveDashDirection);
+	OnDashStarted.Broadcast();
+
+	if (CVarHDLogDash.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Dash started Direction=%s Distance=%.1f Duration=%.2f RechargeTime=%.2f"),
+			*ActiveDashDirection.ToString(),
+			DashDistance,
+			DashDuration,
+			DashRechargeTime);
+	}
+
+	return true;
+}
+
+bool ASurvivorPlayerController::CanDash() const
+{
+	if (bIsPlayerDead || bIsDashing || bLevelUpSelectionActive || !GetWorld())
+	{
+		return false;
+	}
+
+	const ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+	return ActiveCharacter
+		&& ActiveCharacter->GetCharacterMode() == ECharacterMode::Active
+		&& HasDashCharge();
+}
+
+float ASurvivorPlayerController::GetDashCooldownRemaining() const
+{
+	return HasDashCharge() ? 0.0f : GetDashRechargeRemaining();
+}
+
+int32 ASurvivorPlayerController::GetCurrentDashCharges() const
+{
+	return CurrentDashCharges;
+}
+
+int32 ASurvivorPlayerController::GetMaxDashCharges() const
+{
+	return MaxDashCharges;
+}
+
+bool ASurvivorPlayerController::HasDashCharge() const
+{
+	return CurrentDashCharges > 0;
+}
+
+float ASurvivorPlayerController::GetDashRechargeRemaining() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Max(0.0f, World->GetTimerManager().GetTimerRemaining(DashRechargeTimerHandle));
+}
+
+float ASurvivorPlayerController::GetDashRechargeNormalized() const
+{
+	const UWorld* World = GetWorld();
+	if (!World || DashRechargeTime <= KINDA_SMALL_NUMBER || !World->GetTimerManager().IsTimerActive(DashRechargeTimerHandle))
+	{
+		return CurrentDashCharges >= MaxDashCharges ? 1.0f : 0.0f;
+	}
+
+	return 1.0f - FMath::Clamp(GetDashRechargeRemaining() / DashRechargeTime, 0.0f, 1.0f);
+}
+
 void ASurvivorPlayerController::DebugGrantXP(int32 Amount)
 {
 #if !UE_BUILD_SHIPPING
@@ -167,11 +285,18 @@ void ASurvivorPlayerController::SetupInputComponent()
 	if (EnhancedInputComponent && MoveAction)
 	{
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ASurvivorPlayerController::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ASurvivorPlayerController::StopMoveInput);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Canceled, this, &ASurvivorPlayerController::StopMoveInput);
 	}
 
 	if (EnhancedInputComponent && SwapAction)
 	{
 		EnhancedInputComponent->BindAction(SwapAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::Swap);
+	}
+
+	if (EnhancedInputComponent && DashAction)
+	{
+		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::Dash);
 	}
 }
 
@@ -188,12 +313,21 @@ void ASurvivorPlayerController::Move(const FInputActionValue& Value)
 		return;
 	}
 
-	ControlledCharacter->MoveCharacter(Value.Get<FVector2D>());
+	LastMovementInput = Value.Get<FVector2D>();
+	if (!bIsDashing)
+	{
+		ControlledCharacter->MoveCharacter(LastMovementInput);
+	}
+}
+
+void ASurvivorPlayerController::StopMoveInput(const FInputActionValue& Value)
+{
+	LastMovementInput = FVector2D::ZeroVector;
 }
 
 void ASurvivorPlayerController::Swap(const FInputActionValue& Value)
 {
-	if (bIsPlayerDead)
+	if (bIsPlayerDead || bIsDashing)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
 		return;
@@ -203,6 +337,11 @@ void ASurvivorPlayerController::Swap(const FInputActionValue& Value)
 	{
 		CharacterManager->SwapCharacter();
 	}
+}
+
+void ASurvivorPlayerController::Dash(const FInputActionValue& Value)
+{
+	TryDash();
 }
 
 void ASurvivorPlayerController::ConfigureInputMode()
@@ -263,6 +402,11 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 	if (bIsPlayerDead)
 	{
 		return;
+	}
+
+	if (PlayerUpgradeComponent && PlayerUpgradeComponent->GetSpecialEffectLevel(EUpgradeSpecialEffect::SwapRestoresDashCharge) > 0)
+	{
+		RestoreDashCharge(1, TEXT("Swap restored dash charge"));
 	}
 
 	ApplySharedMoveSpeedToParty();
@@ -450,6 +594,48 @@ void ASurvivorPlayerController::ApplySharedPlayerStats()
 {
 	ApplySharedMoveSpeedToParty();
 	ApplySharedHealthStats();
+	ApplyDashChargeStats();
+}
+
+void ASurvivorPlayerController::ApplyDashChargeStats()
+{
+	const int32 PreviousMaxCharges = MaxDashCharges;
+	const int32 PreviousCurrentCharges = CurrentDashCharges;
+	MaxDashCharges = SharedPlayerStatsComponent ? SharedPlayerStatsComponent->GetFinalMaxDashCharges() : 1;
+	MaxDashCharges = FMath::Max(1, MaxDashCharges);
+
+	if (PreviousMaxCharges <= 0)
+	{
+		CurrentDashCharges = MaxDashCharges;
+	}
+	else if (MaxDashCharges > PreviousMaxCharges)
+	{
+		CurrentDashCharges += MaxDashCharges - PreviousMaxCharges;
+	}
+
+	CurrentDashCharges = FMath::Clamp(CurrentDashCharges, 0, MaxDashCharges);
+
+	if (PreviousMaxCharges != MaxDashCharges || PreviousCurrentCharges != CurrentDashCharges)
+	{
+		if (CVarHDLogDashCharges.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Dash upgrade applied Max Charges: %d -> %d Current Charges: %d -> %d"),
+				PreviousMaxCharges,
+				MaxDashCharges,
+				PreviousCurrentCharges,
+				CurrentDashCharges);
+		}
+		BroadcastDashChargesChanged();
+	}
+
+	if (CurrentDashCharges >= MaxDashCharges)
+	{
+		StopDashRecharge();
+	}
+	else
+	{
+		StartDashRechargeIfNeeded();
+	}
 }
 
 void ASurvivorPlayerController::ApplySharedMoveSpeedToParty()
@@ -533,4 +719,186 @@ bool ASurvivorPlayerController::GetMouseWorldPosition(FVector& OutWorldPosition)
 	}
 
 	return false;
+}
+
+FVector ASurvivorPlayerController::GetDashDirection(const ACharacterBase* ActiveCharacter) const
+{
+	if (!ActiveCharacter)
+	{
+		return FVector::ZeroVector;
+	}
+
+	FVector DashDirection = FVector::RightVector * -LastMovementInput.X + FVector::ForwardVector * -LastMovementInput.Y;
+	DashDirection.Z = 0.0f;
+	if (!DashDirection.Normalize())
+	{
+		DashDirection = ActiveCharacter->GetVisualForwardVector();
+		DashDirection.Z = 0.0f;
+		DashDirection.Normalize();
+	}
+
+	return DashDirection;
+}
+
+void ASurvivorPlayerController::HandleDashStep(float DeltaTime)
+{
+	if (!bIsDashing)
+	{
+		return;
+	}
+
+	if (DashDuration <= KINDA_SMALL_NUMBER)
+	{
+		FinishDash();
+		return;
+	}
+
+	ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+	if (!ActiveCharacter)
+	{
+		FinishDash();
+		return;
+	}
+
+	const float StepTime = FMath::Min(DeltaTime, DashDuration - DashElapsedTime);
+	if (StepTime <= KINDA_SMALL_NUMBER)
+	{
+		FinishDash();
+		return;
+	}
+
+	const float DashSpeed = DashDistance / DashDuration;
+	const FVector StartLocation = ActiveCharacter->GetActorLocation();
+	const FVector DesiredLocation = StartLocation + ActiveDashDirection * DashSpeed * StepTime;
+
+	FHitResult HitResult;
+	ActiveCharacter->SetActorLocation(DesiredLocation, true, &HitResult);
+	DashElapsedTime += StepTime;
+
+	if (HitResult.bBlockingHit || DashElapsedTime >= DashDuration - KINDA_SMALL_NUMBER)
+	{
+		FinishDash();
+	}
+}
+
+void ASurvivorPlayerController::FinishDash()
+{
+	if (!bIsDashing)
+	{
+		return;
+	}
+
+	bIsDashing = false;
+	DashElapsedTime = 0.0f;
+	ActiveDashDirection = FVector::ZeroVector;
+	if (ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
+	{
+		if (UCharacterMovementComponent* MovementComponent = ActiveCharacter->GetCharacterMovement())
+		{
+			MovementComponent->StopMovementImmediately();
+		}
+		ActiveCharacter->EndDashVisual();
+	}
+	OnDashEnded.Broadcast();
+
+	if (CVarHDLogDash.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Dash ended"));
+	}
+}
+
+void ASurvivorPlayerController::ConsumeDashCharge()
+{
+	const int32 PreviousCharges = CurrentDashCharges;
+	CurrentDashCharges = FMath::Clamp(CurrentDashCharges - 1, 0, MaxDashCharges);
+	BroadcastDashChargesChanged();
+	StartDashRechargeIfNeeded();
+
+	if (CVarHDLogDashCharges.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Dash consumed Charges: %d -> %d Recharge Remaining: %.2f"),
+			PreviousCharges,
+			CurrentDashCharges,
+			GetDashRechargeRemaining());
+	}
+}
+
+void ASurvivorPlayerController::RestoreDashCharge(int32 ChargeAmount, const TCHAR* RestoreReason)
+{
+	if (ChargeAmount <= 0)
+	{
+		return;
+	}
+
+	const int32 PreviousCharges = CurrentDashCharges;
+	CurrentDashCharges = FMath::Clamp(CurrentDashCharges + ChargeAmount, 0, MaxDashCharges);
+	if (CurrentDashCharges == PreviousCharges)
+	{
+		return;
+	}
+
+	BroadcastDashChargesChanged();
+
+	if (CurrentDashCharges >= MaxDashCharges)
+	{
+		StopDashRecharge();
+	}
+	else
+	{
+		StartDashRechargeIfNeeded();
+	}
+
+	if (CVarHDLogDashCharges.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("%s Charges: %d -> %d"),
+			RestoreReason ? RestoreReason : TEXT("Dash charge restored"),
+			PreviousCharges,
+			CurrentDashCharges);
+	}
+}
+
+void ASurvivorPlayerController::StartDashRechargeIfNeeded()
+{
+	if (!GetWorld() || CurrentDashCharges >= MaxDashCharges || DashRechargeTime <= 0.0f)
+	{
+		return;
+	}
+
+	if (GetWorldTimerManager().IsTimerActive(DashRechargeTimerHandle))
+	{
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(
+		DashRechargeTimerHandle,
+		this,
+		&ASurvivorPlayerController::HandleDashRechargeTimerElapsed,
+		DashRechargeTime,
+		false);
+	OnDashRechargeStarted.Broadcast();
+}
+
+void ASurvivorPlayerController::StopDashRecharge()
+{
+	if (GetWorld())
+	{
+		GetWorldTimerManager().ClearTimer(DashRechargeTimerHandle);
+	}
+}
+
+void ASurvivorPlayerController::HandleDashRechargeTimerElapsed()
+{
+	StopDashRecharge();
+	RestoreDashCharge(1, TEXT("Dash charge restored"));
+	OnDashRechargeCompleted.Broadcast();
+
+	if (CurrentDashCharges < MaxDashCharges)
+	{
+		StartDashRechargeIfNeeded();
+	}
+}
+
+void ASurvivorPlayerController::BroadcastDashChargesChanged()
+{
+	OnDashChargesChanged.Broadcast(CurrentDashCharges, MaxDashCharges);
 }

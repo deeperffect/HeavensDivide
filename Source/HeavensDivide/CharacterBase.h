@@ -41,6 +41,9 @@ public:
 	void SetVisualFacingRotation(FRotator NewRotation);
 	void StopPlayerGameplay();
 	void PlayDeathMontage();
+	void StartDashVisual(float GameplayDashDuration, FVector DashDirection);
+	void EndDashVisual();
+	bool IsDashing() const;
 	void LogVisibilityState(const FString& Context) const;
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	UCharacterStatsComponent* GetCharacterStats() const;
@@ -73,6 +76,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash")
+	TObjectPtr<UAnimMontage> DashMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float MinDashMontagePlayRate = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float MaxDashMontagePlayRate = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash")
+	bool bFaceDashDirection = true;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character")
 	ECharacterMode CharacterMode = ECharacterMode::Active;
 
@@ -83,4 +98,5 @@ protected:
 	FVector FacingOverrideTarget = FVector::ZeroVector;
 	bool bHasFacingOverride = false;
 	float BaseMaxWalkSpeed = 0.0f;
+	bool bIsDashing = false;
 };

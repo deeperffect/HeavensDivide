@@ -103,7 +103,17 @@ float USharedPlayerStatsComponent::GetFinalDamageMultiplier() const
 	return FMath::Max(0.0f, GetFinalStat(ESharedPlayerStatType::DamageMultiplier));
 }
 
+int32 USharedPlayerStatsComponent::GetFinalMaxDashCharges() const
+{
+	return FMath::Max(1, FMath::RoundToInt(GetFinalStat(ESharedPlayerStatType::MaxDashCharges)));
+}
+
 float USharedPlayerStatsComponent::GetBaseStat(ESharedPlayerStatType Stat) const
 {
+	if (Stat == ESharedPlayerStatType::MaxDashCharges)
+	{
+		return 1.0f;
+	}
+
 	return 1.0f;
 }

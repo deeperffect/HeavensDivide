@@ -19,6 +19,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDActiveCharacterChanged, AC
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDXPUpdated, int32, CurrentXP, int32, XPToNextLevel, float, XPPercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDLevelUp, int32, NewLevel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDLevelUpdated, int32, CurrentLevel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDDashChargesUpdated, int32, CurrentCharges, int32, MaxCharges, float, RechargePercent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDDashRechargeUpdated, float, RechargePercent);
 
 UCLASS(BlueprintType, Blueprintable)
 class HEAVENSDIVIDE_API UPlayerHUDWidget : public UUserWidget
@@ -68,6 +70,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player HUD|Experience")
 	float GetXPPercent() const;
 
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Dash")
+	int32 GetCurrentDashCharges() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Dash")
+	int32 GetMaxDashCharges() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Dash")
+	float GetDashRechargePercent() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Dash")
+	bool IsDashRecharging() const;
+
 	UFUNCTION(BlueprintPure, Category = "Player HUD|State")
 	bool IsSamuraiActive() const;
 
@@ -89,6 +103,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
 	void OnPlayerLevelUpdated(int32 CurrentLevel);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
+	void OnDashChargesUpdated(int32 CurrentCharges, int32 MaxCharges, float RechargePercent);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
+	void OnDashRechargeUpdated(float RechargePercent);
+
 	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
 	FPlayerHUDHealthUpdated PlayerHealthUpdated;
 
@@ -103,6 +123,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
 	FPlayerHUDLevelUpdated PlayerLevelUpdated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
+	FPlayerHUDDashChargesUpdated DashChargesUpdated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
+	FPlayerHUDDashRechargeUpdated DashRechargeUpdated;
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -154,15 +180,29 @@ private:
 	UFUNCTION()
 	void HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
 
+	UFUNCTION()
+	void HandleDashChargesChanged(int32 CurrentCharges, int32 MaxCharges);
+
+	UFUNCTION()
+	void HandleDashRechargeStarted();
+
+	UFUNCTION()
+	void HandleDashRechargeCompleted();
+
 	void BindCharacterHealth();
 	void UnbindCharacterHealth();
 	void BindPlayerExperience();
 	void UnbindPlayerExperience();
+	void BindDashState();
+	void UnbindDashState();
 	void BroadcastInitialState();
 	void UpdateHealthAnimation(float NewHealthPercent);
 	void StopHealthChipChase();
+	void BroadcastDashState();
+	void BroadcastDashRechargeProgress();
 
 	FTimerHandle HealthChipDelayTimerHandle;
 	float TargetHealthPercent = 1.0f;
 	bool bHealthChipChasing = false;
+	bool bDashRechargeProgressActive = false;
 };

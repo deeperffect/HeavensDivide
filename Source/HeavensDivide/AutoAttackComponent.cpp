@@ -465,6 +465,13 @@ void UAutoAttackComponent::HandleAttackTimer()
 		return;
 	}
 
+	if (OwnerCharacter && OwnerCharacter->IsDashing())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Dashing"));
+		ScheduleNextAttackTimerFromCooldown();
+		return;
+	}
+
 	if (!CanStartAttackNow())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
@@ -640,6 +647,12 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 
 void UAutoAttackComponent::StartTargetedAttack()
 {
+	if (OwnerCharacter && OwnerCharacter->IsDashing())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Auto attack skipped: owner is dashing."));
+		return;
+	}
+
 	if (bIsAttacking)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));

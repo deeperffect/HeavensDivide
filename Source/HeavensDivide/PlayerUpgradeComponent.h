@@ -83,6 +83,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Upgrades")
 	TArray<UUpgradeDefinition*> GetEligibleUpgrades(const TArray<UUpgradeDefinition*>& CandidateUpgrades) const;
 
+	UFUNCTION(BlueprintPure, Category = "Upgrades")
+	int32 GetSpecialEffectLevel(EUpgradeSpecialEffect SpecialEffect) const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Upgrades")
 	FOnUpgradeAcquired OnUpgradeAcquired;
 
@@ -96,9 +99,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float CategoryBadLuckWeightPerMiss = 0.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (ClampMin = "1", UIMin = "1"))
+	int32 SynergyUnlockLevel = 5;
+
 private:
 	float GetBaseCategoryWeight(EUpgradeCategory Category) const;
 	float GetCategoryRollWeight(EUpgradeCategory Category) const;
+	int32 GetCurrentPlayerLevel() const;
 	bool HasAcquiredUpgradeInCategory(EUpgradeCategory Category) const;
 	EUpgradeCategory PickWeightedCategory(const TArray<EUpgradeCategory>& Categories, const TArray<float>& Weights) const;
 	void UpdateCategoryBadLuckHistory(const TArray<EUpgradeCategory>& OfferedCategories);

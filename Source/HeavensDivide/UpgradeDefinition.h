@@ -33,6 +33,13 @@ enum class EUpgradeStatTarget : uint8
 	SharedPlayer
 };
 
+UENUM(BlueprintType)
+enum class EUpgradeSpecialEffect : uint8
+{
+	None,
+	SwapRestoresDashCharge
+};
+
 USTRUCT(BlueprintType)
 struct FUpgradeStatModifierDefinition
 {
@@ -83,4 +90,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TArray<FUpgradeStatModifierDefinition> StatModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
+	TArray<EUpgradeSpecialEffect> SpecialEffects;
 };

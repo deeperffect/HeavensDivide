@@ -13,7 +13,8 @@ enum class ESharedPlayerStatType : uint8
 	MoveSpeedMultiplier,
 	MaxHealthMultiplier,
 	PickupRadiusMultiplier,
-	DamageMultiplier
+	DamageMultiplier,
+	MaxDashCharges
 };
 
 USTRUCT(BlueprintType)
@@ -70,6 +71,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetFinalDamageMultiplier() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetFinalMaxDashCharges() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Stats")
 	FOnSharedPlayerStatsChanged OnStatsChanged;

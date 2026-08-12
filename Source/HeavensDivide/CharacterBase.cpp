@@ -274,6 +274,49 @@ void ACharacterBase::PlayDeathMontage()
 		PlayResult);
 }
 
+void ACharacterBase::StartDashVisual(float GameplayDashDuration, FVector DashDirection)
+{
+	bIsDashing = true;
+
+	DashDirection.Z = 0.0f;
+	if (bFaceDashDirection && DashDirection.Normalize())
+	{
+		SetVisualFacingRotation(FRotator(0.0f, DashDirection.Rotation().Yaw, 0.0f));
+	}
+
+	if (!DashMontage)
+	{
+		return;
+	}
+
+	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Dash montage skipped: AnimInstance invalid for %s"), *GetNameSafe(this));
+		return;
+	}
+
+	const float MontageLength = DashMontage->GetPlayLength();
+	const float DesiredPlayRate = GameplayDashDuration > KINDA_SMALL_NUMBER ? MontageLength / GameplayDashDuration : 1.0f;
+	const float PlayRate = FMath::Clamp(DesiredPlayRate, MinDashMontagePlayRate, FMath::Max(MinDashMontagePlayRate, MaxDashMontagePlayRate));
+	const float PlayResult = AnimInstance->Montage_Play(DashMontage, PlayRate);
+	UE_LOG(LogTemp, Log, TEXT("Dash montage played: Character=%s Montage=%s PlayRate=%.2f Result=%.3f"),
+		*GetNameSafe(this),
+		*GetNameSafe(DashMontage),
+		PlayRate,
+		PlayResult);
+}
+
+void ACharacterBase::EndDashVisual()
+{
+	bIsDashing = false;
+}
+
+bool ACharacterBase::IsDashing() const
+{
+	return bIsDashing;
+}
+
 FVector2D ACharacterBase::GetLocalMovementVector() const
 {
 	const FVector Velocity2D = FVector(GetVelocity().X, GetVelocity().Y, 0.0f);
@@ -295,6 +338,11 @@ float ACharacterBase::GetLocalRightSpeed() const
 
 void ACharacterBase::UpdateMouseFacing(float DeltaSeconds)
 {
+	if (bIsDashing && bFaceDashDirection)
+	{
+		return;
+	}
+
 	if (CharacterMode != ECharacterMode::Active || (!bHasFacingTarget && !bHasFacingOverride) || !VisualRoot)
 	{
 		return;

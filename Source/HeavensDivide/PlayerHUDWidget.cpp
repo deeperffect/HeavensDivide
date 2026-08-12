@@ -32,6 +32,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 
 	UnbindCharacterHealth();
 	UnbindPlayerExperience();
+	UnbindDashState();
 
 	if (CharacterManager)
 	{
@@ -52,6 +53,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 
 	BindCharacterHealth();
 	BindPlayerExperience();
+	BindDashState();
 	BroadcastInitialState();
 }
 
@@ -60,6 +62,7 @@ void UPlayerHUDWidget::NativeDestruct()
 	StopHealthChipChase();
 	UnbindCharacterHealth();
 	UnbindPlayerExperience();
+	UnbindDashState();
 
 	if (CharacterManager)
 	{
@@ -72,6 +75,16 @@ void UPlayerHUDWidget::NativeDestruct()
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+
+	if (bDashRechargeProgressActive)
+	{
+		BroadcastDashRechargeProgress();
+
+		if (!IsDashRecharging())
+		{
+			bDashRechargeProgressActive = false;
+		}
+	}
 
 	if (!bHealthChipChasing)
 	{
@@ -151,6 +164,28 @@ float UPlayerHUDWidget::GetXPPercent() const
 	return PlayerExperience ? PlayerExperience->GetXPPercent() : 0.0f;
 }
 
+int32 UPlayerHUDWidget::GetCurrentDashCharges() const
+{
+	return SurvivorPlayerController ? SurvivorPlayerController->GetCurrentDashCharges() : 0;
+}
+
+int32 UPlayerHUDWidget::GetMaxDashCharges() const
+{
+	return SurvivorPlayerController ? SurvivorPlayerController->GetMaxDashCharges() : 0;
+}
+
+float UPlayerHUDWidget::GetDashRechargePercent() const
+{
+	return SurvivorPlayerController ? SurvivorPlayerController->GetDashRechargeNormalized() : 0.0f;
+}
+
+bool UPlayerHUDWidget::IsDashRecharging() const
+{
+	return SurvivorPlayerController
+		&& SurvivorPlayerController->GetCurrentDashCharges() < SurvivorPlayerController->GetMaxDashCharges()
+		&& SurvivorPlayerController->GetDashRechargeRemaining() > 0.0f;
+}
+
 bool UPlayerHUDWidget::IsSamuraiActive() const
 {
 	return Samurai && GetActiveCharacter() == Samurai;
@@ -186,6 +221,26 @@ void UPlayerHUDWidget::HandlePlayerLevelUp(int32 NewLevel)
 	OnPlayerLevelUp(NewLevel);
 	PlayerLevelUpdated.Broadcast(NewLevel);
 	OnPlayerLevelUpdated(NewLevel);
+}
+
+void UPlayerHUDWidget::HandleDashChargesChanged(int32 CurrentCharges, int32 MaxCharges)
+{
+	bDashRechargeProgressActive = IsDashRecharging();
+	BroadcastDashState();
+}
+
+void UPlayerHUDWidget::HandleDashRechargeStarted()
+{
+	bDashRechargeProgressActive = true;
+	BroadcastDashState();
+	BroadcastDashRechargeProgress();
+}
+
+void UPlayerHUDWidget::HandleDashRechargeCompleted()
+{
+	BroadcastDashState();
+	BroadcastDashRechargeProgress();
+	bDashRechargeProgressActive = IsDashRecharging();
 }
 
 void UPlayerHUDWidget::BindCharacterHealth()
@@ -236,6 +291,31 @@ void UPlayerHUDWidget::UnbindPlayerExperience()
 	PlayerExperience = nullptr;
 }
 
+void UPlayerHUDWidget::BindDashState()
+{
+	if (!SurvivorPlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PlayerHUDWidget: SurvivorPlayerController invalid for dash state."));
+		return;
+	}
+
+	SurvivorPlayerController->OnDashChargesChanged.AddUniqueDynamic(this, &UPlayerHUDWidget::HandleDashChargesChanged);
+	SurvivorPlayerController->OnDashRechargeStarted.AddUniqueDynamic(this, &UPlayerHUDWidget::HandleDashRechargeStarted);
+	SurvivorPlayerController->OnDashRechargeCompleted.AddUniqueDynamic(this, &UPlayerHUDWidget::HandleDashRechargeCompleted);
+}
+
+void UPlayerHUDWidget::UnbindDashState()
+{
+	if (SurvivorPlayerController)
+	{
+		SurvivorPlayerController->OnDashChargesChanged.RemoveDynamic(this, &UPlayerHUDWidget::HandleDashChargesChanged);
+		SurvivorPlayerController->OnDashRechargeStarted.RemoveDynamic(this, &UPlayerHUDWidget::HandleDashRechargeStarted);
+		SurvivorPlayerController->OnDashRechargeCompleted.RemoveDynamic(this, &UPlayerHUDWidget::HandleDashRechargeCompleted);
+	}
+
+	bDashRechargeProgressActive = false;
+}
+
 void UPlayerHUDWidget::BroadcastInitialState()
 {
 	if (PlayerHealth)
@@ -272,6 +352,12 @@ void UPlayerHUDWidget::BroadcastInitialState()
 
 	ActiveCharacterChanged.Broadcast(GetActiveCharacter());
 	OnActiveCharacterChanged(GetActiveCharacter());
+	BroadcastDashState();
+	bDashRechargeProgressActive = IsDashRecharging();
+	if (bDashRechargeProgressActive)
+	{
+		BroadcastDashRechargeProgress();
+	}
 }
 
 void UPlayerHUDWidget::UpdateHealthAnimation(float NewHealthPercent)
@@ -328,4 +414,20 @@ void UPlayerHUDWidget::StopHealthChipChase()
 	}
 
 	bHealthChipChasing = false;
+}
+
+void UPlayerHUDWidget::BroadcastDashState()
+{
+	const int32 CurrentCharges = GetCurrentDashCharges();
+	const int32 MaxCharges = GetMaxDashCharges();
+	const float RechargePercent = GetDashRechargePercent();
+	DashChargesUpdated.Broadcast(CurrentCharges, MaxCharges, RechargePercent);
+	OnDashChargesUpdated(CurrentCharges, MaxCharges, RechargePercent);
+}
+
+void UPlayerHUDWidget::BroadcastDashRechargeProgress()
+{
+	const float RechargePercent = GetDashRechargePercent();
+	DashRechargeUpdated.Broadcast(RechargePercent);
+	OnDashRechargeUpdated(RechargePercent);
 }
