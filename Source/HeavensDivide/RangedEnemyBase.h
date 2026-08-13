@@ -57,6 +57,9 @@ protected:
 	bool bIsAttacking = false;
 
 	bool IsTargetInAttackRange() const;
+	bool CanStartAttackNow() const;
+	float GetAttackTimerDelay() const;
+	void MarkAttackStarted();
 	void StartAttackTimer();
 	void StopAttackTimer();
 	void HandleAttackTimer();
@@ -65,4 +68,5 @@ protected:
 	FVector GetProjectileSpawnLocation() const;
 
 	FTimerHandle AttackTimerHandle;
+	double NextAttackStartTime = 0.0;
 };

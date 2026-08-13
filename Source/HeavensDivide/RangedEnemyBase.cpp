@@ -115,9 +115,8 @@ void ARangedEnemyBase::StartAttackTimer()
 		AttackTimerHandle,
 		this,
 		&ARangedEnemyBase::HandleAttackTimer,
-		AttackInterval,
-		true,
-		0.0f);
+		GetAttackTimerDelay(),
+		false);
 }
 
 void ARangedEnemyBase::StopAttackTimer()
@@ -138,11 +137,43 @@ void ARangedEnemyBase::HandleAttackTimer()
 	StartAttack();
 }
 
+bool ARangedEnemyBase::CanStartAttackNow() const
+{
+	const UWorld* World = GetWorld();
+	return !World || World->GetTimeSeconds() >= NextAttackStartTime;
+}
+
+float ARangedEnemyBase::GetAttackTimerDelay() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0.01f;
+	}
+
+	const float RemainingTime = static_cast<float>(NextAttackStartTime - World->GetTimeSeconds());
+	return FMath::Max(0.01f, RemainingTime);
+}
+
+void ARangedEnemyBase::MarkAttackStarted()
+{
+	if (const UWorld* World = GetWorld())
+	{
+		NextAttackStartTime = World->GetTimeSeconds() + FMath::Max(0.01f, AttackInterval);
+	}
+}
+
 void ARangedEnemyBase::StartAttack()
 {
 	if (bIsDead || IsPlayerTargetDead() || bIsAttacking || !CurrentTarget || !IsTargetInAttackRange())
 	{
 		StopAttackTimer();
+		return;
+	}
+
+	if (!CanStartAttackNow())
+	{
+		StartAttackTimer();
 		return;
 	}
 
@@ -172,6 +203,7 @@ void ARangedEnemyBase::StartAttack()
 	}
 
 	bIsAttacking = true;
+	MarkAttackStarted();
 	UpdateAnimationBudgetSignificance();
 
 	FOnMontageEnded MontageEndedDelegate;
@@ -228,6 +260,10 @@ void ARangedEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInt
 
 	bIsAttacking = false;
 	UpdateAnimationBudgetSignificance();
+	if (!bInterrupted && !bIsDead && !IsPlayerTargetDead() && CurrentTarget && IsTargetInAttackRange())
+	{
+		StartAttackTimer();
+	}
 	UE_LOG(LogTemp, Log, TEXT("Enemy Ranged Attack Finished"));
 }
 

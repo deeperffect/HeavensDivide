@@ -55,6 +55,9 @@ protected:
 	bool bIsAttacking = false;
 
 	bool IsTargetInAttackRange() const;
+	bool CanStartAttackNow() const;
+	float GetAttackTimerDelay() const;
+	void MarkAttackStarted();
 	void StartAttackTimer();
 	void StopAttackTimer();
 	void HandleAttackTimer();
@@ -65,4 +68,5 @@ protected:
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	FTimerHandle AttackTimerHandle;
+	double NextAttackStartTime = 0.0;
 };

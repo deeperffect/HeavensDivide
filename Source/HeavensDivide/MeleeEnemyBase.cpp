@@ -123,9 +123,8 @@ void AMeleeEnemyBase::StartAttackTimer()
 		AttackTimerHandle,
 		this,
 		&AMeleeEnemyBase::HandleAttackTimer,
-		AttackInterval,
-		true,
-		0.0f);
+		GetAttackTimerDelay(),
+		false);
 }
 
 void AMeleeEnemyBase::StopAttackTimer()
@@ -146,11 +145,43 @@ void AMeleeEnemyBase::HandleAttackTimer()
 	StartAttack();
 }
 
+bool AMeleeEnemyBase::CanStartAttackNow() const
+{
+	const UWorld* World = GetWorld();
+	return !World || World->GetTimeSeconds() >= NextAttackStartTime;
+}
+
+float AMeleeEnemyBase::GetAttackTimerDelay() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0.01f;
+	}
+
+	const float RemainingTime = static_cast<float>(NextAttackStartTime - World->GetTimeSeconds());
+	return FMath::Max(0.01f, RemainingTime);
+}
+
+void AMeleeEnemyBase::MarkAttackStarted()
+{
+	if (const UWorld* World = GetWorld())
+	{
+		NextAttackStartTime = World->GetTimeSeconds() + FMath::Max(0.01f, AttackInterval);
+	}
+}
+
 void AMeleeEnemyBase::StartAttack()
 {
 	if (bIsDead || IsPlayerTargetDead() || bIsAttacking || !CurrentTarget || !IsTargetInAttackRange())
 	{
 		StopAttackTimer();
+		return;
+	}
+
+	if (!CanStartAttackNow())
+	{
+		StartAttackTimer();
 		return;
 	}
 
@@ -181,6 +212,7 @@ void AMeleeEnemyBase::StartAttack()
 	}
 
 	bIsAttacking = true;
+	MarkAttackStarted();
 	UpdateAnimationBudgetSignificance();
 	HandleAttackCommitted();
 
@@ -271,5 +303,9 @@ void AMeleeEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInte
 	bIsAttacking = false;
 	UpdateAnimationBudgetSignificance();
 	HandleAttackFinished();
+	if (!bInterrupted && !bIsDead && !IsPlayerTargetDead() && CurrentTarget && IsTargetInAttackRange())
+	{
+		StartAttackTimer();
+	}
 	UE_LOG(LogTemp, Log, TEXT("Enemy Attack Finished"));
 }
