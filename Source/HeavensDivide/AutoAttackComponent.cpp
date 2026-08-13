@@ -50,6 +50,8 @@ void UAutoAttackComponent::BeginPlay()
 		CharacterStats->OnStatsChanged.AddDynamic(this, &UAutoAttackComponent::HandleCharacterStatsChanged);
 	}
 
+	ApplyLegacyTargetingRangeDefaults();
+
 	if (CanAutoAttack())
 	{
 		StartAutoAttack();
@@ -147,7 +149,7 @@ void UAutoAttackComponent::PerformAttackTrace()
 		AEnemyBase* AssistTarget = CurrentAttackTarget.Get();
 		if (!AssistTarget || AssistTarget->IsDead() || !IsTargetInCurrentMeleeReach(AssistTarget))
 		{
-			AssistTarget = FindAssistTargetNearLocation(OwnerCharacter->GetActorLocation(), TargetingRange);
+		AssistTarget = FindAssistTargetNearLocation(OwnerCharacter->GetActorLocation(), GetEffectiveTargetingRange());
 			CurrentAttackTarget = AssistTarget;
 		}
 
@@ -534,8 +536,14 @@ void UAutoAttackComponent::HandleAttackTimer()
 		return;
 	}
 
-	StartTargetedAttack();
-	ScheduleNextAttackTimerFromCooldown();
+	if (StartTargetedAttack())
+	{
+		ScheduleNextAttackTimerFromCooldown();
+	}
+	else
+	{
+		ScheduleReadyTargetCheckTimer();
+	}
 }
 
 void UAutoAttackComponent::ScheduleNextAttackTimer(float Delay)
@@ -588,6 +596,27 @@ void UAutoAttackComponent::ScheduleNextAttackTimerFromCooldown()
 			Delay,
 			CurrentTime >= NextAttackReadyTime ? TEXT("READY IMMEDIATELY") : TEXT(""));
 	}
+}
+
+void UAutoAttackComponent::ScheduleReadyTargetCheckTimer()
+{
+	if (!CanAutoAttack() || !GetWorld())
+	{
+		return;
+	}
+
+	ScheduleNextAttackTimer(ReadyTargetCheckInterval);
+}
+
+void UAutoAttackComponent::ApplyLegacyTargetingRangeDefaults()
+{
+	constexpr float PreviousDefaultTargetingRange = 1500.0f;
+	if (!FMath::IsNearlyEqual(TargetingRange, PreviousDefaultTargetingRange, 0.01f))
+	{
+		return;
+	}
+
+	TargetingRange = ProjectileClass ? LegacyRangedDefaultTargetingRange : LegacyMeleeDefaultTargetingRange;
 }
 
 bool UAutoAttackComponent::TryStartAssistAttack(AEnemyBase*& OutTargetEnemy, float& OutExpectedDuration)
@@ -791,24 +820,24 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 	ActiveAttackSequence = 0;
 }
 
-void UAutoAttackComponent::StartTargetedAttack()
+bool UAutoAttackComponent::StartTargetedAttack()
 {
 	if (OwnerCharacter && OwnerCharacter->IsDashing())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Auto attack skipped: owner is dashing."));
-		return;
+		return false;
 	}
 
 	if (bIsAttacking)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));
-		return;
+		return false;
 	}
 
 	if (!CanStartAttackNow())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
-		return;
+		return false;
 	}
 
 	AEnemyBase* TargetEnemy = FindNearestEnemyTarget();
@@ -820,7 +849,7 @@ void UAutoAttackComponent::StartTargetedAttack()
 		{
 			OwnerCharacter->ClearFacingOverride();
 		}
-		return;
+		return false;
 	}
 
 	CurrentAttackTarget = TargetEnemy;
@@ -839,12 +868,15 @@ void UAutoAttackComponent::StartTargetedAttack()
 	if (PlayAttackMontage())
 	{
 		OnAutoAttack.Broadcast();
+		return true;
 	}
+
+	return false;
 }
 
-void UAutoAttackComponent::StartProjectileAttack()
+bool UAutoAttackComponent::StartProjectileAttack()
 {
-	StartTargetedAttack();
+	return StartTargetedAttack();
 }
 
 bool UAutoAttackComponent::CanStartAttackNow() const
@@ -915,6 +947,17 @@ float UAutoAttackComponent::GetEffectiveProjectileSpeed() const
 	return ProjectileSpeed * ProjectileSpeedMultiplier;
 }
 
+float UAutoAttackComponent::GetEffectiveTargetingRange() const
+{
+	if (ProjectileClass)
+	{
+		return TargetingRange;
+	}
+
+	const float EffectiveMeleeReach = FMath::Max(0.0f, AttackForwardOffset) + GetEffectiveAttackRadius();
+	return FMath::Max(TargetingRange, EffectiveMeleeReach + 60.0f);
+}
+
 float UAutoAttackComponent::GetEffectiveHomingStrengthMultiplier() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
@@ -956,7 +999,7 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 	if (bDebugTargeting)
 	{
 		constexpr float DebugDuration = 1.5f;
-		DrawDebugSphere(GetWorld(), OwnerCharacter->GetActorLocation(), TargetingRange, 48, FColor::Green, false, DebugDuration, 0, 2.0f);
+	DrawDebugSphere(GetWorld(), OwnerCharacter->GetActorLocation(), GetEffectiveTargetingRange(), 48, FColor::Green, false, DebugDuration, 0, 2.0f);
 		if (BestEnemy)
 		{
 			DrawDebugLine(GetWorld(), OwnerCharacter->GetActorLocation(), BestEnemy->GetActorLocation(), FColor::Green, false, DebugDuration, 0, 3.0f);
@@ -966,7 +1009,7 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("Targeting found no living enemy in range %.2f."), TargetingRange);
+			UE_LOG(LogTemp, Log, TEXT("Targeting found no living enemy in range %.2f."), GetEffectiveTargetingRange());
 		}
 	}
 
@@ -975,7 +1018,7 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 
 void UAutoAttackComponent::FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTargets) const
 {
-	FindEnemyTargetsSortedFromLocation(OwnerCharacter ? OwnerCharacter->GetActorLocation() : FVector::ZeroVector, TargetingRange, OutTargets);
+	FindEnemyTargetsSortedFromLocation(OwnerCharacter ? OwnerCharacter->GetActorLocation() : FVector::ZeroVector, GetEffectiveTargetingRange(), OutTargets);
 }
 
 void UAutoAttackComponent::FindEnemyTargetsSortedFromLocation(const FVector& SearchLocation, float SearchRadius, TArray<AEnemyBase*>& OutTargets) const

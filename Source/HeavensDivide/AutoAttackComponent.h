@@ -56,6 +56,9 @@ public:
 	float GetEffectiveProjectileSpeed() const;
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	float GetEffectiveTargetingRange() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	float GetEffectiveHomingStrengthMultiplier() const;
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
@@ -83,6 +86,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float AttackInterval = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float ReadyTargetCheckInterval = 0.15f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation")
 	bool bScaleMontageWithAttackInterval = true;
 
@@ -100,6 +106,12 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float TargetingRange = 1500.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float LegacyMeleeDefaultTargetingRange = 325.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float LegacyRangedDefaultTargetingRange = 900.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Targeting")
 	bool bDebugTargeting = false;
@@ -147,12 +159,14 @@ private:
 	void HandleAttackTimer();
 	void ScheduleNextAttackTimer(float Delay);
 	void ScheduleNextAttackTimerFromCooldown();
+	void ScheduleReadyTargetCheckTimer();
+	void ApplyLegacyTargetingRangeDefaults();
 	bool PlayAttackMontage(bool bUpdateNormalCooldown = true);
 	float CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const;
 	float GetExpectedAttackMontageDuration() const;
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void StartTargetedAttack();
-	void StartProjectileAttack();
+	bool StartTargetedAttack();
+	bool StartProjectileAttack();
 	bool CanExecuteAttackInCurrentMode() const;
 	bool CanStartAttackNow() const;
 	bool TryConsumeAttackNotify();
