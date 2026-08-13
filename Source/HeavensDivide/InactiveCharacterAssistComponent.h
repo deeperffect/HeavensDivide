@@ -29,6 +29,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Synergy|Assist")
 	void RefreshAssistEffectState();
 
+	UFUNCTION(BlueprintCallable, Category = "Synergy|Assist")
+	void DeactivateAssistEffect(bool bCancelActiveAssist = true);
+
 	UPROPERTY(BlueprintAssignable, Category = "Synergy|Assist")
 	FOnInactiveAssistStarted OnAssistStarted;
 
@@ -68,7 +71,9 @@ private:
 	void StopAssistTimer();
 	void HandleAssistTimerElapsed();
 	void FinishCurrentAssist();
+	void CancelCurrentAssist();
 	bool HasAssistUpgrade() const;
+	bool CanRunAssistEffect() const;
 	FVector GetRangedAssistLocation(const ACharacterBase* ActiveCharacter, const ACharacterBase* AssistCharacter) const;
 	bool TryFindMeleeAssistLocation(ACharacterBase* AssistCharacter, const ACharacterBase* ActiveCharacter, const AEnemyBase* TargetEnemy, FVector& OutAssistLocation) const;
 	bool IsAssistLocationBlocked(const ACharacterBase* AssistCharacter, const FVector& AssistLocation) const;

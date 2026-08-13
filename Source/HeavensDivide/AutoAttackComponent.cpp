@@ -28,6 +28,11 @@ static TAutoConsoleVariable<int32> CVarHDLogNinjaProjectileSpread(
 	0,
 	TEXT("Logs Ninja multi-projectile target distribution when enabled."));
 
+static TAutoConsoleVariable<int32> CVarHDDebugSamuraiTargeting(
+	TEXT("hd.DebugSamuraiTargeting"),
+	0,
+	TEXT("Logs Samurai melee cluster target scoring when enabled."));
+
 UAutoAttackComponent::UAutoAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -412,6 +417,11 @@ AEnemyBase* UAutoAttackComponent::FindAssistTarget() const
 
 AEnemyBase* UAutoAttackComponent::FindAssistTargetNearLocation(const FVector& SearchLocation, float SearchRadius) const
 {
+	if (!ProjectileClass)
+	{
+		return FindBestMeleeTarget(SearchLocation, SearchRadius);
+	}
+
 	TArray<AEnemyBase*> SortedTargets;
 	FindEnemyTargetsSortedFromLocation(SearchLocation, SearchRadius, SortedTargets);
 	return SortedTargets.Num() > 0 ? SortedTargets[0] : nullptr;
@@ -894,12 +904,25 @@ bool UAutoAttackComponent::CanExecuteAttackInCurrentMode() const
 {
 	return bAutoAttackEnabled
 		&& OwnerCharacter
+		&& !IsOwningPlayerDead()
 		&& (OwnerCharacter->GetCharacterMode() == ECharacterMode::Active || OwnerCharacter->GetCharacterMode() == ECharacterMode::Assisting)
 		&& GetWorld();
 }
 
+bool UAutoAttackComponent::IsOwningPlayerDead() const
+{
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(OwnerCharacter ? OwnerCharacter->GetOwner() : nullptr);
+	return SurvivorController && SurvivorController->IsPlayerDead();
+}
+
 bool UAutoAttackComponent::TryConsumeAttackNotify()
 {
+	if (IsOwningPlayerDead())
+	{
+		UE_LOG(LogTemp, Log, TEXT("Attack Notify Skipped: player is dead"));
+		return false;
+	}
+
 	if (!bIsAttacking)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Attack Notify Skipped: No Active Attack"));
@@ -992,6 +1015,11 @@ float UAutoAttackComponent::GetBaseProjectileSpeed() const
 
 AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 {
+	if (!ProjectileClass && OwnerCharacter)
+	{
+		return FindBestMeleeTarget(OwnerCharacter->GetActorLocation(), GetEffectiveTargetingRange());
+	}
+
 	TArray<AEnemyBase*> SortedTargets;
 	FindEnemyTargetsSorted(SortedTargets);
 	AEnemyBase* BestEnemy = SortedTargets.Num() > 0 ? SortedTargets[0] : nullptr;
@@ -1014,6 +1042,105 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 	}
 
 	return BestEnemy;
+}
+
+AEnemyBase* UAutoAttackComponent::FindBestMeleeTarget(const FVector& SearchLocation, float SearchRadius) const
+{
+	TArray<AEnemyBase*> Candidates;
+	FindEnemyTargetsSortedFromLocation(SearchLocation, SearchRadius, Candidates);
+	if (Candidates.Num() == 0)
+	{
+		return nullptr;
+	}
+
+	if (Candidates.Num() > MaxMeleeClusterCandidates)
+	{
+		Candidates.SetNum(MaxMeleeClusterCandidates);
+	}
+
+	AEnemyBase* BestTarget = nullptr;
+	float BestScore = -FLT_MAX;
+
+	if (CVarHDDebugSamuraiTargeting.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("=== SAMURAI TARGETING ==="));
+	}
+
+	for (AEnemyBase* Candidate : Candidates)
+	{
+		int32 ClusterCount = 0;
+		float DistancePenalty = 0.0f;
+		float ImmediateThreatBonus = 0.0f;
+		const float Score = ScoreMeleeTarget(Candidate, Candidates, SearchLocation, SearchRadius, ClusterCount, DistancePenalty, ImmediateThreatBonus);
+
+		if (CVarHDDebugSamuraiTargeting.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Candidate=%s Distance=%.1f NearbyEnemies=%d ClusterScore=%.2f DistancePenalty=%.2f ImmediateBonus=%.2f FinalScore=%.2f"),
+				*GetNameSafe(Candidate),
+				Candidate ? FVector::Dist2D(SearchLocation, Candidate->GetActorLocation()) : 0.0f,
+				ClusterCount,
+				static_cast<float>(ClusterCount) * MeleeClusterTargetingWeight,
+				DistancePenalty,
+				ImmediateThreatBonus,
+				Score);
+		}
+
+		if (Score > BestScore)
+		{
+			BestScore = Score;
+			BestTarget = Candidate;
+		}
+	}
+
+	if (CVarHDDebugSamuraiTargeting.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("SELECTED: %s Score=%.2f"), *GetNameSafe(BestTarget), BestScore);
+		UE_LOG(LogTemp, Log, TEXT("=========================="));
+
+		if (GetWorld() && BestTarget)
+		{
+			DrawDebugLine(GetWorld(), SearchLocation, BestTarget->GetActorLocation(), FColor::Orange, false, 1.0f, 0, 3.0f);
+			DrawDebugSphere(GetWorld(), BestTarget->GetActorLocation(), GetEffectiveAttackRadius(), 24, FColor::Orange, false, 1.0f, 0, 2.0f);
+		}
+	}
+
+	return BestTarget;
+}
+
+float UAutoAttackComponent::ScoreMeleeTarget(AEnemyBase* Candidate, const TArray<AEnemyBase*>& Candidates, const FVector& SearchLocation, float SearchRadius, int32& OutClusterCount, float& OutDistancePenalty, float& OutImmediateThreatBonus) const
+{
+	OutClusterCount = 0;
+	OutDistancePenalty = 0.0f;
+	OutImmediateThreatBonus = 0.0f;
+
+	if (!Candidate)
+	{
+		return -FLT_MAX;
+	}
+
+	const float ClusterRadius = GetEffectiveAttackRadius();
+	const FVector CandidateLocation = Candidate->GetActorLocation();
+	for (const AEnemyBase* OtherCandidate : Candidates)
+	{
+		if (OtherCandidate && FVector::DistSquared2D(CandidateLocation, OtherCandidate->GetActorLocation()) <= FMath::Square(ClusterRadius))
+		{
+			++OutClusterCount;
+		}
+	}
+
+	const float Distance = FVector::Dist2D(SearchLocation, CandidateLocation);
+	const float NormalizedDistance = SearchRadius > KINDA_SMALL_NUMBER ? FMath::Clamp(Distance / SearchRadius, 0.0f, 1.0f) : 1.0f;
+	OutDistancePenalty = NormalizedDistance * MeleeDistanceTargetingWeight;
+
+	const float EffectiveMeleeReach = FMath::Max(0.0f, AttackForwardOffset) + GetEffectiveAttackRadius();
+	if (Distance <= EffectiveMeleeReach * MeleeImmediateThreatRangeFraction)
+	{
+		OutImmediateThreatBonus = MeleeImmediateThreatBonus;
+	}
+
+	return static_cast<float>(OutClusterCount) * MeleeClusterTargetingWeight
+		- OutDistancePenalty
+		+ OutImmediateThreatBonus;
 }
 
 void UAutoAttackComponent::FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTargets) const
@@ -1125,6 +1252,7 @@ bool UAutoAttackComponent::CanAutoAttack() const
 {
 	return bAutoAttackEnabled
 		&& OwnerCharacter
+		&& !IsOwningPlayerDead()
 		&& OwnerCharacter->GetCharacterMode() == ECharacterMode::Active
 		&& GetWorld();
 }

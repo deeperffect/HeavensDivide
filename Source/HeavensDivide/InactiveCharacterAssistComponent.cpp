@@ -46,8 +46,7 @@ void UInactiveCharacterAssistComponent::BeginPlay()
 
 void UInactiveCharacterAssistComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	StopAssistTimer();
-	FinishCurrentAssist();
+	DeactivateAssistEffect(true);
 
 	if (PlayerUpgrades)
 	{
@@ -64,13 +63,27 @@ void UInactiveCharacterAssistComponent::EndPlay(const EEndPlayReason::Type EndPl
 
 void UInactiveCharacterAssistComponent::RefreshAssistEffectState()
 {
-	if (HasAssistUpgrade())
+	if (CanRunAssistEffect() && HasAssistUpgrade())
 	{
 		StartAssistTimer();
 	}
 	else
 	{
-		StopAssistTimer();
+		DeactivateAssistEffect(false);
+	}
+}
+
+void UInactiveCharacterAssistComponent::DeactivateAssistEffect(bool bCancelActiveAssist)
+{
+	StopAssistTimer();
+	if (bCancelActiveAssist)
+	{
+		CancelCurrentAssist();
+	}
+
+	if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Deactivated. Assist timer cleared."));
 	}
 }
 
@@ -100,7 +113,7 @@ void UInactiveCharacterAssistComponent::HandleCharacterSwapped(ACharacterBase* O
 void UInactiveCharacterAssistComponent::StartAssistTimer()
 {
 	UWorld* World = GetWorld();
-	if (!World || World->GetTimerManager().IsTimerActive(AssistTimerHandle))
+	if (!World || !CanRunAssistEffect() || World->GetTimerManager().IsTimerActive(AssistTimerHandle))
 	{
 		return;
 	}
@@ -124,7 +137,7 @@ void UInactiveCharacterAssistComponent::StopAssistTimer()
 
 void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 {
-	if (bAssistActive || !HasAssistUpgrade())
+	if (bAssistActive || !CanRunAssistEffect() || !HasAssistUpgrade())
 	{
 		return;
 	}
@@ -271,9 +284,48 @@ void UInactiveCharacterAssistComponent::FinishCurrentAssist()
 	}
 }
 
+void UInactiveCharacterAssistComponent::CancelCurrentAssist()
+{
+	ACharacterBase* AssistCharacter = CurrentAssistCharacter;
+	CurrentAssistCharacter = nullptr;
+	bAssistActive = false;
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AssistCleanupTimerHandle);
+	}
+
+	if (!AssistCharacter)
+	{
+		return;
+	}
+
+	if (UAutoAttackComponent* AssistAttack = AssistCharacter->FindComponentByClass<UAutoAttackComponent>())
+	{
+		AssistAttack->StopAutoAttack();
+	}
+
+	if (AssistCharacter->GetCharacterMode() == ECharacterMode::Assisting)
+	{
+		AssistCharacter->SetCharacterMode(ECharacterMode::Inactive);
+	}
+
+	OnAssistEnded.Broadcast(AssistCharacter);
+
+	if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Active assist cancelled due to cleanup/player death: %s"), *GetNameSafe(AssistCharacter));
+	}
+}
+
 bool UInactiveCharacterAssistComponent::HasAssistUpgrade() const
 {
 	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::InactiveCharacterAssist) > 0;
+}
+
+bool UInactiveCharacterAssistComponent::CanRunAssistEffect() const
+{
+	return SurvivorController && !SurvivorController->IsPlayerDead();
 }
 
 FVector UInactiveCharacterAssistComponent::GetRangedAssistLocation(const ACharacterBase* ActiveCharacter, const ACharacterBase* AssistCharacter) const

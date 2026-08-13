@@ -425,6 +425,11 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	bIsPlayerDead = true;
 	UE_LOG(LogTemp, Log, TEXT("Player Death Triggered"));
 
+	if (InactiveCharacterAssistComponent)
+	{
+		InactiveCharacterAssistComponent->DeactivateAssistEffect(true);
+	}
+
 	ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
 	UE_LOG(LogTemp, Log, TEXT("Active Character = %s"), *GetNameSafe(ActiveCharacter));
 
