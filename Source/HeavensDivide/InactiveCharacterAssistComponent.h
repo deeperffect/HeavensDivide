@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AutoAttackComponent.h"
 #include "Components/ActorComponent.h"
 #include "InactiveCharacterAssistComponent.generated.h"
 
@@ -42,8 +43,8 @@ public:
 	FOnInactiveAssistEnded OnAssistEnded;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Synergy|Assist", meta = (ClampMin = "0.1", UIMin = "0.1"))
-	float AssistInterval = 5.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Synergy|Assist", meta = (ClampMin = "1", UIMin = "1"))
+	int32 AttacksPerAssist = 5;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Synergy|Assist")
 	FVector SamuraiAssistOffset = FVector(-120.0f, -180.0f, 0.0f);
@@ -67,13 +68,18 @@ private:
 	UFUNCTION()
 	void HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
 
-	void StartAssistTimer();
-	void StopAssistTimer();
-	void HandleAssistTimerElapsed();
+	UFUNCTION()
+	void HandleAutoAttackCommitted(UAutoAttackComponent* AttackComponent, EAutoAttackSource AttackSource);
+
+	void ActivateAssistEffect();
+	void BindAttackDelegates();
+	void UnbindAttackDelegates();
+	bool TryTriggerAssist();
 	void FinishCurrentAssist();
 	void CancelCurrentAssist();
 	bool HasAssistUpgrade() const;
 	bool CanRunAssistEffect() const;
+	FString GetCharacterLabel(const ACharacterBase* Character) const;
 	FVector GetRangedAssistLocation(const ACharacterBase* ActiveCharacter, const ACharacterBase* AssistCharacter) const;
 	bool TryFindMeleeAssistLocation(ACharacterBase* AssistCharacter, const ACharacterBase* ActiveCharacter, const AEnemyBase* TargetEnemy, FVector& OutAssistLocation) const;
 	bool IsAssistLocationBlocked(const ACharacterBase* AssistCharacter, const FVector& AssistLocation) const;
@@ -89,7 +95,9 @@ private:
 
 	TWeakObjectPtr<AEnemyBase> LastDebugMeleeAssistTarget;
 
-	FTimerHandle AssistTimerHandle;
 	FTimerHandle AssistCleanupTimerHandle;
+	int32 CurrentAttackCount = 0;
+	bool bAssistEffectActive = false;
+	bool bAssistPending = false;
 	bool bAssistActive = false;
 };

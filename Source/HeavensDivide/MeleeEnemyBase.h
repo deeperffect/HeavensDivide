@@ -14,8 +14,10 @@ class HEAVENSDIVIDE_API AMeleeEnemyBase : public AEnemyBase
 	GENERATED_BODY()
 
 public:
+	AMeleeEnemyBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Attack")
-	void PerformAttackHit();
+	virtual void PerformAttackHit();
 
 	virtual void ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier) override;
 
@@ -40,16 +42,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Hit", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Hit", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float AttackHitRadius = 75.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Hit")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Hit", meta = (AdvancedDisplay))
 	float AttackHitForwardOffset = 90.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Hit")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Hit", meta = (AdvancedDisplay))
 	bool bDebugAttackHit = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack", meta = (AdvancedDisplay))
 	bool bIsAttacking = false;
 
 	bool IsTargetInAttackRange() const;
@@ -57,6 +59,9 @@ protected:
 	void StopAttackTimer();
 	void HandleAttackTimer();
 	void StartAttack();
+	virtual void HandleAttackCommitted();
+	virtual void HandleAttackFinished();
+	virtual void ExecuteAttackHit();
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 
 	FTimerHandle AttackTimerHandle;

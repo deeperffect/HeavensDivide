@@ -694,7 +694,7 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 
 	if (bStarted)
 	{
-		OnAutoAttack.Broadcast();
+		OnAutoAttack.Broadcast(this, EAutoAttackSource::Assist);
 	}
 	else
 	{
@@ -877,7 +877,7 @@ bool UAutoAttackComponent::StartTargetedAttack()
 
 	if (PlayAttackMontage())
 	{
-		OnAutoAttack.Broadcast();
+		OnAutoAttack.Broadcast(this, EAutoAttackSource::NormalAutoAttack);
 		return true;
 	}
 

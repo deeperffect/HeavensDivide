@@ -11,7 +11,15 @@ class UAnimMontage;
 class AAttackProjectileBase;
 class AEnemyBase;
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAutoAttack);
+UENUM(BlueprintType)
+enum class EAutoAttackSource : uint8
+{
+	NormalAutoAttack,
+	Assist,
+	Other
+};
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAutoAttack, UAutoAttackComponent*, AttackComponent, EAutoAttackSource, AttackSource);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent

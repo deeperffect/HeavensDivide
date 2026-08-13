@@ -10,6 +10,7 @@
 #include "HAL/IConsoleManager.h"
 #include "NinjaCharacter.h"
 #include "PlayerUpgradeComponent.h"
+#include "SamuraiCharacter.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
 #include "UpgradeDefinition.h"
@@ -65,17 +66,25 @@ void UInactiveCharacterAssistComponent::RefreshAssistEffectState()
 {
 	if (CanRunAssistEffect() && HasAssistUpgrade())
 	{
-		StartAssistTimer();
+		ActivateAssistEffect();
 	}
 	else
 	{
-		DeactivateAssistEffect(false);
+		DeactivateAssistEffect(true);
 	}
 }
 
 void UInactiveCharacterAssistComponent::DeactivateAssistEffect(bool bCancelActiveAssist)
 {
-	StopAssistTimer();
+	UnbindAttackDelegates();
+	bAssistEffectActive = false;
+	bAssistPending = false;
+	CurrentAttackCount = 0;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AssistCleanupTimerHandle);
+	}
+
 	if (bCancelActiveAssist)
 	{
 		CancelCurrentAssist();
@@ -83,7 +92,7 @@ void UInactiveCharacterAssistComponent::DeactivateAssistEffect(bool bCancelActiv
 
 	if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Deactivated. Assist timer cleared."));
+		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Deactivated. Attack delegates unbound and progress reset."));
 	}
 }
 
@@ -110,36 +119,124 @@ void UInactiveCharacterAssistComponent::HandleCharacterSwapped(ACharacterBase* O
 	}
 }
 
-void UInactiveCharacterAssistComponent::StartAssistTimer()
+void UInactiveCharacterAssistComponent::ActivateAssistEffect()
 {
-	UWorld* World = GetWorld();
-	if (!World || !CanRunAssistEffect() || World->GetTimerManager().IsTimerActive(AssistTimerHandle))
+	if (bAssistEffectActive)
+	{
+		BindAttackDelegates();
+		return;
+	}
+
+	bAssistEffectActive = true;
+	BindAttackDelegates();
+
+	if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Activated. Progress=%d/%d"), CurrentAttackCount, FMath::Max(1, AttacksPerAssist));
+	}
+}
+
+void UInactiveCharacterAssistComponent::BindAttackDelegates()
+{
+	const UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
+	if (!CharacterManager)
 	{
 		return;
 	}
 
-	World->GetTimerManager().SetTimer(
-		AssistTimerHandle,
-		this,
-		&UInactiveCharacterAssistComponent::HandleAssistTimerElapsed,
-		FMath::Max(0.1f, AssistInterval),
-		true);
-}
-
-void UInactiveCharacterAssistComponent::StopAssistTimer()
-{
-	if (UWorld* World = GetWorld())
+	ACharacterBase* CharactersToBind[] = { Cast<ACharacterBase>(CharacterManager->GetSamurai()), Cast<ACharacterBase>(CharacterManager->GetNinja()) };
+	for (ACharacterBase* Character : CharactersToBind)
 	{
-		World->GetTimerManager().ClearTimer(AssistTimerHandle);
-		World->GetTimerManager().ClearTimer(AssistCleanupTimerHandle);
+		if (UAutoAttackComponent* AutoAttack = Character ? Character->FindComponentByClass<UAutoAttackComponent>() : nullptr)
+		{
+			AutoAttack->OnAutoAttack.AddUniqueDynamic(this, &UInactiveCharacterAssistComponent::HandleAutoAttackCommitted);
+		}
 	}
 }
 
-void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
+void UInactiveCharacterAssistComponent::UnbindAttackDelegates()
+{
+	const UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
+	if (!CharacterManager)
+	{
+		return;
+	}
+
+	ACharacterBase* CharactersToUnbind[] = { Cast<ACharacterBase>(CharacterManager->GetSamurai()), Cast<ACharacterBase>(CharacterManager->GetNinja()) };
+	for (ACharacterBase* Character : CharactersToUnbind)
+	{
+		if (UAutoAttackComponent* AutoAttack = Character ? Character->FindComponentByClass<UAutoAttackComponent>() : nullptr)
+		{
+			AutoAttack->OnAutoAttack.RemoveDynamic(this, &UInactiveCharacterAssistComponent::HandleAutoAttackCommitted);
+		}
+	}
+}
+
+void UInactiveCharacterAssistComponent::HandleAutoAttackCommitted(UAutoAttackComponent* AttackComponent, EAutoAttackSource AttackSource)
+{
+	if (!bAssistEffectActive || !CanRunAssistEffect() || !HasAssistUpgrade())
+	{
+		return;
+	}
+
+	const UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
+	ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+	const ACharacterBase* AttackOwner = AttackComponent ? Cast<ACharacterBase>(AttackComponent->GetOwner()) : nullptr;
+
+	if (AttackSource != EAutoAttackSource::NormalAutoAttack)
+	{
+		if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[TagTeam] Assist attack ignored by counter"));
+		}
+		return;
+	}
+
+	if (!ActiveCharacter || AttackOwner != ActiveCharacter || ActiveCharacter->GetCharacterMode() != ECharacterMode::Active)
+	{
+		return;
+	}
+
+	const int32 SafeAttacksPerAssist = FMath::Max(1, AttacksPerAssist);
+	if (!bAssistPending)
+	{
+		CurrentAttackCount = FMath::Clamp(CurrentAttackCount + 1, 0, SafeAttacksPerAssist);
+	}
+
+	if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Normal attack registered Active=%s Progress=%d/%d"),
+			*GetCharacterLabel(ActiveCharacter),
+			CurrentAttackCount,
+			SafeAttacksPerAssist);
+	}
+
+	if (CurrentAttackCount < SafeAttacksPerAssist && !bAssistPending)
+	{
+		return;
+	}
+
+	bAssistPending = true;
+	if (TryTriggerAssist())
+	{
+		CurrentAttackCount = 0;
+		bAssistPending = false;
+	}
+	else
+	{
+		CurrentAttackCount = SafeAttacksPerAssist;
+		if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[TagTeam] Assist pending. It will retry on the next valid normal basic attack."));
+		}
+	}
+}
+
+bool UInactiveCharacterAssistComponent::TryTriggerAssist()
 {
 	if (bAssistActive || !CanRunAssistEffect() || !HasAssistUpgrade())
 	{
-		return;
+		return false;
 	}
 
 	UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
@@ -147,13 +244,13 @@ void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 	ACharacterBase* AssistCharacter = CharacterManager ? CharacterManager->GetInactiveCharacter() : nullptr;
 	if (!ActiveCharacter || !AssistCharacter || AssistCharacter->GetCharacterMode() != ECharacterMode::Inactive)
 	{
-		return;
+		return false;
 	}
 
 	UAutoAttackComponent* AssistAttack = AssistCharacter->FindComponentByClass<UAutoAttackComponent>();
 	if (!AssistAttack)
 	{
-		return;
+		return false;
 	}
 
 	const bool bRangedAssist = AssistAttack->IsProjectileAttack();
@@ -168,7 +265,7 @@ void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 				*ActiveCharacter->GetActorLocation().ToString(),
 				MaxMeleeAssistTargetDistance);
 		}
-		return;
+		return false;
 	}
 
 	FVector AssistLocation = FVector::ZeroVector;
@@ -183,7 +280,7 @@ void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 			UE_LOG(LogTemp, Log, TEXT("[TagTeam] AssistType=Melee Target=%s PlacementResult=Failed Assist skipped"),
 				*GetNameSafe(TargetEnemy));
 		}
-		return;
+		return false;
 	}
 
 	AssistCharacter->SetActorLocation(AssistLocation, false, nullptr, ETeleportType::TeleportPhysics);
@@ -206,7 +303,7 @@ void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 				UE_LOG(LogTemp, Log, TEXT("[TagTeam] AssistType=Melee Target=%s PlacementResult=OutOfRange Assist skipped"),
 					*GetNameSafe(TargetEnemy));
 			}
-			return;
+			return false;
 		}
 	}
 
@@ -214,7 +311,7 @@ void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 	if (!AssistAttack->TryStartAssistAttackAtTarget(TargetEnemy, ExpectedDuration))
 	{
 		AssistCharacter->SetCharacterMode(ECharacterMode::Inactive);
-		return;
+		return false;
 	}
 
 	CurrentAssistCharacter = AssistCharacter;
@@ -224,7 +321,7 @@ void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 
 	if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Active: %s Inactive: %s Target: %s Assist started"),
+		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Assist triggered Active=%s Assistant=%s Target=%s"),
 			*GetNameSafe(ActiveCharacter),
 			*GetNameSafe(AssistCharacter),
 			*GetNameSafe(TargetEnemy));
@@ -251,9 +348,11 @@ void UInactiveCharacterAssistComponent::HandleAssistTimerElapsed()
 	GetWorld()->GetTimerManager().SetTimer(
 		AssistCleanupTimerHandle,
 		this,
-		&UInactiveCharacterAssistComponent::FinishCurrentAssist,
+			&UInactiveCharacterAssistComponent::FinishCurrentAssist,
 		CleanupDelay,
 		false);
+
+	return true;
 }
 
 void UInactiveCharacterAssistComponent::FinishCurrentAssist()
@@ -326,6 +425,21 @@ bool UInactiveCharacterAssistComponent::HasAssistUpgrade() const
 bool UInactiveCharacterAssistComponent::CanRunAssistEffect() const
 {
 	return SurvivorController && !SurvivorController->IsPlayerDead();
+}
+
+FString UInactiveCharacterAssistComponent::GetCharacterLabel(const ACharacterBase* Character) const
+{
+	if (!Character)
+	{
+		return TEXT("None");
+	}
+
+	if (Character->IsA<ANinjaCharacter>())
+	{
+		return TEXT("Ninja");
+	}
+
+	return TEXT("Samurai");
 }
 
 FVector UInactiveCharacterAssistComponent::GetRangedAssistLocation(const ACharacterBase* ActiveCharacter, const ACharacterBase* AssistCharacter) const

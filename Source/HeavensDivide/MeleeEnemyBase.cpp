@@ -11,6 +11,12 @@
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
 
+AMeleeEnemyBase::AMeleeEnemyBase(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bUseLightweightMovement = true;
+}
+
 void AMeleeEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier)
 {
 	Super::ApplySpawnDifficultyScaling(HealthMultiplier, DamageMultiplier);
@@ -176,6 +182,7 @@ void AMeleeEnemyBase::StartAttack()
 
 	bIsAttacking = true;
 	UpdateAnimationBudgetSignificance();
+	HandleAttackCommitted();
 
 	FOnMontageEnded MontageEndedDelegate;
 	MontageEndedDelegate.BindUObject(this, &AMeleeEnemyBase::HandleAttackMontageEnded);
@@ -183,6 +190,19 @@ void AMeleeEnemyBase::StartAttack()
 }
 
 void AMeleeEnemyBase::PerformAttackHit()
+{
+	ExecuteAttackHit();
+}
+
+void AMeleeEnemyBase::HandleAttackCommitted()
+{
+}
+
+void AMeleeEnemyBase::HandleAttackFinished()
+{
+}
+
+void AMeleeEnemyBase::ExecuteAttackHit()
 {
 	UE_LOG(LogTemp, Log, TEXT("Enemy Attack Impact"));
 
@@ -250,5 +270,6 @@ void AMeleeEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInte
 
 	bIsAttacking = false;
 	UpdateAnimationBudgetSignificance();
+	HandleAttackFinished();
 	UE_LOG(LogTemp, Log, TEXT("Enemy Attack Finished"));
 }

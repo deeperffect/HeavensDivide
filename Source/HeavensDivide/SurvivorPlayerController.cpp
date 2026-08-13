@@ -329,7 +329,7 @@ void ASurvivorPlayerController::StopMoveInput(const FInputActionValue& Value)
 
 void ASurvivorPlayerController::Swap(const FInputActionValue& Value)
 {
-	if (bIsPlayerDead || bIsDashing)
+	if (bIsPlayerDead || bIsDashing || bLevelUpSelectionActive)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
 		return;
@@ -569,7 +569,8 @@ void ASurvivorPlayerController::PauseForLevelUpSelection()
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
 
-	FInputModeUIOnly InputMode;
+	FInputModeGameAndUI InputMode;
+	InputMode.SetHideCursorDuringCapture(false);
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	if (LevelUpWidget)
 	{

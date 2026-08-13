@@ -59,6 +59,8 @@ protected:
 
 private:
 	void BroadcastHealthChanged();
+	void LogDamageDebug(const TCHAR* Reason, float DamageAmount, float PreviousHealth, float NewHealth) const;
+	void LogInvalidHealthState(const TCHAR* Context) const;
 
 	bool bDeathBroadcast = false;
 };

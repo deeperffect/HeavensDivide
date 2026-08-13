@@ -48,6 +48,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Enemy|Movement")
 	FVector GetEnemyMovementVelocity() const;
 
+	void LogEnemyDebugState(const TCHAR* Context) const;
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UHealthComponent> HealthComponent;
@@ -61,25 +63,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UEnemyHealthBarWidget> HealthBarWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AdvancedDisplay))
 	float HealthBarHeightOffset = 120.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AdvancedDisplay))
 	FVector2D HealthBarDrawSize = FVector2D(120.0f, 12.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (AdvancedDisplay))
 	bool bUseAnimationBudgetAllocator = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.1", UIMin = "0.1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.1", UIMin = "0.1", AdvancedDisplay))
 	float AnimationBudgetMs = 2.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0", FormerlySerializedAs = "AnimationBudgetNeverSkipDistance"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0", FormerlySerializedAs = "AnimationBudgetNeverSkipDistance", AdvancedDisplay))
 	float AnimationBudgetHighSignificanceDistance = 600.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float AnimationBudgetMaxSignificanceDistance = 3500.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (AdvancedDisplay))
 	bool bUseFixedSkelBoundsForEnemies = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0", UIMin = "0.0"))
@@ -88,37 +90,37 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float StopDistance = 150.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (AdvancedDisplay))
 	bool bUseLightweightMovement = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (AdvancedDisplay))
 	bool bUseCrowdSpread = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0", AdvancedDisplay))
 	float CrowdSpreadStrength = 0.45f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (AdvancedDisplay))
 	bool bDebugCrowdSpread = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (AdvancedDisplay))
 	bool bUseEnemySeparation = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float SeparationRadius = 160.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float SeparationStrength = 0.55f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float MaxSeparationContribution = 0.75f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
 	float SeparationUpdateInterval = 0.2f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Rotation", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float EnemyRotationSpeed = 720.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
 	float BehaviorUpdateInterval = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death")
@@ -130,7 +132,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy")
 	bool bIsDead = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float DeathDestroyDelay = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0", UIMin = "0"))
@@ -139,7 +141,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards")
 	TSubclassOf<AExperiencePickup> ExperiencePickupClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float ExperiencePickupSpawnScatterRadius = 35.0f;
 
 	UFUNCTION()
@@ -158,6 +160,8 @@ protected:
 	void InitializeHealthBar();
 	void UpdateHealthBarVisibility(float HealthPercent);
 	void HideHealthBar();
+	void ConfigureEnemyCapsuleCollisionDefaults();
+	void ConfigureEnemyMovementDefaults();
 	void StartBehaviorUpdates();
 	void StopBehaviorUpdates();
 	void HandleBehaviorUpdateTimer();

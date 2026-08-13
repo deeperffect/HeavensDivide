@@ -24,6 +24,7 @@
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
 #include "Engine/OverlapResult.h"
+#include "EngineUtils.h"
 #include "UObject/UnrealType.h"
 
 static TAutoConsoleVariable<int32> CVarDisableEnemyCharacterMovementForProfiling(
@@ -46,6 +47,59 @@ static TAutoConsoleVariable<int32> CVarDebugEnemySeparation(
 	0,
 	TEXT("When set to 1, draws lightweight enemy separation debug for a small sampled subset of enemies."));
 
+static void DumpNearestEnemy(const TArray<FString>& Args, UWorld* World)
+{
+	if (!World)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyDamage] hd.DumpNearestEnemy failed: world is invalid."));
+		return;
+	}
+
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(World, 0));
+	const UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
+	const ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+	if (!ActiveCharacter)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyDamage] hd.DumpNearestEnemy failed: active player character is invalid."));
+		return;
+	}
+
+	AEnemyBase* NearestEnemy = nullptr;
+	float NearestDistanceSquared = TNumericLimits<float>::Max();
+	for (TActorIterator<AEnemyBase> EnemyIt(World); EnemyIt; ++EnemyIt)
+	{
+		AEnemyBase* Enemy = *EnemyIt;
+		if (!Enemy)
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared2D(Enemy->GetActorLocation(), ActiveCharacter->GetActorLocation());
+		if (DistanceSquared < NearestDistanceSquared)
+		{
+			NearestDistanceSquared = DistanceSquared;
+			NearestEnemy = Enemy;
+		}
+	}
+
+	if (!NearestEnemy)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyDamage] hd.DumpNearestEnemy found no EnemyBase actors."));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[EnemyDamage] Nearest enemy to %s is %s at %.1f units."),
+		*GetNameSafe(ActiveCharacter),
+		*GetNameSafe(NearestEnemy),
+		FMath::Sqrt(NearestDistanceSquared));
+	NearestEnemy->LogEnemyDebugState(TEXT("hd.DumpNearestEnemy"));
+}
+
+static FAutoConsoleCommandWithWorldAndArgs GDumpNearestEnemyCommand(
+	TEXT("hd.DumpNearestEnemy"),
+	TEXT("Logs health, death, movement, and collision state for the nearest EnemyBase to the active player."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&DumpNearestEnemy));
+
 AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<USkeletalMeshComponentBudgeted>(ACharacter::MeshComponentName))
 {
@@ -63,6 +117,9 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	HealthBarWidgetComponent->SetHiddenInGame(true);
 	HealthBarWidgetComponent->SetVisibility(false);
 	HealthBarWidgetComponent->SetComponentTickEnabled(false);
+
+	ConfigureEnemyCapsuleCollisionDefaults();
+	ConfigureEnemyMovementDefaults();
 }
 
 void AEnemyBase::BeginPlay()
@@ -152,7 +209,67 @@ void AEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float Damag
 	if (HealthComponent)
 	{
 		const float BaseMaxHealth = HealthComponent->GetMaxHealth();
-		HealthComponent->SetMaxHealthPreservePercent(BaseMaxHealth * FMath::Max(0.0f, HealthMultiplier));
+		const bool bInvalidHealthMultiplier = !FMath::IsFinite(HealthMultiplier);
+		const float SafeHealthMultiplier = bInvalidHealthMultiplier ? 1.0f : FMath::Max(0.0f, HealthMultiplier);
+		if (bInvalidHealthMultiplier)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[EnemyDamage] Invalid spawn health multiplier for %s: %.3f. Using 1.0."),
+				*GetNameSafe(this),
+				HealthMultiplier);
+		}
+
+		HealthComponent->SetMaxHealthPreservePercent(BaseMaxHealth * SafeHealthMultiplier);
+	}
+}
+
+void AEnemyBase::LogEnemyDebugState(const TCHAR* Context) const
+{
+	const UHealthComponent* EnemyHealth = HealthComponent;
+	const UCapsuleComponent* EnemyCapsuleComponent = GetCapsuleComponent();
+	const USkeletalMeshComponent* MeshComponent = GetMesh();
+	const UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
+
+	UE_LOG(LogTemp, Log, TEXT("[EnemyDamage] Enemy State Context=%s Name=%s Class=%s Location=%s Health=%.3f/%.3f Percent=%.3f HealthDead=%s EnemyDead=%s CanBeDamaged=%s ActorCollision=%s LifeSpan=%.3f Target=%s Lightweight=%s CharacterMovementTick=%s HealthBarVisible=%s"),
+		Context,
+		*GetNameSafe(this),
+		*GetNameSafe(GetClass()),
+		*GetActorLocation().ToString(),
+		EnemyHealth ? EnemyHealth->GetCurrentHealth() : -1.0f,
+		EnemyHealth ? EnemyHealth->GetMaxHealth() : -1.0f,
+		EnemyHealth ? EnemyHealth->GetHealthPercent() : -1.0f,
+		EnemyHealth && EnemyHealth->IsDead() ? TEXT("true") : TEXT("false"),
+		bIsDead ? TEXT("true") : TEXT("false"),
+		CanBeDamaged() ? TEXT("true") : TEXT("false"),
+		GetActorEnableCollision() ? TEXT("enabled") : TEXT("disabled"),
+		GetLifeSpan(),
+		*GetNameSafe(CurrentTarget),
+		IsUsingLightweightMovement() ? TEXT("true") : TEXT("false"),
+		MovementComponent && MovementComponent->IsComponentTickEnabled() ? TEXT("enabled") : TEXT("disabled"),
+		HealthBarWidgetComponent && HealthBarWidgetComponent->IsVisible() ? TEXT("true") : TEXT("false"));
+
+	if (EnemyCapsuleComponent)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[EnemyDamage] Capsule State Name=%s Collision=%s GenerateOverlap=%s ObjectType=%d PawnResponse=%d EnemyResponse=%d Radius=%.1f HalfHeight=%.1f"),
+			*GetNameSafe(EnemyCapsuleComponent),
+			*UEnum::GetValueAsString(EnemyCapsuleComponent->GetCollisionEnabled()),
+			EnemyCapsuleComponent->GetGenerateOverlapEvents() ? TEXT("true") : TEXT("false"),
+			static_cast<int32>(EnemyCapsuleComponent->GetCollisionObjectType()),
+			static_cast<int32>(EnemyCapsuleComponent->GetCollisionResponseToChannel(ECC_Pawn)),
+			static_cast<int32>(EnemyCapsuleComponent->GetCollisionResponseToChannel(ECC_GameTraceChannel1)),
+			EnemyCapsuleComponent->GetScaledCapsuleRadius(),
+			EnemyCapsuleComponent->GetScaledCapsuleHalfHeight());
+	}
+
+	if (MeshComponent)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[EnemyDamage] Mesh State Name=%s Collision=%s GenerateOverlap=%s ObjectType=%d PawnResponse=%d EnemyResponse=%d AnimInstance=%s"),
+			*GetNameSafe(MeshComponent),
+			*UEnum::GetValueAsString(MeshComponent->GetCollisionEnabled()),
+			MeshComponent->GetGenerateOverlapEvents() ? TEXT("true") : TEXT("false"),
+			static_cast<int32>(MeshComponent->GetCollisionObjectType()),
+			static_cast<int32>(MeshComponent->GetCollisionResponseToChannel(ECC_Pawn)),
+			static_cast<int32>(MeshComponent->GetCollisionResponseToChannel(ECC_GameTraceChannel1)),
+			*GetNameSafe(MeshComponent->GetAnimInstance()));
 	}
 }
 
@@ -533,9 +650,7 @@ void AEnemyBase::InitializeEnemyMovementMode()
 
 	if (UCapsuleComponent* EnemyCapsule = GetCapsuleComponent())
 	{
-		EnemyCapsule->SetCollisionObjectType(ECC_GameTraceChannel1);
-		EnemyCapsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-		EnemyCapsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
+		ConfigureEnemyCapsuleCollisionDefaults();
 	}
 
 	if (bUseLightweightMovement)
@@ -545,6 +660,28 @@ void AEnemyBase::InitializeEnemyMovementMode()
 			MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			MeshComponent->SetGenerateOverlapEvents(false);
 		}
+	}
+}
+
+void AEnemyBase::ConfigureEnemyCapsuleCollisionDefaults()
+{
+	if (UCapsuleComponent* EnemyCapsule = GetCapsuleComponent())
+	{
+		EnemyCapsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		EnemyCapsule->SetGenerateOverlapEvents(true);
+		EnemyCapsule->SetCollisionObjectType(ECC_GameTraceChannel1);
+		EnemyCapsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		EnemyCapsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
+	}
+}
+
+void AEnemyBase::ConfigureEnemyMovementDefaults()
+{
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
+	{
+		MovementComponent->bOrientRotationToMovement = false;
+		MovementComponent->bUseControllerDesiredRotation = false;
+		MovementComponent->bUseRVOAvoidance = false;
 	}
 }
 
