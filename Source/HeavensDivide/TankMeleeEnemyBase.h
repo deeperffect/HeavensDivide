@@ -7,6 +7,7 @@
 #include "TankMeleeEnemyBase.generated.h"
 
 class UDecalComponent;
+class UMaterialInstanceDynamic;
 class UMaterialInterface;
 
 UENUM(BlueprintType)
@@ -46,19 +47,19 @@ protected:
 	TObjectPtr<UMaterialInterface> AttackTelegraphMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam")
-	ETankSlamAttackShape AttackShape = ETankSlamAttackShape::Circle;
+	ETankSlamAttackShape AttackShape = ETankSlamAttackShape::Box;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "AttackShape == ETankSlamAttackShape::Circle", EditConditionHides))
 	float AttackAoERadius = 375.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Box", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "AttackShape == ETankSlamAttackShape::Box", EditConditionHides))
-	float AttackBoxLength = 500.0f;
+	float AttackBoxLength = 600.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Box", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "AttackShape == ETankSlamAttackShape::Box", EditConditionHides))
-	float AttackBoxWidth = 150.0f;
+	float AttackBoxWidth = 160.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Box", meta = (ClampMin = "0.0", UIMin = "0.0", EditCondition = "AttackShape == ETankSlamAttackShape::Box", EditConditionHides))
-	float AttackBoxForwardOffset = 250.0f;
+	float AttackBoxForwardOffset = 300.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float SlamDamageMultiplier = 1.0f;
@@ -66,9 +67,23 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Facing", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float WindupTrackingRotationSpeed = 540.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Telegraph", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
+	float TelegraphWindupDuration = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Telegraph", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
+	float TelegraphFillUpdateInterval = 0.025f;
+
 private:
 	void ShowAttackTelegraph();
 	void HideAttackTelegraph();
+	void InitializeTelegraphMaterialInstance();
+	void StartTelegraphFill();
+	void StopTelegraphFill();
+	void ResetTelegraphFill();
+	void SetTelegraphFillAmount(float FillAmount);
+	void HandleTelegraphFillTimerElapsed();
+	float CalculateTelegraphFillDuration(float& OutImpactNotifyTime, float& OutMontagePosition, float& OutMontagePlayRate) const;
+	bool FindImpactNotifyTime(float MontagePosition, float& OutImpactNotifyTime) const;
 	void StartWindupFacingTracking();
 	void LockAttackFacing();
 	void ClearAttackFacingState();
@@ -81,4 +96,11 @@ private:
 
 	bool bTrackPlayerDuringAttackWindup = false;
 	bool bAttackFacingLocked = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> TelegraphMaterialInstance;
+
+	FTimerHandle TelegraphFillTimerHandle;
+	double TelegraphFillStartTime = 0.0;
+	float ActiveTelegraphFillDuration = 1.0f;
 };

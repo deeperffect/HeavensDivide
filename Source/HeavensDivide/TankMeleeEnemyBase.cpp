@@ -2,6 +2,9 @@
 
 #include "TankMeleeEnemyBase.h"
 
+#include "AnimNotify_EnemyAttackHit.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -10,7 +13,9 @@
 #include "HealthComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "SurvivorPlayerController.h"
+#include "TimerManager.h"
 
 static TAutoConsoleVariable<int32> CVarHDDebugTankSlam(
 	TEXT("hd.DebugTankSlam"),
@@ -21,11 +26,14 @@ ATankMeleeEnemyBase::ATankMeleeEnemyBase(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 {
 	AttackAoERadius = 375.0f;
-	AttackBoxLength = 500.0f;
-	AttackBoxWidth = 150.0f;
-	AttackBoxForwardOffset = 250.0f;
+	AttackShape = ETankSlamAttackShape::Box;
+	AttackBoxLength = 600.0f;
+	AttackBoxWidth = 160.0f;
+	AttackBoxForwardOffset = 300.0f;
 	SlamDamageMultiplier = 1.0f;
 	WindupTrackingRotationSpeed = 540.0f;
+	TelegraphWindupDuration = 1.0f;
+	TelegraphFillUpdateInterval = 0.025f;
 
 	AttackTelegraphDecal = CreateDefaultSubobject<UDecalComponent>(TEXT("AttackTelegraphDecal"));
 	AttackTelegraphDecal->SetupAttachment(RootComponent);
@@ -39,11 +47,7 @@ void ATankMeleeEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (AttackTelegraphDecal && AttackTelegraphMaterial)
-	{
-		AttackTelegraphDecal->SetDecalMaterial(AttackTelegraphMaterial);
-	}
-
+	InitializeTelegraphMaterialInstance();
 	UpdateAttackTelegraphSizeAndPlacement();
 	HideAttackTelegraph();
 }
@@ -66,6 +70,7 @@ void ATankMeleeEnemyBase::CommitSlamFacing()
 void ATankMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ClearAttackFacingState();
+	StopTelegraphFill();
 	HideAttackTelegraph();
 
 	Super::EndPlay(EndPlayReason);
@@ -74,6 +79,7 @@ void ATankMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ATankMeleeEnemyBase::HandleDeath()
 {
 	ClearAttackFacingState();
+	StopTelegraphFill();
 	HideAttackTelegraph();
 
 	Super::HandleDeath();
@@ -93,6 +99,7 @@ void ATankMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 void ATankMeleeEnemyBase::StopEnemyBehavior()
 {
 	ClearAttackFacingState();
+	StopTelegraphFill();
 	HideAttackTelegraph();
 
 	Super::StopEnemyBehavior();
@@ -103,11 +110,13 @@ void ATankMeleeEnemyBase::HandleAttackCommitted()
 	Super::HandleAttackCommitted();
 	StartWindupFacingTracking();
 	ShowAttackTelegraph();
+	StartTelegraphFill();
 }
 
 void ATankMeleeEnemyBase::HandleAttackFinished()
 {
 	ClearAttackFacingState();
+	StopTelegraphFill();
 	HideAttackTelegraph();
 	Super::HandleAttackFinished();
 }
@@ -115,6 +124,17 @@ void ATankMeleeEnemyBase::HandleAttackFinished()
 void ATankMeleeEnemyBase::ExecuteAttackHit()
 {
 	LockAttackFacing();
+	SetTelegraphFillAmount(1.0f);
+	StopTelegraphFill();
+	if (CVarHDDebugTankSlam.GetValueOnGameThread() != 0 && GetWorld())
+	{
+		const float ElapsedWindup = TelegraphFillStartTime > 0.0
+			? static_cast<float>(GetWorld()->GetTimeSeconds() - TelegraphFillStartTime)
+			: 0.0f;
+		UE_LOG(LogTemp, Log, TEXT("[TankSlam] Impact FillAmount=1.0 ElapsedWindup=%.3f EffectiveWindupDuration=%.3f"),
+			ElapsedWindup,
+			ActiveTelegraphFillDuration);
+	}
 
 	if (bIsDead || IsPlayerTargetDead() || !ObservedCharacterManager)
 	{
@@ -196,15 +216,12 @@ void ATankMeleeEnemyBase::ExecuteAttackHit()
 
 void ATankMeleeEnemyBase::ShowAttackTelegraph()
 {
+	InitializeTelegraphMaterialInstance();
 	UpdateAttackTelegraphSizeAndPlacement();
+	SetTelegraphFillAmount(0.0f);
 
 	if (AttackTelegraphDecal)
 	{
-		if (AttackTelegraphMaterial)
-		{
-			AttackTelegraphDecal->SetDecalMaterial(AttackTelegraphMaterial);
-		}
-
 		AttackTelegraphDecal->SetHiddenInGame(false);
 		AttackTelegraphDecal->SetVisibility(true);
 	}
@@ -244,11 +261,175 @@ void ATankMeleeEnemyBase::ShowAttackTelegraph()
 
 void ATankMeleeEnemyBase::HideAttackTelegraph()
 {
+	ResetTelegraphFill();
 	if (AttackTelegraphDecal)
 	{
 		AttackTelegraphDecal->SetHiddenInGame(true);
 		AttackTelegraphDecal->SetVisibility(false);
 	}
+}
+
+void ATankMeleeEnemyBase::InitializeTelegraphMaterialInstance()
+{
+	if (!AttackTelegraphDecal || TelegraphMaterialInstance)
+	{
+		return;
+	}
+
+	if (AttackTelegraphMaterial)
+	{
+		TelegraphMaterialInstance = UMaterialInstanceDynamic::Create(AttackTelegraphMaterial, this);
+		if (TelegraphMaterialInstance)
+		{
+			AttackTelegraphDecal->SetDecalMaterial(TelegraphMaterialInstance);
+			SetTelegraphFillAmount(0.0f);
+		}
+	}
+}
+
+void ATankMeleeEnemyBase::StartTelegraphFill()
+{
+	InitializeTelegraphMaterialInstance();
+	SetTelegraphFillAmount(0.0f);
+
+	UWorld* World = GetWorld();
+	if (!World || TelegraphWindupDuration <= KINDA_SMALL_NUMBER)
+	{
+		SetTelegraphFillAmount(1.0f);
+		return;
+	}
+
+	TelegraphFillStartTime = World->GetTimeSeconds();
+	float ImpactNotifyTime = -1.0f;
+	float MontagePosition = 0.0f;
+	float MontagePlayRate = 1.0f;
+	ActiveTelegraphFillDuration = CalculateTelegraphFillDuration(ImpactNotifyTime, MontagePosition, MontagePlayRate);
+
+	if (CVarHDDebugTankSlam.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[TankSlam] Telegraph timing Montage=%s ImpactNotifyTime=%.3f MontagePosition=%.3f PlayRate=%.3f EffectiveWindupDuration=%.3f FallbackDuration=%.3f"),
+			*GetNameSafe(AttackMontage),
+			ImpactNotifyTime,
+			MontagePosition,
+			MontagePlayRate,
+			ActiveTelegraphFillDuration,
+			TelegraphWindupDuration);
+	}
+
+	World->GetTimerManager().ClearTimer(TelegraphFillTimerHandle);
+	World->GetTimerManager().SetTimer(
+		TelegraphFillTimerHandle,
+		this,
+		&ATankMeleeEnemyBase::HandleTelegraphFillTimerElapsed,
+		FMath::Max(0.01f, TelegraphFillUpdateInterval),
+		true);
+}
+
+void ATankMeleeEnemyBase::StopTelegraphFill()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(TelegraphFillTimerHandle);
+	}
+}
+
+void ATankMeleeEnemyBase::ResetTelegraphFill()
+{
+	SetTelegraphFillAmount(0.0f);
+	TelegraphFillStartTime = 0.0;
+	ActiveTelegraphFillDuration = FMath::Max(0.01f, TelegraphWindupDuration);
+}
+
+void ATankMeleeEnemyBase::SetTelegraphFillAmount(float FillAmount)
+{
+	if (TelegraphMaterialInstance)
+	{
+		TelegraphMaterialInstance->SetScalarParameterValue(TEXT("FillAmount"), FMath::Clamp(FillAmount, 0.0f, 1.0f));
+	}
+}
+
+void ATankMeleeEnemyBase::HandleTelegraphFillTimerElapsed()
+{
+	const UWorld* World = GetWorld();
+	if (!World || !bIsAttacking || bIsDead)
+	{
+		StopTelegraphFill();
+		return;
+	}
+
+	const float Elapsed = static_cast<float>(World->GetTimeSeconds() - TelegraphFillStartTime);
+	const float FillAmount = ActiveTelegraphFillDuration > KINDA_SMALL_NUMBER
+		? FMath::Clamp(Elapsed / ActiveTelegraphFillDuration, 0.0f, 0.99f)
+		: 1.0f;
+	SetTelegraphFillAmount(FillAmount);
+
+	if (FillAmount >= 0.99f)
+	{
+		StopTelegraphFill();
+	}
+}
+
+float ATankMeleeEnemyBase::CalculateTelegraphFillDuration(float& OutImpactNotifyTime, float& OutMontagePosition, float& OutMontagePlayRate) const
+{
+	OutImpactNotifyTime = -1.0f;
+	OutMontagePosition = 0.0f;
+	OutMontagePlayRate = 1.0f;
+
+	const USkeletalMeshComponent* MeshComponent = GetMesh();
+	const UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr;
+	if (AnimInstance && AttackMontage)
+	{
+		OutMontagePosition = AnimInstance->Montage_GetPosition(AttackMontage);
+		OutMontagePlayRate = FMath::Abs(AnimInstance->Montage_GetPlayRate(AttackMontage));
+		if (FindImpactNotifyTime(OutMontagePosition, OutImpactNotifyTime) && OutMontagePlayRate > KINDA_SMALL_NUMBER)
+		{
+			const float SourceSecondsUntilImpact = FMath::Max(0.0f, OutImpactNotifyTime - OutMontagePosition);
+			if (SourceSecondsUntilImpact > KINDA_SMALL_NUMBER)
+			{
+				return SourceSecondsUntilImpact / OutMontagePlayRate;
+			}
+		}
+	}
+
+	return FMath::Max(0.01f, TelegraphWindupDuration);
+}
+
+bool ATankMeleeEnemyBase::FindImpactNotifyTime(float MontagePosition, float& OutImpactNotifyTime) const
+{
+	OutImpactNotifyTime = -1.0f;
+	if (!AttackMontage)
+	{
+		return false;
+	}
+
+	bool bFoundNotify = false;
+	float BestNotifyTime = TNumericLimits<float>::Max();
+	for (const FAnimNotifyEvent& NotifyEvent : AttackMontage->Notifies)
+	{
+		if (!NotifyEvent.Notify || !NotifyEvent.Notify->IsA<UAnimNotify_EnemyAttackHit>())
+		{
+			continue;
+		}
+
+		const float NotifyTime = NotifyEvent.GetTriggerTime();
+		if (NotifyTime + KINDA_SMALL_NUMBER < MontagePosition)
+		{
+			continue;
+		}
+
+		if (NotifyTime < BestNotifyTime)
+		{
+			BestNotifyTime = NotifyTime;
+			bFoundNotify = true;
+		}
+	}
+
+	if (bFoundNotify)
+	{
+		OutImpactNotifyTime = BestNotifyTime;
+	}
+
+	return bFoundNotify;
 }
 
 void ATankMeleeEnemyBase::StartWindupFacingTracking()
