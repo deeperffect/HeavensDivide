@@ -103,6 +103,7 @@ void UAutoAttackComponent::StopAutoAttack()
 	CurrentAttackTarget.Reset();
 	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
+	bActiveAttackIsAssist = false;
 	ActiveAttackSequence = 0;
 	if (OwnerCharacter)
 	{
@@ -139,6 +140,22 @@ void UAutoAttackComponent::PerformAttackTrace()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AutoAttack trace skipped: owner/world invalid."));
 		return;
+	}
+
+	if (bActiveAttackIsAssist && !ProjectileClass)
+	{
+		AEnemyBase* AssistTarget = CurrentAttackTarget.Get();
+		if (!AssistTarget || AssistTarget->IsDead() || !IsTargetInCurrentMeleeReach(AssistTarget))
+		{
+			AssistTarget = FindAssistTargetNearLocation(OwnerCharacter->GetActorLocation(), TargetingRange);
+			CurrentAttackTarget = AssistTarget;
+		}
+
+		if (!AssistTarget || AssistTarget->IsDead() || !IsTargetInCurrentMeleeReach(AssistTarget))
+		{
+			UE_LOG(LogTemp, Log, TEXT("Assist melee trace skipped: target invalid or out of reach."));
+			return;
+		}
 	}
 
 	FVector AttackForward = OwnerCharacter->GetVisualForwardVector();
@@ -233,7 +250,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 
 	UE_LOG(LogTemp, Log, TEXT("SpawnAutoAttackProjectile Called"));
 
-	if (!CanAutoAttack())
+	if (!CanExecuteAttackInCurrentMode())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn skipped: auto attack cannot run."));
 		return;
@@ -386,6 +403,43 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, Damage, Speed, EProjectileTargetType::Enemies, TargetEnemy, HomingStrengthMultiplier, HomingTargetOffset);
 }
 
+AEnemyBase* UAutoAttackComponent::FindAssistTarget() const
+{
+	return FindNearestEnemyTarget();
+}
+
+AEnemyBase* UAutoAttackComponent::FindAssistTargetNearLocation(const FVector& SearchLocation, float SearchRadius) const
+{
+	TArray<AEnemyBase*> SortedTargets;
+	FindEnemyTargetsSortedFromLocation(SearchLocation, SearchRadius, SortedTargets);
+	return SortedTargets.Num() > 0 ? SortedTargets[0] : nullptr;
+}
+
+bool UAutoAttackComponent::IsProjectileAttack() const
+{
+	return ProjectileClass != nullptr;
+}
+
+bool UAutoAttackComponent::IsTargetInCurrentMeleeReach(const AEnemyBase* TargetEnemy) const
+{
+	if (!OwnerCharacter || !TargetEnemy)
+	{
+		return false;
+	}
+
+	FVector AttackForward = OwnerCharacter->GetVisualForwardVector();
+	AttackForward.Z = 0.0f;
+	if (!AttackForward.Normalize())
+	{
+		return false;
+	}
+
+	const FVector HitboxCenter = OwnerCharacter->GetActorLocation() + AttackForward * AttackForwardOffset;
+	const float EffectiveAttackRadius = GetEffectiveAttackRadius();
+	const float TargetRadius = TargetEnemy->GetCapsuleComponent() ? TargetEnemy->GetCapsuleComponent()->GetScaledCapsuleRadius() : 0.0f;
+	return FVector::Dist2D(HitboxCenter, GetEnemyAimLocation(TargetEnemy)) <= EffectiveAttackRadius + TargetRadius;
+}
+
 void UAutoAttackComponent::HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode)
 {
 	if (NewMode == ECharacterMode::Active)
@@ -536,7 +590,83 @@ void UAutoAttackComponent::ScheduleNextAttackTimerFromCooldown()
 	}
 }
 
-bool UAutoAttackComponent::PlayAttackMontage()
+bool UAutoAttackComponent::TryStartAssistAttack(AEnemyBase*& OutTargetEnemy, float& OutExpectedDuration)
+{
+	OutTargetEnemy = nullptr;
+
+	AEnemyBase* TargetEnemy = FindAssistTarget();
+	if (!TargetEnemy)
+	{
+		OutExpectedDuration = 0.0f;
+		return false;
+	}
+
+	OutTargetEnemy = TargetEnemy;
+	return TryStartAssistAttackAtTarget(TargetEnemy, OutExpectedDuration);
+}
+
+bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy, float& OutExpectedDuration)
+{
+	OutExpectedDuration = 0.0f;
+
+	if (!OwnerCharacter || !GetWorld())
+	{
+		return false;
+	}
+
+	if (OwnerCharacter->GetCharacterMode() != ECharacterMode::Assisting)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Assist attack skipped: %s is not in Assisting mode."), *GetNameSafe(OwnerCharacter));
+		return false;
+	}
+
+	if (bIsAttacking)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Assist attack skipped: already attacking."));
+		return false;
+	}
+
+	if (!TargetEnemy || TargetEnemy->IsDead())
+	{
+		CurrentAttackTarget.Reset();
+		return false;
+	}
+
+	CurrentAttackTarget = TargetEnemy;
+	const FVector AimLocation = GetEnemyAimLocation(TargetEnemy);
+	FVector ToTarget = AimLocation - OwnerCharacter->GetActorLocation();
+	ToTarget.Z = 0.0f;
+	if (ToTarget.Normalize())
+	{
+		OwnerCharacter->SetVisualFacingRotation(FRotator(0.0f, ToTarget.Rotation().Yaw, 0.0f));
+	}
+
+	OutExpectedDuration = GetExpectedAttackMontageDuration();
+
+	const double PreviousLastAttackStartTime = LastAttackStartTime;
+	const double PreviousNextAttackReadyTime = NextAttackReadyTime;
+	const float PreviousAttackIntervalAtLastAttackStart = AttackIntervalAtLastAttackStart;
+
+	const bool bStarted = PlayAttackMontage(false);
+
+	LastAttackStartTime = PreviousLastAttackStartTime;
+	NextAttackReadyTime = PreviousNextAttackReadyTime;
+	AttackIntervalAtLastAttackStart = PreviousAttackIntervalAtLastAttackStart;
+
+	if (bStarted)
+	{
+		OnAutoAttack.Broadcast();
+	}
+	else
+	{
+		CurrentAttackTarget.Reset();
+		OutExpectedDuration = 0.0f;
+	}
+
+	return bStarted;
+}
+
+bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 {
 	if (!AttackMontage)
 	{
@@ -592,9 +722,13 @@ bool UAutoAttackComponent::PlayAttackMontage()
 
 	bIsAttacking = true;
 	bAttackNotifyConsumed = false;
-	LastAttackStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastAttackStartTime;
-	AttackIntervalAtLastAttackStart = GetEffectiveAttackInterval();
-	NextAttackReadyTime = LastAttackStartTime + AttackIntervalAtLastAttackStart;
+	bActiveAttackIsAssist = !bUpdateNormalCooldown;
+	if (bUpdateNormalCooldown)
+	{
+		LastAttackStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastAttackStartTime;
+		AttackIntervalAtLastAttackStart = GetEffectiveAttackInterval();
+		NextAttackReadyTime = LastAttackStartTime + AttackIntervalAtLastAttackStart;
+	}
 	ActiveAttackSequence = ++AttackSequence;
 	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Started"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
 	if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0)
@@ -627,6 +761,17 @@ float UAutoAttackComponent::CalculateAttackMontagePlayRate(const UAnimMontage* M
 	return FMath::Clamp(FMath::Max(1.0f, CalculatedPlayRate), 1.0f, SafeMaxPlayRate);
 }
 
+float UAutoAttackComponent::GetExpectedAttackMontageDuration() const
+{
+	if (!AttackMontage)
+	{
+		return 0.75f;
+	}
+
+	const float PlayRate = FMath::Max(0.01f, CalculateAttackMontagePlayRate(AttackMontage));
+	return AttackMontage->GetPlayLength() / PlayRate;
+}
+
 void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage != AttackMontage)
@@ -636,6 +781,7 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 
 	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
+	bActiveAttackIsAssist = false;
 	CurrentAttackTarget.Reset();
 	if (OwnerCharacter)
 	{
@@ -710,6 +856,14 @@ bool UAutoAttackComponent::CanStartAttackNow() const
 	}
 
 	return World->GetTimeSeconds() >= NextAttackReadyTime;
+}
+
+bool UAutoAttackComponent::CanExecuteAttackInCurrentMode() const
+{
+	return bAutoAttackEnabled
+		&& OwnerCharacter
+		&& (OwnerCharacter->GetCharacterMode() == ECharacterMode::Active || OwnerCharacter->GetCharacterMode() == ECharacterMode::Assisting)
+		&& GetWorld();
 }
 
 bool UAutoAttackComponent::TryConsumeAttackNotify()
@@ -821,6 +975,11 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 
 void UAutoAttackComponent::FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTargets) const
 {
+	FindEnemyTargetsSortedFromLocation(OwnerCharacter ? OwnerCharacter->GetActorLocation() : FVector::ZeroVector, TargetingRange, OutTargets);
+}
+
+void UAutoAttackComponent::FindEnemyTargetsSortedFromLocation(const FVector& SearchLocation, float SearchRadius, TArray<AEnemyBase*>& OutTargets) const
+{
 	OutTargets.Reset();
 
 	if (!OwnerCharacter || !GetWorld())
@@ -838,10 +997,10 @@ void UAutoAttackComponent::FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTarget
 
 	GetWorld()->OverlapMultiByObjectType(
 		OverlapResults,
-		OwnerCharacter->GetActorLocation(),
+		SearchLocation,
 		FQuat::Identity,
 		ObjectQueryParams,
-		FCollisionShape::MakeSphere(TargetingRange),
+		FCollisionShape::MakeSphere(FMath::Max(0.0f, SearchRadius)),
 		QueryParams);
 
 	const AActor* OwnerActor = OwnerCharacter->GetOwner();
@@ -876,10 +1035,10 @@ void UAutoAttackComponent::FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTarget
 		OutTargets.Add(Enemy);
 	}
 
-	OutTargets.Sort([this](const AEnemyBase& Left, const AEnemyBase& Right)
+	OutTargets.Sort([SearchLocation](const AEnemyBase& Left, const AEnemyBase& Right)
 	{
-		return FVector::DistSquared2D(OwnerCharacter->GetActorLocation(), Left.GetActorLocation())
-			< FVector::DistSquared2D(OwnerCharacter->GetActorLocation(), Right.GetActorLocation());
+		return FVector::DistSquared2D(SearchLocation, Left.GetActorLocation())
+			< FVector::DistSquared2D(SearchLocation, Right.GetActorLocation());
 	});
 }
 

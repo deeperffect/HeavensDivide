@@ -129,12 +129,6 @@ void UCharacterManagerComponent::SwapCharacter()
 		return;
 	}
 
-	if (NewCharacter->GetCharacterMode() == ECharacterMode::Assisting)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("SWAP FAILED: %s is currently Assisting."), *GetNameSafe(NewCharacter));
-		return;
-	}
-
 	bIsSwapInProgress = true;
 
 	UE_LOG(LogTemp, Log, TEXT("SWAP BEGIN"));

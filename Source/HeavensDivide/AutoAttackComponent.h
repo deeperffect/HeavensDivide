@@ -36,6 +36,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Auto Attack|Projectile")
 	void SpawnAutoAttackProjectile();
 
+	AEnemyBase* FindAssistTarget() const;
+	AEnemyBase* FindAssistTargetNearLocation(const FVector& SearchLocation, float SearchRadius) const;
+	bool IsProjectileAttack() const;
+	bool IsTargetInCurrentMeleeReach(const AEnemyBase* TargetEnemy) const;
+	bool TryStartAssistAttack(AEnemyBase*& OutTargetEnemy, float& OutExpectedDuration);
+	bool TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy, float& OutExpectedDuration);
+
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	float GetEffectiveAttackInterval() const;
 
@@ -140,16 +147,19 @@ private:
 	void HandleAttackTimer();
 	void ScheduleNextAttackTimer(float Delay);
 	void ScheduleNextAttackTimerFromCooldown();
-	bool PlayAttackMontage();
+	bool PlayAttackMontage(bool bUpdateNormalCooldown = true);
 	float CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const;
+	float GetExpectedAttackMontageDuration() const;
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void StartTargetedAttack();
 	void StartProjectileAttack();
+	bool CanExecuteAttackInCurrentMode() const;
 	bool CanStartAttackNow() const;
 	bool TryConsumeAttackNotify();
 	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier, const FVector& HomingTargetOffset = FVector::ZeroVector);
 	AEnemyBase* FindNearestEnemyTarget() const;
 	void FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTargets) const;
+	void FindEnemyTargetsSortedFromLocation(const FVector& SearchLocation, float SearchRadius, TArray<AEnemyBase*>& OutTargets) const;
 	FVector GetProjectileSpawnLocation() const;
 	FVector GetEnemyAimLocation(const AEnemyBase* Enemy) const;
 	bool CanAutoAttack() const;
@@ -167,4 +177,5 @@ private:
 	int32 ActiveAttackSequence = 0;
 	bool bIsAttacking = false;
 	bool bAttackNotifyConsumed = false;
+	bool bActiveAttackIsAssist = false;
 };

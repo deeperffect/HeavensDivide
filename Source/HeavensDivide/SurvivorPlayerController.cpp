@@ -8,6 +8,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "ExperienceComponent.h"
 #include "HealthComponent.h"
+#include "InactiveCharacterAssistComponent.h"
 #include "InputActionValue.h"
 #include "LevelUpWidget.h"
 #include "PlayerCameraRig.h"
@@ -58,6 +59,7 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 	SharedPlayerStatsComponent = CreateDefaultSubobject<USharedPlayerStatsComponent>(TEXT("SharedPlayerStatsComponent"));
 	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
+	InactiveCharacterAssistComponent = CreateDefaultSubobject<UInactiveCharacterAssistComponent>(TEXT("InactiveCharacterAssistComponent"));
 }
 
 void ASurvivorPlayerController::BeginPlay()

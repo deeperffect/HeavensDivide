@@ -37,7 +37,8 @@ UENUM(BlueprintType)
 enum class EUpgradeSpecialEffect : uint8
 {
 	None,
-	SwapRestoresDashCharge
+	SwapRestoresDashCharge,
+	InactiveCharacterAssist
 };
 
 USTRUCT(BlueprintType)

@@ -11,6 +11,7 @@ class UInputMappingContext;
 class UCharacterManagerComponent;
 class UExperienceComponent;
 class UHealthComponent;
+class UInactiveCharacterAssistComponent;
 class ULevelUpWidget;
 class UPlayerUpgradeComponent;
 class UPlayerHUDWidget;
@@ -135,6 +136,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
 	TObjectPtr<UPlayerUpgradeComponent> PlayerUpgradeComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Synergy")
+	TObjectPtr<UInactiveCharacterAssistComponent> InactiveCharacterAssistComponent;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
 	TSubclassOf<APlayerCameraRig> PlayerCameraRigClass;
