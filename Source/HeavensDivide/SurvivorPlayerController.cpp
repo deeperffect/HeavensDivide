@@ -162,6 +162,38 @@ bool ASurvivorPlayerController::IsPlayerDead() const
 	return bIsPlayerDead;
 }
 
+bool ASurvivorPlayerController::CanSwap() const
+{
+	return !bIsPlayerDead
+		&& !bIsDashing
+		&& !bLevelUpSelectionActive
+		&& bCanSwap
+		&& CharacterManager
+		&& CharacterManager->GetActiveCharacter()
+		&& CharacterManager->GetInactiveCharacter();
+}
+
+float ASurvivorPlayerController::GetSwapCooldownRemaining() const
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Max(0.0f, World->GetTimerManager().GetTimerRemaining(SwapCooldownTimerHandle));
+}
+
+void ASurvivorPlayerController::ResetSwapCooldown()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(SwapCooldownTimerHandle);
+	}
+
+	bCanSwap = true;
+}
+
 bool ASurvivorPlayerController::TryDash()
 {
 	if (!CanDash())
@@ -329,7 +361,7 @@ void ASurvivorPlayerController::StopMoveInput(const FInputActionValue& Value)
 
 void ASurvivorPlayerController::Swap(const FInputActionValue& Value)
 {
-	if (bIsPlayerDead || bIsDashing || bLevelUpSelectionActive)
+	if (!CanSwap())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
 		return;
@@ -405,6 +437,8 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 	{
 		return;
 	}
+
+	StartSwapCooldown();
 
 	if (PlayerUpgradeComponent && PlayerUpgradeComponent->GetSpecialEffectLevel(EUpgradeSpecialEffect::SwapRestoresDashCharge) > 0)
 	{
@@ -591,6 +625,29 @@ void ASurvivorPlayerController::CloseLevelUpWidget()
 	{
 		LevelUpWidget->RemoveFromParent();
 	}
+}
+
+void ASurvivorPlayerController::StartSwapCooldown()
+{
+	if (!GetWorld() || SwapCooldown <= 0.0f)
+	{
+		bCanSwap = true;
+		return;
+	}
+
+	bCanSwap = false;
+	GetWorldTimerManager().ClearTimer(SwapCooldownTimerHandle);
+	GetWorldTimerManager().SetTimer(
+		SwapCooldownTimerHandle,
+		this,
+		&ASurvivorPlayerController::OnSwapCooldownFinished,
+		SwapCooldown,
+		false);
+}
+
+void ASurvivorPlayerController::OnSwapCooldownFinished()
+{
+	bCanSwap = true;
 }
 
 void ASurvivorPlayerController::HandleSharedPlayerStatsChanged()

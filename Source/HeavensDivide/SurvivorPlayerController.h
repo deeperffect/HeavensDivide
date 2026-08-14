@@ -52,6 +52,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
 
+	UFUNCTION(BlueprintPure, Category = "Player|Swap")
+	bool CanSwap() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Swap")
+	float GetSwapCooldownRemaining() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Player|Swap")
+	void ResetSwapCooldown();
+
 	UFUNCTION(BlueprintCallable, Category = "Player|Dash")
 	bool TryDash();
 
@@ -122,6 +131,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float DashRechargeTime = 5.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Swap", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float SwapCooldown = 3.0f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Characters")
 	TObjectPtr<UCharacterManagerComponent> CharacterManager;
 
@@ -167,6 +179,9 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up")
 	bool bLevelUpSelectionActive = false;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Swap")
+	bool bCanSwap = true;
+
 	void Move(const FInputActionValue& Value);
 	void StopMoveInput(const FInputActionValue& Value);
 	void Swap(const FInputActionValue& Value);
@@ -189,6 +204,8 @@ protected:
 	void PauseForLevelUpSelection();
 	void ResumeAfterLevelUpSelection();
 	void CloseLevelUpWidget();
+	void StartSwapCooldown();
+	void OnSwapCooldownFinished();
 	void ApplySharedMoveSpeedToParty();
 	void ApplySharedHealthStats();
 	void ApplySharedPlayerStats();
@@ -206,6 +223,7 @@ protected:
 	void BroadcastDashChargesChanged();
 
 	float BasePlayerMaxHealth = 0.0f;
+	FTimerHandle SwapCooldownTimerHandle;
 	FTimerHandle DashRechargeTimerHandle;
 	FVector2D LastMovementInput = FVector2D::ZeroVector;
 	FVector ActiveDashDirection = FVector::ZeroVector;

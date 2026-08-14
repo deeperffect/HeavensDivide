@@ -186,6 +186,48 @@ bool UPlayerHUDWidget::IsDashRecharging() const
 		&& SurvivorPlayerController->GetDashRechargeRemaining() > 0.0f;
 }
 
+int32 UPlayerHUDWidget::GetRechargingDashSlotIndex() const
+{
+	return IsDashRecharging() ? GetCurrentDashCharges() : INDEX_NONE;
+}
+
+TArray<FDashChargeSlotState> UPlayerHUDWidget::GetDashChargeSlotStates() const
+{
+	TArray<FDashChargeSlotState> ChargeSlots;
+
+	const int32 CurrentCharges = GetCurrentDashCharges();
+	const int32 MaxCharges = GetMaxDashCharges();
+	const float RechargePercent = GetDashRechargePercent();
+	const bool bIsRecharging = IsDashRecharging();
+	ChargeSlots.Reserve(MaxCharges);
+
+	for (int32 SlotIndex = 0; SlotIndex < MaxCharges; ++SlotIndex)
+	{
+		FDashChargeSlotState SlotState;
+		SlotState.SlotIndex = SlotIndex;
+
+		if (SlotIndex < CurrentCharges)
+		{
+			SlotState.State = EDashChargeSlotState::Full;
+			SlotState.RechargePercent = 1.0f;
+		}
+		else if (SlotIndex == CurrentCharges && bIsRecharging)
+		{
+			SlotState.State = EDashChargeSlotState::Recharging;
+			SlotState.RechargePercent = RechargePercent;
+		}
+		else
+		{
+			SlotState.State = EDashChargeSlotState::Empty;
+			SlotState.RechargePercent = 0.0f;
+		}
+
+		ChargeSlots.Add(SlotState);
+	}
+
+	return ChargeSlots;
+}
+
 bool UPlayerHUDWidget::IsSamuraiActive() const
 {
 	return Samurai && GetActiveCharacter() == Samurai;
@@ -423,11 +465,22 @@ void UPlayerHUDWidget::BroadcastDashState()
 	const float RechargePercent = GetDashRechargePercent();
 	DashChargesUpdated.Broadcast(CurrentCharges, MaxCharges, RechargePercent);
 	OnDashChargesUpdated(CurrentCharges, MaxCharges, RechargePercent);
+	BroadcastDashChargeSlots();
 }
 
 void UPlayerHUDWidget::BroadcastDashRechargeProgress()
 {
 	const float RechargePercent = GetDashRechargePercent();
+	const int32 RechargingSlotIndex = GetRechargingDashSlotIndex();
 	DashRechargeUpdated.Broadcast(RechargePercent);
 	OnDashRechargeUpdated(RechargePercent);
+	DashRechargeSlotUpdated.Broadcast(RechargingSlotIndex, RechargePercent);
+	OnDashRechargeSlotUpdated(RechargingSlotIndex, RechargePercent);
+}
+
+void UPlayerHUDWidget::BroadcastDashChargeSlots()
+{
+	const TArray<FDashChargeSlotState> ChargeSlots = GetDashChargeSlotStates();
+	DashChargeSlotsUpdated.Broadcast(ChargeSlots);
+	OnDashChargeSlotsUpdated(ChargeSlots);
 }
