@@ -31,7 +31,7 @@ ATankMeleeEnemyBase::ATankMeleeEnemyBase(const FObjectInitializer& ObjectInitial
 	AttackBoxWidth = 160.0f;
 	AttackBoxForwardOffset = 300.0f;
 	SlamDamageMultiplier = 1.0f;
-	WindupTrackingRotationSpeed = 540.0f;
+	WindupTrackingRotationSpeed = 120.0f;
 	TelegraphWindupDuration = 1.0f;
 	TelegraphFillUpdateInterval = 0.025f;
 

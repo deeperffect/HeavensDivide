@@ -64,8 +64,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float SlamDamageMultiplier = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Facing", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float WindupTrackingRotationSpeed = 540.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Facing", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "deg/s", ToolTip = "Maximum yaw turn speed while tracking the player during the slam windup. Lower values make the telegraph easier to outrun. Set to 0 to disable windup tracking."))
+	float WindupTrackingRotationSpeed = 120.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam|Telegraph", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
 	float TelegraphWindupDuration = 1.0f;
