@@ -184,6 +184,22 @@ float ASurvivorPlayerController::GetSwapCooldownRemaining() const
 	return FMath::Max(0.0f, World->GetTimerManager().GetTimerRemaining(SwapCooldownTimerHandle));
 }
 
+float ASurvivorPlayerController::GetSwapCooldownDuration() const
+{
+	return FMath::Max(0.0f, SwapCooldown);
+}
+
+float ASurvivorPlayerController::GetSwapCooldownProgress() const
+{
+	const float CooldownDuration = GetSwapCooldownDuration();
+	if (CooldownDuration <= KINDA_SMALL_NUMBER || CanSwap())
+	{
+		return 0.0f;
+	}
+
+	return FMath::Clamp(GetSwapCooldownRemaining() / CooldownDuration, 0.0f, 1.0f);
+}
+
 void ASurvivorPlayerController::ResetSwapCooldown()
 {
 	if (UWorld* World = GetWorld())
@@ -191,7 +207,12 @@ void ASurvivorPlayerController::ResetSwapCooldown()
 		World->GetTimerManager().ClearTimer(SwapCooldownTimerHandle);
 	}
 
+	const bool bWasOnCooldown = !bCanSwap;
 	bCanSwap = true;
+	if (bWasOnCooldown)
+	{
+		OnSwapCooldownFinished.Broadcast();
+	}
 }
 
 bool ASurvivorPlayerController::TryDash()
@@ -632,6 +653,7 @@ void ASurvivorPlayerController::StartSwapCooldown()
 	if (!GetWorld() || SwapCooldown <= 0.0f)
 	{
 		bCanSwap = true;
+		OnSwapCooldownFinished.Broadcast();
 		return;
 	}
 
@@ -640,14 +662,16 @@ void ASurvivorPlayerController::StartSwapCooldown()
 	GetWorldTimerManager().SetTimer(
 		SwapCooldownTimerHandle,
 		this,
-		&ASurvivorPlayerController::OnSwapCooldownFinished,
+		&ASurvivorPlayerController::HandleSwapCooldownFinished,
 		SwapCooldown,
 		false);
+	OnSwapCooldownStarted.Broadcast(SwapCooldown);
 }
 
-void ASurvivorPlayerController::OnSwapCooldownFinished()
+void ASurvivorPlayerController::HandleSwapCooldownFinished()
 {
 	bCanSwap = true;
+	OnSwapCooldownFinished.Broadcast();
 }
 
 void ASurvivorPlayerController::HandleSharedPlayerStatsChanged()

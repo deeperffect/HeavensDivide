@@ -22,6 +22,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDLevelUpdated, int32, Curre
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDDashChargesUpdated, int32, CurrentCharges, int32, MaxCharges, float, RechargePercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDDashRechargeUpdated, float, RechargePercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPlayerHUDDashRechargeSlotUpdated, int32, RechargingSlotIndex, float, RechargePercent);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDSwapCooldownStarted, float, CooldownDuration);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDSwapCooldownUpdated, float, RemainingCooldown, float, CooldownDuration, float, CooldownProgress);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPlayerHUDSwapCooldownFinished);
 
 UENUM(BlueprintType)
 enum class EDashChargeSlotState : uint8
@@ -114,6 +117,18 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Player HUD|Dash")
 	TArray<FDashChargeSlotState> GetDashChargeSlotStates() const;
 
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Swap")
+	float GetSwapCooldownRemaining() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Swap")
+	float GetSwapCooldownDuration() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Swap")
+	float GetSwapCooldownProgress() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Swap")
+	bool IsSwapCoolingDown() const;
+
 	UFUNCTION(BlueprintPure, Category = "Player HUD|State")
 	bool IsSamuraiActive() const;
 
@@ -147,6 +162,15 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
 	void OnDashChargeSlotsUpdated(const TArray<FDashChargeSlotState>& ChargeSlots);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
+	void OnSwapCooldownStarted(float CooldownDuration);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
+	void OnSwapCooldownUpdated(float RemainingCooldown, float CooldownDuration, float CooldownProgress);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
+	void OnSwapCooldownFinished();
+
 	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
 	FPlayerHUDHealthUpdated PlayerHealthUpdated;
 
@@ -173,6 +197,15 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
 	FPlayerHUDDashChargeSlotsUpdated DashChargeSlotsUpdated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
+	FPlayerHUDSwapCooldownStarted SwapCooldownStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
+	FPlayerHUDSwapCooldownUpdated SwapCooldownUpdated;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player HUD|Events")
+	FPlayerHUDSwapCooldownFinished SwapCooldownFinished;
 
 protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
@@ -233,21 +266,32 @@ private:
 	UFUNCTION()
 	void HandleDashRechargeCompleted();
 
+	UFUNCTION()
+	void HandleSwapCooldownStarted(float CooldownDuration);
+
+	UFUNCTION()
+	void HandleSwapCooldownFinished();
+
 	void BindCharacterHealth();
 	void UnbindCharacterHealth();
 	void BindPlayerExperience();
 	void UnbindPlayerExperience();
 	void BindDashState();
 	void UnbindDashState();
+	void BindSwapCooldownState();
+	void UnbindSwapCooldownState();
 	void BroadcastInitialState();
 	void UpdateHealthAnimation(float NewHealthPercent);
 	void StopHealthChipChase();
 	void BroadcastDashState();
 	void BroadcastDashRechargeProgress();
 	void BroadcastDashChargeSlots();
+	void BroadcastSwapCooldownProgress();
+	void BroadcastSwapCooldownFinished();
 
 	FTimerHandle HealthChipDelayTimerHandle;
 	float TargetHealthPercent = 1.0f;
 	bool bHealthChipChasing = false;
 	bool bDashRechargeProgressActive = false;
+	bool bSwapCooldownProgressActive = false;
 };

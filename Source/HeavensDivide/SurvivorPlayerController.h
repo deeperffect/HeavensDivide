@@ -22,6 +22,8 @@ struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDashChargesChanged, int32, CurrentCharges, int32, MaxCharges);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwapCooldownStarted, float, CooldownDuration);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSwapCooldownFinished);
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
@@ -57,6 +59,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player|Swap")
 	float GetSwapCooldownRemaining() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Swap")
+	float GetSwapCooldownDuration() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Swap")
+	float GetSwapCooldownProgress() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Player|Swap")
 	void ResetSwapCooldown();
@@ -102,6 +110,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
 	FOnPlayerDash OnDashRechargeCompleted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Swap")
+	FOnSwapCooldownStarted OnSwapCooldownStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Swap")
+	FOnSwapCooldownFinished OnSwapCooldownFinished;
 
 protected:
 	virtual void BeginPlay() override;
@@ -205,7 +219,7 @@ protected:
 	void ResumeAfterLevelUpSelection();
 	void CloseLevelUpWidget();
 	void StartSwapCooldown();
-	void OnSwapCooldownFinished();
+	void HandleSwapCooldownFinished();
 	void ApplySharedMoveSpeedToParty();
 	void ApplySharedHealthStats();
 	void ApplySharedPlayerStats();

@@ -33,6 +33,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 	UnbindCharacterHealth();
 	UnbindPlayerExperience();
 	UnbindDashState();
+	UnbindSwapCooldownState();
 
 	if (CharacterManager)
 	{
@@ -54,6 +55,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 	BindCharacterHealth();
 	BindPlayerExperience();
 	BindDashState();
+	BindSwapCooldownState();
 	BroadcastInitialState();
 }
 
@@ -63,6 +65,7 @@ void UPlayerHUDWidget::NativeDestruct()
 	UnbindCharacterHealth();
 	UnbindPlayerExperience();
 	UnbindDashState();
+	UnbindSwapCooldownState();
 
 	if (CharacterManager)
 	{
@@ -83,6 +86,16 @@ void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 		if (!IsDashRecharging())
 		{
 			bDashRechargeProgressActive = false;
+		}
+	}
+
+	if (bSwapCooldownProgressActive)
+	{
+		BroadcastSwapCooldownProgress();
+
+		if (!IsSwapCoolingDown())
+		{
+			bSwapCooldownProgressActive = false;
 		}
 	}
 
@@ -228,6 +241,28 @@ TArray<FDashChargeSlotState> UPlayerHUDWidget::GetDashChargeSlotStates() const
 	return ChargeSlots;
 }
 
+float UPlayerHUDWidget::GetSwapCooldownRemaining() const
+{
+	return SurvivorPlayerController ? SurvivorPlayerController->GetSwapCooldownRemaining() : 0.0f;
+}
+
+float UPlayerHUDWidget::GetSwapCooldownDuration() const
+{
+	return SurvivorPlayerController ? SurvivorPlayerController->GetSwapCooldownDuration() : 0.0f;
+}
+
+float UPlayerHUDWidget::GetSwapCooldownProgress() const
+{
+	return SurvivorPlayerController ? SurvivorPlayerController->GetSwapCooldownProgress() : 0.0f;
+}
+
+bool UPlayerHUDWidget::IsSwapCoolingDown() const
+{
+	return SurvivorPlayerController
+		&& SurvivorPlayerController->GetSwapCooldownRemaining() > 0.0f
+		&& !SurvivorPlayerController->CanSwap();
+}
+
 bool UPlayerHUDWidget::IsSamuraiActive() const
 {
 	return Samurai && GetActiveCharacter() == Samurai;
@@ -283,6 +318,21 @@ void UPlayerHUDWidget::HandleDashRechargeCompleted()
 	BroadcastDashState();
 	BroadcastDashRechargeProgress();
 	bDashRechargeProgressActive = IsDashRecharging();
+}
+
+void UPlayerHUDWidget::HandleSwapCooldownStarted(float CooldownDuration)
+{
+	bSwapCooldownProgressActive = CooldownDuration > 0.0f;
+	SwapCooldownStarted.Broadcast(CooldownDuration);
+	OnSwapCooldownStarted(CooldownDuration);
+	BroadcastSwapCooldownProgress();
+}
+
+void UPlayerHUDWidget::HandleSwapCooldownFinished()
+{
+	bSwapCooldownProgressActive = false;
+	BroadcastSwapCooldownProgress();
+	BroadcastSwapCooldownFinished();
 }
 
 void UPlayerHUDWidget::BindCharacterHealth()
@@ -358,6 +408,29 @@ void UPlayerHUDWidget::UnbindDashState()
 	bDashRechargeProgressActive = false;
 }
 
+void UPlayerHUDWidget::BindSwapCooldownState()
+{
+	if (!SurvivorPlayerController)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("PlayerHUDWidget: SurvivorPlayerController invalid for swap cooldown state."));
+		return;
+	}
+
+	SurvivorPlayerController->OnSwapCooldownStarted.AddUniqueDynamic(this, &UPlayerHUDWidget::HandleSwapCooldownStarted);
+	SurvivorPlayerController->OnSwapCooldownFinished.AddUniqueDynamic(this, &UPlayerHUDWidget::HandleSwapCooldownFinished);
+}
+
+void UPlayerHUDWidget::UnbindSwapCooldownState()
+{
+	if (SurvivorPlayerController)
+	{
+		SurvivorPlayerController->OnSwapCooldownStarted.RemoveDynamic(this, &UPlayerHUDWidget::HandleSwapCooldownStarted);
+		SurvivorPlayerController->OnSwapCooldownFinished.RemoveDynamic(this, &UPlayerHUDWidget::HandleSwapCooldownFinished);
+	}
+
+	bSwapCooldownProgressActive = false;
+}
+
 void UPlayerHUDWidget::BroadcastInitialState()
 {
 	if (PlayerHealth)
@@ -399,6 +472,18 @@ void UPlayerHUDWidget::BroadcastInitialState()
 	if (bDashRechargeProgressActive)
 	{
 		BroadcastDashRechargeProgress();
+	}
+
+	if (IsSwapCoolingDown())
+	{
+		bSwapCooldownProgressActive = true;
+		SwapCooldownStarted.Broadcast(GetSwapCooldownDuration());
+		OnSwapCooldownStarted(GetSwapCooldownDuration());
+		BroadcastSwapCooldownProgress();
+	}
+	else
+	{
+		BroadcastSwapCooldownFinished();
 	}
 }
 
@@ -483,4 +568,19 @@ void UPlayerHUDWidget::BroadcastDashChargeSlots()
 	const TArray<FDashChargeSlotState> ChargeSlots = GetDashChargeSlotStates();
 	DashChargeSlotsUpdated.Broadcast(ChargeSlots);
 	OnDashChargeSlotsUpdated(ChargeSlots);
+}
+
+void UPlayerHUDWidget::BroadcastSwapCooldownProgress()
+{
+	const float RemainingCooldown = GetSwapCooldownRemaining();
+	const float CooldownDuration = GetSwapCooldownDuration();
+	const float CooldownProgress = GetSwapCooldownProgress();
+	SwapCooldownUpdated.Broadcast(RemainingCooldown, CooldownDuration, CooldownProgress);
+	OnSwapCooldownUpdated(RemainingCooldown, CooldownDuration, CooldownProgress);
+}
+
+void UPlayerHUDWidget::BroadcastSwapCooldownFinished()
+{
+	SwapCooldownFinished.Broadcast();
+	OnSwapCooldownFinished();
 }
