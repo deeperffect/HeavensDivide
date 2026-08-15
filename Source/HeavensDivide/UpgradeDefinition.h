@@ -89,6 +89,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	EUpgradeRarity Rarity = EUpgradeRarity::Common;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Prerequisites")
+	TArray<FName> PrerequisiteUpgradeIds;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TArray<FUpgradeStatModifierDefinition> StatModifiers;
 

@@ -40,9 +40,31 @@ int32 UPlayerUpgradeComponent::GetUpgradeLevel(UUpgradeDefinition* Upgrade) cons
 	return 0;
 }
 
+int32 UPlayerUpgradeComponent::GetUpgradeLevelById(FName UpgradeId) const
+{
+	if (UpgradeId.IsNone())
+	{
+		return 0;
+	}
+
+	if (const int32* FoundLevel = UpgradeLevels.Find(UpgradeId))
+	{
+		return *FoundLevel;
+	}
+
+	return 0;
+}
+
+bool UPlayerUpgradeComponent::HasUpgradeId(FName UpgradeId) const
+{
+	return GetUpgradeLevelById(UpgradeId) > 0;
+}
+
 bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) const
 {
-	return IsValidUpgradeDefinition(Upgrade) && GetUpgradeLevel(Upgrade) < Upgrade->MaxLevel;
+	return IsValidUpgradeDefinition(Upgrade)
+		&& GetUpgradeLevel(Upgrade) < Upgrade->MaxLevel
+		&& MeetsPrerequisites(Upgrade);
 }
 
 bool UPlayerUpgradeComponent::AcquireUpgrade(UUpgradeDefinition* Upgrade)
@@ -360,6 +382,24 @@ int32 UPlayerUpgradeComponent::GetSpecialEffectLevel(EUpgradeSpecialEffect Speci
 bool UPlayerUpgradeComponent::IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const
 {
 	return Upgrade && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0;
+}
+
+bool UPlayerUpgradeComponent::MeetsPrerequisites(const UUpgradeDefinition* Upgrade) const
+{
+	if (!IsValidUpgradeDefinition(Upgrade))
+	{
+		return false;
+	}
+
+	for (const FName PrerequisiteUpgradeId : Upgrade->PrerequisiteUpgradeIds)
+	{
+		if (!HasUpgradeId(PrerequisiteUpgradeId))
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 float UPlayerUpgradeComponent::GetBaseCategoryWeight(EUpgradeCategory Category) const

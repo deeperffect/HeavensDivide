@@ -13,6 +13,7 @@
 #include "HealthComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "PlayerUpgradeComponent.h"
 #include "SharedPlayerStatsComponent.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
@@ -32,6 +33,22 @@ static TAutoConsoleVariable<int32> CVarHDDebugSamuraiTargeting(
 	TEXT("hd.DebugSamuraiTargeting"),
 	0,
 	TEXT("Logs Samurai melee cluster target scoring when enabled."));
+
+namespace MarkedForDeathUpgradeIds
+{
+	static const FName MarkedBlade(TEXT("MarkedBlade"));
+}
+
+static const UPlayerUpgradeComponent* GetPlayerUpgradesForMarkedForDeath(const UObject* WorldContextObject, const AActor* PlayerCharacter)
+{
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(PlayerCharacter ? PlayerCharacter->GetOwner() : nullptr);
+	if (!SurvivorController)
+	{
+		SurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(WorldContextObject, 0));
+	}
+
+	return SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+}
 
 UAutoAttackComponent::UAutoAttackComponent()
 {
@@ -177,6 +194,8 @@ void UAutoAttackComponent::PerformAttackTrace()
 	const FVector HitboxCenter = AttackOrigin + AttackForward * AttackForwardOffset;
 	const float EffectiveAttackRadius = GetEffectiveAttackRadius();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
+	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForMarkedForDeath(this, OwnerCharacter);
+	const bool bCanApplyMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::MarkedBlade);
 
 	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace origin: %s"), *AttackOrigin.ToString());
 	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace direction: %s"), *AttackForward.ToString());
@@ -227,7 +246,10 @@ void UAutoAttackComponent::PerformAttackTrace()
 
 		DamagedEnemies.Add(HitEnemy);
 		EnemyHealth->ApplyDamage(EffectiveAttackDamage);
-		HitEnemy->ApplyMark();
+		if (bCanApplyMarkedBlade)
+		{
+			HitEnemy->ApplyMark();
+		}
 		UE_LOG(LogTemp, Log, TEXT("AutoAttack damaged enemy: %s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(HitEnemy),
 			EffectiveAttackDamage,

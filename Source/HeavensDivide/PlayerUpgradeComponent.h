@@ -24,6 +24,12 @@ public:
 	int32 GetUpgradeLevel(UUpgradeDefinition* Upgrade) const;
 
 	UFUNCTION(BlueprintPure, Category = "Upgrades")
+	int32 GetUpgradeLevelById(FName UpgradeId) const;
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades")
+	bool HasUpgradeId(FName UpgradeId) const;
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades")
 	bool CanAcquireUpgrade(UUpgradeDefinition* Upgrade) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades")
@@ -113,6 +119,7 @@ private:
 	FString CategoryToString(EUpgradeCategory Category) const;
 	FString UpgradeToLogString(const UUpgradeDefinition* Upgrade) const;
 	bool IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const;
+	bool MeetsPrerequisites(const UUpgradeDefinition* Upgrade) const;
 	void RebuildUpgradeModifiers(UUpgradeDefinition* Upgrade, int32 NewLevel);
 	void ClearUpgradeModifiers(UUpgradeDefinition* Upgrade);
 	FName MakeUpgradeModifierSourceId(const UUpgradeDefinition* Upgrade) const;

@@ -10,7 +10,26 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
+#include "Engine/OverlapResult.h"
+
+namespace MarkedForDeathUpgradeIds
+{
+	static const FName MarkedBlade(TEXT("MarkedBlade"));
+	static const FName ChainExecution(TEXT("ChainExecution"));
+}
+
+static const UPlayerUpgradeComponent* GetPlayerUpgradesForMarkedForDeath(const UObject* WorldContextObject, const AActor* GameplayOwner)
+{
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(GameplayOwner ? GameplayOwner->GetOwner() : nullptr);
+	if (!SurvivorController)
+	{
+		SurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(WorldContextObject, 0));
+	}
+
+	return SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+}
 
 AAttackProjectileBase::AAttackProjectileBase()
 {
@@ -126,9 +145,12 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 
 		LogProjectileFilterResult(OtherActor, true);
+		const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForMarkedForDeath(this, GameplayOwner);
+		const bool bHasMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::MarkedBlade);
+		const bool bHasChainExecution = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::ChainExecution);
 		const float NormalDamage = ProjectileDamage;
 		float FinalDamage = NormalDamage;
-		const bool bWasMarked = HitEnemy->IsMarked();
+		const bool bWasMarked = bHasMarkedBlade && HitEnemy->IsMarked();
 		const bool bConsumedMark = bWasMarked && HitEnemy->ConsumeMark();
 		if (bConsumedMark)
 		{
@@ -146,11 +168,31 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 				FinalDamage);
 		}
 
+		const FVector ExecutionLocation = HitEnemy->GetActorLocation();
 		EnemyHealth->ApplyDamage(FinalDamage);
+		const bool bKilledEnemy = EnemyHealth->IsDead();
+		const bool bExecutionKill = bHasChainExecution && bConsumedMark && bKilledEnemy;
 		UE_LOG(LogTemp, Log, TEXT("Projectile hit enemy: %s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(HitEnemy),
 			FinalDamage,
 			EnemyHealth->GetCurrentHealth());
+
+		if (bDebugChainExecution)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ChainExecution Check Enemy=%s HasMarkedBlade=%s HasChainExecution=%s WasMarked=%s Consumed=%s Killed=%s WillTrigger=%s"),
+				*GetNameSafe(HitEnemy),
+				bHasMarkedBlade ? TEXT("true") : TEXT("false"),
+				bHasChainExecution ? TEXT("true") : TEXT("false"),
+				bWasMarked ? TEXT("true") : TEXT("false"),
+				bConsumedMark ? TEXT("true") : TEXT("false"),
+				bKilledEnemy ? TEXT("true") : TEXT("false"),
+				bExecutionKill ? TEXT("true") : TEXT("false"));
+		}
+
+		if (bExecutionKill)
+		{
+			TryTriggerChainExecution(HitEnemy, ExecutionLocation);
+		}
 
 		Destroy();
 		return;
@@ -210,4 +252,114 @@ void AAttackProjectileBase::LogProjectileFilterResult(AActor* OtherActor, bool b
 		*GetNameSafe(GameplayOwner),
 		*GetNameSafe(OtherActor),
 		bValidDamageTarget ? TEXT("true") : TEXT("false"));
+}
+
+void AAttackProjectileBase::TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation)
+{
+	const int32 SafeChainExecutionTargetCount = GetSafeChainExecutionTargetCount();
+	const float SafeChainExecutionRadius = GetSafeChainExecutionRadius();
+	if (!GetWorld() || !ExecutedEnemy)
+	{
+		return;
+	}
+
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ChainExecution), false, this);
+	QueryParams.AddIgnoredActor(this);
+	QueryParams.AddIgnoredActor(ExecutedEnemy);
+	if (GameplayOwner)
+	{
+		QueryParams.AddIgnoredActor(GameplayOwner);
+	}
+
+	GetWorld()->OverlapMultiByObjectType(
+		OverlapResults,
+		ExecutionLocation,
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(SafeChainExecutionRadius),
+		QueryParams);
+
+	struct FChainExecutionCandidate
+	{
+		TObjectPtr<AEnemyBase> Enemy;
+		float DistanceSquared = 0.0f;
+	};
+
+	TArray<FChainExecutionCandidate> Candidates;
+	Candidates.Reserve(OverlapResults.Num());
+
+	for (const FOverlapResult& OverlapResult : OverlapResults)
+	{
+		AEnemyBase* CandidateEnemy = Cast<AEnemyBase>(OverlapResult.GetActor());
+		if (!CandidateEnemy || CandidateEnemy == ExecutedEnemy || CandidateEnemy->IsDead() || CandidateEnemy->IsMarked())
+		{
+			continue;
+		}
+
+		UHealthComponent* CandidateHealth = CandidateEnemy->GetHealthComponent();
+		if (!CandidateHealth || CandidateHealth->IsDead())
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared2D(ExecutionLocation, CandidateEnemy->GetActorLocation());
+		if (DistanceSquared > FMath::Square(SafeChainExecutionRadius))
+		{
+			continue;
+		}
+
+		Candidates.Add({ CandidateEnemy, DistanceSquared });
+	}
+
+	Candidates.Sort([](const FChainExecutionCandidate& Left, const FChainExecutionCandidate& Right)
+	{
+		return Left.DistanceSquared < Right.DistanceSquared;
+	});
+
+	const int32 MarksToTransfer = FMath::Min(SafeChainExecutionTargetCount, Candidates.Num());
+
+	if (bDebugChainExecution)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ChainExecution ExecutedEnemy=%s Radius=%.1f RawRadius=%.1f TargetCount=%d RawTargetCount=%d Candidates=%d MarksToTransfer=%d"),
+			*GetNameSafe(ExecutedEnemy),
+			SafeChainExecutionRadius,
+			ChainExecutionRadius,
+			SafeChainExecutionTargetCount,
+			ChainExecutionTargetCount,
+			Candidates.Num(),
+			MarksToTransfer);
+	}
+
+	for (int32 CandidateIndex = 0; CandidateIndex < MarksToTransfer; ++CandidateIndex)
+	{
+		AEnemyBase* CandidateEnemy = Candidates[CandidateIndex].Enemy.Get();
+		if (!CandidateEnemy)
+		{
+			continue;
+		}
+
+		const bool bAppliedMark = CandidateEnemy->ApplyMark();
+		if (bDebugChainExecution)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ChainExecution Transfer Target=%s Distance=%.1f Applied=%s"),
+				*GetNameSafe(CandidateEnemy),
+				FMath::Sqrt(Candidates[CandidateIndex].DistanceSquared),
+				bAppliedMark ? TEXT("true") : TEXT("false"));
+		}
+	}
+}
+
+int32 AAttackProjectileBase::GetSafeChainExecutionTargetCount() const
+{
+	return ChainExecutionTargetCount > 0 ? ChainExecutionTargetCount : 2;
+}
+
+float AAttackProjectileBase::GetSafeChainExecutionRadius() const
+{
+	return ChainExecutionRadius > 0.0f ? ChainExecutionRadius : 500.0f;
 }
