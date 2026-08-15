@@ -67,9 +67,6 @@ public:
 	float GetEffectiveTargetingRange() const;
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
-	float GetEffectiveHomingStrengthMultiplier() const;
-
-	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	int32 GetEffectiveProjectileCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
@@ -151,15 +148,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile")
 	FVector ProjectileSpawnOffset = FVector(80.0f, 0.0f, 60.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float SharedTargetHomingOffsetStep = 30.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float MaxSharedTargetHomingOffset = 60.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile|Homing", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
-	float OuterProjectileHomingStrengthReduction = 0.1f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Trace", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackRange = 100.0f;
 
@@ -194,7 +182,7 @@ private:
 	bool CanStartAttackNow() const;
 	bool IsOwningPlayerDead() const;
 	bool TryConsumeAttackNotify();
-	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier, const FVector& HomingTargetOffset = FVector::ZeroVector);
+	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed);
 	AEnemyBase* FindNearestEnemyTarget() const;
 	AEnemyBase* FindBestMeleeTarget(const FVector& SearchLocation, float SearchRadius) const;
 	float ScoreMeleeTarget(AEnemyBase* Candidate, const TArray<AEnemyBase*>& Candidates, const FVector& SearchLocation, float SearchRadius, int32& OutClusterCount, float& OutDistancePenalty, float& OutImmediateThreatBonus) const;

@@ -9,6 +9,7 @@
 #include "CharacterManagerComponent.h"
 #include "EnemyHealthBarWidget.h"
 #include "EnemyLightweightMovementComponent.h"
+#include "EnemyMarkIndicatorWidget.h"
 #include "ExperiencePickup.h"
 #include "ExperienceComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -118,6 +119,15 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	HealthBarWidgetComponent->SetVisibility(false);
 	HealthBarWidgetComponent->SetComponentTickEnabled(false);
 
+	MarkIndicatorWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("MarkIndicatorWidgetComponent"));
+	MarkIndicatorWidgetComponent->SetupAttachment(RootComponent);
+	MarkIndicatorWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	MarkIndicatorWidgetComponent->SetDrawSize(MarkIndicatorDrawSize);
+	MarkIndicatorWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	MarkIndicatorWidgetComponent->SetHiddenInGame(true);
+	MarkIndicatorWidgetComponent->SetVisibility(false);
+	MarkIndicatorWidgetComponent->SetComponentTickEnabled(false);
+
 	ConfigureEnemyCapsuleCollisionDefaults();
 	ConfigureEnemyMovementDefaults();
 }
@@ -136,6 +146,7 @@ void AEnemyBase::BeginPlay()
 	}
 
 	InitializeHealthBar();
+	InitializeMarkIndicator();
 	InitializeTargetFromCharacterManager();
 	CachePlayerExperienceComponent();
 	InitializeAnimationBudgeting();
@@ -197,6 +208,49 @@ AActor* AEnemyBase::GetTarget() const
 bool AEnemyBase::IsDead() const
 {
 	return bIsDead;
+}
+
+bool AEnemyBase::IsMarked() const
+{
+	return bIsMarked;
+}
+
+bool AEnemyBase::ApplyMark()
+{
+	if (bIsDead || bIsMarked)
+	{
+		return false;
+	}
+
+	bIsMarked = true;
+	UpdateMarkIndicatorVisibility();
+	OnMarked.Broadcast(this);
+	return true;
+}
+
+bool AEnemyBase::ConsumeMark()
+{
+	if (bIsDead || !bIsMarked)
+	{
+		return false;
+	}
+
+	bIsMarked = false;
+	UpdateMarkIndicatorVisibility();
+	OnMarkConsumed.Broadcast(this);
+	return true;
+}
+
+void AEnemyBase::ClearMark()
+{
+	if (!bIsMarked)
+	{
+		return;
+	}
+
+	bIsMarked = false;
+	UpdateMarkIndicatorVisibility();
+	OnMarkCleared.Broadcast(this);
 }
 
 UHealthComponent* AEnemyBase::GetHealthComponent() const
@@ -281,6 +335,8 @@ void AEnemyBase::HandleDeath()
 	}
 
 	bIsDead = true;
+	ClearMark();
+	HideMarkIndicator();
 	HideHealthBar();
 	SpawnExperiencePickup();
 	UpdateAnimationBudgetSignificance();
@@ -532,6 +588,71 @@ void AEnemyBase::HideHealthBar()
 	HealthBarWidgetComponent->SetComponentTickEnabled(false);
 	HealthBarWidgetComponent->Deactivate();
 	HealthBarWidgetComponent->SetWidget(nullptr);
+}
+
+void AEnemyBase::InitializeMarkIndicator()
+{
+	if (!MarkIndicatorWidgetComponent)
+	{
+		return;
+	}
+
+	MarkIndicatorWidgetComponent->SetRelativeLocation(MarkIndicatorRelativeLocation);
+	MarkIndicatorWidgetComponent->SetDrawSize(MarkIndicatorDrawSize);
+	MarkIndicatorWidgetComponent->SetRelativeScale3D(FVector(MarkIndicatorScale));
+
+	if (MarkIndicatorWidgetClass)
+	{
+		MarkIndicatorWidgetComponent->SetWidgetClass(MarkIndicatorWidgetClass);
+	}
+
+	MarkIndicatorWidgetComponent->InitWidget();
+	UpdateMarkIndicatorVisibility();
+}
+
+void AEnemyBase::UpdateMarkIndicatorVisibility()
+{
+	if (!MarkIndicatorWidgetComponent)
+	{
+		return;
+	}
+
+	const bool bShouldShowMarkIndicator = bIsMarked && !bIsDead;
+	MarkIndicatorWidgetComponent->SetHiddenInGame(!bShouldShowMarkIndicator);
+	MarkIndicatorWidgetComponent->SetVisibility(bShouldShowMarkIndicator, true);
+	MarkIndicatorWidgetComponent->SetComponentTickEnabled(false);
+
+	if (UUserWidget* MarkWidget = MarkIndicatorWidgetComponent->GetUserWidgetObject())
+	{
+		MarkWidget->SetVisibility(bShouldShowMarkIndicator ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+
+	if (bShouldShowMarkIndicator)
+	{
+		MarkIndicatorWidgetComponent->Activate(true);
+	}
+	else
+	{
+		MarkIndicatorWidgetComponent->Deactivate();
+	}
+}
+
+void AEnemyBase::HideMarkIndicator()
+{
+	if (!MarkIndicatorWidgetComponent)
+	{
+		return;
+	}
+
+	if (UUserWidget* MarkWidget = MarkIndicatorWidgetComponent->GetUserWidgetObject())
+	{
+		MarkWidget->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	MarkIndicatorWidgetComponent->SetHiddenInGame(true);
+	MarkIndicatorWidgetComponent->SetVisibility(false, true);
+	MarkIndicatorWidgetComponent->SetComponentTickEnabled(false);
+	MarkIndicatorWidgetComponent->Deactivate();
 }
 
 void AEnemyBase::StartBehaviorUpdates()

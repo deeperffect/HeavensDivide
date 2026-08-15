@@ -227,6 +227,7 @@ void UAutoAttackComponent::PerformAttackTrace()
 
 		DamagedEnemies.Add(HitEnemy);
 		EnemyHealth->ApplyDamage(EffectiveAttackDamage);
+		HitEnemy->ApplyMark();
 		UE_LOG(LogTemp, Log, TEXT("AutoAttack damaged enemy: %s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(HitEnemy),
 			EffectiveAttackDamage,
@@ -269,16 +270,11 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
-	AEnemyBase* TargetEnemy = CurrentAttackTarget.Get();
-	if (!TargetEnemy || TargetEnemy->IsDead())
+	TArray<AEnemyBase*> TargetCandidates;
+	FindEnemyTargetsSorted(TargetCandidates);
+	if (TargetCandidates.Num() == 0)
 	{
-		TargetEnemy = FindNearestEnemyTarget();
-		CurrentAttackTarget = TargetEnemy;
-	}
-
-	if (!TargetEnemy || TargetEnemy->IsDead())
-	{
-		UE_LOG(LogTemp, Log, TEXT("Projectile spawn skipped: no valid target."));
+		UE_LOG(LogTemp, Log, TEXT("Projectile spawn skipped: no valid targets in range."));
 		if (OwnerCharacter)
 		{
 			OwnerCharacter->ClearFacingOverride();
@@ -287,95 +283,64 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	}
 
 	const FVector SpawnLocation = GetProjectileSpawnLocation();
-	const FVector AimLocation = GetEnemyAimLocation(TargetEnemy);
 	const float EffectiveProjectileSpeed = GetEffectiveProjectileSpeed();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
-	const float EffectiveHomingStrengthMultiplier = GetEffectiveHomingStrengthMultiplier();
 	const int32 EffectiveProjectileCount = GetEffectiveProjectileCount();
-	TArray<AEnemyBase*> TargetCandidates;
-	FindEnemyTargetsSorted(TargetCandidates);
-	if (TargetCandidates.Num() == 0)
+
+	int32 SpawnedProjectileCount = 0;
+	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
 	{
-		TargetCandidates.Add(TargetEnemy);
+		AEnemyBase* AssignedTarget = TargetCandidates[ProjectileIndex % TargetCandidates.Num()];
+		if (!AssignedTarget || AssignedTarget->IsDead())
+		{
+			continue;
+		}
+
+		FVector SpawnDirection = GetEnemyAimLocation(AssignedTarget) - SpawnLocation;
+		SpawnDirection.Z = 0.0f;
+		if (!SpawnDirection.Normalize())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Projectile %d spawn skipped: invalid projectile direction."), ProjectileIndex + 1);
+			continue;
+		}
+
+		SpawnProjectileInstance(SpawnLocation, SpawnDirection, EffectiveAttackDamage, EffectiveProjectileSpeed);
+		++SpawnedProjectileCount;
+
+		if (CVarHDLogNinjaProjectileSpread.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Ninja Attack Projectile %d/%d -> %s Direction=%s"),
+				ProjectileIndex + 1,
+				EffectiveProjectileCount,
+				*GetNameSafe(AssignedTarget),
+				*SpawnDirection.ToString());
+		}
+
+		if (bDebugTargeting)
+		{
+			constexpr float DebugDuration = 1.5f;
+			DrawDebugLine(GetWorld(), SpawnLocation, GetEnemyAimLocation(AssignedTarget), FColor::Yellow, false, DebugDuration, 0, 3.0f);
+		}
 	}
 
-	FVector ProjectileDirection = AimLocation - SpawnLocation;
-	ProjectileDirection.Z = 0.0f;
-
-	if (!ProjectileDirection.Normalize())
+	if (SpawnedProjectileCount <= 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn skipped: invalid projectile direction."));
+		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn skipped: all assigned projectile directions were invalid."));
 		OwnerCharacter->ClearFacingOverride();
 		return;
 	}
 
-	const float SpreadAngleDegrees = 8.0f;
-	const float StartAngle = -0.5f * SpreadAngleDegrees * static_cast<float>(EffectiveProjectileCount - 1);
-	TArray<AEnemyBase*> AssignedTargets;
-	AssignedTargets.Reserve(EffectiveProjectileCount);
-	TMap<AEnemyBase*, int32> TargetUseCounts;
-	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
-	{
-		AEnemyBase* AssignedTarget = TargetCandidates[ProjectileIndex % TargetCandidates.Num()];
-		AssignedTargets.Add(AssignedTarget);
-		TargetUseCounts.FindOrAdd(AssignedTarget)++;
-	}
-
-	TMap<AEnemyBase*, int32> TargetUseIndices;
-	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
-	{
-		const float Angle = StartAngle + SpreadAngleDegrees * static_cast<float>(ProjectileIndex);
-		const FVector SpawnDirection = ProjectileDirection.RotateAngleAxis(Angle, FVector::UpVector).GetSafeNormal();
-		AEnemyBase* AssignedTarget = AssignedTargets[ProjectileIndex];
-		const int32 SharedTargetCount = TargetUseCounts.FindRef(AssignedTarget);
-		const int32 SharedTargetIndex = TargetUseIndices.FindOrAdd(AssignedTarget)++;
-
-		FVector HomingTargetOffset = FVector::ZeroVector;
-		if (SharedTargetCount > 1 && SharedTargetHomingOffsetStep > 0.0f)
-		{
-			const float CenteredIndex = static_cast<float>(SharedTargetIndex) - 0.5f * static_cast<float>(SharedTargetCount - 1);
-			float AllowedOffset = MaxSharedTargetHomingOffset;
-			if (AssignedTarget)
-			{
-				if (const UCapsuleComponent* TargetCapsule = AssignedTarget->GetCapsuleComponent())
-				{
-					AllowedOffset = FMath::Min(AllowedOffset, TargetCapsule->GetScaledCapsuleRadius() * 0.65f);
-				}
-			}
-			const float OffsetMagnitude = FMath::Clamp(CenteredIndex * SharedTargetHomingOffsetStep, -AllowedOffset, AllowedOffset);
-			const FVector RightVector = FVector::CrossProduct(FVector::UpVector, SpawnDirection).GetSafeNormal();
-			HomingTargetOffset = RightVector * OffsetMagnitude;
-		}
-
-		const float FanCenterDistance = EffectiveProjectileCount > 1
-			? FMath::Abs(static_cast<float>(ProjectileIndex) - 0.5f * static_cast<float>(EffectiveProjectileCount - 1)) / (0.5f * static_cast<float>(EffectiveProjectileCount - 1))
-			: 0.0f;
-		const float ProjectileHomingStrengthMultiplier = EffectiveHomingStrengthMultiplier * (1.0f - OuterProjectileHomingStrengthReduction * FanCenterDistance);
-		SpawnProjectileInstance(SpawnLocation, SpawnDirection, AssignedTarget, EffectiveAttackDamage, EffectiveProjectileSpeed, ProjectileHomingStrengthMultiplier, HomingTargetOffset);
-
-		if (CVarHDLogNinjaProjectileSpread.GetValueOnGameThread() != 0)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Ninja Attack Projectile %d/%d -> %s Offset=%s HomingStrengthMultiplier=%.2f"),
-				ProjectileIndex + 1,
-				EffectiveProjectileCount,
-				*GetNameSafe(AssignedTarget),
-				*HomingTargetOffset.ToString(),
-				ProjectileHomingStrengthMultiplier);
-		}
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Spawned: Target=%s SpawnLocation=%s Direction=%s ProjectileCount=%d"),
+	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectiles Spawned: PrimaryTarget=%s SpawnLocation=%s ProjectileCount=%d ValidTargets=%d"),
 		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0,
 		ActiveAttackSequence,
-		*GetNameSafe(TargetEnemy),
+		*GetNameSafe(TargetCandidates[0]),
 		*SpawnLocation.ToString(),
-		*ProjectileDirection.ToString(),
-		EffectiveProjectileCount);
+		SpawnedProjectileCount,
+		TargetCandidates.Num());
 
 	if (bDebugTargeting)
 	{
 		constexpr float DebugDuration = 1.5f;
-		DrawDebugLine(GetWorld(), SpawnLocation, AimLocation, FColor::Yellow, false, DebugDuration, 0, 3.0f);
 		DrawDebugSphere(GetWorld(), SpawnLocation, 24.0f, 12, FColor::Yellow, false, DebugDuration, 0, 3.0f);
 	}
 
@@ -383,7 +348,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	OwnerCharacter->ClearFacingOverride();
 }
 
-void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, AEnemyBase* TargetEnemy, float Damage, float Speed, float HomingStrengthMultiplier, const FVector& HomingTargetOffset)
+void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed)
 {
 	if (!OwnerCharacter || !ProjectileClass || !GetWorld())
 	{
@@ -407,7 +372,7 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		return;
 	}
 
-	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, Damage, Speed, EProjectileTargetType::Enemies, TargetEnemy, HomingStrengthMultiplier, HomingTargetOffset);
+	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, Damage, Speed, EProjectileTargetType::Enemies);
 }
 
 AEnemyBase* UAutoAttackComponent::FindAssistTarget() const
@@ -979,12 +944,6 @@ float UAutoAttackComponent::GetEffectiveTargetingRange() const
 
 	const float EffectiveMeleeReach = FMath::Max(0.0f, AttackForwardOffset) + GetEffectiveAttackRadius();
 	return FMath::Max(TargetingRange, EffectiveMeleeReach + 60.0f);
-}
-
-float UAutoAttackComponent::GetEffectiveHomingStrengthMultiplier() const
-{
-	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
-	return CharacterStats ? CharacterStats->GetFinalHomingStrengthMultiplier() : 1.0f;
 }
 
 int32 UAutoAttackComponent::GetEffectiveProjectileCount() const

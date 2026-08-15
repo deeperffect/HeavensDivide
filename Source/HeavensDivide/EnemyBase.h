@@ -10,12 +10,17 @@ class UHealthComponent;
 class UAnimMontage;
 class UWidgetComponent;
 class UEnemyHealthBarWidget;
+class UEnemyMarkIndicatorWidget;
 class USkeletalMeshComponentBudgeted;
 class ACharacterBase;
 class UCharacterManagerComponent;
 class UEnemyLightweightMovementComponent;
 class UExperienceComponent;
 class AExperiencePickup;
+
+class AEnemyBase;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyMarkStateChanged, AEnemyBase*, Enemy);
 
 UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
@@ -39,6 +44,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Enemy")
 	bool IsDead() const;
 
+	UFUNCTION(BlueprintPure, Category = "Enemy|Mark")
+	bool IsMarked() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Mark")
+	bool ApplyMark();
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Mark")
+	bool ConsumeMark();
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Mark")
+	void ClearMark();
+
 	UFUNCTION(BlueprintPure, Category = "Enemy")
 	UHealthComponent* GetHealthComponent() const;
 
@@ -48,6 +65,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Enemy|Movement")
 	FVector GetEnemyMovementVelocity() const;
 
+	UPROPERTY(BlueprintAssignable, Category = "Enemy|Mark")
+	FEnemyMarkStateChanged OnMarked;
+
+	UPROPERTY(BlueprintAssignable, Category = "Enemy|Mark")
+	FEnemyMarkStateChanged OnMarkConsumed;
+
+	UPROPERTY(BlueprintAssignable, Category = "Enemy|Mark")
+	FEnemyMarkStateChanged OnMarkCleared;
+
 	void LogEnemyDebugState(const TCHAR* Context) const;
 
 protected:
@@ -56,6 +82,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UWidgetComponent> MarkIndicatorWidgetComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UEnemyLightweightMovementComponent> LightweightMovementComponent;
@@ -68,6 +97,18 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AdvancedDisplay))
 	FVector2D HealthBarDrawSize = FVector2D(120.0f, 12.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark")
+	TSubclassOf<UEnemyMarkIndicatorWidget> MarkIndicatorWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark")
+	FVector MarkIndicatorRelativeLocation = FVector(0.0f, 0.0f, 150.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark")
+	FVector2D MarkIndicatorDrawSize = FVector2D(32.0f, 32.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float MarkIndicatorScale = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (AdvancedDisplay))
 	bool bUseAnimationBudgetAllocator = true;
@@ -132,6 +173,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy")
 	bool bIsDead = false;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Mark")
+	bool bIsMarked = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float DeathDestroyDelay = 3.0f;
 
@@ -160,6 +204,9 @@ protected:
 	void InitializeHealthBar();
 	void UpdateHealthBarVisibility(float HealthPercent);
 	void HideHealthBar();
+	void InitializeMarkIndicator();
+	void UpdateMarkIndicatorVisibility();
+	void HideMarkIndicator();
 	void ConfigureEnemyCapsuleCollisionDefaults();
 	void ConfigureEnemyMovementDefaults();
 	void StartBehaviorUpdates();

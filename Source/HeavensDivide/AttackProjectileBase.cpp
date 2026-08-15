@@ -2,7 +2,6 @@
 
 #include "AttackProjectileBase.h"
 
-#include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "CharacterBase.h"
@@ -10,18 +9,12 @@
 #include "EnemyBase.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
-#include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
 
-static TAutoConsoleVariable<int32> CVarHDLogNinjaHoming(
-	TEXT("hd.LogNinjaHoming"),
-	0,
-	TEXT("Logs meaningful Ninja projectile homing assist events when enabled."));
-
 AAttackProjectileBase::AAttackProjectileBase()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
@@ -49,12 +42,6 @@ AAttackProjectileBase::AAttackProjectileBase()
 	ProjectileMovement->bSweepCollision = true;
 }
 
-void AAttackProjectileBase::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-	UpdateHomingAssist();
-}
-
 void AAttackProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
@@ -63,14 +50,7 @@ void AAttackProjectileBase::BeginPlay()
 	SetLifeSpan(ProjectileLifetime);
 }
 
-void AAttackProjectileBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	DisableHoming();
-
-	Super::EndPlay(EndPlayReason);
-}
-
-void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType, AActor* InHomingTarget, float InHomingStrengthMultiplier, FVector InHomingTargetOffset)
+void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType)
 {
 	GameplayOwner = InGameplayOwner;
 	SetOwner(InGameplayOwner);
@@ -95,20 +75,17 @@ void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVecto
 	ProjectileMovement->InitialSpeed = ProjectileSpeed;
 	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->Velocity = Direction * ProjectileSpeed;
+	ProjectileMovement->bIsHomingProjectile = false;
+	ProjectileMovement->HomingTargetComponent = nullptr;
 	SetActorRotation(Direction.Rotation());
-	ConfigureHoming(InHomingTarget, InHomingStrengthMultiplier, InHomingTargetOffset);
 	bIsProjectileInitialized = true;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
-	UE_LOG(LogTemp, Log, TEXT("Projectile initialized: Owner=%s Direction=%s Damage=%.2f Speed=%.2f Homing=%s HomingTarget=%s HomingOffset=%s HomingAcceleration=%.2f"),
+	UE_LOG(LogTemp, Log, TEXT("Projectile initialized: Owner=%s Direction=%s Damage=%.2f Speed=%.2f"),
 		*GetNameSafe(InGameplayOwner),
 		*Direction.ToString(),
 		ProjectileDamage,
-		ProjectileSpeed,
-		ProjectileMovement->bIsHomingProjectile ? TEXT("true") : TEXT("false"),
-		*GetNameSafe(HomingTargetActor),
-		*InHomingTargetOffset.ToString(),
-		ProjectileMovement->HomingAccelerationMagnitude);
+		ProjectileSpeed);
 }
 
 void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -149,10 +126,30 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 
 		LogProjectileFilterResult(OtherActor, true);
-		EnemyHealth->ApplyDamage(ProjectileDamage);
+		const float NormalDamage = ProjectileDamage;
+		float FinalDamage = NormalDamage;
+		const bool bWasMarked = HitEnemy->IsMarked();
+		const bool bConsumedMark = bWasMarked && HitEnemy->ConsumeMark();
+		if (bConsumedMark)
+		{
+			FinalDamage *= FMath::Max(1.0f, MarkedTargetDamageMultiplier);
+		}
+
+		if (bDebugMarkedDamage)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ProjectileHit Enemy=%s WasMarked=%s Consumed=%s NormalDamage=%.2f Multiplier=%.2f FinalDamage=%.2f"),
+				*GetNameSafe(HitEnemy),
+				bWasMarked ? TEXT("true") : TEXT("false"),
+				bConsumedMark ? TEXT("true") : TEXT("false"),
+				NormalDamage,
+				MarkedTargetDamageMultiplier,
+				FinalDamage);
+		}
+
+		EnemyHealth->ApplyDamage(FinalDamage);
 		UE_LOG(LogTemp, Log, TEXT("Projectile hit enemy: %s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(HitEnemy),
-			ProjectileDamage,
+			FinalDamage,
 			EnemyHealth->GetCurrentHealth());
 
 		Destroy();
@@ -213,217 +210,4 @@ void AAttackProjectileBase::LogProjectileFilterResult(AActor* OtherActor, bool b
 		*GetNameSafe(GameplayOwner),
 		*GetNameSafe(OtherActor),
 		bValidDamageTarget ? TEXT("true") : TEXT("false"));
-}
-
-void AAttackProjectileBase::HandleHomingTargetDestroyed(AActor* DestroyedActor)
-{
-	if (DestroyedActor == HomingTargetActor)
-	{
-		DisableHoming();
-	}
-}
-
-void AAttackProjectileBase::HandleHomingTargetDeath()
-{
-	DisableHoming();
-}
-
-void AAttackProjectileBase::ConfigureHoming(AActor* InHomingTarget, float InHomingStrengthMultiplier, const FVector& InHomingTargetOffset)
-{
-	if (!ProjectileMovement)
-	{
-		return;
-	}
-
-	DisableHoming();
-
-	if (!bIsHoming || !InHomingTarget)
-	{
-		return;
-	}
-
-	HomingTargetActor = InHomingTarget;
-	ConfiguredHomingTargetOffset = InHomingTargetOffset;
-	USceneComponent* TargetComponent = InHomingTarget->GetRootComponent();
-	if (!TargetComponent)
-	{
-		DisableHoming();
-		return;
-	}
-
-	if (!InHomingTargetOffset.IsNearlyZero())
-	{
-		HomingOffsetTargetComponent = NewObject<USceneComponent>(this, TEXT("HomingOffsetTargetComponent"));
-		if (HomingOffsetTargetComponent)
-		{
-			HomingOffsetTargetComponent->RegisterComponent();
-			HomingOffsetTargetComponent->SetWorldLocation(TargetComponent->GetComponentLocation() + InHomingTargetOffset);
-			HomingOffsetTargetComponent->AttachToComponent(TargetComponent, FAttachmentTransformRules::KeepWorldTransform);
-			TargetComponent = HomingOffsetTargetComponent;
-		}
-	}
-
-	ProjectileMovement->bIsHomingProjectile = true;
-	ProjectileMovement->HomingTargetComponent = TargetComponent;
-	ConfiguredHomingStrengthMultiplier = FMath::Max(0.0f, InHomingStrengthMultiplier);
-	const float SpeedScaledMinimum = FMath::Square(FMath::Max(0.0f, ProjectileSpeed)) / FMath::Max(1.0f, NearTargetDistance) * MinimumHomingAccelerationSpeedScale;
-	BaseConfiguredHomingAcceleration = FMath::Max(HomingAccelerationMagnitude * ConfiguredHomingStrengthMultiplier, SpeedScaledMinimum);
-	ProjectileMovement->HomingAccelerationMagnitude = BaseConfiguredHomingAcceleration;
-	SetActorTickEnabled(true);
-
-	InHomingTarget->OnDestroyed.AddDynamic(this, &AAttackProjectileBase::HandleHomingTargetDestroyed);
-	if (AEnemyBase* EnemyTarget = Cast<AEnemyBase>(InHomingTarget))
-	{
-		if (UHealthComponent* TargetHealth = EnemyTarget->GetHealthComponent())
-		{
-			TargetHealth->OnDeath.AddDynamic(this, &AAttackProjectileBase::HandleHomingTargetDeath);
-		}
-	}
-}
-
-void AAttackProjectileBase::DisableHoming()
-{
-	SetActorTickEnabled(false);
-
-	if (ProjectileMovement)
-	{
-		ProjectileMovement->bIsHomingProjectile = false;
-		ProjectileMovement->HomingTargetComponent = nullptr;
-	}
-
-	if (HomingOffsetTargetComponent)
-	{
-		HomingOffsetTargetComponent->DestroyComponent();
-		HomingOffsetTargetComponent = nullptr;
-	}
-
-	if (HomingTargetActor)
-	{
-		HomingTargetActor->OnDestroyed.RemoveDynamic(this, &AAttackProjectileBase::HandleHomingTargetDestroyed);
-		if (AEnemyBase* EnemyTarget = Cast<AEnemyBase>(HomingTargetActor))
-		{
-			if (UHealthComponent* TargetHealth = EnemyTarget->GetHealthComponent())
-			{
-				TargetHealth->OnDeath.RemoveDynamic(this, &AAttackProjectileBase::HandleHomingTargetDeath);
-			}
-		}
-	}
-
-	HomingTargetActor = nullptr;
-	BaseConfiguredHomingAcceleration = 0.0f;
-	ConfiguredHomingStrengthMultiplier = 1.0f;
-	bWasApproachingHomingTarget = false;
-	bLoggedNearTargetSteering = false;
-	bLoggedOvershootRecovery = false;
-}
-
-void AAttackProjectileBase::UpdateHomingAssist()
-{
-	if (!ProjectileMovement || !ProjectileMovement->bIsHomingProjectile || !HomingTargetActor)
-	{
-		return;
-	}
-
-	const FVector TargetCenter = GetHomingTargetCenter();
-	const FVector ToTarget = TargetCenter - GetActorLocation();
-	const float DistanceToTarget = ToTarget.Size();
-	if (DistanceToTarget <= KINDA_SMALL_NUMBER)
-	{
-		TryApplyAssignedTargetHit(0.0f);
-		return;
-	}
-
-	if (TryApplyAssignedTargetHit(DistanceToTarget))
-	{
-		return;
-	}
-
-	const FVector DirectionToTarget = ToTarget / DistanceToTarget;
-	const FVector VelocityDirection = ProjectileMovement->Velocity.GetSafeNormal();
-	const float DotToTarget = FVector::DotProduct(VelocityDirection, DirectionToTarget);
-	const bool bIsApproaching = DotToTarget > 0.05f;
-	const bool bOvershot = bWasApproachingHomingTarget && DotToTarget < -0.15f;
-	bWasApproachingHomingTarget = bWasApproachingHomingTarget || bIsApproaching;
-
-	const float NearAlpha = NearTargetDistance > KINDA_SMALL_NUMBER
-		? FMath::Clamp(1.0f - (DistanceToTarget / NearTargetDistance), 0.0f, 1.0f)
-		: 0.0f;
-	const float SmoothNearAlpha = FMath::InterpEaseInOut(0.0f, 1.0f, NearAlpha, 2.0f);
-	float DesiredMultiplier = FMath::Lerp(1.0f, NearTargetHomingMultiplier, SmoothNearAlpha);
-	if (bOvershot)
-	{
-		DesiredMultiplier = FMath::Max(DesiredMultiplier, OvershootHomingMultiplier);
-		if (!bLoggedOvershootRecovery && CVarHDLogNinjaHoming.GetValueOnGameThread() != 0)
-		{
-			bLoggedOvershootRecovery = true;
-			UE_LOG(LogTemp, Log, TEXT("[NinjaProjectile] Overshoot detected Dot=%.2f Distance=%.1f Using recovery homing"), DotToTarget, DistanceToTarget);
-		}
-	}
-	else if (NearAlpha > 0.0f && !bLoggedNearTargetSteering && CVarHDLogNinjaHoming.GetValueOnGameThread() != 0)
-	{
-		bLoggedNearTargetSteering = true;
-		UE_LOG(LogTemp, Log, TEXT("[NinjaProjectile] Entered near-target steering Distance=%.1f HomingMultiplier=%.2f"), DistanceToTarget, DesiredMultiplier);
-	}
-
-	ProjectileMovement->HomingAccelerationMagnitude = BaseConfiguredHomingAcceleration * DesiredMultiplier;
-
-	if (HomingOffsetTargetComponent && NearAlpha > 0.0f)
-	{
-		const FVector TargetRootLocation = HomingTargetActor->GetRootComponent()
-			? HomingTargetActor->GetRootComponent()->GetComponentLocation()
-			: HomingTargetActor->GetActorLocation();
-		HomingOffsetTargetComponent->SetWorldLocation(TargetRootLocation + ConfiguredHomingTargetOffset * (1.0f - SmoothNearAlpha));
-	}
-}
-
-bool AAttackProjectileBase::TryApplyAssignedTargetHit(float DistanceToTarget)
-{
-	if (TargetType != EProjectileTargetType::Enemies || !HomingTargetActor || HomingHitForgivenessRadius <= 0.0f)
-	{
-		return false;
-	}
-
-	AEnemyBase* TargetEnemy = Cast<AEnemyBase>(HomingTargetActor);
-	if (!TargetEnemy || TargetEnemy->IsDead())
-	{
-		return false;
-	}
-
-	UHealthComponent* EnemyHealth = TargetEnemy->GetHealthComponent();
-	if (!EnemyHealth || EnemyHealth->IsDead())
-	{
-		return false;
-	}
-
-	const float CollisionRadius = CollisionComponent ? CollisionComponent->GetScaledSphereRadius() : 0.0f;
-	if (DistanceToTarget > HomingHitForgivenessRadius + CollisionRadius)
-	{
-		return false;
-	}
-
-	EnemyHealth->ApplyDamage(ProjectileDamage);
-	if (CVarHDLogNinjaHoming.GetValueOnGameThread() != 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[NinjaProjectile] Near-miss forgiveness hit Distance=%.1f Target=%s"), DistanceToTarget, *GetNameSafe(TargetEnemy));
-	}
-	Destroy();
-	return true;
-}
-
-FVector AAttackProjectileBase::GetHomingTargetCenter() const
-{
-	if (!HomingTargetActor)
-	{
-		return FVector::ZeroVector;
-	}
-
-	if (const AEnemyBase* EnemyTarget = Cast<AEnemyBase>(HomingTargetActor))
-	{
-		if (const UCapsuleComponent* CapsuleComponent = EnemyTarget->GetCapsuleComponent())
-		{
-			return CapsuleComponent->GetComponentLocation();
-		}
-	}
-
-	return HomingTargetActor->GetActorLocation();
 }
