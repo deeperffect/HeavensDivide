@@ -394,7 +394,13 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		return;
 	}
 
-	Projectile->InitializeProjectile(OwnerCharacter, ProjectileDirection, Damage, Speed, EProjectileTargetType::Enemies);
+	Projectile->InitializeProjectile(
+		OwnerCharacter,
+		ProjectileDirection,
+		Damage,
+		Speed,
+		EProjectileTargetType::Enemies,
+		GetEffectiveTargetingRange());
 }
 
 AEnemyBase* UAutoAttackComponent::FindAssistTarget() const

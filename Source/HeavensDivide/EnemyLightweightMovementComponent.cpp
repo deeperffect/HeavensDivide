@@ -2,6 +2,61 @@
 
 #include "EnemyLightweightMovementComponent.h"
 
+#include "CharacterBase.h"
+#include "Components/CapsuleComponent.h"
+#include "EnemyBase.h"
+#include "GameFramework/Character.h"
+
+static bool FindBlockingWorldGeometryHit(const TArray<FHitResult>& HitResults, FHitResult& OutHit)
+{
+	const FHitResult* BestStartPenetratingHit = nullptr;
+
+	for (const FHitResult& HitResult : HitResults)
+	{
+		AActor* HitActor = HitResult.GetActor();
+		if (!HitResult.bBlockingHit || !HitActor)
+		{
+			continue;
+		}
+
+		if (Cast<AEnemyBase>(HitActor) || Cast<ACharacterBase>(HitActor))
+		{
+			continue;
+		}
+
+		if (HitResult.bStartPenetrating)
+		{
+			if (!BestStartPenetratingHit)
+			{
+				BestStartPenetratingHit = &HitResult;
+			}
+			continue;
+		}
+
+		OutHit = HitResult;
+		return true;
+	}
+
+	if (BestStartPenetratingHit)
+	{
+		OutHit = *BestStartPenetratingHit;
+		return true;
+	}
+
+	return false;
+}
+
+static FVector GetSafeMovementHitLocation(const FVector& FallbackLocation, const FHitResult& HitResult, float PullbackDistance)
+{
+	FVector SafeLocation = HitResult.Location.IsNearlyZero() ? FallbackLocation : HitResult.Location;
+	if (!HitResult.Normal.IsNearlyZero())
+	{
+		SafeLocation += HitResult.Normal.GetSafeNormal2D() * PullbackDistance;
+	}
+
+	return SafeLocation;
+}
+
 UEnemyLightweightMovementComponent::UEnemyLightweightMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
@@ -26,6 +81,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 	if (!bMovementEnabled || !Owner || DeltaTime <= KINDA_SMALL_NUMBER)
 	{
 		CurrentVelocity = FVector::ZeroVector;
+		bLastMoveBlockedByWorldGeometry = false;
 		bHasRequestedMove = false;
 		return;
 	}
@@ -33,6 +89,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 	if (!bHasRequestedMove || RequestedMoveDirection.IsNearlyZero())
 	{
 		CurrentVelocity = FVector::ZeroVector;
+		bLastMoveBlockedByWorldGeometry = false;
 		bHasRequestedMove = false;
 		return;
 	}
@@ -42,6 +99,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 	if (!MoveDirection.Normalize())
 	{
 		CurrentVelocity = FVector::ZeroVector;
+		bLastMoveBlockedByWorldGeometry = false;
 		bHasRequestedMove = false;
 		return;
 	}
@@ -52,7 +110,38 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 	DesiredLocation.Z = SpawnZ;
 
 	FHitResult HitResult;
-	Owner->SetActorLocation(DesiredLocation, true, &HitResult);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyLightweightMovement), false, Owner);
+	float CapsuleRadius = 34.0f;
+	float CapsuleHalfHeight = 88.0f;
+	if (const ACharacter* OwnerCharacter = Cast<ACharacter>(Owner))
+	{
+		if (const UCapsuleComponent* CapsuleComponent = OwnerCharacter->GetCapsuleComponent())
+		{
+			CapsuleRadius = CapsuleComponent->GetScaledCapsuleRadius();
+			CapsuleHalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
+		}
+	}
+
+	TArray<FHitResult> MoveHits;
+	const bool bHasMoveHits = Owner->GetWorld()
+		&& Owner->GetWorld()->SweepMultiByChannel(
+			MoveHits,
+			StartLocation,
+			DesiredLocation,
+			FQuat::Identity,
+			ECC_Pawn,
+			FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight),
+			QueryParams);
+	const bool bHitBlockingGeometry = bHasMoveHits && FindBlockingWorldGeometryHit(MoveHits, HitResult);
+	bLastMoveBlockedByWorldGeometry = bHitBlockingGeometry;
+
+	if (bHitBlockingGeometry && HitResult.bBlockingHit)
+	{
+		DesiredLocation = GetSafeMovementHitLocation(StartLocation, HitResult, 2.0f);
+		DesiredLocation.Z = SpawnZ;
+	}
+
+	Owner->SetActorLocation(DesiredLocation, false);
 
 	if (HitResult.bBlockingHit && !DesiredDelta.IsNearlyZero())
 	{
@@ -66,7 +155,25 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 			SlideLocation.Z = SpawnZ;
 
 			FHitResult SlideHit;
-			Owner->SetActorLocation(SlideLocation, true, &SlideHit);
+			TArray<FHitResult> SlideHits;
+			const bool bHasSlideHits = Owner->GetWorld()
+				&& Owner->GetWorld()->SweepMultiByChannel(
+					SlideHits,
+					AfterFirstMove,
+					SlideLocation,
+					FQuat::Identity,
+					ECC_Pawn,
+					FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight),
+					QueryParams);
+			const bool bSlideHitBlockingGeometry = bHasSlideHits && FindBlockingWorldGeometryHit(SlideHits, SlideHit);
+
+			if (bSlideHitBlockingGeometry && SlideHit.bBlockingHit)
+			{
+				SlideLocation = GetSafeMovementHitLocation(AfterFirstMove, SlideHit, 2.0f);
+				SlideLocation.Z = SpawnZ;
+			}
+
+			Owner->SetActorLocation(SlideLocation, false);
 		}
 	}
 
@@ -114,9 +221,15 @@ void UEnemyLightweightMovementComponent::StopMovement()
 	RequestedMoveDirection = FVector::ZeroVector;
 	CurrentVelocity = FVector::ZeroVector;
 	bHasRequestedMove = false;
+	bLastMoveBlockedByWorldGeometry = false;
 }
 
 FVector UEnemyLightweightMovementComponent::GetCurrentVelocity() const
 {
 	return CurrentVelocity;
+}
+
+bool UEnemyLightweightMovementComponent::WasLastMoveBlockedByWorldGeometry() const
+{
+	return bLastMoveBlockedByWorldGeometry;
 }

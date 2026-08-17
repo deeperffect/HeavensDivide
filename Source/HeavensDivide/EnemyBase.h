@@ -164,6 +164,18 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
 	float BehaviorUpdateInterval = 0.1f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (AdvancedDisplay))
+	bool bUseLightweightNavSteering = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (ClampMin = "0.05", UIMin = "0.05", AdvancedDisplay))
+	float NavSteeringUpdateInterval = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (ClampMin = "1", UIMin = "1", AdvancedDisplay))
+	int32 NavSteeringPathPointLookAhead = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (AdvancedDisplay))
+	bool bDebugLightweightNavSteering = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
@@ -221,6 +233,8 @@ protected:
 	void InitializeCrowdSpread();
 	FVector ApplyCrowdSpreadToDirection(const FVector& DirectDirection) const;
 	FVector ApplyEnemySeparationToDirection(const FVector& MovementDirection) const;
+	FVector ApplyLightweightNavSteeringToDirection(const FVector& DirectDirection);
+	void UpdateLightweightNavSteeringDirection(const FVector& DirectDirection);
 	void UpdateCachedEnemySeparation();
 	void RequestEnemyMovement(const FVector& WorldDirection);
 	void StopEnemyMovement();
@@ -257,7 +271,9 @@ protected:
 	FVector DesiredMovementDirection = FVector::ZeroVector;
 	FVector DesiredDirectMovementDirection = FVector::ZeroVector;
 	FVector CachedEnemySeparationVector = FVector::ZeroVector;
+	FVector CachedNavSteeringDirection = FVector::ZeroVector;
 	float CrowdSpreadBias = 0.0f;
+	float NextNavSteeringUpdateTime = 0.0f;
 	bool bHasDesiredMovementDirection = false;
 	bool bCharacterMovementDisabledForProfiling = false;
 	bool bAnimationDisabledForProfiling = false;

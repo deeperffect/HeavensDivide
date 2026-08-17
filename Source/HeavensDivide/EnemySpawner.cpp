@@ -8,8 +8,10 @@
 #include "Curves/CurveFloat.h"
 #include "DrawDebugHelpers.h"
 #include "EnemyBase.h"
+#include "EnemySpawnArea.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationSystem.h"
 #include "SurvivorPlayerController.h"
 
 static TAutoConsoleVariable<int32> CVarLogSpawnDirector(
@@ -76,8 +78,31 @@ void AEnemySpawner::StopSpawning()
 	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
 }
 
+void AEnemySpawner::SetSpawningEnabled(bool bEnabled)
+{
+	bSpawningEnabled = bEnabled;
+
+	if (bSpawningEnabled)
+	{
+		StartSpawning();
+	}
+	else
+	{
+		StopSpawning();
+	}
+}
+
 AEnemyBase* AEnemySpawner::SpawnEnemy()
 {
+	if (!bSpawningEnabled)
+	{
+		if (bDebugSpawning)
+		{
+			UE_LOG(LogTemp, Log, TEXT("EnemySpawner %s skipped manual spawn: spawning disabled."), *GetNameSafe(this));
+		}
+		return nullptr;
+	}
+
 	const FEnemySpawnEntry* SpawnEntry = ChooseSpawnEntry(GetCurrentSpawnBudget());
 	if (!SpawnEntry)
 	{
@@ -121,24 +146,15 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 	}
 
 	FVector SpawnLocation;
-	if (!FindSpawnLocation(ActivePlayer->GetActorLocation(), SpawnLocation))
+	if (!FindSpawnLocation(ActivePlayer->GetActorLocation(), SpawnEntry.EnemyClass, SpawnLocation))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s could not find a valid spawn location."), *GetNameSafe(this));
 		return nullptr;
 	}
 
-	if (const AEnemyBase* EnemyDefaultObject = SpawnEntry.EnemyClass->GetDefaultObject<AEnemyBase>())
-	{
-		const UCapsuleComponent* CapsuleComponent = EnemyDefaultObject->GetCapsuleComponent();
-		if (CapsuleComponent)
-		{
-			SpawnLocation.Z += CapsuleComponent->GetScaledCapsuleHalfHeight();
-		}
-	}
-
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = this;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 	AEnemyBase* SpawnedEnemy = GetWorld()->SpawnActor<AEnemyBase>(SpawnEntry.EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
 	if (!SpawnedEnemy)
@@ -223,39 +239,201 @@ const FEnemySpawnEntry* AEnemySpawner::ChooseSpawnEntry(int32 RemainingBudget) c
 	return nullptr;
 }
 
-bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, FVector& OutSpawnLocation) const
+bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutSpawnLocation) const
 {
-	const float SafeMaxRadius = FMath::Max(MinSpawnDistance, MaxSpawnDistance);
-	const float SafeMinRadius = FMath::Min(MinSpawnDistance, SafeMaxRadius);
-	constexpr int32 MaxAttempts = 6;
+	const int32 AttemptCount = FMath::Max(1, MaxSpawnLocationAttempts);
+	float CapsuleRadius = 0.0f;
+	float CapsuleHalfHeight = 0.0f;
+	GetEnemyCapsuleDimensions(EnemyClass, CapsuleRadius, CapsuleHalfHeight);
+	int32 CandidateFailures = 0;
+	int32 NavigationFailures = 0;
+	int32 ArenaFailures = 0;
+	int32 CollisionFailures = 0;
 
-	for (int32 Attempt = 0; Attempt < MaxAttempts; ++Attempt)
+	for (int32 Attempt = 0; Attempt < AttemptCount; ++Attempt)
 	{
-		const float AngleRadians = FMath::FRandRange(0.0f, 2.0f * PI);
-		const float Distance = FMath::FRandRange(SafeMinRadius, SafeMaxRadius);
-		const FVector SpawnOffset(FMath::Cos(AngleRadians) * Distance, FMath::Sin(AngleRadians) * Distance, 0.0f);
-		const FVector CandidateLocation = ActivePlayerLocation + SpawnOffset;
-
-		const FVector TraceStart = CandidateLocation + FVector(0.0f, 0.0f, GroundTraceHeight);
-		const FVector TraceEnd = CandidateLocation - FVector(0.0f, 0.0f, GroundTraceDepth);
-
-		FHitResult HitResult;
-		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemySpawnerGroundTrace), false, this);
-		const bool bHitGround = GetWorld()->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
-
-		if (bDebugSpawning)
+		FVector CandidateLocation;
+		if (!GenerateCandidateSpawnLocation(ActivePlayerLocation, Attempt, AttemptCount, CandidateLocation))
 		{
-			DrawDebugLine(GetWorld(), TraceStart, TraceEnd, bHitGround ? FColor::Green : FColor::Red, false, 2.0f, 0, 1.5f);
+			++CandidateFailures;
+			continue;
 		}
 
-		if (bHitGround)
+		FVector ProjectedLocation;
+		if (!ProjectSpawnLocationToNavigation(CandidateLocation, ProjectedLocation))
 		{
-			OutSpawnLocation = HitResult.Location;
+			++NavigationFailures;
+			if (bDebugSpawnValidation)
+			{
+				DrawDebugSphere(GetWorld(), CandidateLocation, 45.0f, 12, FColor::Yellow, false, 2.0f, 0, 2.0f);
+			}
+			continue;
+		}
+
+		const FVector ActorLocation = ProjectedLocation + FVector(0.0f, 0.0f, CapsuleHalfHeight);
+		if (!IsSpawnLocationInsideArena(ActorLocation))
+		{
+			++ArenaFailures;
+			if (bDebugSpawnValidation)
+			{
+				DrawDebugSphere(GetWorld(), ActorLocation, 45.0f, 12, FColor::Yellow, false, 2.0f, 0, 2.0f);
+			}
+			continue;
+		}
+
+		if (!IsSpawnLocationCollisionFree(ActorLocation, EnemyClass))
+		{
+			++CollisionFailures;
+			if (bDebugSpawnValidation)
+			{
+				DrawDebugCapsule(GetWorld(), ActorLocation, CapsuleHalfHeight, CapsuleRadius, FQuat::Identity, FColor::Red, false, 2.0f, 0, 2.0f);
+			}
+			continue;
+		}
+
+		OutSpawnLocation = ActorLocation;
+		if (bDebugSpawnValidation)
+		{
+			DrawDebugCapsule(GetWorld(), OutSpawnLocation, CapsuleHalfHeight, CapsuleRadius, FQuat::Identity, FColor::Green, false, 2.0f, 0, 2.0f);
+		}
+		return true;
+	}
+
+	if (bDebugSpawning || bDebugSpawnValidation)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s failed spawn validation. Attempts=%d CandidateFailures=%d NavigationFailures=%d ArenaFailures=%d CollisionFailures=%d ActiveSpawnArea=%s RequireNavMesh=%s EdgePadding=%.1f CapsuleRadius=%.1f CapsuleHalfHeight=%.1f MinDistance=%.1f MaxDistance=%.1f"),
+			*GetNameSafe(this),
+			AttemptCount,
+			CandidateFailures,
+			NavigationFailures,
+			ArenaFailures,
+			CollisionFailures,
+			*GetNameSafe(ActiveSpawnArea),
+			bRequireNavMeshProjection ? TEXT("true") : TEXT("false"),
+			SpawnEdgePadding,
+			CapsuleRadius,
+			CapsuleHalfHeight,
+			MinSpawnDistance,
+			MaxSpawnDistance);
+	}
+
+	return false;
+}
+
+bool AEnemySpawner::GenerateCandidateSpawnLocation(const FVector& ActivePlayerLocation, int32 AttemptIndex, int32 AttemptCount, FVector& OutCandidateLocation) const
+{
+	const bool bUseAreaCandidate = ActiveSpawnArea
+		&& bUseSpawnAreaFallbackCandidates
+		&& AttemptIndex >= FMath::Max(1, AttemptCount / 2);
+
+	if (bUseAreaCandidate)
+	{
+		OutCandidateLocation = ActiveSpawnArea->GetRandomLocationInside(SpawnEdgePadding);
+		const float DistanceSquared = FVector::DistSquared2D(OutCandidateLocation, ActivePlayerLocation);
+		if (DistanceSquared >= FMath::Square(FMath::Min(MinSpawnDistance, MaxSpawnDistance))
+			&& DistanceSquared <= FMath::Square(FMath::Max(MinSpawnDistance, MaxSpawnDistance)))
+		{
 			return true;
 		}
 	}
 
-	return false;
+	const float SafeMaxRadius = FMath::Max(MinSpawnDistance, MaxSpawnDistance);
+	const float SafeMinRadius = FMath::Min(MinSpawnDistance, SafeMaxRadius);
+	const float AngleRadians = FMath::FRandRange(0.0f, 2.0f * PI);
+	const float Distance = FMath::FRandRange(SafeMinRadius, SafeMaxRadius);
+	const FVector SpawnOffset(FMath::Cos(AngleRadians) * Distance, FMath::Sin(AngleRadians) * Distance, 0.0f);
+	OutCandidateLocation = ActivePlayerLocation + SpawnOffset;
+	return true;
+}
+
+bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLocation, FVector& OutProjectedLocation) const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	const FVector TraceStart = CandidateLocation + FVector(0.0f, 0.0f, GroundTraceHeight);
+	const FVector TraceEnd = CandidateLocation - FVector(0.0f, 0.0f, GroundTraceDepth);
+
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemySpawnerGroundTrace), false, this);
+	const bool bHitGround = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+
+	if (bDebugSpawning || bDebugSpawnValidation)
+	{
+		DrawDebugLine(World, TraceStart, TraceEnd, bHitGround ? FColor::Green : FColor::Yellow, false, 2.0f, 0, 1.5f);
+	}
+
+	if (!bHitGround)
+	{
+		return false;
+	}
+
+	const UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+	if (!NavigationSystem)
+	{
+		OutProjectedLocation = HitResult.Location;
+		return !bRequireNavMeshProjection;
+	}
+
+	FNavLocation NavLocation;
+	if (!NavigationSystem->ProjectPointToNavigation(HitResult.Location, NavLocation, NavMeshProjectionExtent))
+	{
+		OutProjectedLocation = HitResult.Location;
+		return !bRequireNavMeshProjection;
+	}
+
+	OutProjectedLocation = NavLocation.Location;
+	return true;
+}
+
+bool AEnemySpawner::IsSpawnLocationInsideArena(const FVector& Location) const
+{
+	return !ActiveSpawnArea || ActiveSpawnArea->ContainsSpawnLocation(Location, SpawnEdgePadding);
+}
+
+bool AEnemySpawner::IsSpawnLocationCollisionFree(const FVector& Location, TSubclassOf<AEnemyBase> EnemyClass) const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	float CapsuleRadius = 0.0f;
+	float CapsuleHalfHeight = 0.0f;
+	GetEnemyCapsuleDimensions(EnemyClass, CapsuleRadius, CapsuleHalfHeight);
+	const float GroundClearance = FMath::Clamp(CollisionValidationGroundClearance, 0.0f, CapsuleHalfHeight - CapsuleRadius);
+	const FVector ValidationLocation = Location + FVector(0.0f, 0.0f, GroundClearance);
+	const float ValidationHalfHeight = FMath::Max(CapsuleRadius, CapsuleHalfHeight - GroundClearance);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemySpawnerCapsuleValidation), false, this);
+	FCollisionResponseParams ResponseParams;
+	return !World->OverlapBlockingTestByChannel(
+		ValidationLocation,
+		FQuat::Identity,
+		ECC_Pawn,
+		FCollisionShape::MakeCapsule(CapsuleRadius, ValidationHalfHeight),
+		QueryParams,
+		ResponseParams);
+}
+
+void AEnemySpawner::GetEnemyCapsuleDimensions(TSubclassOf<AEnemyBase> EnemyClass, float& OutRadius, float& OutHalfHeight) const
+{
+	OutRadius = FMath::Max(1.0f, FallbackCapsuleRadius);
+	OutHalfHeight = FMath::Max(OutRadius, FallbackCapsuleHalfHeight);
+
+	const AEnemyBase* EnemyDefaultObject = EnemyClass ? EnemyClass->GetDefaultObject<AEnemyBase>() : nullptr;
+	const UCapsuleComponent* CapsuleComponent = EnemyDefaultObject ? EnemyDefaultObject->GetCapsuleComponent() : nullptr;
+	if (!CapsuleComponent)
+	{
+		return;
+	}
+
+	OutRadius = FMath::Max(1.0f, CapsuleComponent->GetUnscaledCapsuleRadius());
+	OutHalfHeight = FMath::Max(OutRadius, CapsuleComponent->GetUnscaledCapsuleHalfHeight());
 }
 
 int32 AEnemySpawner::GetAliveEnemyCount()
@@ -359,6 +537,12 @@ void AEnemySpawner::HandleRunTimeTimerElapsed()
 
 void AEnemySpawner::HandleSpawnTimerElapsed()
 {
+	if (!bSpawningEnabled)
+	{
+		StopSpawning();
+		return;
+	}
+
 	const int32 TargetSpawnCount = GetCurrentEnemiesPerSpawn();
 	int32 RemainingBudget = GetCurrentSpawnBudget();
 	int32 SpawnedCount = 0;

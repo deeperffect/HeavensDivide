@@ -21,6 +21,8 @@
 #include "HAL/IConsoleManager.h"
 #include "IAnimationBudgetAllocator.h"
 #include "Kismet/GameplayStatics.h"
+#include "NavigationPath.h"
+#include "NavigationSystem.h"
 #include "SkeletalMeshComponentBudgeted.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
@@ -746,6 +748,7 @@ void AEnemyBase::StopDesiredMovement()
 {
 	DesiredMovementDirection = FVector::ZeroVector;
 	DesiredDirectMovementDirection = FVector::ZeroVector;
+	CachedNavSteeringDirection = FVector::ZeroVector;
 	bHasDesiredMovementDirection = false;
 }
 
@@ -791,6 +794,7 @@ void AEnemyBase::ConfigureEnemyCapsuleCollisionDefaults()
 		EnemyCapsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		EnemyCapsule->SetGenerateOverlapEvents(true);
 		EnemyCapsule->SetCollisionObjectType(ECC_GameTraceChannel1);
+		EnemyCapsule->SetCollisionResponseToAllChannels(ECR_Block);
 		EnemyCapsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 		EnemyCapsule->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
 	}
@@ -869,6 +873,65 @@ FVector AEnemyBase::ApplyEnemySeparationToDirection(const FVector& MovementDirec
 	}
 
 	return FinalDirection;
+}
+
+FVector AEnemyBase::ApplyLightweightNavSteeringToDirection(const FVector& DirectDirection)
+{
+	if (!IsUsingLightweightMovement() || !bUseLightweightNavSteering || !LightweightMovementComponent || !LightweightMovementComponent->WasLastMoveBlockedByWorldGeometry())
+	{
+		CachedNavSteeringDirection = FVector::ZeroVector;
+		return DirectDirection;
+	}
+
+	UpdateLightweightNavSteeringDirection(DirectDirection);
+	return CachedNavSteeringDirection.IsNearlyZero() ? DirectDirection : CachedNavSteeringDirection;
+}
+
+void AEnemyBase::UpdateLightweightNavSteeringDirection(const FVector& DirectDirection)
+{
+	if (!GetWorld() || !CurrentTarget)
+	{
+		CachedNavSteeringDirection = FVector::ZeroVector;
+		return;
+	}
+
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime < NextNavSteeringUpdateTime && !CachedNavSteeringDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	NextNavSteeringUpdateTime = CurrentTime + FMath::Max(0.05f, NavSteeringUpdateInterval);
+
+	UNavigationPath* NavigationPath = UNavigationSystemV1::FindPathToLocationSynchronously(
+		this,
+		GetActorLocation(),
+		CurrentTarget->GetActorLocation(),
+		this);
+
+	if (!NavigationPath || !NavigationPath->IsValid() || NavigationPath->PathPoints.Num() < 2)
+	{
+		CachedNavSteeringDirection = DirectDirection;
+		return;
+	}
+
+	const int32 PathPointIndex = FMath::Clamp(NavSteeringPathPointLookAhead, 1, NavigationPath->PathPoints.Num() - 1);
+	FVector NavDirection = NavigationPath->PathPoints[PathPointIndex] - GetActorLocation();
+	NavDirection.Z = 0.0f;
+	if (!NavDirection.Normalize())
+	{
+		CachedNavSteeringDirection = DirectDirection;
+		return;
+	}
+
+	CachedNavSteeringDirection = NavDirection;
+
+	if (bDebugLightweightNavSteering)
+	{
+		const FVector DebugStart = GetActorLocation() + FVector(0.0f, 0.0f, 55.0f);
+		DrawDebugLine(GetWorld(), DebugStart, DebugStart + CachedNavSteeringDirection * 220.0f, FColor::Purple, false, NavSteeringUpdateInterval, 0, 3.0f);
+		DrawDebugSphere(GetWorld(), NavigationPath->PathPoints[PathPointIndex], 35.0f, 12, FColor::Purple, false, NavSteeringUpdateInterval, 0, 2.0f);
+	}
 }
 
 void AEnemyBase::UpdateCachedEnemySeparation()
@@ -1258,7 +1321,8 @@ void AEnemyBase::MoveTowardCurrentTarget()
 	if (ToTarget.Normalize())
 	{
 		DesiredDirectMovementDirection = ToTarget;
-		DesiredMovementDirection = ApplyEnemySeparationToDirection(ApplyCrowdSpreadToDirection(ToTarget));
+		const FVector SteeringDirection = ApplyLightweightNavSteeringToDirection(ToTarget);
+		DesiredMovementDirection = ApplyEnemySeparationToDirection(ApplyCrowdSpreadToDirection(SteeringDirection));
 		bHasDesiredMovementDirection = true;
 
 		if (bDebugCrowdSpread && GetWorld() && IsUsingLightweightMovement())

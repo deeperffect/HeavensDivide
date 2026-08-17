@@ -25,6 +25,7 @@ public:
 	void StopMovement();
 
 	FVector GetCurrentVelocity() const;
+	bool WasLastMoveBlockedByWorldGeometry() const;
 
 private:
 	UPROPERTY(Transient)
@@ -44,4 +45,7 @@ private:
 
 	UPROPERTY(Transient)
 	bool bHasRequestedMove = false;
+
+	UPROPERTY(Transient)
+	bool bLastMoveBlockedByWorldGeometry = false;
 };

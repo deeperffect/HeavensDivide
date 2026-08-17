@@ -27,7 +27,16 @@ public:
 	AAttackProjectileBase();
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
-	void InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType = EProjectileTargetType::Enemies);
+	void InitializeProjectile(
+		AActor* InGameplayOwner,
+		FVector Direction,
+		float Damage,
+		float Speed,
+		EProjectileTargetType InTargetType = EProjectileTargetType::Enemies,
+		float InTargetingRange = 0.0f,
+		bool bInCanTriggerExecutionersKunai = true,
+		AActor* InIgnoredOverlapActor = nullptr,
+		bool bFlattenLaunchDirection = true);
 
 protected:
 	virtual void BeginPlay() override;
@@ -62,6 +71,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Marked for Death", meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float ChainExecutionRadius = 500.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Marked for Death", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ExecutionersKunaiSpawnForwardOffset = 24.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Marked for Death")
+	FVector ExecutionersKunaiSpawnOffset = FVector(0.0f, 0.0f, 450.0f);
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Projectile")
 	EProjectileTargetType TargetType = EProjectileTargetType::Enemies;
 
@@ -74,17 +89,28 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Debug")
 	bool bDebugChainExecution = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Debug")
+	bool bDebugExecutionersKunai = false;
+
 private:
 	UFUNCTION()
 	void HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	void LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const;
 	void TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation);
+	void TryTriggerExecutionersKunai(AEnemyBase* ConsumedMarkEnemy, const FVector& MarkConsumedLocation);
+	AEnemyBase* FindExecutionersKunaiTarget(AEnemyBase* ConsumedMarkEnemy, const FVector& SearchLocation) const;
+	void SpawnExecutionersKunai(AEnemyBase* TargetEnemy, AEnemyBase* ConsumedMarkEnemy, const FVector& SpawnOrigin);
 	int32 GetSafeChainExecutionTargetCount() const;
 	float GetSafeChainExecutionRadius() const;
 
 	UPROPERTY()
 	TObjectPtr<AActor> GameplayOwner;
 
+	UPROPERTY()
+	TObjectPtr<AActor> IgnoredOverlapActor;
+
+	float SourceTargetingRange = 0.0f;
 	bool bIsProjectileInitialized = false;
+	bool bCanTriggerExecutionersKunai = true;
 };

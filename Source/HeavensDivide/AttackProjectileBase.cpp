@@ -4,6 +4,7 @@
 
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "EnemyBase.h"
@@ -18,6 +19,7 @@ namespace MarkedForDeathUpgradeIds
 {
 	static const FName MarkedBlade(TEXT("MarkedBlade"));
 	static const FName ChainExecution(TEXT("ChainExecution"));
+	static const FName ExecutionersKunai(TEXT("ExecutionersKunai"));
 }
 
 static const UPlayerUpgradeComponent* GetPlayerUpgradesForMarkedForDeath(const UObject* WorldContextObject, const AActor* GameplayOwner)
@@ -69,11 +71,23 @@ void AAttackProjectileBase::BeginPlay()
 	SetLifeSpan(ProjectileLifetime);
 }
 
-void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVector Direction, float Damage, float Speed, EProjectileTargetType InTargetType)
+void AAttackProjectileBase::InitializeProjectile(
+	AActor* InGameplayOwner,
+	FVector Direction,
+	float Damage,
+	float Speed,
+	EProjectileTargetType InTargetType,
+	float InTargetingRange,
+	bool bInCanTriggerExecutionersKunai,
+	AActor* InIgnoredOverlapActor,
+	bool bFlattenLaunchDirection)
 {
 	GameplayOwner = InGameplayOwner;
 	SetOwner(InGameplayOwner);
 	TargetType = InTargetType;
+	SourceTargetingRange = FMath::Max(0.0f, InTargetingRange);
+	bCanTriggerExecutionersKunai = bInCanTriggerExecutionersKunai;
+	IgnoredOverlapActor = InIgnoredOverlapActor;
 
 	if (APawn* OwnerPawn = Cast<APawn>(InGameplayOwner))
 	{
@@ -83,7 +97,10 @@ void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVecto
 	ProjectileDamage = Damage;
 	ProjectileSpeed = Speed;
 
-	Direction.Z = 0.0f;
+	if (bFlattenLaunchDirection)
+	{
+		Direction.Z = 0.0f;
+	}
 	if (!Direction.Normalize())
 	{
 		Destroy();
@@ -91,6 +108,10 @@ void AAttackProjectileBase::InitializeProjectile(AActor* InGameplayOwner, FVecto
 	}
 
 	CollisionComponent->IgnoreActorWhenMoving(InGameplayOwner, true);
+	if (IgnoredOverlapActor)
+	{
+		CollisionComponent->IgnoreActorWhenMoving(IgnoredOverlapActor, true);
+	}
 	ProjectileMovement->InitialSpeed = ProjectileSpeed;
 	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->Velocity = Direction * ProjectileSpeed;
@@ -115,7 +136,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		return;
 	}
 
-	if (!OtherActor || OtherActor == this || OtherActor == GameplayOwner)
+	if (!OtherActor || OtherActor == this || OtherActor == GameplayOwner || OtherActor == IgnoredOverlapActor)
 	{
 		LogProjectileFilterResult(OtherActor, false);
 		return;
@@ -148,6 +169,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForMarkedForDeath(this, GameplayOwner);
 		const bool bHasMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::MarkedBlade);
 		const bool bHasChainExecution = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::ChainExecution);
+		const bool bHasExecutionersKunai = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::ExecutionersKunai);
 		const float NormalDamage = ProjectileDamage;
 		float FinalDamage = NormalDamage;
 		const bool bWasMarked = bHasMarkedBlade && HitEnemy->IsMarked();
@@ -192,6 +214,11 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		if (bExecutionKill)
 		{
 			TryTriggerChainExecution(HitEnemy, ExecutionLocation);
+		}
+
+		if (bConsumedMark && bHasExecutionersKunai && bCanTriggerExecutionersKunai)
+		{
+			TryTriggerExecutionersKunai(HitEnemy, ExecutionLocation);
 		}
 
 		Destroy();
@@ -351,6 +378,212 @@ void AAttackProjectileBase::TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, 
 				FMath::Sqrt(Candidates[CandidateIndex].DistanceSquared),
 				bAppliedMark ? TEXT("true") : TEXT("false"));
 		}
+	}
+}
+
+void AAttackProjectileBase::TryTriggerExecutionersKunai(AEnemyBase* ConsumedMarkEnemy, const FVector& MarkConsumedLocation)
+{
+	if (!GetWorld() || SourceTargetingRange <= 0.0f)
+	{
+		if (bDebugExecutionersKunai)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai skipped: World=%s TargetingRange=%.1f"),
+				GetWorld() ? TEXT("valid") : TEXT("invalid"),
+				SourceTargetingRange);
+		}
+		return;
+	}
+
+	AEnemyBase* BonusTarget = FindExecutionersKunaiTarget(ConsumedMarkEnemy, MarkConsumedLocation);
+	if (!BonusTarget)
+	{
+		if (bDebugExecutionersKunai)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai skipped: no valid target within %.1f of %s"),
+				SourceTargetingRange,
+				*MarkConsumedLocation.ToString());
+		}
+		return;
+	}
+
+	SpawnExecutionersKunai(BonusTarget, ConsumedMarkEnemy, MarkConsumedLocation);
+}
+
+AEnemyBase* AAttackProjectileBase::FindExecutionersKunaiTarget(AEnemyBase* ConsumedMarkEnemy, const FVector& SearchLocation) const
+{
+	if (!GetWorld() || SourceTargetingRange <= 0.0f)
+	{
+		return nullptr;
+	}
+
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ExecutionersKunaiTargeting), false, this);
+	QueryParams.AddIgnoredActor(this);
+	if (GameplayOwner)
+	{
+		QueryParams.AddIgnoredActor(GameplayOwner);
+	}
+
+	GetWorld()->OverlapMultiByObjectType(
+		OverlapResults,
+		SearchLocation,
+		FQuat::Identity,
+		ObjectQueryParams,
+		FCollisionShape::MakeSphere(SourceTargetingRange),
+		QueryParams);
+
+	AEnemyBase* BestTarget = nullptr;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	AEnemyBase* ConsumedEnemyFallback = nullptr;
+	float ConsumedEnemyFallbackDistanceSquared = TNumericLimits<float>::Max();
+	TSet<AEnemyBase*> UniqueEnemies;
+
+	for (const FOverlapResult& OverlapResult : OverlapResults)
+	{
+		AEnemyBase* CandidateEnemy = Cast<AEnemyBase>(OverlapResult.GetActor());
+		if (!CandidateEnemy || CandidateEnemy->IsDead() || UniqueEnemies.Contains(CandidateEnemy))
+		{
+			continue;
+		}
+
+		UHealthComponent* CandidateHealth = CandidateEnemy->GetHealthComponent();
+		if (!CandidateHealth || CandidateHealth->IsDead())
+		{
+			continue;
+		}
+
+		const bool bIsConsumedMarkEnemy = CandidateEnemy == ConsumedMarkEnemy;
+		UniqueEnemies.Add(CandidateEnemy);
+
+		const float DistanceSquared = FVector::DistSquared2D(SearchLocation, CandidateEnemy->GetActorLocation());
+		if (DistanceSquared > FMath::Square(SourceTargetingRange))
+		{
+			continue;
+		}
+
+		if (bIsConsumedMarkEnemy)
+		{
+			ConsumedEnemyFallback = CandidateEnemy;
+			ConsumedEnemyFallbackDistanceSquared = DistanceSquared;
+			continue;
+		}
+
+		if (DistanceSquared < BestDistanceSquared)
+		{
+			BestDistanceSquared = DistanceSquared;
+			BestTarget = CandidateEnemy;
+		}
+	}
+
+	if (!BestTarget)
+	{
+		BestTarget = ConsumedEnemyFallback;
+		BestDistanceSquared = ConsumedEnemyFallbackDistanceSquared;
+	}
+
+	if (bDebugExecutionersKunai)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai target search Candidates=%d ConsumedEnemy=%s Selected=%s UsedConsumedEnemyFallback=%s Distance=%.1f Range=%.1f"),
+			UniqueEnemies.Num(),
+			*GetNameSafe(ConsumedMarkEnemy),
+			*GetNameSafe(BestTarget),
+			BestTarget && BestTarget == ConsumedMarkEnemy ? TEXT("true") : TEXT("false"),
+			BestTarget ? FMath::Sqrt(BestDistanceSquared) : -1.0f,
+			SourceTargetingRange);
+	}
+
+	return BestTarget;
+}
+
+void AAttackProjectileBase::SpawnExecutionersKunai(AEnemyBase* TargetEnemy, AEnemyBase* ConsumedMarkEnemy, const FVector& SpawnOrigin)
+{
+	if (!GetWorld() || !TargetEnemy || TargetEnemy->IsDead())
+	{
+		return;
+	}
+
+	const UCapsuleComponent* TargetCapsule = TargetEnemy->GetCapsuleComponent();
+	const FVector TargetLocation = TargetCapsule ? TargetCapsule->GetComponentLocation() : TargetEnemy->GetActorLocation();
+	FVector HorizontalDirection = TargetLocation - SpawnOrigin;
+	HorizontalDirection.Z = 0.0f;
+	const bool bTargetAtSpawnOrigin = HorizontalDirection.SizeSquared2D() <= FMath::Square(FMath::Max(16.0f, TargetCapsule ? TargetCapsule->GetScaledCapsuleRadius() : 16.0f));
+	if (!HorizontalDirection.Normalize())
+	{
+		HorizontalDirection = ProjectileMovement ? ProjectileMovement->Velocity : FVector::ZeroVector;
+		HorizontalDirection.Z = 0.0f;
+		if (!HorizontalDirection.Normalize() && GameplayOwner)
+		{
+			HorizontalDirection = SpawnOrigin - GameplayOwner->GetActorLocation();
+			HorizontalDirection.Z = 0.0f;
+			HorizontalDirection.Normalize();
+		}
+
+		if (HorizontalDirection.IsNearlyZero())
+		{
+			if (bDebugExecutionersKunai)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai skipped: invalid direction to %s"), *GetNameSafe(TargetEnemy));
+			}
+			return;
+		}
+	}
+
+	const float SpawnOffset = FMath::Max(0.0f, ExecutionersKunaiSpawnForwardOffset);
+	const FVector GroundSpawnLocation = bTargetAtSpawnOrigin
+		? SpawnOrigin - HorizontalDirection * SpawnOffset
+		: SpawnOrigin + HorizontalDirection * SpawnOffset;
+	const FVector SpawnLocation = GroundSpawnLocation + ExecutionersKunaiSpawnOffset;
+	FVector LaunchDirection = TargetLocation - SpawnLocation;
+	if (!LaunchDirection.Normalize())
+	{
+		if (bDebugExecutionersKunai)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai skipped: invalid elevated direction to %s"), *GetNameSafe(TargetEnemy));
+		}
+		return;
+	}
+
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = GameplayOwner;
+	SpawnParameters.Instigator = GetInstigator();
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+	AAttackProjectileBase* BonusProjectile = GetWorld()->SpawnActor<AAttackProjectileBase>(
+		GetClass(),
+		SpawnLocation,
+		LaunchDirection.Rotation(),
+		SpawnParameters);
+
+	if (!BonusProjectile)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[MarkedForDeath] ExecutionersKunai spawn failed."));
+		return;
+	}
+
+	BonusProjectile->InitializeProjectile(
+		GameplayOwner,
+		LaunchDirection,
+		ProjectileDamage,
+		ProjectileSpeed,
+		TargetType,
+		SourceTargetingRange,
+		false,
+		TargetEnemy != ConsumedMarkEnemy ? ConsumedMarkEnemy : nullptr,
+		false);
+
+	if (bDebugExecutionersKunai)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai spawned Target=%s Spawn=%s Direction=%s SameTargetFallback=%s Damage=%.2f Speed=%.1f"),
+			*GetNameSafe(TargetEnemy),
+			*SpawnLocation.ToString(),
+			*LaunchDirection.ToString(),
+			bTargetAtSpawnOrigin ? TEXT("true") : TEXT("false"),
+			ProjectileDamage,
+			ProjectileSpeed);
 	}
 }
 
