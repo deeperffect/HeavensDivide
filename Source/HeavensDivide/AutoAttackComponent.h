@@ -38,6 +38,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Auto Attack")
 	void SetAttackInterval(float NewInterval);
 
+	UFUNCTION(BlueprintCallable, Category = "Auto Attack")
+	void SetAutoAttackEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack")
+	bool IsAutoAttackEnabled() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Auto Attack|Trace")
 	void PerformAttackTrace();
 
@@ -177,7 +183,6 @@ private:
 	float GetExpectedAttackMontageDuration() const;
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	bool StartTargetedAttack();
-	bool StartProjectileAttack();
 	bool CanExecuteAttackInCurrentMode() const;
 	bool CanStartAttackNow() const;
 	bool IsOwningPlayerDead() const;

@@ -21,19 +21,13 @@
 #include "HAL/IConsoleManager.h"
 #include "IAnimationBudgetAllocator.h"
 #include "Kismet/GameplayStatics.h"
-#include "NavigationPath.h"
-#include "NavigationSystem.h"
 #include "SkeletalMeshComponentBudgeted.h"
+#include "Stats/Stats.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
 #include "Engine/OverlapResult.h"
 #include "EngineUtils.h"
 #include "UObject/UnrealType.h"
-
-static TAutoConsoleVariable<int32> CVarDisableEnemyCharacterMovementForProfiling(
-	TEXT("hd.DisableEnemyCharacterMovementForProfiling"),
-	0,
-	TEXT("When set to 1, disables CharacterMovement ticking/work for EnemyBase-derived enemies for profiling."));
 
 static TAutoConsoleVariable<int32> CVarDisableEnemyAnimationForProfiling(
 	TEXT("hd.DisableEnemyAnimationForProfiling"),
@@ -131,7 +125,6 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	MarkIndicatorWidgetComponent->SetComponentTickEnabled(false);
 
 	ConfigureEnemyCapsuleCollisionDefaults();
-	ConfigureEnemyMovementDefaults();
 }
 
 void AEnemyBase::BeginPlay()
@@ -152,7 +145,6 @@ void AEnemyBase::BeginPlay()
 	InitializeTargetFromCharacterManager();
 	CachePlayerExperienceComponent();
 	InitializeAnimationBudgeting();
-	UpdateCharacterMovementProfilingState();
 	UpdateAnimationProfilingState();
 	StartBehaviorUpdates();
 	StartSeparationUpdates();
@@ -180,21 +172,15 @@ void AEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AEnemyBase::Tick(float DeltaSeconds)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyBase_Tick);
 	Super::Tick(DeltaSeconds);
 
-	UpdateCharacterMovementProfilingState();
-	UpdateAnimationProfilingState();
 	ApplyDesiredMovementInput(DeltaSeconds);
 }
 
 FVector AEnemyBase::GetVelocity() const
 {
-	if (IsUsingLightweightMovement())
-	{
-		return GetEnemyMovementVelocity();
-	}
-
-	return Super::GetVelocity();
+	return GetEnemyMovementVelocity();
 }
 
 void AEnemyBase::SetTarget(AActor* NewTarget)
@@ -210,6 +196,33 @@ AActor* AEnemyBase::GetTarget() const
 bool AEnemyBase::IsDead() const
 {
 	return bIsDead;
+}
+
+void AEnemyBase::ConfigureForStressTest(bool bDisableCombat, bool bMakeInvulnerable)
+{
+	bIsStressTestEnemy = true;
+	bStressTestDisableCombat = bDisableCombat;
+	bStressTestInvulnerable = bMakeInvulnerable;
+
+	if (HealthComponent)
+	{
+		HealthComponent->SetDamageEnabled(!bStressTestInvulnerable);
+	}
+}
+
+bool AEnemyBase::IsStressTestEnemy() const
+{
+	return bIsStressTestEnemy;
+}
+
+bool AEnemyBase::IsStressTestCombatDisabled() const
+{
+	return bIsStressTestEnemy && bStressTestDisableCombat;
+}
+
+bool AEnemyBase::IsStressTestInvulnerable() const
+{
+	return bIsStressTestEnemy && bStressTestInvulnerable;
 }
 
 bool AEnemyBase::IsMarked() const
@@ -299,7 +312,7 @@ void AEnemyBase::LogEnemyDebugState(const TCHAR* Context) const
 		GetActorEnableCollision() ? TEXT("enabled") : TEXT("disabled"),
 		GetLifeSpan(),
 		*GetNameSafe(CurrentTarget),
-		IsUsingLightweightMovement() ? TEXT("true") : TEXT("false"),
+		LightweightMovementComponent && LightweightMovementComponent->IsMovementEnabled() ? TEXT("true") : TEXT("false"),
 		MovementComponent && MovementComponent->IsComponentTickEnabled() ? TEXT("enabled") : TEXT("disabled"),
 		HealthBarWidgetComponent && HealthBarWidgetComponent->IsVisible() ? TEXT("true") : TEXT("false"));
 
@@ -348,8 +361,6 @@ void AEnemyBase::HandleDeath()
 	StopSeparationUpdates();
 	StopEnemyMovement();
 
-	StopEnemyMovement();
-
 	SetActorEnableCollision(false);
 	OnEnemyDeath();
 
@@ -368,7 +379,6 @@ void AEnemyBase::HandleDeath()
 	}
 
 	const float PlayResult = AnimInstance->Montage_Play(DeathMontage);
-	UE_LOG(LogTemp, Log, TEXT("Enemy death montage plays: %s Result=%.3f"), *GetNameSafe(DeathMontage), PlayResult);
 
 	if (PlayResult <= 0.0f)
 	{
@@ -393,7 +403,6 @@ void AEnemyBase::HandleDeathMontageEnded(UAnimMontage* Montage, bool bInterrupte
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Enemy death montage finished: %s"), *GetNameSafe(this));
 	Destroy();
 }
 
@@ -426,13 +435,17 @@ bool AEnemyBase::EnsureTargetFromCharacterManager()
 		return true;
 	}
 
-	ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
-	if (!SurvivorController)
+	if (!CachedSurvivorController)
+	{
+		CachedSurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	}
+
+	if (!CachedSurvivorController)
 	{
 		return false;
 	}
 
-	ObservedCharacterManager = SurvivorController->GetCharacterManager();
+	ObservedCharacterManager = CachedSurvivorController->GetCharacterManager();
 	if (!ObservedCharacterManager)
 	{
 		return false;
@@ -449,7 +462,6 @@ bool AEnemyBase::EnsureTargetFromCharacterManager()
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Enemy %s target acquired: %s"), *GetNameSafe(this), *GetNameSafe(CurrentTarget));
 	return true;
 }
 
@@ -460,13 +472,16 @@ void AEnemyBase::CachePlayerExperienceComponent()
 		return;
 	}
 
-	ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(ObservedCharacterManager ? ObservedCharacterManager->GetOwner() : nullptr);
-	if (!SurvivorController)
+	if (!CachedSurvivorController)
 	{
-		SurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+		CachedSurvivorController = Cast<ASurvivorPlayerController>(ObservedCharacterManager ? ObservedCharacterManager->GetOwner() : nullptr);
+	}
+	if (!CachedSurvivorController)
+	{
+		CachedSurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	}
 
-	CachedPlayerExperienceComponent = SurvivorController ? SurvivorController->GetExperienceComponent() : nullptr;
+	CachedPlayerExperienceComponent = CachedSurvivorController ? CachedSurvivorController->GetExperienceComponent() : nullptr;
 }
 
 void AEnemyBase::SpawnExperiencePickup()
@@ -516,7 +531,6 @@ void AEnemyBase::SpawnExperiencePickup()
 	}
 
 	Pickup->InitializePickup(XPReward, CachedPlayerExperienceComponent, ObservedCharacterManager);
-	UE_LOG(LogTemp, Log, TEXT("Enemy died: %s dropped %d XP"), *GetNameSafe(this), XPReward);
 }
 
 void AEnemyBase::InitializeHealthBar()
@@ -684,21 +698,16 @@ void AEnemyBase::StopBehaviorUpdates()
 
 void AEnemyBase::HandleBehaviorUpdateTimer()
 {
-	UpdateCharacterMovementProfilingState();
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyBase_BehaviorUpdate);
+	UpdateAnimationProfilingState();
 	UpdateAnimationBudgetSignificance();
-
-	if (IsEnemyCharacterMovementProfilingDisabled())
-	{
-		StopEnemyMovement();
-		return;
-	}
 
 	UpdateEnemyBehavior(BehaviorUpdateInterval);
 }
 
 void AEnemyBase::StartSeparationUpdates()
 {
-	if (!GetWorld() || bIsDead || !IsUsingLightweightMovement() || !bUseEnemySeparation || SeparationRadius <= 0.0f || SeparationUpdateInterval <= 0.0f)
+	if (!GetWorld() || bIsDead || !bUseEnemySeparation || SeparationRadius <= 0.0f || SeparationUpdateInterval <= 0.0f)
 	{
 		CachedEnemySeparationVector = FVector::ZeroVector;
 		return;
@@ -726,7 +735,9 @@ void AEnemyBase::StopSeparationUpdates()
 
 void AEnemyBase::HandleSeparationUpdateTimer()
 {
-	if (bIsDead || !IsUsingLightweightMovement() || !bUseEnemySeparation)
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyBase_SeparationUpdate);
+
+	if (bIsDead || !bUseEnemySeparation)
 	{
 		CachedEnemySeparationVector = FVector::ZeroVector;
 		return;
@@ -737,7 +748,7 @@ void AEnemyBase::HandleSeparationUpdateTimer()
 
 void AEnemyBase::ApplyDesiredMovementInput(float DeltaSeconds)
 {
-	if (!bIsDead && bHasDesiredMovementDirection && !IsEnemyCharacterMovementProfilingDisabled())
+	if (!bIsDead && bHasDesiredMovementDirection)
 	{
 		SmoothFaceTarget(DeltaSeconds);
 		RequestEnemyMovement(DesiredMovementDirection);
@@ -748,7 +759,6 @@ void AEnemyBase::StopDesiredMovement()
 {
 	DesiredMovementDirection = FVector::ZeroVector;
 	DesiredDirectMovementDirection = FVector::ZeroVector;
-	CachedNavSteeringDirection = FVector::ZeroVector;
 	bHasDesiredMovementDirection = false;
 }
 
@@ -757,33 +767,20 @@ void AEnemyBase::InitializeEnemyMovementMode()
 	if (LightweightMovementComponent)
 	{
 		LightweightMovementComponent->SetMoveSpeed(MoveSpeed);
-		LightweightMovementComponent->SetMovementEnabled(bUseLightweightMovement);
+		LightweightMovementComponent->SetMovementEnabled(true);
 	}
 
-	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-	{
-		MovementComponent->MaxWalkSpeed = MoveSpeed;
-
-		if (bUseLightweightMovement)
-		{
-			MovementComponent->StopMovementImmediately();
-			MovementComponent->DisableMovement();
-			MovementComponent->SetComponentTickEnabled(false);
-		}
-	}
+	DisableNativeCharacterMovement();
 
 	if (UCapsuleComponent* EnemyCapsule = GetCapsuleComponent())
 	{
 		ConfigureEnemyCapsuleCollisionDefaults();
 	}
 
-	if (bUseLightweightMovement)
+	if (USkeletalMeshComponent* MeshComponent = GetMesh())
 	{
-		if (USkeletalMeshComponent* MeshComponent = GetMesh())
-		{
-			MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			MeshComponent->SetGenerateOverlapEvents(false);
-		}
+		MeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		MeshComponent->SetGenerateOverlapEvents(false);
 	}
 }
 
@@ -800,16 +797,6 @@ void AEnemyBase::ConfigureEnemyCapsuleCollisionDefaults()
 	}
 }
 
-void AEnemyBase::ConfigureEnemyMovementDefaults()
-{
-	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-	{
-		MovementComponent->bOrientRotationToMovement = false;
-		MovementComponent->bUseControllerDesiredRotation = false;
-		MovementComponent->bUseRVOAvoidance = false;
-	}
-}
-
 void AEnemyBase::InitializeCrowdSpread()
 {
 	const uint32 Seed = GetTypeHash(GetFName()) ^ GetUniqueID();
@@ -820,7 +807,7 @@ void AEnemyBase::InitializeCrowdSpread()
 
 FVector AEnemyBase::ApplyCrowdSpreadToDirection(const FVector& DirectDirection) const
 {
-	if (!IsUsingLightweightMovement() || !bUseCrowdSpread || CrowdSpreadStrength <= 0.0f)
+	if (!bUseCrowdSpread || CrowdSpreadStrength <= 0.0f)
 	{
 		return DirectDirection;
 	}
@@ -845,7 +832,7 @@ FVector AEnemyBase::ApplyCrowdSpreadToDirection(const FVector& DirectDirection) 
 
 FVector AEnemyBase::ApplyEnemySeparationToDirection(const FVector& MovementDirection) const
 {
-	if (!IsUsingLightweightMovement() || !bUseEnemySeparation || SeparationStrength <= 0.0f || CachedEnemySeparationVector.IsNearlyZero())
+	if (!bUseEnemySeparation || SeparationStrength <= 0.0f || CachedEnemySeparationVector.IsNearlyZero())
 	{
 		return MovementDirection;
 	}
@@ -875,67 +862,9 @@ FVector AEnemyBase::ApplyEnemySeparationToDirection(const FVector& MovementDirec
 	return FinalDirection;
 }
 
-FVector AEnemyBase::ApplyLightweightNavSteeringToDirection(const FVector& DirectDirection)
-{
-	if (!IsUsingLightweightMovement() || !bUseLightweightNavSteering || !LightweightMovementComponent || !LightweightMovementComponent->WasLastMoveBlockedByWorldGeometry())
-	{
-		CachedNavSteeringDirection = FVector::ZeroVector;
-		return DirectDirection;
-	}
-
-	UpdateLightweightNavSteeringDirection(DirectDirection);
-	return CachedNavSteeringDirection.IsNearlyZero() ? DirectDirection : CachedNavSteeringDirection;
-}
-
-void AEnemyBase::UpdateLightweightNavSteeringDirection(const FVector& DirectDirection)
-{
-	if (!GetWorld() || !CurrentTarget)
-	{
-		CachedNavSteeringDirection = FVector::ZeroVector;
-		return;
-	}
-
-	const float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime < NextNavSteeringUpdateTime && !CachedNavSteeringDirection.IsNearlyZero())
-	{
-		return;
-	}
-
-	NextNavSteeringUpdateTime = CurrentTime + FMath::Max(0.05f, NavSteeringUpdateInterval);
-
-	UNavigationPath* NavigationPath = UNavigationSystemV1::FindPathToLocationSynchronously(
-		this,
-		GetActorLocation(),
-		CurrentTarget->GetActorLocation(),
-		this);
-
-	if (!NavigationPath || !NavigationPath->IsValid() || NavigationPath->PathPoints.Num() < 2)
-	{
-		CachedNavSteeringDirection = DirectDirection;
-		return;
-	}
-
-	const int32 PathPointIndex = FMath::Clamp(NavSteeringPathPointLookAhead, 1, NavigationPath->PathPoints.Num() - 1);
-	FVector NavDirection = NavigationPath->PathPoints[PathPointIndex] - GetActorLocation();
-	NavDirection.Z = 0.0f;
-	if (!NavDirection.Normalize())
-	{
-		CachedNavSteeringDirection = DirectDirection;
-		return;
-	}
-
-	CachedNavSteeringDirection = NavDirection;
-
-	if (bDebugLightweightNavSteering)
-	{
-		const FVector DebugStart = GetActorLocation() + FVector(0.0f, 0.0f, 55.0f);
-		DrawDebugLine(GetWorld(), DebugStart, DebugStart + CachedNavSteeringDirection * 220.0f, FColor::Purple, false, NavSteeringUpdateInterval, 0, 3.0f);
-		DrawDebugSphere(GetWorld(), NavigationPath->PathPoints[PathPointIndex], 35.0f, 12, FColor::Purple, false, NavSteeringUpdateInterval, 0, 2.0f);
-	}
-}
-
 void AEnemyBase::UpdateCachedEnemySeparation()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyBase_UpdateCachedEnemySeparation);
 	CachedEnemySeparationVector = FVector::ZeroVector;
 
 	if (!GetWorld() || SeparationRadius <= 0.0f)
@@ -1009,13 +938,13 @@ void AEnemyBase::UpdateCachedEnemySeparation()
 
 void AEnemyBase::RequestEnemyMovement(const FVector& WorldDirection)
 {
-	if (IsUsingLightweightMovement())
+	if (!LightweightMovementComponent)
 	{
-		LightweightMovementComponent->RequestMove(WorldDirection);
+		ensureMsgf(false, TEXT("Enemy %s is missing required LightweightMovementComponent."), *GetNameSafe(this));
 		return;
 	}
 
-	AddMovementInput(WorldDirection);
+	LightweightMovementComponent->RequestMove(WorldDirection);
 }
 
 void AEnemyBase::StopEnemyMovement()
@@ -1035,80 +964,33 @@ void AEnemyBase::StopEnemyMovement()
 
 FVector AEnemyBase::GetEnemyMovementVelocity() const
 {
-	if (IsUsingLightweightMovement())
+	if (LightweightMovementComponent)
 	{
 		return LightweightMovementComponent->GetCurrentVelocity();
-	}
-
-	if (const UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-	{
-		return MovementComponent->Velocity;
 	}
 
 	return FVector::ZeroVector;
 }
 
-bool AEnemyBase::IsUsingLightweightMovement() const
+void AEnemyBase::DisableNativeCharacterMovement()
 {
-	return bUseLightweightMovement && LightweightMovementComponent && LightweightMovementComponent->IsMovementEnabled();
-}
-
-bool AEnemyBase::IsEnemyCharacterMovementProfilingDisabled() const
-{
-	return CVarDisableEnemyCharacterMovementForProfiling.GetValueOnGameThread() != 0;
-}
-
-void AEnemyBase::UpdateCharacterMovementProfilingState()
-{
-	const bool bShouldDisableMovement = IsEnemyCharacterMovementProfilingDisabled();
-	if (bUseLightweightMovement)
+	if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
 	{
-		bCharacterMovementDisabledForProfiling = true;
-		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
-		{
-			MovementComponent->StopMovementImmediately();
-			MovementComponent->DisableMovement();
-			MovementComponent->SetComponentTickEnabled(false);
-		}
-		return;
-	}
-
-	if (bCharacterMovementDisabledForProfiling == bShouldDisableMovement)
-	{
-		return;
-	}
-
-	UCharacterMovementComponent* MovementComponent = GetCharacterMovement();
-	if (!MovementComponent)
-	{
-		bCharacterMovementDisabledForProfiling = bShouldDisableMovement;
-		return;
-	}
-
-	if (bShouldDisableMovement)
-	{
-		StopEnemyMovement();
+		MovementComponent->StopMovementImmediately();
 		MovementComponent->DisableMovement();
 		MovementComponent->SetComponentTickEnabled(false);
 	}
-	else if (!bIsDead)
-	{
-		MovementComponent->SetComponentTickEnabled(true);
-		MovementComponent->SetMovementMode(MOVE_Walking);
-		MovementComponent->MaxWalkSpeed = MoveSpeed;
-	}
-
-	bCharacterMovementDisabledForProfiling = bShouldDisableMovement;
 }
 
 bool AEnemyBase::IsEnemyAnimationProfilingDisabled() const
 {
-	return CVarDisableEnemyAnimationForProfiling.GetValueOnGameThread() != 0;
+	return bCachedAnimationProfilingDisabled;
 }
 
 void AEnemyBase::UpdateAnimationProfilingState()
 {
-	const bool bShouldDisableAnimation = IsEnemyAnimationProfilingDisabled();
+	const bool bShouldDisableAnimation = CVarDisableEnemyAnimationForProfiling.GetValueOnGameThread() != 0;
+	bCachedAnimationProfilingDisabled = bShouldDisableAnimation;
 	if (bAnimationDisabledForProfiling == bShouldDisableAnimation)
 	{
 		return;
@@ -1273,12 +1155,6 @@ bool AEnemyBase::ShouldForceHighAnimationBudgetSignificance() const
 
 void AEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
-	if (IsEnemyCharacterMovementProfilingDisabled())
-	{
-		StopEnemyMovement();
-		return;
-	}
-
 	if (bIsDead || IsPlayerTargetDead() || ShouldSkipMovement())
 	{
 		StopEnemyMovement();
@@ -1321,11 +1197,10 @@ void AEnemyBase::MoveTowardCurrentTarget()
 	if (ToTarget.Normalize())
 	{
 		DesiredDirectMovementDirection = ToTarget;
-		const FVector SteeringDirection = ApplyLightweightNavSteeringToDirection(ToTarget);
-		DesiredMovementDirection = ApplyEnemySeparationToDirection(ApplyCrowdSpreadToDirection(SteeringDirection));
+		DesiredMovementDirection = ApplyEnemySeparationToDirection(ApplyCrowdSpreadToDirection(ToTarget));
 		bHasDesiredMovementDirection = true;
 
-		if (bDebugCrowdSpread && GetWorld() && IsUsingLightweightMovement())
+		if (bDebugCrowdSpread && GetWorld())
 		{
 			const FVector DebugStart = GetActorLocation() + FVector(0.0f, 0.0f, 40.0f);
 			DrawDebugLine(GetWorld(), DebugStart, DebugStart + DesiredDirectMovementDirection * 160.0f, FColor::Green, false, 0.0f, 0, 2.0f);
@@ -1371,6 +1246,5 @@ void AEnemyBase::SmoothFaceTarget(float DeltaSeconds)
 
 bool AEnemyBase::IsPlayerTargetDead() const
 {
-	ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
-	return SurvivorController && SurvivorController->IsPlayerDead();
+	return CachedSurvivorController && CachedSurvivorController->IsPlayerDead();
 }

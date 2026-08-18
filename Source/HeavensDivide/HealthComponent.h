@@ -24,6 +24,12 @@ public:
 	void ApplyDamage(float DamageAmount);
 
 	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetDamageEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintPure, Category = "Health")
+	bool IsDamageEnabled() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
 	void Heal(float HealAmount);
 
 	UFUNCTION(BlueprintCallable, Category = "Health")
@@ -63,4 +69,5 @@ private:
 	void LogInvalidHealthState(const TCHAR* Context) const;
 
 	bool bDeathBroadcast = false;
+	bool bDamageEnabled = true;
 };

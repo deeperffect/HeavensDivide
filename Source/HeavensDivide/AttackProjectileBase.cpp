@@ -120,12 +120,6 @@ void AAttackProjectileBase::InitializeProjectile(
 	SetActorRotation(Direction.Rotation());
 	bIsProjectileInitialized = true;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-
-	UE_LOG(LogTemp, Log, TEXT("Projectile initialized: Owner=%s Direction=%s Damage=%.2f Speed=%.2f"),
-		*GetNameSafe(InGameplayOwner),
-		*Direction.ToString(),
-		ProjectileDamage,
-		ProjectileSpeed);
 }
 
 void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -194,10 +188,6 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		EnemyHealth->ApplyDamage(FinalDamage);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		const bool bExecutionKill = bHasChainExecution && bConsumedMark && bKilledEnemy;
-		UE_LOG(LogTemp, Log, TEXT("Projectile hit enemy: %s Damage=%.2f RemainingHealth=%.2f"),
-			*GetNameSafe(HitEnemy),
-			FinalDamage,
-			EnemyHealth->GetCurrentHealth());
 
 		if (bDebugChainExecution)
 		{
@@ -257,10 +247,6 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 
 		LogProjectileFilterResult(OtherActor, true);
 		PlayerHealth->ApplyDamage(ProjectileDamage);
-		UE_LOG(LogTemp, Log, TEXT("Projectile hit active player: %s Damage=%.2f RemainingHealth=%.2f"),
-			*GetNameSafe(HitPlayerCharacter),
-			ProjectileDamage,
-			PlayerHealth->GetCurrentHealth());
 
 		Destroy();
 	}

@@ -14,7 +14,6 @@
 AMeleeEnemyBase::AMeleeEnemyBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bUseLightweightMovement = true;
 }
 
 void AMeleeEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier)
@@ -32,6 +31,12 @@ void AMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
+	if (IsStressTestCombatDisabled())
+	{
+		AEnemyBase::UpdateEnemyBehavior(DeltaSeconds);
+		return;
+	}
+
 	if (bIsDead || IsPlayerTargetDead())
 	{
 		StopAttackTimer();
@@ -82,9 +87,6 @@ void AMeleeEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter,
 
 	if (bIsAttacking)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Character Swapped During Attack"));
-		UE_LOG(LogTemp, Log, TEXT("New CurrentTarget = %s"), *GetNameSafe(CurrentTarget));
-		UE_LOG(LogTemp, Log, TEXT("Existing Attack Continues"));
 	}
 }
 
@@ -173,6 +175,12 @@ void AMeleeEnemyBase::MarkAttackStarted()
 
 void AMeleeEnemyBase::StartAttack()
 {
+	if (IsStressTestCombatDisabled())
+	{
+		StopAttackTimer();
+		return;
+	}
+
 	if (bIsDead || IsPlayerTargetDead() || bIsAttacking || !CurrentTarget || !IsTargetInAttackRange())
 	{
 		StopAttackTimer();
@@ -186,8 +194,6 @@ void AMeleeEnemyBase::StartAttack()
 	}
 
 	FaceTarget();
-	UE_LOG(LogTemp, Log, TEXT("Enemy Attack Started"));
-	UE_LOG(LogTemp, Log, TEXT("Target at Start = %s"), *GetNameSafe(CurrentTarget));
 
 	if (!AttackMontage)
 	{
@@ -203,7 +209,6 @@ void AMeleeEnemyBase::StartAttack()
 	}
 
 	const float PlayResult = AnimInstance->Montage_Play(AttackMontage);
-	UE_LOG(LogTemp, Log, TEXT("Enemy attack montage plays: %s Result=%.3f"), *GetNameSafe(AttackMontage), PlayResult);
 
 	if (PlayResult <= 0.0f)
 	{
@@ -223,6 +228,11 @@ void AMeleeEnemyBase::StartAttack()
 
 void AMeleeEnemyBase::PerformAttackHit()
 {
+	if (IsStressTestCombatDisabled())
+	{
+		return;
+	}
+
 	ExecuteAttackHit();
 }
 
@@ -236,7 +246,10 @@ void AMeleeEnemyBase::HandleAttackFinished()
 
 void AMeleeEnemyBase::ExecuteAttackHit()
 {
-	UE_LOG(LogTemp, Log, TEXT("Enemy Attack Impact"));
+	if (IsStressTestCombatDisabled())
+	{
+		return;
+	}
 
 	if (bIsDead || IsPlayerTargetDead() || !ObservedCharacterManager)
 	{
@@ -270,7 +283,6 @@ void AMeleeEnemyBase::ExecuteAttackHit()
 
 	if (!bPlayerInHitArea)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Enemy attack missed: ActiveCharacter=%s"), *GetNameSafe(ActivePlayerCharacter));
 		return;
 	}
 
@@ -287,10 +299,6 @@ void AMeleeEnemyBase::ExecuteAttackHit()
 	}
 
 	TargetHealth->ApplyDamage(AttackDamage);
-	UE_LOG(LogTemp, Log, TEXT("Player receives damage: Target=%s Damage=%.2f RemainingHealth=%.2f"),
-		*GetNameSafe(ActivePlayerCharacter),
-		AttackDamage,
-		TargetHealth->GetCurrentHealth());
 }
 
 void AMeleeEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -307,5 +315,4 @@ void AMeleeEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInte
 	{
 		StartAttackTimer();
 	}
-	UE_LOG(LogTemp, Log, TEXT("Enemy Attack Finished"));
 }

@@ -9,6 +9,7 @@
 class ACharacterBase;
 class AEnemyBase;
 class AEnemySpawnArea;
+class UAutoAttackComponent;
 class UCurveFloat;
 
 USTRUCT(BlueprintType)
@@ -57,6 +58,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy Spawning")
 	AEnemyBase* SpawnEnemy();
+
+#if !UE_BUILD_SHIPPING
+	void StressEnemies(int32 DesiredLivingEnemyCount);
+	void ClearStressEnemies();
+#endif
 
 	UFUNCTION(BlueprintPure, Category = "Run")
 	float GetRunTimeSeconds() const;
@@ -161,6 +167,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Debug")
 	bool bDebugSpawnValidation = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stress Test", meta = (DevelopmentOnly))
+	TSubclassOf<AEnemyBase> StressTestEnemyClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stress Test", meta = (ClampMin = "1", UIMin = "1", DevelopmentOnly))
+	int32 StressSpawnBatchSize = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Stress Test", meta = (ClampMin = "0.01", UIMin = "0.01", DevelopmentOnly))
+	float StressSpawnBatchInterval = 0.05f;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AEnemyBase>> StressTestEnemies;
+
+	FTimerHandle StressSpawnTimerHandle;
+	int32 RequestedStressEnemyCount = 0;
+	bool bStressPauseNormalSpawning = false;
+	bool bSavedSpawningEnabledBeforeStressPause = false;
+	bool bStressAutoAttacksDisabled = false;
+	bool bSavedFirstAutoAttackEnabled = false;
+	bool bSavedSecondAutoAttackEnabled = false;
+
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AEnemyBase>> SpawnedEnemies;
 
@@ -198,4 +224,17 @@ protected:
 
 	UFUNCTION()
 	void HandleSpawnedEnemyDestroyed(AActor* DestroyedActor);
+
+#if !UE_BUILD_SHIPPING
+	TSubclassOf<AEnemyBase> GetStressTestEnemyClass() const;
+	bool IsStressTestEnemyClassConfigured() const;
+	AEnemyBase* SpawnStressEnemy();
+	void HandleStressSpawnTimerElapsed();
+	void PruneStressTestEnemies();
+	int32 GetLivingStressEnemyCount() const;
+	void SetStressPauseNormalSpawning(bool bPause);
+	void DisablePlayerAutoAttacksForStressTest();
+	void RestorePlayerAutoAttacksAfterStressTest();
+	UAutoAttackComponent* FindAutoAttackComponent(ACharacterBase* Character) const;
+#endif
 };

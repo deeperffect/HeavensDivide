@@ -87,6 +87,12 @@ void ATankMeleeEnemyBase::HandleDeath()
 
 void ATankMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
+	if (IsStressTestCombatDisabled())
+	{
+		AEnemyBase::UpdateEnemyBehavior(DeltaSeconds);
+		return;
+	}
+
 	if (bIsAttacking)
 	{
 		StopEnemyMovement();
@@ -107,6 +113,11 @@ void ATankMeleeEnemyBase::StopEnemyBehavior()
 
 void ATankMeleeEnemyBase::HandleAttackCommitted()
 {
+	if (IsStressTestCombatDisabled())
+	{
+		return;
+	}
+
 	Super::HandleAttackCommitted();
 	StartWindupFacingTracking();
 	ShowAttackTelegraph();
@@ -123,6 +134,11 @@ void ATankMeleeEnemyBase::HandleAttackFinished()
 
 void ATankMeleeEnemyBase::ExecuteAttackHit()
 {
+	if (IsStressTestCombatDisabled())
+	{
+		return;
+	}
+
 	LockAttackFacing();
 	SetTelegraphFillAmount(1.0f);
 	StopTelegraphFill();

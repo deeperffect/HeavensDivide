@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "EnemyBase.h"
 #include "GameFramework/Character.h"
+#include "Stats/Stats.h"
 
 static bool FindBlockingWorldGeometryHit(const TArray<FHitResult>& HitResults, FHitResult& OutHit)
 {
@@ -75,6 +76,7 @@ void UEnemyLightweightMovementComponent::BeginPlay()
 
 void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyLightweightMovement_Tick);
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	AActor* Owner = GetOwner();
@@ -91,6 +93,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 		CurrentVelocity = FVector::ZeroVector;
 		bLastMoveBlockedByWorldGeometry = false;
 		bHasRequestedMove = false;
+		SetComponentTickEnabled(false);
 		return;
 	}
 
@@ -101,6 +104,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 		CurrentVelocity = FVector::ZeroVector;
 		bLastMoveBlockedByWorldGeometry = false;
 		bHasRequestedMove = false;
+		SetComponentTickEnabled(false);
 		return;
 	}
 
@@ -123,6 +127,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 	}
 
 	TArray<FHitResult> MoveHits;
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyLightweightMovement_PrimarySweep);
 	const bool bHasMoveHits = Owner->GetWorld()
 		&& Owner->GetWorld()->SweepMultiByChannel(
 			MoveHits,
@@ -156,6 +161,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 
 			FHitResult SlideHit;
 			TArray<FHitResult> SlideHits;
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyLightweightMovement_SlideSweep);
 			const bool bHasSlideHits = Owner->GetWorld()
 				&& Owner->GetWorld()->SweepMultiByChannel(
 					SlideHits,
@@ -186,7 +192,7 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 void UEnemyLightweightMovementComponent::SetMovementEnabled(bool bInMovementEnabled)
 {
 	bMovementEnabled = bInMovementEnabled;
-	SetComponentTickEnabled(bMovementEnabled);
+	SetComponentTickEnabled(false);
 
 	if (!bMovementEnabled)
 	{
@@ -214,6 +220,10 @@ void UEnemyLightweightMovementComponent::RequestMove(const FVector& WorldDirecti
 	RequestedMoveDirection = WorldDirection;
 	RequestedMoveDirection.Z = 0.0f;
 	bHasRequestedMove = !RequestedMoveDirection.IsNearlyZero();
+	if (bHasRequestedMove && !IsComponentTickEnabled())
+	{
+		SetComponentTickEnabled(true);
+	}
 }
 
 void UEnemyLightweightMovementComponent::StopMovement()
@@ -222,6 +232,7 @@ void UEnemyLightweightMovementComponent::StopMovement()
 	CurrentVelocity = FVector::ZeroVector;
 	bHasRequestedMove = false;
 	bLastMoveBlockedByWorldGeometry = false;
+	SetComponentTickEnabled(false);
 }
 
 FVector UEnemyLightweightMovementComponent::GetCurrentVelocity() const

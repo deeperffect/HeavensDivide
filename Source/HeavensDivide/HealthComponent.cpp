@@ -30,6 +30,12 @@ void UHealthComponent::ApplyDamage(float DamageAmount)
 	LogInvalidHealthState(TEXT("ApplyDamage:Before"));
 
 	const float PreviousHealth = CurrentHealth;
+	if (!bDamageEnabled)
+	{
+		LogDamageDebug(TEXT("Rejected: damage disabled"), DamageAmount, PreviousHealth, CurrentHealth);
+		return;
+	}
+
 	if (!FMath::IsFinite(DamageAmount) || DamageAmount <= 0.0f)
 	{
 		LogDamageDebug(TEXT("Rejected: non-positive or invalid damage"), DamageAmount, PreviousHealth, CurrentHealth);
@@ -60,6 +66,16 @@ void UHealthComponent::ApplyDamage(float DamageAmount)
 		bDeathBroadcast = true;
 		OnDeath.Broadcast();
 	}
+}
+
+void UHealthComponent::SetDamageEnabled(bool bEnabled)
+{
+	bDamageEnabled = bEnabled;
+}
+
+bool UHealthComponent::IsDamageEnabled() const
+{
+	return bDamageEnabled;
 }
 
 void UHealthComponent::Heal(float HealAmount)

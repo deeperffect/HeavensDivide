@@ -34,12 +34,12 @@ static TAutoConsoleVariable<int32> CVarHDDebugSamuraiTargeting(
 	0,
 	TEXT("Logs Samurai melee cluster target scoring when enabled."));
 
-namespace MarkedForDeathUpgradeIds
+namespace AutoAttackMarkedForDeathUpgradeIds
 {
 	static const FName MarkedBlade(TEXT("MarkedBlade"));
 }
 
-static const UPlayerUpgradeComponent* GetPlayerUpgradesForMarkedForDeath(const UObject* WorldContextObject, const AActor* PlayerCharacter)
+static const UPlayerUpgradeComponent* GetPlayerUpgradesForAutoAttackMarkedForDeath(const UObject* WorldContextObject, const AActor* PlayerCharacter)
 {
 	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(PlayerCharacter ? PlayerCharacter->GetOwner() : nullptr);
 	if (!SurvivorController)
@@ -103,12 +103,6 @@ void UAutoAttackComponent::StartAutoAttack()
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] StartAutoAttack called Owner=%s Component=%p TimerActive=%s"),
-		GetWorld()->GetTimeSeconds(),
-		*GetNameSafe(GetOwner()),
-		this,
-		GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
-
 	ScheduleNextAttackTimerFromCooldown();
 }
 
@@ -116,11 +110,6 @@ void UAutoAttackComponent::StopAutoAttack()
 {
 	if (UWorld* World = GetWorld())
 	{
-		UE_LOG(LogTemp, Log, TEXT("[%.2f] StopAutoAttack called Owner=%s Component=%p TimerActive=%s"),
-			World->GetTimeSeconds(),
-			*GetNameSafe(GetOwner()),
-			this,
-			World->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
 		World->GetTimerManager().ClearTimer(AttackTimerHandle);
 	}
 
@@ -141,24 +130,39 @@ void UAutoAttackComponent::SetAttackInterval(float NewInterval)
 
 	if (GetWorld() && GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
 	{
-		UE_LOG(LogTemp, Log, TEXT("[%.2f] SetAttackInterval restarting timer Owner=%s Component=%p AttackInterval=%.3f"),
-			GetWorld()->GetTimeSeconds(),
-			*GetNameSafe(GetOwner()),
-			this,
-			GetEffectiveAttackInterval());
 		ScheduleNextAttackTimer(GetEffectiveAttackInterval());
 	}
 }
 
-void UAutoAttackComponent::PerformAttackTrace()
+void UAutoAttackComponent::SetAutoAttackEnabled(bool bEnabled)
 {
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Notify Fired"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
-	if (!TryConsumeAttackNotify())
+	if (bAutoAttackEnabled == bEnabled)
 	{
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("PerformAttackTrace Called"));
+	bAutoAttackEnabled = bEnabled;
+	if (bAutoAttackEnabled)
+	{
+		StartAutoAttack();
+	}
+	else
+	{
+		StopAutoAttack();
+	}
+}
+
+bool UAutoAttackComponent::IsAutoAttackEnabled() const
+{
+	return bAutoAttackEnabled;
+}
+
+void UAutoAttackComponent::PerformAttackTrace()
+{
+	if (!TryConsumeAttackNotify())
+	{
+		return;
+	}
 
 	if (!OwnerCharacter || !GetWorld())
 	{
@@ -177,7 +181,6 @@ void UAutoAttackComponent::PerformAttackTrace()
 
 		if (!AssistTarget || AssistTarget->IsDead() || !IsTargetInCurrentMeleeReach(AssistTarget))
 		{
-			UE_LOG(LogTemp, Log, TEXT("Assist melee trace skipped: target invalid or out of reach."));
 			return;
 		}
 	}
@@ -194,16 +197,8 @@ void UAutoAttackComponent::PerformAttackTrace()
 	const FVector HitboxCenter = AttackOrigin + AttackForward * AttackForwardOffset;
 	const float EffectiveAttackRadius = GetEffectiveAttackRadius();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
-	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForMarkedForDeath(this, OwnerCharacter);
-	const bool bCanApplyMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::MarkedBlade);
-
-	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace origin: %s"), *AttackOrigin.ToString());
-	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace direction: %s"), *AttackForward.ToString());
-	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace sphere center: %s"), *HitboxCenter.ToString());
-	UE_LOG(LogTemp, Log, TEXT("AutoAttack trace AttackRadius: %.2f AttackRange: %.2f AttackForwardOffset: %.2f"),
-		EffectiveAttackRadius,
-		AttackRange,
-		AttackForwardOffset);
+	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+	const bool bCanApplyMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(AutoAttackMarkedForDeathUpgradeIds::MarkedBlade);
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(AutoAttackTrace), false, OwnerCharacter);
 	QueryParams.AddIgnoredActor(OwnerCharacter);
@@ -250,10 +245,6 @@ void UAutoAttackComponent::PerformAttackTrace()
 		{
 			HitEnemy->ApplyMark();
 		}
-		UE_LOG(LogTemp, Log, TEXT("AutoAttack damaged enemy: %s Damage=%.2f RemainingHealth=%.2f"),
-			*GetNameSafe(HitEnemy),
-			EffectiveAttackDamage,
-			EnemyHealth->GetCurrentHealth());
 	}
 
 	if (bDebugAttackTrace)
@@ -262,23 +253,15 @@ void UAutoAttackComponent::PerformAttackTrace()
 		constexpr float DebugDuration = 1.5f;
 		DrawDebugLine(GetWorld(), AttackOrigin, HitboxCenter, DebugColor, false, DebugDuration, 0, 4.0f);
 		DrawDebugSphere(GetWorld(), HitboxCenter, EffectiveAttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
-		UE_LOG(LogTemp, Log, TEXT("AutoAttack debug trace drawn."));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("AutoAttack debug trace disabled."));
 	}
 }
 
 void UAutoAttackComponent::SpawnAutoAttackProjectile()
 {
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectile Notify Fired"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
 	if (!TryConsumeAttackNotify())
 	{
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("SpawnAutoAttackProjectile Called"));
 
 	if (!CanExecuteAttackInCurrentMode())
 	{
@@ -296,7 +279,6 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	FindEnemyTargetsSorted(TargetCandidates);
 	if (TargetCandidates.Num() == 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Projectile spawn skipped: no valid targets in range."));
 		if (OwnerCharacter)
 		{
 			OwnerCharacter->ClearFacingOverride();
@@ -351,14 +333,6 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		OwnerCharacter->ClearFacingOverride();
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Projectiles Spawned: PrimaryTarget=%s SpawnLocation=%s ProjectileCount=%d ValidTargets=%d"),
-		GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0,
-		ActiveAttackSequence,
-		*GetNameSafe(TargetCandidates[0]),
-		*SpawnLocation.ToString(),
-		SpawnedProjectileCount,
-		TargetCandidates.Num());
 
 	if (bDebugTargeting)
 	{
@@ -511,29 +485,20 @@ void UAutoAttackComponent::HandleAttackTimer()
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack Timer Fired Owner=%s Component=%p"),
-		GetWorld()->GetTimeSeconds(),
-		*GetNameSafe(GetOwner()),
-		this);
-	UE_LOG(LogTemp, Log, TEXT("Attack Ready"));
-
 	if (bIsAttacking)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));
 		ScheduleNextAttackTimerFromCooldown();
 		return;
 	}
 
 	if (OwnerCharacter && OwnerCharacter->IsDashing())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Dashing"));
 		ScheduleNextAttackTimerFromCooldown();
 		return;
 	}
 
 	if (!CanStartAttackNow())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
 		const float Delay = FMath::Max(0.01f, static_cast<float>(NextAttackReadyTime - GetWorld()->GetTimeSeconds()));
 		ScheduleNextAttackTimer(Delay);
 		return;
@@ -571,12 +536,6 @@ void UAutoAttackComponent::ScheduleNextAttackTimer(float Delay)
 		SafeDelay,
 		false);
 
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] AutoAttack timer scheduled Owner=%s Component=%p Delay=%.3f TimerActive=%s"),
-		World->GetTimeSeconds(),
-		*GetNameSafe(GetOwner()),
-		this,
-		SafeDelay,
-		World->GetTimerManager().IsTimerActive(AttackTimerHandle) ? TEXT("true") : TEXT("false"));
 }
 
 void UAutoAttackComponent::ScheduleNextAttackTimerFromCooldown()
@@ -654,7 +613,6 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 
 	if (bIsAttacking)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Assist attack skipped: already attacking."));
 		return false;
 	}
 
@@ -706,8 +664,6 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("AttackMontage valid: %s"), *GetNameSafe(AttackMontage));
-
 	ACharacter* OwnerAsCharacter = Cast<ACharacter>(GetOwner());
 	if (!OwnerAsCharacter)
 	{
@@ -729,20 +685,8 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("AnimInstance valid: %s"), *GetNameSafe(AnimInstance));
-
 	const float ActualPlayRate = CalculateAttackMontagePlayRate(AttackMontage);
-	const float MontageLength = AttackMontage->GetPlayLength();
-	const float EffectiveAttackInterval = GetEffectiveAttackInterval();
-	const float CalculatedPlayRate = EffectiveAttackInterval > KINDA_SMALL_NUMBER ? MontageLength / EffectiveAttackInterval : MaxAttackMontagePlayRate;
-	UE_LOG(LogTemp, Log, TEXT("Attack Montage Rate: AttackInterval=%.3f MontageLength=%.3f CalculatedPlayRate=%.3f ActualPlayRate=%.3f"),
-		EffectiveAttackInterval,
-		MontageLength,
-		CalculatedPlayRate,
-		ActualPlayRate);
-
 	const float PlayResult = AnimInstance->Montage_Play(AttackMontage, ActualPlayRate);
-	UE_LOG(LogTemp, Log, TEXT("Attack montage play result: %.3f"), PlayResult);
 	if (PlayResult <= 0.0f)
 	{
 		return false;
@@ -762,7 +706,6 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 		NextAttackReadyTime = LastAttackStartTime + AttackIntervalAtLastAttackStart;
 	}
 	ActiveAttackSequence = ++AttackSequence;
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Started"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
 	if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[%s] Attack started FinalInterval=%.3f NextReadyTime=%.2f"),
@@ -819,7 +762,6 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 	{
 		OwnerCharacter->ClearFacingOverride();
 	}
-	UE_LOG(LogTemp, Log, TEXT("[%.2f] Attack #%d Finished"), GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0, ActiveAttackSequence);
 	ActiveAttackSequence = 0;
 }
 
@@ -827,26 +769,22 @@ bool UAutoAttackComponent::StartTargetedAttack()
 {
 	if (OwnerCharacter && OwnerCharacter->IsDashing())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Auto attack skipped: owner is dashing."));
 		return false;
 	}
 
 	if (bIsAttacking)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Already Attacking"));
 		return false;
 	}
 
 	if (!CanStartAttackNow())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Attempt Skipped: Cooldown"));
 		return false;
 	}
 
 	AEnemyBase* TargetEnemy = FindNearestEnemyTarget();
 	if (!TargetEnemy)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Auto attack skipped: no living enemy in range."));
 		CurrentAttackTarget.Reset();
 		if (OwnerCharacter)
 		{
@@ -859,15 +797,6 @@ bool UAutoAttackComponent::StartTargetedAttack()
 	const FVector AimLocation = GetEnemyAimLocation(TargetEnemy);
 	OwnerCharacter->SetFacingOverrideTarget(AimLocation);
 
-	UE_LOG(LogTemp, Log, TEXT("Auto attack target selected: %s Distance=%.2f"),
-		*GetNameSafe(TargetEnemy),
-		FVector::Dist2D(OwnerCharacter->GetActorLocation(), TargetEnemy->GetActorLocation()));
-
-	if (!ProjectileClass)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Samurai Auto Attack"));
-	}
-
 	if (PlayAttackMontage())
 	{
 		OnAutoAttack.Broadcast(this, EAutoAttackSource::NormalAutoAttack);
@@ -875,11 +804,6 @@ bool UAutoAttackComponent::StartTargetedAttack()
 	}
 
 	return false;
-}
-
-bool UAutoAttackComponent::StartProjectileAttack()
-{
-	return StartTargetedAttack();
 }
 
 bool UAutoAttackComponent::CanStartAttackNow() const
@@ -912,19 +836,16 @@ bool UAutoAttackComponent::TryConsumeAttackNotify()
 {
 	if (IsOwningPlayerDead())
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Notify Skipped: player is dead"));
 		return false;
 	}
 
 	if (!bIsAttacking)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Notify Skipped: No Active Attack"));
 		return false;
 	}
 
 	if (bAttackNotifyConsumed)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Attack Notify Skipped: Already Consumed"));
 		return false;
 	}
 
@@ -1018,13 +939,6 @@ AEnemyBase* UAutoAttackComponent::FindNearestEnemyTarget() const
 		if (BestEnemy)
 		{
 			DrawDebugLine(GetWorld(), OwnerCharacter->GetActorLocation(), BestEnemy->GetActorLocation(), FColor::Green, false, DebugDuration, 0, 3.0f);
-			UE_LOG(LogTemp, Log, TEXT("Targeting selected enemy: %s Distance=%.2f"),
-				*GetNameSafe(BestEnemy),
-				FVector::Dist2D(OwnerCharacter->GetActorLocation(), BestEnemy->GetActorLocation()));
-		}
-		else
-		{
-			UE_LOG(LogTemp, Log, TEXT("Targeting found no living enemy in range %.2f."), GetEffectiveTargetingRange());
 		}
 	}
 

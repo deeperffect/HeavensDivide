@@ -24,6 +24,12 @@ void ARangedEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ARangedEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
+	if (IsStressTestCombatDisabled())
+	{
+		AEnemyBase::UpdateEnemyBehavior(DeltaSeconds);
+		return;
+	}
+
 	if (bIsDead || IsPlayerTargetDead())
 	{
 		StopAttackTimer();
@@ -74,9 +80,6 @@ void ARangedEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter
 
 	if (bIsAttacking)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Character Swapped During Ranged Attack"));
-		UE_LOG(LogTemp, Log, TEXT("New CurrentTarget = %s"), *GetNameSafe(CurrentTarget));
-		UE_LOG(LogTemp, Log, TEXT("Existing Ranged Attack Continues"));
 	}
 }
 
@@ -165,6 +168,12 @@ void ARangedEnemyBase::MarkAttackStarted()
 
 void ARangedEnemyBase::StartAttack()
 {
+	if (IsStressTestCombatDisabled())
+	{
+		StopAttackTimer();
+		return;
+	}
+
 	if (bIsDead || IsPlayerTargetDead() || bIsAttacking || !CurrentTarget || !IsTargetInAttackRange())
 	{
 		StopAttackTimer();
@@ -178,8 +187,6 @@ void ARangedEnemyBase::StartAttack()
 	}
 
 	FaceTarget();
-	UE_LOG(LogTemp, Log, TEXT("Enemy Ranged Attack Started"));
-	UE_LOG(LogTemp, Log, TEXT("Target at Start = %s"), *GetNameSafe(CurrentTarget));
 
 	if (!AttackMontage)
 	{
@@ -195,7 +202,6 @@ void ARangedEnemyBase::StartAttack()
 	}
 
 	const float PlayResult = AnimInstance->Montage_Play(AttackMontage);
-	UE_LOG(LogTemp, Log, TEXT("Enemy ranged attack montage plays: %s Result=%.3f"), *GetNameSafe(AttackMontage), PlayResult);
 
 	if (PlayResult <= 0.0f)
 	{
@@ -213,7 +219,10 @@ void ARangedEnemyBase::StartAttack()
 
 void ARangedEnemyBase::SpawnAttackProjectile()
 {
-	UE_LOG(LogTemp, Log, TEXT("Enemy Ranged Projectile Release"));
+	if (IsStressTestCombatDisabled())
+	{
+		return;
+	}
 
 	if (bIsDead || IsPlayerTargetDead() || !CurrentTarget || !ProjectileClass || !GetWorld())
 	{
@@ -245,10 +254,6 @@ void ARangedEnemyBase::SpawnAttackProjectile()
 	}
 
 	Projectile->InitializeProjectile(this, Direction, AttackDamage, ProjectileSpeed, EProjectileTargetType::ActivePlayer);
-	UE_LOG(LogTemp, Log, TEXT("Enemy projectile spawned: Target=%s SpawnLocation=%s Direction=%s"),
-		*GetNameSafe(CurrentTarget),
-		*SpawnLocation.ToString(),
-		*Direction.ToString());
 }
 
 void ARangedEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -264,7 +269,6 @@ void ARangedEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInt
 	{
 		StartAttackTimer();
 	}
-	UE_LOG(LogTemp, Log, TEXT("Enemy Ranged Attack Finished"));
 }
 
 FVector ARangedEnemyBase::GetProjectileSpawnLocation() const

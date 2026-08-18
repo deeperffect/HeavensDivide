@@ -13,6 +13,7 @@ class UEnemyHealthBarWidget;
 class UEnemyMarkIndicatorWidget;
 class USkeletalMeshComponentBudgeted;
 class ACharacterBase;
+class ASurvivorPlayerController;
 class UCharacterManagerComponent;
 class UEnemyLightweightMovementComponent;
 class UExperienceComponent;
@@ -43,6 +44,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Enemy")
 	bool IsDead() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Stress Test")
+	void ConfigureForStressTest(bool bDisableCombat, bool bMakeInvulnerable);
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Stress Test")
+	bool IsStressTestEnemy() const;
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Stress Test")
+	bool IsStressTestCombatDisabled() const;
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Stress Test")
+	bool IsStressTestInvulnerable() const;
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Mark")
 	bool IsMarked() const;
@@ -131,9 +144,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float StopDistance = 150.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (AdvancedDisplay))
-	bool bUseLightweightMovement = true;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (AdvancedDisplay))
 	bool bUseCrowdSpread = true;
 
@@ -164,18 +174,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
 	float BehaviorUpdateInterval = 0.1f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (AdvancedDisplay))
-	bool bUseLightweightNavSteering = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (ClampMin = "0.05", UIMin = "0.05", AdvancedDisplay))
-	float NavSteeringUpdateInterval = 0.35f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (ClampMin = "1", UIMin = "1", AdvancedDisplay))
-	int32 NavSteeringPathPointLookAhead = 1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Navigation", meta = (AdvancedDisplay))
-	bool bDebugLightweightNavSteering = false;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
@@ -187,6 +185,15 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Mark")
 	bool bIsMarked = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Stress Test")
+	bool bIsStressTestEnemy = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Stress Test")
+	bool bStressTestDisableCombat = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Stress Test")
+	bool bStressTestInvulnerable = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float DeathDestroyDelay = 3.0f;
@@ -220,7 +227,6 @@ protected:
 	void UpdateMarkIndicatorVisibility();
 	void HideMarkIndicator();
 	void ConfigureEnemyCapsuleCollisionDefaults();
-	void ConfigureEnemyMovementDefaults();
 	void StartBehaviorUpdates();
 	void StopBehaviorUpdates();
 	void HandleBehaviorUpdateTimer();
@@ -233,14 +239,10 @@ protected:
 	void InitializeCrowdSpread();
 	FVector ApplyCrowdSpreadToDirection(const FVector& DirectDirection) const;
 	FVector ApplyEnemySeparationToDirection(const FVector& MovementDirection) const;
-	FVector ApplyLightweightNavSteeringToDirection(const FVector& DirectDirection);
-	void UpdateLightweightNavSteeringDirection(const FVector& DirectDirection);
 	void UpdateCachedEnemySeparation();
 	void RequestEnemyMovement(const FVector& WorldDirection);
 	void StopEnemyMovement();
-	bool IsUsingLightweightMovement() const;
-	bool IsEnemyCharacterMovementProfilingDisabled() const;
-	void UpdateCharacterMovementProfilingState();
+	void DisableNativeCharacterMovement();
 	bool IsEnemyAnimationProfilingDisabled() const;
 	void UpdateAnimationProfilingState();
 	void InitializeAnimationBudgeting();
@@ -264,6 +266,9 @@ protected:
 	TObjectPtr<UCharacterManagerComponent> ObservedCharacterManager;
 
 	UPROPERTY()
+	TObjectPtr<ASurvivorPlayerController> CachedSurvivorController;
+
+	UPROPERTY()
 	TObjectPtr<UExperienceComponent> CachedPlayerExperienceComponent;
 
 	FTimerHandle BehaviorUpdateTimerHandle;
@@ -271,12 +276,10 @@ protected:
 	FVector DesiredMovementDirection = FVector::ZeroVector;
 	FVector DesiredDirectMovementDirection = FVector::ZeroVector;
 	FVector CachedEnemySeparationVector = FVector::ZeroVector;
-	FVector CachedNavSteeringDirection = FVector::ZeroVector;
 	float CrowdSpreadBias = 0.0f;
-	float NextNavSteeringUpdateTime = 0.0f;
 	bool bHasDesiredMovementDirection = false;
-	bool bCharacterMovementDisabledForProfiling = false;
 	bool bAnimationDisabledForProfiling = false;
+	bool bCachedAnimationProfilingDisabled = false;
 	bool bAnimationBudgetInitialized = false;
 	bool bExperiencePickupSpawned = false;
 };
