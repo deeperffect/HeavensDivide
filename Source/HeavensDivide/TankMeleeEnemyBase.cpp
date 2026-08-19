@@ -220,7 +220,7 @@ void ATankMeleeEnemyBase::ExecuteAttackHit()
 
 	if (bHitPlayer && SlamDamage > 0.0f)
 	{
-		TargetHealth->ApplyDamage(SlamDamage);
+		SurvivorController->ApplyDamageToPlayer(SlamDamage);
 		UE_LOG(LogTemp, Log, TEXT("Tank slam damaged player: Target=%s Damage=%.2f RemainingHealth=%.2f"),
 			*GetNameSafe(ActivePlayerCharacter),
 			SlamDamage,

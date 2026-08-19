@@ -862,7 +862,10 @@ float UAutoAttackComponent::GetEffectiveAttackInterval() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
 	const float AttackSpeedMultiplier = CharacterStats ? CharacterStats->GetFinalAttackSpeedMultiplier() : 1.0f;
-	return FMath::Max(0.01f, AttackInterval / FMath::Max(0.01f, AttackSpeedMultiplier));
+	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(OwnerCharacter ? OwnerCharacter->GetOwner() : nullptr);
+	const USharedPlayerStatsComponent* SharedStats = SurvivorController ? SurvivorController->GetSharedPlayerStats() : nullptr;
+	const float GlobalAttackSpeedMultiplier = SharedStats ? SharedStats->GetFinalAttackSpeedMultiplier() : 1.0f;
+	return FMath::Max(0.01f, AttackInterval / FMath::Max(0.01f, AttackSpeedMultiplier * GlobalAttackSpeedMultiplier));
 }
 
 float UAutoAttackComponent::GetEffectiveAttackDamage() const

@@ -24,6 +24,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDashChargesChanged, int32, CurrentCharges, int32, MaxCharges);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwapCooldownStarted, float, CooldownDuration);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSwapCooldownFinished);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDamageDodged, float, IncomingDamage);
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
@@ -96,6 +97,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player|Debug")
 	void DebugGrantXP(int32 Amount);
 
+	UFUNCTION(BlueprintCallable, Category = "Player|Health")
+	void ApplyDamageToPlayer(float DamageAmount);
+
+	UFUNCTION(BlueprintPure, Category = "Player|Health")
+	float GetActiveDamageReduction() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Health")
+	float GetActiveHPRegenPerSecond() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player|Health")
+	float GetActiveDodgeChance() const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
 	FOnPlayerDash OnDashStarted;
 
@@ -116,6 +129,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Swap")
 	FOnSwapCooldownFinished OnSwapCooldownFinished;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Health")
+	FOnPlayerDamageDodged OnDamageDodged;
 
 protected:
 	virtual void BeginPlay() override;
@@ -147,6 +163,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Swap", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float SwapCooldown = 3.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Health", meta = (ClampMin = "0.05", UIMin = "0.05"))
+	float HPRegenTickInterval = 0.5f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Characters")
 	TObjectPtr<UCharacterManagerComponent> CharacterManager;
@@ -235,10 +254,14 @@ protected:
 	void StopDashRecharge();
 	void HandleDashRechargeTimerElapsed();
 	void BroadcastDashChargesChanged();
+	void StartHPRegeneration();
+	void StopHPRegeneration();
+	void HandleHPRegenerationTimerElapsed();
 
 	float BasePlayerMaxHealth = 0.0f;
 	FTimerHandle SwapCooldownTimerHandle;
 	FTimerHandle DashRechargeTimerHandle;
+	FTimerHandle HPRegenTimerHandle;
 	FVector2D LastMovementInput = FVector2D::ZeroVector;
 	FVector ActiveDashDirection = FVector::ZeroVector;
 	float DashElapsedTime = 0.0f;

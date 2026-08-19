@@ -18,6 +18,7 @@
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
 #include "AutoAttackComponent.h"
+#include "CharacterStatsComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TimerManager.h"
 
@@ -84,6 +85,7 @@ void ASurvivorPlayerController::BeginPlay()
 		PlayerHealthComponent->OnDeath.AddDynamic(this, &ASurvivorPlayerController::HandlePlayerDeath);
 		BasePlayerMaxHealth = PlayerHealthComponent->GetMaxHealth();
 	}
+	StartHPRegeneration();
 
 	if (ExperienceComponent)
 	{
@@ -330,6 +332,46 @@ void ASurvivorPlayerController::DebugGrantXP(int32 Amount)
 #else
 	UE_LOG(LogTemp, Warning, TEXT("DebugGrantXP is disabled in shipping builds."));
 #endif
+}
+
+void ASurvivorPlayerController::ApplyDamageToPlayer(float DamageAmount)
+{
+	if (!PlayerHealthComponent || PlayerHealthComponent->IsDead())
+	{
+		return;
+	}
+
+	const float DodgeChance = GetActiveDodgeChance();
+	if (DodgeChance > 0.0f && FMath::FRand() < DodgeChance)
+	{
+		OnDamageDodged.Broadcast(DamageAmount);
+		return;
+	}
+
+	const float DamageReduction = GetActiveDamageReduction();
+	const float FinalDamage = DamageAmount * (1.0f - DamageReduction);
+	PlayerHealthComponent->ApplyDamage(FinalDamage);
+}
+
+float ASurvivorPlayerController::GetActiveDamageReduction() const
+{
+	const ASamuraiCharacter* ActiveSamurai = CharacterManager ? Cast<ASamuraiCharacter>(CharacterManager->GetActiveCharacter()) : nullptr;
+	const UCharacterStatsComponent* SamuraiStats = ActiveSamurai ? ActiveSamurai->GetCharacterStats() : nullptr;
+	return SamuraiStats ? SamuraiStats->GetFinalDamageReduction() : 0.0f;
+}
+
+float ASurvivorPlayerController::GetActiveHPRegenPerSecond() const
+{
+	const ASamuraiCharacter* ActiveSamurai = CharacterManager ? Cast<ASamuraiCharacter>(CharacterManager->GetActiveCharacter()) : nullptr;
+	const UCharacterStatsComponent* SamuraiStats = ActiveSamurai ? ActiveSamurai->GetCharacterStats() : nullptr;
+	return SamuraiStats ? SamuraiStats->GetFinalHPRegenPerSecond() : 0.0f;
+}
+
+float ASurvivorPlayerController::GetActiveDodgeChance() const
+{
+	const ANinjaCharacter* ActiveNinja = CharacterManager ? Cast<ANinjaCharacter>(CharacterManager->GetActiveCharacter()) : nullptr;
+	const UCharacterStatsComponent* NinjaStats = ActiveNinja ? ActiveNinja->GetCharacterStats() : nullptr;
+	return NinjaStats ? NinjaStats->GetFinalDodgeChance() : 0.0f;
 }
 
 void ASurvivorPlayerController::SetupInputComponent()
@@ -986,4 +1028,45 @@ void ASurvivorPlayerController::HandleDashRechargeTimerElapsed()
 void ASurvivorPlayerController::BroadcastDashChargesChanged()
 {
 	OnDashChargesChanged.Broadcast(CurrentDashCharges, MaxDashCharges);
+}
+
+void ASurvivorPlayerController::StartHPRegeneration()
+{
+	UWorld* World = GetWorld();
+	if (!World || HPRegenTickInterval <= 0.0f)
+	{
+		return;
+	}
+
+	World->GetTimerManager().SetTimer(
+		HPRegenTimerHandle,
+		this,
+		&ASurvivorPlayerController::HandleHPRegenerationTimerElapsed,
+		HPRegenTickInterval,
+		true);
+}
+
+void ASurvivorPlayerController::StopHPRegeneration()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(HPRegenTimerHandle);
+	}
+}
+
+void ASurvivorPlayerController::HandleHPRegenerationTimerElapsed()
+{
+	if (!PlayerHealthComponent || PlayerHealthComponent->IsDead())
+	{
+		StopHPRegeneration();
+		return;
+	}
+
+	const float RegenPerSecond = GetActiveHPRegenPerSecond();
+	if (RegenPerSecond <= 0.0f || PlayerHealthComponent->GetCurrentHealth() >= PlayerHealthComponent->GetMaxHealth())
+	{
+		return;
+	}
+
+	PlayerHealthComponent->Heal(RegenPerSecond * FMath::Max(0.0f, HPRegenTickInterval));
 }

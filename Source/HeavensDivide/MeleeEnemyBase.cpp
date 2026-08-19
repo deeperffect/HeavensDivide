@@ -298,7 +298,7 @@ void AMeleeEnemyBase::ExecuteAttackHit()
 		return;
 	}
 
-	TargetHealth->ApplyDamage(AttackDamage);
+	SurvivorController->ApplyDamageToPlayer(AttackDamage);
 }
 
 void AMeleeEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)

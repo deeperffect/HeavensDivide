@@ -7,10 +7,12 @@
 #include "Components/CapsuleComponent.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
+#include "CharacterStatsComponent.h"
 #include "EnemyBase.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NinjaCharacter.h"
 #include "NiagaraComponent.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
@@ -188,6 +190,22 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		const FVector ExecutionLocation = HitEnemy->GetActorLocation();
 		EnemyHealth->ApplyDamage(FinalDamage);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
+		if (bKilledEnemy)
+		{
+			const ANinjaCharacter* NinjaOwner = Cast<ANinjaCharacter>(GameplayOwner);
+			const UCharacterStatsComponent* NinjaStats = NinjaOwner ? NinjaOwner->GetCharacterStats() : nullptr;
+			const float HealthOnKill = NinjaStats ? NinjaStats->GetFinalHealthOnKill() : 0.0f;
+			if (HealthOnKill > 0.0f)
+			{
+				if (const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(NinjaOwner->GetOwner()))
+				{
+					if (UHealthComponent* PlayerHealth = SurvivorController->GetPlayerHealthComponent())
+					{
+						PlayerHealth->Heal(HealthOnKill);
+					}
+				}
+			}
+		}
 		const bool bExecutionKill = bHasChainExecution && bConsumedMark && bKilledEnemy;
 
 		if (bDebugChainExecution)
@@ -247,7 +265,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 
 		LogProjectileFilterResult(OtherActor, true);
-		PlayerHealth->ApplyDamage(ProjectileDamage);
+		SurvivorController->ApplyDamageToPlayer(ProjectileDamage);
 
 		BeginImpactTrailFade();
 	}

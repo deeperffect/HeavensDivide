@@ -118,11 +118,35 @@ float UCharacterStatsComponent::GetFinalHomingStrengthMultiplier() const
 	return FMath::Max(0.0f, GetFinalStat(ECharacterStatType::HomingStrengthMultiplier));
 }
 
+float UCharacterStatsComponent::GetFinalHPRegenPerSecond() const
+{
+	return FMath::Max(0.0f, GetFinalStat(ECharacterStatType::HPRegenPerSecond));
+}
+
+float UCharacterStatsComponent::GetFinalDamageReduction() const
+{
+	return FMath::Clamp(GetFinalStat(ECharacterStatType::DamageReduction), 0.0f, 0.9f);
+}
+
+float UCharacterStatsComponent::GetFinalHealthOnKill() const
+{
+	return FMath::Max(0.0f, GetFinalStat(ECharacterStatType::HealthOnKill));
+}
+
+float UCharacterStatsComponent::GetFinalDodgeChance() const
+{
+	return FMath::Clamp(GetFinalStat(ECharacterStatType::DodgeChance), 0.0f, 0.75f);
+}
+
 float UCharacterStatsComponent::GetBaseStat(ECharacterStatType Stat) const
 {
 	switch (Stat)
 	{
 	case ECharacterStatType::ProjectileCountBonus:
+	case ECharacterStatType::HPRegenPerSecond:
+	case ECharacterStatType::DamageReduction:
+	case ECharacterStatType::HealthOnKill:
+	case ECharacterStatType::DodgeChance:
 		return 0.0f;
 	case ECharacterStatType::DamageMultiplier:
 	case ECharacterStatType::AttackSpeedMultiplier:

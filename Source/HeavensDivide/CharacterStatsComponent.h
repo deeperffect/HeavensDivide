@@ -14,7 +14,11 @@ enum class ECharacterStatType : uint8
 	AttackAreaMultiplier,
 	ProjectileCountBonus,
 	ProjectileSpeedMultiplier,
-	HomingStrengthMultiplier
+	HomingStrengthMultiplier,
+	HPRegenPerSecond,
+	DamageReduction,
+	HealthOnKill,
+	DodgeChance
 };
 
 UENUM(BlueprintType)
@@ -87,6 +91,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetFinalHomingStrengthMultiplier() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalHPRegenPerSecond() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalDamageReduction() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalHealthOnKill() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	float GetFinalDodgeChance() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Stats")
 	FOnCharacterStatsChanged OnStatsChanged;

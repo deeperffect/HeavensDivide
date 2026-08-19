@@ -123,6 +123,8 @@ void UPlayerUpgradeComponent::LogPlayerUpgradeStats() const
 	const ACharacterBase* Ninja = CharacterManager ? CharacterManager->GetNinja() : nullptr;
 	const UAutoAttackComponent* SamuraiAttack = Samurai ? Samurai->FindComponentByClass<UAutoAttackComponent>() : nullptr;
 	const UAutoAttackComponent* NinjaAttack = Ninja ? Ninja->FindComponentByClass<UAutoAttackComponent>() : nullptr;
+	const UCharacterStatsComponent* SamuraiStats = Samurai ? Samurai->GetCharacterStats() : nullptr;
+	const UCharacterStatsComponent* NinjaStats = Ninja ? Ninja->GetCharacterStats() : nullptr;
 
 	UE_LOG(LogTemp, Log, TEXT("=== PLAYER UPGRADE STATS ==="));
 	UE_LOG(LogTemp, Log, TEXT("SHARED"));
@@ -134,11 +136,15 @@ void UPlayerUpgradeComponent::LogPlayerUpgradeStats() const
 	UE_LOG(LogTemp, Log, TEXT("Damage: Base %.2f -> Final %.2f"), SamuraiAttack ? SamuraiAttack->GetBaseAttackDamage() : 0.0f, SamuraiAttack ? SamuraiAttack->GetEffectiveAttackDamage() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Attack Interval: Base %.3f -> Final %.3f"), SamuraiAttack ? SamuraiAttack->GetBaseAttackInterval() : 0.0f, SamuraiAttack ? SamuraiAttack->GetEffectiveAttackInterval() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Area Radius: Base %.2f -> Final %.2f"), SamuraiAttack ? SamuraiAttack->GetBaseAttackRadius() : 0.0f, SamuraiAttack ? SamuraiAttack->GetEffectiveAttackRadius() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("HP Regen/sec: %.3f"), SamuraiStats ? SamuraiStats->GetFinalHPRegenPerSecond() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Damage Reduction: %.1f%%"), SamuraiStats ? SamuraiStats->GetFinalDamageReduction() * 100.0f : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("NINJA"));
 	UE_LOG(LogTemp, Log, TEXT("Damage: Base %.2f -> Final %.2f"), NinjaAttack ? NinjaAttack->GetBaseAttackDamage() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveAttackDamage() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Attack Interval: Base %.3f -> Final %.3f"), NinjaAttack ? NinjaAttack->GetBaseAttackInterval() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveAttackInterval() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Projectile Count: Base 1 -> Final %d"), NinjaAttack ? NinjaAttack->GetEffectiveProjectileCount() : 1);
 	UE_LOG(LogTemp, Log, TEXT("Projectile Speed: Base %.2f -> Final %.2f"), NinjaAttack ? NinjaAttack->GetBaseProjectileSpeed() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveProjectileSpeed() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Health On Kill: %.3f"), NinjaStats ? NinjaStats->GetFinalHealthOnKill() : 0.0f);
+	UE_LOG(LogTemp, Log, TEXT("Dodge Chance: %.1f%%"), NinjaStats ? NinjaStats->GetFinalDodgeChance() * 100.0f : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("============================"));
 }
 

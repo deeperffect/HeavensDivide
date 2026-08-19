@@ -103,6 +103,11 @@ float USharedPlayerStatsComponent::GetFinalDamageMultiplier() const
 	return FMath::Max(0.0f, GetFinalStat(ESharedPlayerStatType::DamageMultiplier));
 }
 
+float USharedPlayerStatsComponent::GetFinalAttackSpeedMultiplier() const
+{
+	return FMath::Max(0.01f, GetFinalStat(ESharedPlayerStatType::AttackSpeedMultiplier));
+}
+
 int32 USharedPlayerStatsComponent::GetFinalMaxDashCharges() const
 {
 	return FMath::Max(1, FMath::RoundToInt(GetFinalStat(ESharedPlayerStatType::MaxDashCharges)));
