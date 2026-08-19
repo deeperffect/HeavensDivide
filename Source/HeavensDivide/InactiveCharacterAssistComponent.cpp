@@ -183,11 +183,11 @@ void UInactiveCharacterAssistComponent::HandleAutoAttackCommitted(UAutoAttackCom
 	ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
 	const ACharacterBase* AttackOwner = AttackComponent ? Cast<ACharacterBase>(AttackComponent->GetOwner()) : nullptr;
 
-	if (AttackSource != EAutoAttackSource::NormalAutoAttack)
+	if (AttackSource != EAutoAttackSource::NormalAutoAttack && AttackSource != EAutoAttackSource::DoubleCut)
 	{
 		if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
 		{
-			UE_LOG(LogTemp, Log, TEXT("[TagTeam] Assist attack ignored by counter"));
+			UE_LOG(LogTemp, Log, TEXT("[TagTeam] Non-counting attack ignored by counter"));
 		}
 		return;
 	}
@@ -205,7 +205,8 @@ void UInactiveCharacterAssistComponent::HandleAutoAttackCommitted(UAutoAttackCom
 
 	if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Normal attack registered Active=%s Progress=%d/%d"),
+		UE_LOG(LogTemp, Log, TEXT("[TagTeam] Attack registered Source=%d Active=%s Progress=%d/%d"),
+			static_cast<int32>(AttackSource),
 			*GetCharacterLabel(ActiveCharacter),
 			CurrentAttackCount,
 			SafeAttacksPerAssist);

@@ -14,6 +14,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "PlayerUpgradeComponent.h"
+#include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
@@ -117,6 +118,8 @@ void UAutoAttackComponent::StopAutoAttack()
 	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
+	bDoubleCutFollowUpActive = false;
+	bDoubleCutFollowUpPending = false;
 	ActiveAttackSequence = 0;
 	if (OwnerCharacter)
 	{
@@ -164,10 +167,28 @@ void UAutoAttackComponent::PerformAttackTrace()
 		return;
 	}
 
+	if (bDoubleCutFollowUpActive)
+	{
+		if (ExecuteMeleeAttackTrace())
+		{
+			OnAutoAttack.Broadcast(this, EAutoAttackSource::DoubleCut);
+		}
+		return;
+	}
+
+	const bool bCountsForDoubleCut = !ProjectileClass && HasDoubleCutUpgrade();
+	if (ExecuteMeleeAttackTrace() && bCountsForDoubleCut)
+	{
+		RegisterDoubleCutPrimaryAttack();
+	}
+}
+
+bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
+{
 	if (!OwnerCharacter || !GetWorld())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AutoAttack trace skipped: owner/world invalid."));
-		return;
+		return false;
 	}
 
 	if (bActiveAttackIsAssist && !ProjectileClass)
@@ -181,7 +202,7 @@ void UAutoAttackComponent::PerformAttackTrace()
 
 		if (!AssistTarget || AssistTarget->IsDead() || !IsTargetInCurrentMeleeReach(AssistTarget))
 		{
-			return;
+			return false;
 		}
 	}
 
@@ -190,7 +211,7 @@ void UAutoAttackComponent::PerformAttackTrace()
 	if (!AttackForward.Normalize())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AutoAttack trace skipped: visual forward invalid."));
-		return;
+		return false;
 	}
 
 	const FVector AttackOrigin = OwnerCharacter->GetActorLocation();
@@ -254,6 +275,8 @@ void UAutoAttackComponent::PerformAttackTrace()
 		DrawDebugLine(GetWorld(), AttackOrigin, HitboxCenter, DebugColor, false, DebugDuration, 0, 4.0f);
 		DrawDebugSphere(GetWorld(), HitboxCenter, EffectiveAttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
 	}
+
+	return true;
 }
 
 void UAutoAttackComponent::SpawnAutoAttackProjectile()
@@ -632,6 +655,10 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 	}
 
 	OutExpectedDuration = GetExpectedAttackMontageDuration();
+	if (!ProjectileClass && WillNextSamuraiAttackTriggerDoubleCut())
+	{
+		OutExpectedDuration += GetExpectedDoubleCutFollowUpDuration();
+	}
 
 	const double PreviousLastAttackStartTime = LastAttackStartTime;
 	const double PreviousNextAttackReadyTime = NextAttackReadyTime;
@@ -701,6 +728,10 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 	MontageEndedDelegate.BindUObject(this, &UAutoAttackComponent::HandleAttackMontageEnded);
 	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, AttackMontage);
 
+	FOnMontageBlendingOutStarted MontageBlendingOutDelegate;
+	MontageBlendingOutDelegate.BindUObject(this, &UAutoAttackComponent::HandleAttackMontageBlendingOut);
+	AnimInstance->Montage_SetBlendingOutDelegate(MontageBlendingOutDelegate, AttackMontage);
+
 	bIsAttacking = true;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = !bUpdateNormalCooldown;
@@ -752,9 +783,29 @@ float UAutoAttackComponent::GetExpectedAttackMontageDuration() const
 	return AttackMontage->GetPlayLength() / PlayRate;
 }
 
+float UAutoAttackComponent::GetExpectedDoubleCutFollowUpDuration() const
+{
+	return DoubleCutMontage ? DoubleCutMontage->GetPlayLength() : 0.0f;
+}
+
+void UAutoAttackComponent::HandleAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != AttackMontage)
+	{
+		return;
+	}
+
+	ConsumePendingDoubleCutFollowUp();
+}
+
 void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage != AttackMontage)
+	{
+		return;
+	}
+
+	if (bDoubleCutFollowUpActive)
 	{
 		return;
 	}
@@ -856,6 +907,154 @@ bool UAutoAttackComponent::TryConsumeAttackNotify()
 
 	bAttackNotifyConsumed = true;
 	return true;
+}
+
+void UAutoAttackComponent::RegisterDoubleCutPrimaryAttack()
+{
+	if (!GetWorld() || DoubleCutPrimaryAttackCount <= 0)
+	{
+		return;
+	}
+
+	++DoubleCutPrimaryAttackCounter;
+	if (DoubleCutPrimaryAttackCounter < DoubleCutPrimaryAttackCount)
+	{
+		return;
+	}
+
+	DoubleCutPrimaryAttackCounter = 0;
+	bDoubleCutFollowUpPending = true;
+}
+
+bool UAutoAttackComponent::HasDoubleCutUpgrade() const
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
+	{
+		return false;
+	}
+
+	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::DoubleCut) > 0;
+}
+
+bool UAutoAttackComponent::WillNextSamuraiAttackTriggerDoubleCut() const
+{
+	return HasDoubleCutUpgrade()
+		&& DoubleCutPrimaryAttackCount > 0
+		&& DoubleCutPrimaryAttackCounter + 1 >= DoubleCutPrimaryAttackCount;
+}
+
+bool UAutoAttackComponent::AcquireDoubleCutFollowUpTarget()
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
+	{
+		CurrentAttackTarget.Reset();
+		return false;
+	}
+
+	AEnemyBase* TargetEnemy = FindNearestEnemyTarget();
+	if (!TargetEnemy || TargetEnemy->IsDead())
+	{
+		CurrentAttackTarget.Reset();
+		if (OwnerCharacter)
+		{
+			OwnerCharacter->ClearFacingOverride();
+		}
+		return false;
+	}
+
+	CurrentAttackTarget = TargetEnemy;
+	const FVector AimLocation = GetEnemyAimLocation(TargetEnemy);
+	FVector ToTarget = AimLocation - OwnerCharacter->GetActorLocation();
+	ToTarget.Z = 0.0f;
+	if (!ToTarget.Normalize())
+	{
+		CurrentAttackTarget.Reset();
+		return false;
+	}
+
+	OwnerCharacter->SetFacingOverrideTarget(AimLocation);
+	OwnerCharacter->SetVisualFacingRotation(FRotator(0.0f, ToTarget.Rotation().Yaw, 0.0f));
+	return true;
+}
+
+void UAutoAttackComponent::StartDoubleCutFollowUp()
+{
+	if (IsOwningPlayerDead() || !OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>() || ProjectileClass)
+	{
+		return;
+	}
+
+	if (!AcquireDoubleCutFollowUpTarget())
+	{
+		return;
+	}
+
+	if (!DoubleCutMontage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Double Cut triggered on %s, but DoubleCutMontage is not assigned. Falling back to immediate bonus slash."),
+			*GetNameSafe(OwnerCharacter));
+		ExecuteMeleeAttackTrace();
+		return;
+	}
+
+	ACharacter* OwnerAsCharacter = Cast<ACharacter>(GetOwner());
+	USkeletalMeshComponent* MeshComponent = OwnerAsCharacter ? OwnerAsCharacter->GetMesh() : nullptr;
+	UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr;
+	if (!AnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Double Cut skipped: AnimInstance invalid on %s."), *GetNameSafe(OwnerCharacter));
+		return;
+	}
+
+	const float PlayResult = AnimInstance->Montage_Play(DoubleCutMontage, 1.0f);
+	if (PlayResult <= 0.0f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Double Cut montage failed to play on %s."), *GetNameSafe(OwnerCharacter));
+		return;
+	}
+
+	FOnMontageEnded MontageEndedDelegate;
+	MontageEndedDelegate.BindUObject(this, &UAutoAttackComponent::HandleDoubleCutMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, DoubleCutMontage);
+
+	bIsAttacking = true;
+	bAttackNotifyConsumed = false;
+	bActiveAttackIsAssist = false;
+	bDoubleCutFollowUpActive = true;
+}
+
+void UAutoAttackComponent::ConsumePendingDoubleCutFollowUp()
+{
+	if (!bDoubleCutFollowUpPending)
+	{
+		return;
+	}
+
+	bDoubleCutFollowUpPending = false;
+	bIsAttacking = false;
+	bAttackNotifyConsumed = false;
+	bActiveAttackIsAssist = false;
+	ActiveAttackSequence = 0;
+	StartDoubleCutFollowUp();
+}
+
+void UAutoAttackComponent::HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage != DoubleCutMontage)
+	{
+		return;
+	}
+
+	bIsAttacking = false;
+	bAttackNotifyConsumed = false;
+	bActiveAttackIsAssist = false;
+	bDoubleCutFollowUpActive = false;
+	CurrentAttackTarget.Reset();
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->ClearFacingOverride();
+	}
 }
 
 float UAutoAttackComponent::GetEffectiveAttackInterval() const

@@ -78,6 +78,9 @@ public:
 	bool DebugAcquireUpgrade(UUpgradeDefinition* Upgrade);
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
+	bool DebugForceAcquireUpgrade(UUpgradeDefinition* Upgrade, int32 Level = 1);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
 	bool DebugBeginUpgradeSelection(int32 CategoryChoiceCount = 2);
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")

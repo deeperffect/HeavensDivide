@@ -38,7 +38,8 @@ enum class EUpgradeSpecialEffect : uint8
 {
 	None,
 	SwapRestoresDashCharge,
-	InactiveCharacterAssist
+	InactiveCharacterAssist,
+	DoubleCut
 };
 
 USTRUCT(BlueprintType)

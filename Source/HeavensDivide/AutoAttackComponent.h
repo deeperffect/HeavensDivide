@@ -10,11 +10,13 @@
 class UAnimMontage;
 class AAttackProjectileBase;
 class AEnemyBase;
+class ASamuraiCharacter;
 
 UENUM(BlueprintType)
 enum class EAutoAttackSource : uint8
 {
 	NormalAutoAttack,
+	DoubleCut,
 	Assist,
 	Other
 };
@@ -112,6 +114,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Double Cut")
+	TObjectPtr<UAnimMontage> DoubleCutMontage;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackDamage = 10.0f;
 
@@ -166,6 +171,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Trace")
 	bool bDebugAttackTrace = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Double Cut", meta = (ClampMin = "1", UIMin = "1"))
+	int32 DoubleCutPrimaryAttackCount = 3;
+
 private:
 	UFUNCTION()
 	void HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode);
@@ -181,12 +189,22 @@ private:
 	bool PlayAttackMontage(bool bUpdateNormalCooldown = true);
 	float CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const;
 	float GetExpectedAttackMontageDuration() const;
+	float GetExpectedDoubleCutFollowUpDuration() const;
+	void HandleAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted);
 	void HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	bool StartTargetedAttack();
 	bool CanExecuteAttackInCurrentMode() const;
 	bool CanStartAttackNow() const;
 	bool IsOwningPlayerDead() const;
 	bool TryConsumeAttackNotify();
+	bool ExecuteMeleeAttackTrace();
+	void RegisterDoubleCutPrimaryAttack();
+	bool HasDoubleCutUpgrade() const;
+	bool WillNextSamuraiAttackTriggerDoubleCut() const;
+	bool AcquireDoubleCutFollowUpTarget();
+	void StartDoubleCutFollowUp();
+	void ConsumePendingDoubleCutFollowUp();
+	void HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed);
 	AEnemyBase* FindNearestEnemyTarget() const;
 	AEnemyBase* FindBestMeleeTarget(const FVector& SearchLocation, float SearchRadius) const;
@@ -208,7 +226,10 @@ private:
 	float AttackIntervalAtLastAttackStart = 1.0f;
 	int32 AttackSequence = 0;
 	int32 ActiveAttackSequence = 0;
+	int32 DoubleCutPrimaryAttackCounter = 0;
 	bool bIsAttacking = false;
 	bool bAttackNotifyConsumed = false;
 	bool bActiveAttackIsAssist = false;
+	bool bDoubleCutFollowUpActive = false;
+	bool bDoubleCutFollowUpPending = false;
 };

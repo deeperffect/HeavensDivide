@@ -333,7 +333,45 @@ TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetCurrentUpgradeChoices() 
 
 bool UPlayerUpgradeComponent::DebugAcquireUpgrade(UUpgradeDefinition* Upgrade)
 {
-	return AcquireUpgrade(Upgrade);
+	const bool bAcquired = AcquireUpgrade(Upgrade);
+	if (!bAcquired)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DebugAcquireUpgrade failed: Upgrade=%s Valid=%s CurrentLevel=%d MaxLevel=%d MeetsPrerequisites=%s"),
+			*UpgradeToLogString(Upgrade),
+			IsValidUpgradeDefinition(Upgrade) ? TEXT("true") : TEXT("false"),
+			GetUpgradeLevel(Upgrade),
+			Upgrade ? Upgrade->MaxLevel : 0,
+			MeetsPrerequisites(Upgrade) ? TEXT("true") : TEXT("false"));
+	}
+
+	return bAcquired;
+}
+
+bool UPlayerUpgradeComponent::DebugForceAcquireUpgrade(UUpgradeDefinition* Upgrade, int32 Level)
+{
+#if !UE_BUILD_SHIPPING
+	if (!IsValidUpgradeDefinition(Upgrade))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DebugForceAcquireUpgrade failed: invalid upgrade."));
+		return false;
+	}
+
+	const int32 NewLevel = FMath::Clamp(Level, 1, FMath::Max(1, Upgrade->MaxLevel));
+	UpgradeLevels.FindOrAdd(Upgrade->UpgradeId) = NewLevel;
+	AcquiredUpgradeDefinitions.FindOrAdd(Upgrade->UpgradeId) = Upgrade;
+
+	RebuildUpgradeModifiers(Upgrade, NewLevel);
+	LogPlayerUpgradeStats();
+
+	OnUpgradeAcquired.Broadcast(Upgrade, NewLevel);
+	OnUpgradeLevelChanged.Broadcast(Upgrade, NewLevel);
+
+	UE_LOG(LogTemp, Log, TEXT("DebugForceAcquireUpgrade succeeded: %s"), *UpgradeToLogString(Upgrade));
+	return true;
+#else
+	UE_LOG(LogTemp, Warning, TEXT("DebugForceAcquireUpgrade is disabled in shipping builds."));
+	return false;
+#endif
 }
 
 bool UPlayerUpgradeComponent::DebugBeginUpgradeSelection(int32 CategoryChoiceCount)

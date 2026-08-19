@@ -75,6 +75,10 @@ void ASurvivorPlayerController::BeginPlay()
 		{
 			PlayerUpgradeComponent->RebuildAllUpgradeModifiers();
 		}
+		if (InactiveCharacterAssistComponent)
+		{
+			InactiveCharacterAssistComponent->RefreshAssistEffectState();
+		}
 		CharacterManager->OnCharacterSwapped.AddDynamic(this, &ASurvivorPlayerController::HandleCharacterSwapped);
 	}
 	InitializePlayerCameraRig();
