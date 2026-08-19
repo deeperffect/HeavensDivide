@@ -62,6 +62,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float ProjectileLifetime = 3.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Impact", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ImpactTrailFadeDuration = 0.18f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Marked for Death", meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float MarkedTargetDamageMultiplier = 2.0f;
 
@@ -100,6 +103,7 @@ private:
 	void HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	void LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const;
+	void BeginImpactTrailFade();
 	void TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation);
 	void TryTriggerExecutionersKunai(AEnemyBase* ConsumedMarkEnemy, const FVector& MarkConsumedLocation);
 	AEnemyBase* FindExecutionersKunaiTarget(AEnemyBase* ConsumedMarkEnemy, const FVector& SearchLocation) const;
@@ -116,4 +120,5 @@ private:
 	float SourceTargetingRange = 0.0f;
 	bool bIsProjectileInitialized = false;
 	bool bCanTriggerExecutionersKunai = true;
+	bool bImpactResolved = false;
 };

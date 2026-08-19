@@ -627,10 +627,6 @@ void ASurvivorPlayerController::PauseForLevelUpSelection()
 	FInputModeGameAndUI InputMode;
 	InputMode.SetHideCursorDuringCapture(false);
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-	if (LevelUpWidget)
-	{
-		InputMode.SetWidgetToFocus(LevelUpWidget->TakeWidget());
-	}
 	SetInputMode(InputMode);
 }
 

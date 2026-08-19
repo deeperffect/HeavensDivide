@@ -11,6 +11,7 @@
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
 #include "Engine/OverlapResult.h"
@@ -124,7 +125,7 @@ void AAttackProjectileBase::InitializeProjectile(
 
 void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!bIsProjectileInitialized)
+	if (bImpactResolved || !bIsProjectileInitialized)
 	{
 		LogProjectileFilterResult(OtherActor, false);
 		return;
@@ -211,7 +212,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			TryTriggerExecutionersKunai(HitEnemy, ExecutionLocation);
 		}
 
-		Destroy();
+		BeginImpactTrailFade();
 		return;
 	}
 
@@ -248,7 +249,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		LogProjectileFilterResult(OtherActor, true);
 		PlayerHealth->ApplyDamage(ProjectileDamage);
 
-		Destroy();
+		BeginImpactTrailFade();
 	}
 }
 
@@ -265,6 +266,54 @@ void AAttackProjectileBase::LogProjectileFilterResult(AActor* OtherActor, bool b
 		*GetNameSafe(GameplayOwner),
 		*GetNameSafe(OtherActor),
 		bValidDamageTarget ? TEXT("true") : TEXT("false"));
+}
+
+void AAttackProjectileBase::BeginImpactTrailFade()
+{
+	if (bImpactResolved)
+	{
+		return;
+	}
+
+	bImpactResolved = true;
+	bIsProjectileInitialized = false;
+
+	if (CollisionComponent)
+	{
+		CollisionComponent->SetGenerateOverlapEvents(false);
+		CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->StopMovementImmediately();
+		ProjectileMovement->Deactivate();
+	}
+
+	if (VisualMesh)
+	{
+		VisualMesh->SetVisibility(false, false);
+		VisualMesh->SetHiddenInGame(true, false);
+	}
+
+	TArray<UNiagaraComponent*> NiagaraComponents;
+	GetComponents(NiagaraComponents);
+	for (UNiagaraComponent* NiagaraComponent : NiagaraComponents)
+	{
+		if (NiagaraComponent)
+		{
+			NiagaraComponent->Deactivate();
+		}
+	}
+
+	const float SafeFadeDuration = FMath::Max(0.0f, ImpactTrailFadeDuration);
+	if (SafeFadeDuration <= KINDA_SMALL_NUMBER)
+	{
+		Destroy();
+		return;
+	}
+
+	SetLifeSpan(SafeFadeDuration);
 }
 
 void AAttackProjectileBase::TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation)
