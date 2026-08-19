@@ -77,6 +77,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Marked for Death")
 	FVector ExecutionersKunaiSpawnOffset = FVector(0.0f, 0.0f, 450.0f);
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Marked for Death", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float ExecutionersKunaiSpeedMultiplier = 2.5f;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Projectile")
 	EProjectileTargetType TargetType = EProjectileTargetType::Enemies;
 

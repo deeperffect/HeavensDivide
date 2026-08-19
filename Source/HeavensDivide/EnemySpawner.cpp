@@ -28,6 +28,7 @@ static TAutoConsoleVariable<int32> CVarDebugEnemySpawnGround(
 	TEXT("When set to 1, logs rejected enemy spawn ground hits and suspicious spawn Z changes."));
 
 static constexpr float EnemySpawnWalkableGroundNormalZ = 0.7f;
+static constexpr ECollisionChannel EnemyGroundTraceChannel = ECC_GameTraceChannel2;
 
 static bool IsValidEnemySpawnGroundHit(const FHitResult& HitResult)
 {
@@ -569,7 +570,7 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	QueryParams.AddIgnoredActor(this);
 
 	TArray<FHitResult> HitResults;
-	const bool bHasGroundHits = World->LineTraceMultiByChannel(HitResults, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+	const bool bHasGroundHits = World->LineTraceMultiByChannel(HitResults, TraceStart, TraceEnd, EnemyGroundTraceChannel, QueryParams);
 
 	FHitResult GroundHit;
 	bool bHitGround = false;
@@ -620,7 +621,7 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	const FVector NavGroundTraceStart = FVector(NavLocation.Location.X, NavLocation.Location.Y, CandidateLocation.Z + GroundTraceHeight);
 	const FVector NavGroundTraceEnd = FVector(NavLocation.Location.X, NavLocation.Location.Y, CandidateLocation.Z - GroundTraceDepth);
 	TArray<FHitResult> NavGroundHits;
-	World->LineTraceMultiByChannel(NavGroundHits, NavGroundTraceStart, NavGroundTraceEnd, ECC_Visibility, QueryParams);
+	World->LineTraceMultiByChannel(NavGroundHits, NavGroundTraceStart, NavGroundTraceEnd, EnemyGroundTraceChannel, QueryParams);
 
 	FHitResult NavGroundHit;
 	bool bHitNavGround = false;

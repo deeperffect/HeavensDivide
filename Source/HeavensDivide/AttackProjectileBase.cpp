@@ -554,7 +554,7 @@ void AAttackProjectileBase::SpawnExecutionersKunai(AEnemyBase* TargetEnemy, AEne
 		GameplayOwner,
 		LaunchDirection,
 		ProjectileDamage,
-		ProjectileSpeed,
+		ProjectileSpeed * FMath::Max(0.01f, ExecutionersKunaiSpeedMultiplier),
 		TargetType,
 		SourceTargetingRange,
 		false,
@@ -563,13 +563,14 @@ void AAttackProjectileBase::SpawnExecutionersKunai(AEnemyBase* TargetEnemy, AEne
 
 	if (bDebugExecutionersKunai)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai spawned Target=%s Spawn=%s Direction=%s SameTargetFallback=%s Damage=%.2f Speed=%.1f"),
+		UE_LOG(LogTemp, Log, TEXT("[MarkedForDeath] ExecutionersKunai spawned Target=%s Spawn=%s Direction=%s SameTargetFallback=%s Damage=%.2f Speed=%.1f SpeedMultiplier=%.2f"),
 			*GetNameSafe(TargetEnemy),
 			*SpawnLocation.ToString(),
 			*LaunchDirection.ToString(),
 			bTargetAtSpawnOrigin ? TEXT("true") : TEXT("false"),
 			ProjectileDamage,
-			ProjectileSpeed);
+			ProjectileSpeed * FMath::Max(0.01f, ExecutionersKunaiSpeedMultiplier),
+			ExecutionersKunaiSpeedMultiplier);
 	}
 }
 

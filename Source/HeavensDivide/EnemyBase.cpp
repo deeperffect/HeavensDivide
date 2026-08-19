@@ -57,6 +57,7 @@ static TAutoConsoleVariable<int32> CVarDebugEnemyGroundSnap(
 	TEXT("When set to 1, logs suspicious one-time enemy ground snap corrections."));
 
 static constexpr float EnemyWalkableGroundNormalZ = 0.7f;
+static constexpr ECollisionChannel EnemyGroundTraceChannel = ECC_GameTraceChannel2;
 
 static bool IsBlockingWorldGeometryHit(const FHitResult& HitResult)
 {
@@ -884,7 +885,7 @@ void AEnemyBase::SnapToGroundBeforeLightweightMovement()
 	QueryParams.AddIgnoredActor(this);
 
 	TArray<FHitResult> HitResults;
-	World->LineTraceMultiByChannel(HitResults, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+	World->LineTraceMultiByChannel(HitResults, TraceStart, TraceEnd, EnemyGroundTraceChannel, QueryParams);
 
 	for (const FHitResult& HitResult : HitResults)
 	{

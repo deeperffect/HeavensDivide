@@ -8,6 +8,8 @@
 #include "GameFramework/Character.h"
 #include "Stats/Stats.h"
 
+static constexpr float EnemyMovementWalkableGroundNormalZ = 0.7f;
+
 static bool FindBlockingWorldGeometryHit(const TArray<FHitResult>& HitResults, FHitResult& OutHit)
 {
 	const FHitResult* BestStartPenetratingHit = nullptr;
@@ -21,6 +23,11 @@ static bool FindBlockingWorldGeometryHit(const TArray<FHitResult>& HitResults, F
 		}
 
 		if (Cast<AEnemyBase>(HitActor) || Cast<ACharacterBase>(HitActor))
+		{
+			continue;
+		}
+
+		if (HitResult.ImpactNormal.Z >= EnemyMovementWalkableGroundNormalZ)
 		{
 			continue;
 		}
