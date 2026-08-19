@@ -658,6 +658,11 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 
 bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 {
+	if (bIsAttacking)
+	{
+		return false;
+	}
+
 	if (!AttackMontage)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AttackMontage invalid"));

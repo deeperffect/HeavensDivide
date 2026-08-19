@@ -68,6 +68,11 @@ void UEnemyLightweightMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	RefreshSpawnZ();
+}
+
+void UEnemyLightweightMovementComponent::RefreshSpawnZ()
+{
 	if (const AActor* Owner = GetOwner())
 	{
 		SpawnZ = Owner->GetActorLocation().Z;

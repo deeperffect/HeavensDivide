@@ -22,6 +22,22 @@ static TAutoConsoleVariable<int32> CVarLogSpawnDirector(
 	0,
 	TEXT("When set to 1, logs periodic survivor spawn director status and spawn batches."));
 
+static TAutoConsoleVariable<int32> CVarDebugEnemySpawnGround(
+	TEXT("hd.DebugEnemySpawnGround"),
+	0,
+	TEXT("When set to 1, logs rejected enemy spawn ground hits and suspicious spawn Z changes."));
+
+static constexpr float EnemySpawnWalkableGroundNormalZ = 0.7f;
+
+static bool IsValidEnemySpawnGroundHit(const FHitResult& HitResult)
+{
+	AActor* HitActor = HitResult.GetActor();
+	return HitResult.bBlockingHit
+		&& HitResult.GetComponent()
+		&& (!HitActor || (!Cast<AEnemyBase>(HitActor) && !Cast<ACharacterBase>(HitActor)))
+		&& HitResult.ImpactNormal.Z >= EnemySpawnWalkableGroundNormalZ;
+}
+
 #if !UE_BUILD_SHIPPING
 static AEnemySpawner* FindEnemySpawnerForDebugCommand(UWorld* World)
 {
@@ -343,6 +359,16 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 		return nullptr;
 	}
 
+	const float SpawnAdjustmentDeltaZ = SpawnedEnemy->GetActorLocation().Z - SpawnLocation.Z;
+	if (FMath::Abs(SpawnAdjustmentDeltaZ) > 25.0f && CVarDebugEnemySpawnGround.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner spawn collision adjustment changed Z for %s RequestedZ=%.2f ActualZ=%.2f DeltaZ=%.2f"),
+			*GetNameSafe(SpawnedEnemy),
+			SpawnLocation.Z,
+			SpawnedEnemy->GetActorLocation().Z,
+			SpawnAdjustmentDeltaZ);
+	}
+
 	SpawnedEnemy->SpawnDefaultController();
 	SpawnedEnemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(), GetDamageMultiplier());
 	SpawnedEnemy->OnDestroyed.AddDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
@@ -539,9 +565,33 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	const FVector TraceStart = CandidateLocation + FVector(0.0f, 0.0f, GroundTraceHeight);
 	const FVector TraceEnd = CandidateLocation - FVector(0.0f, 0.0f, GroundTraceDepth);
 
-	FHitResult HitResult;
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemySpawnerGroundTrace), false, this);
-	const bool bHitGround = World->LineTraceSingleByChannel(HitResult, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+	QueryParams.AddIgnoredActor(this);
+
+	TArray<FHitResult> HitResults;
+	const bool bHasGroundHits = World->LineTraceMultiByChannel(HitResults, TraceStart, TraceEnd, ECC_Visibility, QueryParams);
+
+	FHitResult GroundHit;
+	bool bHitGround = false;
+	for (const FHitResult& HitResult : HitResults)
+	{
+		if (IsValidEnemySpawnGroundHit(HitResult))
+		{
+			GroundHit = HitResult;
+			bHitGround = true;
+			break;
+		}
+
+		if (CVarDebugEnemySpawnGround.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("EnemySpawner rejected spawn ground hit Candidate=%s HitActor=%s HitComponent=%s HitZ=%.2f ImpactNormal=%s"),
+				*CandidateLocation.ToString(),
+				*GetNameSafe(HitResult.GetActor()),
+				*GetNameSafe(HitResult.GetComponent()),
+				HitResult.Location.Z,
+				*HitResult.ImpactNormal.ToString());
+		}
+	}
 
 	if (bDebugSpawning || bDebugSpawnValidation)
 	{
@@ -556,18 +606,58 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	const UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
 	if (!NavigationSystem)
 	{
-		OutProjectedLocation = HitResult.Location;
+		OutProjectedLocation = GroundHit.Location;
 		return !bRequireNavMeshProjection;
 	}
 
 	FNavLocation NavLocation;
-	if (!NavigationSystem->ProjectPointToNavigation(HitResult.Location, NavLocation, NavMeshProjectionExtent))
+	if (!NavigationSystem->ProjectPointToNavigation(GroundHit.Location, NavLocation, NavMeshProjectionExtent))
 	{
-		OutProjectedLocation = HitResult.Location;
+		OutProjectedLocation = GroundHit.Location;
 		return !bRequireNavMeshProjection;
 	}
 
-	OutProjectedLocation = NavLocation.Location;
+	const FVector NavGroundTraceStart = FVector(NavLocation.Location.X, NavLocation.Location.Y, CandidateLocation.Z + GroundTraceHeight);
+	const FVector NavGroundTraceEnd = FVector(NavLocation.Location.X, NavLocation.Location.Y, CandidateLocation.Z - GroundTraceDepth);
+	TArray<FHitResult> NavGroundHits;
+	World->LineTraceMultiByChannel(NavGroundHits, NavGroundTraceStart, NavGroundTraceEnd, ECC_Visibility, QueryParams);
+
+	FHitResult NavGroundHit;
+	bool bHitNavGround = false;
+	for (const FHitResult& HitResult : NavGroundHits)
+	{
+		if (IsValidEnemySpawnGroundHit(HitResult))
+		{
+			NavGroundHit = HitResult;
+			bHitNavGround = true;
+			break;
+		}
+	}
+
+	if (!bHitNavGround)
+	{
+		if (CVarDebugEnemySpawnGround.GetValueOnGameThread() != 0)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("EnemySpawner rejected nav-projected spawn because no valid ground was found beneath projected XY. Candidate=%s NavLocation=%s InitialGroundActor=%s InitialGroundZ=%.2f"),
+				*CandidateLocation.ToString(),
+				*NavLocation.Location.ToString(),
+				*GetNameSafe(GroundHit.GetActor()),
+				GroundHit.Location.Z);
+		}
+		return false;
+	}
+
+	OutProjectedLocation = FVector(NavLocation.Location.X, NavLocation.Location.Y, NavGroundHit.Location.Z);
+	if (FMath::Abs(OutProjectedLocation.Z - CandidateLocation.Z) > 25.0f && CVarDebugEnemySpawnGround.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("EnemySpawner spawn ground Z adjusted CandidateZ=%.2f GroundZ=%.2f NavZ=%.2f HitActor=%s HitComponent=%s ImpactNormal=%s"),
+			CandidateLocation.Z,
+			OutProjectedLocation.Z,
+			NavLocation.Location.Z,
+			*GetNameSafe(NavGroundHit.GetActor()),
+			*GetNameSafe(NavGroundHit.GetComponent()),
+			*NavGroundHit.ImpactNormal.ToString());
+	}
 	return true;
 }
 
@@ -906,6 +996,16 @@ AEnemyBase* AEnemySpawner::SpawnStressEnemy()
 	if (!SpawnedEnemy)
 	{
 		return nullptr;
+	}
+
+	const float SpawnAdjustmentDeltaZ = SpawnedEnemy->GetActorLocation().Z - SpawnLocation.Z;
+	if (FMath::Abs(SpawnAdjustmentDeltaZ) > 25.0f && CVarDebugEnemySpawnGround.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner stress spawn collision adjustment changed Z for %s RequestedZ=%.2f ActualZ=%.2f DeltaZ=%.2f"),
+			*GetNameSafe(SpawnedEnemy),
+			SpawnLocation.Z,
+			SpawnedEnemy->GetActorLocation().Z,
+			SpawnAdjustmentDeltaZ);
 	}
 
 	SpawnedEnemy->ConfigureForStressTest(true, true);

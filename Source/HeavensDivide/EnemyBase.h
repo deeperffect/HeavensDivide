@@ -174,6 +174,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay))
 	float BehaviorUpdateInterval = 0.1f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
+	float PathFallbackBlockedTime = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.1", UIMin = "0.1", AdvancedDisplay))
+	float PathFallbackRepathInterval = 0.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "1.0", UIMin = "1.0", AdvancedDisplay))
+	float PathWaypointAcceptanceRadius = 125.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
+	float PathTargetRepathDistance = 300.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.05", UIMin = "0.05", AdvancedDisplay))
+	float DirectPathCheckInterval = 0.12f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
+	float MinPathFallbackTargetDistance = 400.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (AdvancedDisplay))
+	FVector PathFallbackProjectionExtent = FVector(250.0f, 250.0f, 500.0f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death")
 	TObjectPtr<UAnimMontage> DeathMontage;
 
@@ -227,6 +248,7 @@ protected:
 	void UpdateMarkIndicatorVisibility();
 	void HideMarkIndicator();
 	void ConfigureEnemyCapsuleCollisionDefaults();
+	void SnapToGroundBeforeLightweightMovement();
 	void StartBehaviorUpdates();
 	void StopBehaviorUpdates();
 	void HandleBehaviorUpdateTimer();
@@ -237,6 +259,13 @@ protected:
 	void StopDesiredMovement();
 	void InitializeEnemyMovementMode();
 	void InitializeCrowdSpread();
+	void UpdateObstaclePathFallback();
+	bool TryBuildObstaclePath();
+	bool TryGetPathFallbackSteeringDirection(FVector& OutSteeringDirection);
+	bool IsDirectPathToTargetClear() const;
+	bool IsPathFallbackRouteClearToLocation(const FVector& Location) const;
+	bool ProjectPathFallbackLocation(const FVector& Location, FVector& OutProjectedLocation) const;
+	void ClearObstaclePath();
 	FVector ApplyCrowdSpreadToDirection(const FVector& DirectDirection) const;
 	FVector ApplyEnemySeparationToDirection(const FVector& MovementDirection) const;
 	void UpdateCachedEnemySeparation();
@@ -276,7 +305,14 @@ protected:
 	FVector DesiredMovementDirection = FVector::ZeroVector;
 	FVector DesiredDirectMovementDirection = FVector::ZeroVector;
 	FVector CachedEnemySeparationVector = FVector::ZeroVector;
+	TArray<FVector> ObstaclePathPoints;
+	FVector LastPathTargetLocation = FVector::ZeroVector;
 	float CrowdSpreadBias = 0.0f;
+	float BlockedByWorldGeometryStartTime = -1.0f;
+	float NextPathFallbackRequestTime = 0.0f;
+	float NextDirectPathCheckTime = 0.0f;
+	int32 CurrentObstaclePathIndex = INDEX_NONE;
+	float PathFallbackRequestJitter = 0.0f;
 	bool bHasDesiredMovementDirection = false;
 	bool bAnimationDisabledForProfiling = false;
 	bool bCachedAnimationProfilingDisabled = false;

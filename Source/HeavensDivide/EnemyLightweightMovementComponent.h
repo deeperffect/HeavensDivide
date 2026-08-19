@@ -23,6 +23,7 @@ public:
 	void SetMoveSpeed(float NewMoveSpeed);
 	void RequestMove(const FVector& WorldDirection);
 	void StopMovement();
+	void RefreshSpawnZ();
 
 	FVector GetCurrentVelocity() const;
 	bool WasLastMoveBlockedByWorldGeometry() const;
