@@ -39,7 +39,9 @@ enum class EUpgradeSpecialEffect : uint8
 	None,
 	SwapRestoresDashCharge,
 	InactiveCharacterAssist,
-	DoubleCut
+	DoubleCut,
+	Momentum,
+	FanOfBlades
 };
 
 USTRUCT(BlueprintType)
@@ -98,4 +100,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TArray<EUpgradeSpecialEffect> SpecialEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "1", UIMin = "1"))
+	int32 MomentumRequiredKills = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float MomentumRemainingCooldownReduction = 0.4f;
 };

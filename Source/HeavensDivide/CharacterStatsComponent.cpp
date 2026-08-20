@@ -108,6 +108,11 @@ int32 UCharacterStatsComponent::GetFinalProjectileCount() const
 	return FMath::Max(1, 1 + FMath::RoundToInt(GetFinalStat(ECharacterStatType::ProjectileCountBonus)));
 }
 
+int32 UCharacterStatsComponent::GetFinalProjectilePierceBonus() const
+{
+	return FMath::Max(0, FMath::RoundToInt(GetFinalStat(ECharacterStatType::ProjectilePierceBonus)));
+}
+
 float UCharacterStatsComponent::GetFinalProjectileSpeedMultiplier() const
 {
 	return FMath::Max(0.0f, GetFinalStat(ECharacterStatType::ProjectileSpeedMultiplier));
@@ -143,6 +148,7 @@ float UCharacterStatsComponent::GetBaseStat(ECharacterStatType Stat) const
 	switch (Stat)
 	{
 	case ECharacterStatType::ProjectileCountBonus:
+	case ECharacterStatType::ProjectilePierceBonus:
 	case ECharacterStatType::HPRegenPerSecond:
 	case ECharacterStatType::DamageReduction:
 	case ECharacterStatType::HealthOnKill:

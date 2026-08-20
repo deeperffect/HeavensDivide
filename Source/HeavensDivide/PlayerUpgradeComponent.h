@@ -95,6 +95,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Upgrades")
 	int32 GetSpecialEffectLevel(EUpgradeSpecialEffect SpecialEffect) const;
 
+	UFUNCTION(BlueprintPure, Category = "Upgrades")
+	UUpgradeDefinition* GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect SpecialEffect) const;
+
 	UPROPERTY(BlueprintAssignable, Category = "Upgrades")
 	FOnUpgradeAcquired OnUpgradeAcquired;
 

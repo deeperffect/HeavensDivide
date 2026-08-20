@@ -18,7 +18,8 @@ enum class ECharacterStatType : uint8
 	HPRegenPerSecond,
 	DamageReduction,
 	HealthOnKill,
-	DodgeChance
+	DodgeChance,
+	ProjectilePierceBonus
 };
 
 UENUM(BlueprintType)
@@ -85,6 +86,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	int32 GetFinalProjectileCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetFinalProjectilePierceBonus() const;
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetFinalProjectileSpeedMultiplier() const;

@@ -13,6 +13,7 @@
 #include "HealthComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "NinjaCharacter.h"
 #include "PlayerUpgradeComponent.h"
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
@@ -34,6 +35,11 @@ static TAutoConsoleVariable<int32> CVarHDDebugSamuraiTargeting(
 	TEXT("hd.DebugSamuraiTargeting"),
 	0,
 	TEXT("Logs Samurai melee cluster target scoring when enabled."));
+
+static TAutoConsoleVariable<int32> CVarHDLogSamuraiMomentum(
+	TEXT("hd.LogSamuraiMomentum"),
+	0,
+	TEXT("Logs Samurai Momentum per-attack kill counts and cooldown reductions when enabled."));
 
 namespace AutoAttackMarkedForDeathUpgradeIds
 {
@@ -118,8 +124,10 @@ void UAutoAttackComponent::StopAutoAttack()
 	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
+	bActiveAttackTriggersFanOfBlades = false;
 	bDoubleCutFollowUpActive = false;
 	bDoubleCutFollowUpPending = false;
+	ActiveAttackMontage = nullptr;
 	ActiveAttackSequence = 0;
 	if (OwnerCharacter)
 	{
@@ -158,6 +166,45 @@ void UAutoAttackComponent::SetAutoAttackEnabled(bool bEnabled)
 bool UAutoAttackComponent::IsAutoAttackEnabled() const
 {
 	return bAutoAttackEnabled;
+}
+
+bool UAutoAttackComponent::ReduceRemainingAttackCooldown(float Percent)
+{
+	if (!GetWorld() || Percent <= 0.0f)
+	{
+		return false;
+	}
+
+	const double CurrentTime = GetWorld()->GetTimeSeconds();
+	const double OldRemainingCooldown = FMath::Max(0.0, NextAttackReadyTime - CurrentTime);
+	if (OldRemainingCooldown <= KINDA_SMALL_NUMBER)
+	{
+		return false;
+	}
+
+	const float ClampedPercent = FMath::Clamp(Percent, 0.0f, 1.0f);
+	const double NewRemainingCooldown = OldRemainingCooldown * static_cast<double>(1.0f - ClampedPercent);
+	NextAttackReadyTime = CurrentTime + NewRemainingCooldown;
+
+	if (LastAttackStartTime > -DBL_MAX / 2.0)
+	{
+		const double EffectiveElapsed = FMath::Max(0.0, static_cast<double>(AttackIntervalAtLastAttackStart) - NewRemainingCooldown);
+		LastAttackStartTime = CurrentTime - EffectiveElapsed;
+	}
+
+	if (CanAutoAttack() && GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
+	{
+		ScheduleNextAttackTimerFromCooldown();
+	}
+
+	if (CVarHDLogSamuraiMomentum.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Momentum triggered: remaining cooldown %.3f -> %.3f"),
+			OldRemainingCooldown,
+			NewRemainingCooldown);
+	}
+
+	return true;
 }
 
 void UAutoAttackComponent::PerformAttackTrace()
@@ -239,6 +286,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		QueryParams);
 
 	TSet<AEnemyBase*> DamagedEnemies;
+	int32 KilledEnemyCount = 0;
 	const AActor* OwnerActor = OwnerCharacter->GetOwner();
 	for (const FHitResult& HitResult : HitResults)
 	{
@@ -262,6 +310,10 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 
 		DamagedEnemies.Add(HitEnemy);
 		EnemyHealth->ApplyDamage(EffectiveAttackDamage);
+		if (EnemyHealth->IsDead())
+		{
+			++KilledEnemyCount;
+		}
 		if (bCanApplyMarkedBlade)
 		{
 			HitEnemy->ApplyMark();
@@ -275,6 +327,8 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		DrawDebugLine(GetWorld(), AttackOrigin, HitboxCenter, DebugColor, false, DebugDuration, 0, 4.0f);
 		DrawDebugSphere(GetWorld(), HitboxCenter, EffectiveAttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
 	}
+
+	HandleSamuraiMomentum(KilledEnemyCount);
 
 	return true;
 }
@@ -313,6 +367,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	const float EffectiveProjectileSpeed = GetEffectiveProjectileSpeed();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
 	const int32 EffectiveProjectileCount = GetEffectiveProjectileCount();
+	const int32 EffectiveProjectilePierceBonus = GetEffectiveProjectilePierceBonus();
 
 	int32 SpawnedProjectileCount = 0;
 	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
@@ -331,7 +386,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 			continue;
 		}
 
-		SpawnProjectileInstance(SpawnLocation, SpawnDirection, EffectiveAttackDamage, EffectiveProjectileSpeed);
+		SpawnProjectileInstance(SpawnLocation, SpawnDirection, EffectiveAttackDamage, EffectiveProjectileSpeed, EffectiveProjectilePierceBonus);
 		++SpawnedProjectileCount;
 
 		if (CVarHDLogNinjaProjectileSpread.GetValueOnGameThread() != 0)
@@ -363,11 +418,13 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		DrawDebugSphere(GetWorld(), SpawnLocation, 24.0f, 12, FColor::Yellow, false, DebugDuration, 0, 3.0f);
 	}
 
+	RegisterNinjaAttackForFanOfBlades(SpawnLocation, EffectiveAttackDamage, EffectiveProjectileSpeed, EffectiveProjectilePierceBonus);
+
 	CurrentAttackTarget.Reset();
 	OwnerCharacter->ClearFacingOverride();
 }
 
-void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed)
+void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount)
 {
 	if (!OwnerCharacter || !ProjectileClass || !GetWorld())
 	{
@@ -397,7 +454,11 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		Damage,
 		Speed,
 		EProjectileTargetType::Enemies,
-		GetEffectiveTargetingRange());
+		GetEffectiveTargetingRange(),
+		true,
+		nullptr,
+		true,
+		AdditionalPierceCount);
 }
 
 AEnemyBase* UAutoAttackComponent::FindAssistTarget() const
@@ -690,7 +751,8 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 		return false;
 	}
 
-	if (!AttackMontage)
+	UAnimMontage* MontageToPlay = GetMontageForNextAttack();
+	if (!MontageToPlay)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AttackMontage invalid"));
 		return false;
@@ -717,8 +779,8 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 		return false;
 	}
 
-	const float ActualPlayRate = CalculateAttackMontagePlayRate(AttackMontage);
-	const float PlayResult = AnimInstance->Montage_Play(AttackMontage, ActualPlayRate);
+	const float ActualPlayRate = CalculateAttackMontagePlayRate(MontageToPlay);
+	const float PlayResult = AnimInstance->Montage_Play(MontageToPlay, ActualPlayRate);
 	if (PlayResult <= 0.0f)
 	{
 		return false;
@@ -726,15 +788,17 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 
 	FOnMontageEnded MontageEndedDelegate;
 	MontageEndedDelegate.BindUObject(this, &UAutoAttackComponent::HandleAttackMontageEnded);
-	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, AttackMontage);
+	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, MontageToPlay);
 
 	FOnMontageBlendingOutStarted MontageBlendingOutDelegate;
 	MontageBlendingOutDelegate.BindUObject(this, &UAutoAttackComponent::HandleAttackMontageBlendingOut);
-	AnimInstance->Montage_SetBlendingOutDelegate(MontageBlendingOutDelegate, AttackMontage);
+	AnimInstance->Montage_SetBlendingOutDelegate(MontageBlendingOutDelegate, MontageToPlay);
 
 	bIsAttacking = true;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = !bUpdateNormalCooldown;
+	bActiveAttackTriggersFanOfBlades = WillNextNinjaAttackTriggerFanOfBlades();
+	ActiveAttackMontage = MontageToPlay;
 	if (bUpdateNormalCooldown)
 	{
 		LastAttackStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastAttackStartTime;
@@ -750,6 +814,16 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 			NextAttackReadyTime);
 	}
 	return true;
+}
+
+UAnimMontage* UAutoAttackComponent::GetMontageForNextAttack() const
+{
+	if (WillNextNinjaAttackTriggerFanOfBlades() && FanOfBladesAttackMontage)
+	{
+		return FanOfBladesAttackMontage;
+	}
+
+	return AttackMontage;
 }
 
 float UAutoAttackComponent::CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const
@@ -774,13 +848,14 @@ float UAutoAttackComponent::CalculateAttackMontagePlayRate(const UAnimMontage* M
 
 float UAutoAttackComponent::GetExpectedAttackMontageDuration() const
 {
-	if (!AttackMontage)
+	const UAnimMontage* ExpectedMontage = GetMontageForNextAttack();
+	if (!ExpectedMontage)
 	{
 		return 0.75f;
 	}
 
-	const float PlayRate = FMath::Max(0.01f, CalculateAttackMontagePlayRate(AttackMontage));
-	return AttackMontage->GetPlayLength() / PlayRate;
+	const float PlayRate = FMath::Max(0.01f, CalculateAttackMontagePlayRate(ExpectedMontage));
+	return ExpectedMontage->GetPlayLength() / PlayRate;
 }
 
 float UAutoAttackComponent::GetExpectedDoubleCutFollowUpDuration() const
@@ -790,7 +865,7 @@ float UAutoAttackComponent::GetExpectedDoubleCutFollowUpDuration() const
 
 void UAutoAttackComponent::HandleAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (Montage != AttackMontage)
+	if (Montage != ActiveAttackMontage)
 	{
 		return;
 	}
@@ -800,7 +875,7 @@ void UAutoAttackComponent::HandleAttackMontageBlendingOut(UAnimMontage* Montage,
 
 void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (Montage != AttackMontage)
+	if (Montage != ActiveAttackMontage)
 	{
 		return;
 	}
@@ -813,6 +888,8 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
+	bActiveAttackTriggersFanOfBlades = false;
+	ActiveAttackMontage = nullptr;
 	CurrentAttackTarget.Reset();
 	if (OwnerCharacter)
 	{
@@ -926,6 +1003,28 @@ void UAutoAttackComponent::RegisterDoubleCutPrimaryAttack()
 	bDoubleCutFollowUpPending = true;
 }
 
+void UAutoAttackComponent::HandleSamuraiMomentum(int32 KilledEnemyCount)
+{
+	const UUpgradeDefinition* MomentumUpgrade = GetMomentumUpgrade();
+	if (!MomentumUpgrade)
+	{
+		return;
+	}
+
+	const int32 RequiredKills = FMath::Max(1, MomentumUpgrade->MomentumRequiredKills);
+	if (CVarHDLogSamuraiMomentum.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Momentum: Attack killed %d enemies"), KilledEnemyCount);
+	}
+
+	if (KilledEnemyCount < RequiredKills)
+	{
+		return;
+	}
+
+	ReduceRemainingAttackCooldown(MomentumUpgrade->MomentumRemainingCooldownReduction);
+}
+
 bool UAutoAttackComponent::HasDoubleCutUpgrade() const
 {
 	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
@@ -935,6 +1034,70 @@ bool UAutoAttackComponent::HasDoubleCutUpgrade() const
 
 	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
 	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::DoubleCut) > 0;
+}
+
+const UUpgradeDefinition* UAutoAttackComponent::GetMomentumUpgrade() const
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
+	{
+		return nullptr;
+	}
+
+	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+	if (!PlayerUpgrades || PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::Momentum) <= 0)
+	{
+		return nullptr;
+	}
+
+	return PlayerUpgrades->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::Momentum);
+}
+
+bool UAutoAttackComponent::HasFanOfBladesUpgrade() const
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass)
+	{
+		return false;
+	}
+
+	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::FanOfBlades) > 0;
+}
+
+bool UAutoAttackComponent::WillNextNinjaAttackTriggerFanOfBlades() const
+{
+	return HasFanOfBladesUpgrade()
+		&& FanOfBladesAttackInterval > 0
+		&& FanOfBladesAttackCounter + 1 >= FanOfBladesAttackInterval;
+}
+
+void UAutoAttackComponent::RegisterNinjaAttackForFanOfBlades(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount)
+{
+	if (!HasFanOfBladesUpgrade())
+	{
+		return;
+	}
+
+	const int32 SafeTriggerInterval = FMath::Max(1, FanOfBladesAttackInterval);
+	++FanOfBladesAttackCounter;
+	if (!bActiveAttackTriggersFanOfBlades && FanOfBladesAttackCounter < SafeTriggerInterval)
+	{
+		return;
+	}
+
+	FanOfBladesAttackCounter = 0;
+	SpawnFanOfBladesVolley(SpawnLocation, Damage, Speed, AdditionalPierceCount);
+}
+
+void UAutoAttackComponent::SpawnFanOfBladesVolley(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount)
+{
+	const int32 SafeProjectileCount = FMath::Max(1, FanOfBladesProjectileCount);
+	for (int32 ProjectileIndex = 0; ProjectileIndex < SafeProjectileCount; ++ProjectileIndex)
+	{
+		const float AngleDegrees = (360.0f * static_cast<float>(ProjectileIndex)) / static_cast<float>(SafeProjectileCount);
+		const FRotator DirectionRotation(0.0f, AngleDegrees, 0.0f);
+		const FVector ProjectileDirection = DirectionRotation.Vector();
+		SpawnProjectileInstance(SpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
+	}
 }
 
 bool UAutoAttackComponent::WillNextSamuraiAttackTriggerDoubleCut() const
@@ -1106,6 +1269,12 @@ int32 UAutoAttackComponent::GetEffectiveProjectileCount() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
 	return CharacterStats ? CharacterStats->GetFinalProjectileCount() : 1;
+}
+
+int32 UAutoAttackComponent::GetEffectiveProjectilePierceBonus() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	return CharacterStats ? CharacterStats->GetFinalProjectilePierceBonus() : 0;
 }
 
 float UAutoAttackComponent::GetBaseAttackInterval() const

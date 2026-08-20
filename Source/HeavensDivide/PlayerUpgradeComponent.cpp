@@ -142,6 +142,7 @@ void UPlayerUpgradeComponent::LogPlayerUpgradeStats() const
 	UE_LOG(LogTemp, Log, TEXT("Damage: Base %.2f -> Final %.2f"), NinjaAttack ? NinjaAttack->GetBaseAttackDamage() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveAttackDamage() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Attack Interval: Base %.3f -> Final %.3f"), NinjaAttack ? NinjaAttack->GetBaseAttackInterval() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveAttackInterval() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Projectile Count: Base 1 -> Final %d"), NinjaAttack ? NinjaAttack->GetEffectiveProjectileCount() : 1);
+	UE_LOG(LogTemp, Log, TEXT("Projectile Pierce Bonus: %d"), NinjaAttack ? NinjaAttack->GetEffectiveProjectilePierceBonus() : 0);
 	UE_LOG(LogTemp, Log, TEXT("Projectile Speed: Base %.2f -> Final %.2f"), NinjaAttack ? NinjaAttack->GetBaseProjectileSpeed() : 0.0f, NinjaAttack ? NinjaAttack->GetEffectiveProjectileSpeed() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Health On Kill: %.3f"), NinjaStats ? NinjaStats->GetFinalHealthOnKill() : 0.0f);
 	UE_LOG(LogTemp, Log, TEXT("Dodge Chance: %.1f%%"), NinjaStats ? NinjaStats->GetFinalDodgeChance() * 100.0f : 0.0f);
@@ -421,6 +422,25 @@ int32 UPlayerUpgradeComponent::GetSpecialEffectLevel(EUpgradeSpecialEffect Speci
 	}
 
 	return TotalLevel;
+}
+
+UUpgradeDefinition* UPlayerUpgradeComponent::GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect SpecialEffect) const
+{
+	if (SpecialEffect == EUpgradeSpecialEffect::None)
+	{
+		return nullptr;
+	}
+
+	for (const TPair<FName, TObjectPtr<UUpgradeDefinition>>& UpgradePair : AcquiredUpgradeDefinitions)
+	{
+		UUpgradeDefinition* Upgrade = UpgradePair.Value;
+		if (IsValidUpgradeDefinition(Upgrade) && Upgrade->SpecialEffects.Contains(SpecialEffect) && GetUpgradeLevel(Upgrade) > 0)
+		{
+			return Upgrade;
+		}
+	}
+
+	return nullptr;
 }
 
 bool UPlayerUpgradeComponent::IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const

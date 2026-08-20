@@ -10,7 +10,9 @@
 class UAnimMontage;
 class AAttackProjectileBase;
 class AEnemyBase;
+class ANinjaCharacter;
 class ASamuraiCharacter;
+class UUpgradeDefinition;
 
 UENUM(BlueprintType)
 enum class EAutoAttackSource : uint8
@@ -78,6 +80,9 @@ public:
 	int32 GetEffectiveProjectileCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	int32 GetEffectiveProjectilePierceBonus() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	float GetBaseAttackInterval() const;
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
@@ -88,6 +93,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	float GetBaseProjectileSpeed() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Auto Attack|Cooldown")
+	bool ReduceRemainingAttackCooldown(float Percent);
 
 	UPROPERTY(BlueprintAssignable, Category = "Auto Attack")
 	FOnAutoAttack OnAutoAttack;
@@ -113,6 +121,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack")
 	TObjectPtr<UAnimMontage> AttackMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Fan of Blades")
+	TObjectPtr<UAnimMontage> FanOfBladesAttackMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Double Cut")
 	TObjectPtr<UAnimMontage> DoubleCutMontage;
@@ -174,6 +185,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Double Cut", meta = (ClampMin = "1", UIMin = "1"))
 	int32 DoubleCutPrimaryAttackCount = 3;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1"))
+	int32 FanOfBladesAttackInterval = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1"))
+	int32 FanOfBladesProjectileCount = 8;
+
 private:
 	UFUNCTION()
 	void HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode);
@@ -187,6 +204,7 @@ private:
 	void ScheduleReadyTargetCheckTimer();
 	void ApplyLegacyTargetingRangeDefaults();
 	bool PlayAttackMontage(bool bUpdateNormalCooldown = true);
+	UAnimMontage* GetMontageForNextAttack() const;
 	float CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const;
 	float GetExpectedAttackMontageDuration() const;
 	float GetExpectedDoubleCutFollowUpDuration() const;
@@ -198,14 +216,20 @@ private:
 	bool IsOwningPlayerDead() const;
 	bool TryConsumeAttackNotify();
 	bool ExecuteMeleeAttackTrace();
+	void HandleSamuraiMomentum(int32 KilledEnemyCount);
 	void RegisterDoubleCutPrimaryAttack();
 	bool HasDoubleCutUpgrade() const;
+	const UUpgradeDefinition* GetMomentumUpgrade() const;
+	bool HasFanOfBladesUpgrade() const;
+	bool WillNextNinjaAttackTriggerFanOfBlades() const;
+	void RegisterNinjaAttackForFanOfBlades(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
+	void SpawnFanOfBladesVolley(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
 	bool WillNextSamuraiAttackTriggerDoubleCut() const;
 	bool AcquireDoubleCutFollowUpTarget();
 	void StartDoubleCutFollowUp();
 	void ConsumePendingDoubleCutFollowUp();
 	void HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed);
+	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount);
 	AEnemyBase* FindNearestEnemyTarget() const;
 	AEnemyBase* FindBestMeleeTarget(const FVector& SearchLocation, float SearchRadius) const;
 	float ScoreMeleeTarget(AEnemyBase* Candidate, const TArray<AEnemyBase*>& Candidates, const FVector& SearchLocation, float SearchRadius, int32& OutClusterCount, float& OutDistancePenalty, float& OutImmediateThreatBonus) const;
@@ -227,9 +251,14 @@ private:
 	int32 AttackSequence = 0;
 	int32 ActiveAttackSequence = 0;
 	int32 DoubleCutPrimaryAttackCounter = 0;
+	int32 FanOfBladesAttackCounter = 0;
 	bool bIsAttacking = false;
 	bool bAttackNotifyConsumed = false;
 	bool bActiveAttackIsAssist = false;
+	bool bActiveAttackTriggersFanOfBlades = false;
 	bool bDoubleCutFollowUpActive = false;
 	bool bDoubleCutFollowUpPending = false;
+
+	UPROPERTY()
+	TObjectPtr<UAnimMontage> ActiveAttackMontage;
 };

@@ -36,7 +36,8 @@ public:
 		float InTargetingRange = 0.0f,
 		bool bInCanTriggerExecutionersKunai = true,
 		AActor* InIgnoredOverlapActor = nullptr,
-		bool bFlattenLaunchDirection = true);
+		bool bFlattenLaunchDirection = true,
+		int32 InAdditionalPierceCount = 0);
 
 protected:
 	virtual void BeginPlay() override;
@@ -104,6 +105,7 @@ private:
 
 	void LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const;
 	void BeginImpactTrailFade();
+	bool ConsumeEnemyHit(AEnemyBase* HitEnemy);
 	void TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation);
 	void TryTriggerExecutionersKunai(AEnemyBase* ConsumedMarkEnemy, const FVector& MarkConsumedLocation);
 	AEnemyBase* FindExecutionersKunaiTarget(AEnemyBase* ConsumedMarkEnemy, const FVector& SearchLocation) const;
@@ -118,7 +120,12 @@ private:
 	TObjectPtr<AActor> IgnoredOverlapActor;
 
 	float SourceTargetingRange = 0.0f;
+	int32 AdditionalPierceCount = 0;
+	int32 RemainingEnemyHits = 1;
 	bool bIsProjectileInitialized = false;
 	bool bCanTriggerExecutionersKunai = true;
 	bool bImpactResolved = false;
+
+	UPROPERTY()
+	TSet<TObjectPtr<AEnemyBase>> DamagedEnemies;
 };

@@ -83,7 +83,8 @@ void AAttackProjectileBase::InitializeProjectile(
 	float InTargetingRange,
 	bool bInCanTriggerExecutionersKunai,
 	AActor* InIgnoredOverlapActor,
-	bool bFlattenLaunchDirection)
+	bool bFlattenLaunchDirection,
+	int32 InAdditionalPierceCount)
 {
 	GameplayOwner = InGameplayOwner;
 	SetOwner(InGameplayOwner);
@@ -91,6 +92,9 @@ void AAttackProjectileBase::InitializeProjectile(
 	SourceTargetingRange = FMath::Max(0.0f, InTargetingRange);
 	bCanTriggerExecutionersKunai = bInCanTriggerExecutionersKunai;
 	IgnoredOverlapActor = InIgnoredOverlapActor;
+	AdditionalPierceCount = FMath::Max(0, InAdditionalPierceCount);
+	RemainingEnemyHits = FMath::Max(1, 1 + AdditionalPierceCount);
+	DamagedEnemies.Reset();
 
 	if (APawn* OwnerPawn = Cast<APawn>(InGameplayOwner))
 	{
@@ -149,7 +153,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 	if (TargetType == EProjectileTargetType::Enemies)
 	{
 		AEnemyBase* HitEnemy = Cast<AEnemyBase>(OtherActor);
-		if (!HitEnemy || HitEnemy->IsDead())
+		if (!HitEnemy || HitEnemy->IsDead() || DamagedEnemies.Contains(HitEnemy))
 		{
 			LogProjectileFilterResult(OtherActor, false);
 			return;
@@ -230,7 +234,10 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			TryTriggerExecutionersKunai(HitEnemy, ExecutionLocation);
 		}
 
-		BeginImpactTrailFade();
+		if (ConsumeEnemyHit(HitEnemy))
+		{
+			BeginImpactTrailFade();
+		}
 		return;
 	}
 
@@ -332,6 +339,17 @@ void AAttackProjectileBase::BeginImpactTrailFade()
 	}
 
 	SetLifeSpan(SafeFadeDuration);
+}
+
+bool AAttackProjectileBase::ConsumeEnemyHit(AEnemyBase* HitEnemy)
+{
+	if (HitEnemy)
+	{
+		DamagedEnemies.Add(HitEnemy);
+	}
+
+	--RemainingEnemyHits;
+	return RemainingEnemyHits <= 0;
 }
 
 void AAttackProjectileBase::TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation)
@@ -626,7 +644,8 @@ void AAttackProjectileBase::SpawnExecutionersKunai(AEnemyBase* TargetEnemy, AEne
 		SourceTargetingRange,
 		false,
 		TargetEnemy != ConsumedMarkEnemy ? ConsumedMarkEnemy : nullptr,
-		false);
+		false,
+		AdditionalPierceCount);
 
 	if (bDebugExecutionersKunai)
 	{
