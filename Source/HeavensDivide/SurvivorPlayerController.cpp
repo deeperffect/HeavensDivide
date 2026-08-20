@@ -21,6 +21,7 @@
 #include "CharacterStatsComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TimerManager.h"
+#include "UpgradeDefinition.h"
 
 static TAutoConsoleVariable<int32> CVarHDLogDash(
 	TEXT("hd.LogDash"),
@@ -31,6 +32,17 @@ static TAutoConsoleVariable<int32> CVarHDLogDashCharges(
 	TEXT("hd.LogDashCharges"),
 	0,
 	TEXT("Logs player dash charge state changes when enabled."));
+
+static TAutoConsoleVariable<int32> CVarHDLogHandoff(
+	TEXT("hd.LogHandoff"),
+	0,
+	TEXT("Logs Handoff attack speed buff application and expiration when enabled."));
+
+namespace HandoffBuffIds
+{
+	static const FName ModifierId(TEXT("Handoff_AttackSpeed"));
+	static const FName SourceId(TEXT("Handoff"));
+}
 
 namespace
 {
@@ -114,6 +126,17 @@ void ASurvivorPlayerController::BeginPlay()
 	{
 		InputSubsystem->AddMappingContext(DefaultMappingContext, 0);
 	}
+}
+
+void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (CharacterManager)
+	{
+		RemoveHandoffBuff(CharacterManager->GetSamurai());
+		RemoveHandoffBuff(CharacterManager->GetNinja());
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void ASurvivorPlayerController::PlayerTick(float DeltaTime)
@@ -512,6 +535,7 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 		RestoreDashCharge(1, TEXT("Swap restored dash charge"));
 	}
 
+	ApplyHandoffBuff(NewCharacter);
 	ApplySharedMoveSpeedToParty();
 	SetCameraFollowTarget(NewCharacter);
 }
@@ -714,6 +738,97 @@ void ASurvivorPlayerController::HandleSwapCooldownFinished()
 {
 	bCanSwap = true;
 	OnSwapCooldownFinished.Broadcast();
+}
+
+void ASurvivorPlayerController::ApplyHandoffBuff(ACharacterBase* NewActiveCharacter)
+{
+	if (!NewActiveCharacter || !PlayerUpgradeComponent || PlayerUpgradeComponent->GetSpecialEffectLevel(EUpgradeSpecialEffect::Handoff) <= 0)
+	{
+		return;
+	}
+
+	UUpgradeDefinition* HandoffUpgrade = PlayerUpgradeComponent->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::Handoff);
+	const float AttackSpeedBonus = HandoffUpgrade ? FMath::Max(0.0f, HandoffUpgrade->HandoffAttackSpeedBonus) : 0.4f;
+	const float Duration = HandoffUpgrade ? FMath::Max(0.0f, HandoffUpgrade->HandoffDuration) : 3.0f;
+	UCharacterStatsComponent* CharacterStats = NewActiveCharacter->GetCharacterStats();
+	FTimerHandle* HandoffTimerHandle = GetHandoffTimerHandleForCharacter(NewActiveCharacter);
+	if (!CharacterStats || !HandoffTimerHandle)
+	{
+		return;
+	}
+
+	FCharacterStatModifier Modifier;
+	Modifier.ModifierId = HandoffBuffIds::ModifierId;
+	Modifier.SourceId = HandoffBuffIds::SourceId;
+	Modifier.Stat = ECharacterStatType::AttackSpeedMultiplier;
+	Modifier.Operation = EStatModifierOperation::AddPercent;
+	Modifier.Value = AttackSpeedBonus;
+	CharacterStats->AddModifier(Modifier);
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(*HandoffTimerHandle);
+		if (Duration > 0.0f)
+		{
+			FTimerDelegate ExpireDelegate;
+			ExpireDelegate.BindUObject(this, &ASurvivorPlayerController::RemoveHandoffBuff, NewActiveCharacter);
+			World->GetTimerManager().SetTimer(*HandoffTimerHandle, ExpireDelegate, Duration, false);
+		}
+		else
+		{
+			RemoveHandoffBuff(NewActiveCharacter);
+		}
+	}
+
+	if (CVarHDLogHandoff.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Handoff] Applied to %s AttackSpeedBonus=%.2f Duration=%.2f"),
+			*GetNameSafe(NewActiveCharacter),
+			AttackSpeedBonus,
+			Duration);
+	}
+}
+
+void ASurvivorPlayerController::RemoveHandoffBuff(ACharacterBase* BuffedCharacter)
+{
+	UCharacterStatsComponent* CharacterStats = BuffedCharacter ? BuffedCharacter->GetCharacterStats() : nullptr;
+	if (CharacterStats)
+	{
+		CharacterStats->RemoveModifier(HandoffBuffIds::ModifierId);
+	}
+
+	if (FTimerHandle* HandoffTimerHandle = GetHandoffTimerHandleForCharacter(BuffedCharacter))
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(*HandoffTimerHandle);
+		}
+	}
+
+	if (CVarHDLogHandoff.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Handoff] Expired on %s"), *GetNameSafe(BuffedCharacter));
+	}
+}
+
+FTimerHandle* ASurvivorPlayerController::GetHandoffTimerHandleForCharacter(const ACharacterBase* TargetCharacter)
+{
+	if (!CharacterManager || !TargetCharacter)
+	{
+		return nullptr;
+	}
+
+	if (TargetCharacter == CharacterManager->GetSamurai())
+	{
+		return &SamuraiHandoffTimerHandle;
+	}
+
+	if (TargetCharacter == CharacterManager->GetNinja())
+	{
+		return &NinjaHandoffTimerHandle;
+	}
+
+	return nullptr;
 }
 
 void ASurvivorPlayerController::HandleSharedPlayerStatsChanged()

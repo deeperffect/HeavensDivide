@@ -135,6 +135,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
@@ -239,6 +240,9 @@ protected:
 	void CloseLevelUpWidget();
 	void StartSwapCooldown();
 	void HandleSwapCooldownFinished();
+	void ApplyHandoffBuff(ACharacterBase* NewActiveCharacter);
+	void RemoveHandoffBuff(ACharacterBase* BuffedCharacter);
+	FTimerHandle* GetHandoffTimerHandleForCharacter(const ACharacterBase* TargetCharacter);
 	void ApplySharedMoveSpeedToParty();
 	void ApplySharedHealthStats();
 	void ApplySharedPlayerStats();
@@ -260,6 +264,8 @@ protected:
 
 	float BasePlayerMaxHealth = 0.0f;
 	FTimerHandle SwapCooldownTimerHandle;
+	FTimerHandle SamuraiHandoffTimerHandle;
+	FTimerHandle NinjaHandoffTimerHandle;
 	FTimerHandle DashRechargeTimerHandle;
 	FTimerHandle HPRegenTimerHandle;
 	FVector2D LastMovementInput = FVector2D::ZeroVector;

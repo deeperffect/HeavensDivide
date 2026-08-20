@@ -2,6 +2,7 @@
 
 #include "AttackProjectileBase.h"
 
+#include "AutoAttackComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -646,6 +647,14 @@ void AAttackProjectileBase::SpawnExecutionersKunai(AEnemyBase* TargetEnemy, AEne
 		TargetEnemy != ConsumedMarkEnemy ? ConsumedMarkEnemy : nullptr,
 		false,
 		AdditionalPierceCount);
+
+	if (AActor* GameplayOwnerActor = GameplayOwner.Get())
+	{
+		if (UAutoAttackComponent* AutoAttack = GameplayOwnerActor->FindComponentByClass<UAutoAttackComponent>())
+		{
+			AutoAttack->RegisterKunaiFired();
+		}
+	}
 
 	if (bDebugExecutionersKunai)
 	{

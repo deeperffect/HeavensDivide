@@ -39,9 +39,12 @@ enum class EUpgradeSpecialEffect : uint8
 	None,
 	SwapRestoresDashCharge,
 	InactiveCharacterAssist,
+	QuickHandoff,
+	Handoff,
 	DoubleCut,
 	Momentum,
-	FanOfBlades
+	FanOfBlades,
+	BladeCascade
 };
 
 USTRUCT(BlueprintType)
@@ -106,4 +109,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float MomentumRemainingCooldownReduction = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1"))
+	int32 BladeCascadeKunaiThreshold = 10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1"))
+	int32 BladeCascadeBonusKunai = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float HandoffAttackSpeedBonus = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float HandoffDuration = 3.0f;
 };

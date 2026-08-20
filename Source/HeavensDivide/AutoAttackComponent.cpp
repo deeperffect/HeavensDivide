@@ -41,6 +41,11 @@ static TAutoConsoleVariable<int32> CVarHDLogSamuraiMomentum(
 	0,
 	TEXT("Logs Samurai Momentum per-attack kill counts and cooldown reductions when enabled."));
 
+static TAutoConsoleVariable<int32> CVarHDLogBladeCascade(
+	TEXT("hd.LogBladeCascade"),
+	0,
+	TEXT("Logs Blade Cascade progress, ready, and consumption events when enabled."));
+
 namespace AutoAttackMarkedForDeathUpgradeIds
 {
 	static const FName MarkedBlade(TEXT("MarkedBlade"));
@@ -366,7 +371,8 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	const FVector SpawnLocation = GetProjectileSpawnLocation();
 	const float EffectiveProjectileSpeed = GetEffectiveProjectileSpeed();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
-	const int32 EffectiveProjectileCount = GetEffectiveProjectileCount();
+	const int32 NormalProjectileCount = GetEffectiveProjectileCount();
+	const int32 EffectiveProjectileCount = ConsumeBladeCascadeBonusForNormalVolley(NormalProjectileCount);
 	const int32 EffectiveProjectilePierceBonus = GetEffectiveProjectilePierceBonus();
 
 	int32 SpawnedProjectileCount = 0;
@@ -459,6 +465,8 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		nullptr,
 		true,
 		AdditionalPierceCount);
+
+	RegisterKunaiFired();
 }
 
 AEnemyBase* UAutoAttackComponent::FindAssistTarget() const
@@ -1097,6 +1105,78 @@ void UAutoAttackComponent::SpawnFanOfBladesVolley(const FVector& SpawnLocation, 
 		const FRotator DirectionRotation(0.0f, AngleDegrees, 0.0f);
 		const FVector ProjectileDirection = DirectionRotation.Vector();
 		SpawnProjectileInstance(SpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
+	}
+}
+
+const UUpgradeDefinition* UAutoAttackComponent::GetBladeCascadeUpgrade() const
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass)
+	{
+		return nullptr;
+	}
+
+	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+	if (!PlayerUpgrades || PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::BladeCascade) <= 0)
+	{
+		return nullptr;
+	}
+
+	return PlayerUpgrades->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::BladeCascade);
+}
+
+int32 UAutoAttackComponent::ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount)
+{
+	const UUpgradeDefinition* BladeCascadeUpgrade = GetBladeCascadeUpgrade();
+	if (!BladeCascadeUpgrade || !bBladeCascadeReady)
+	{
+		return NormalProjectileCount;
+	}
+
+	const int32 SafeBonusKunai = FMath::Max(1, BladeCascadeUpgrade->BladeCascadeBonusKunai);
+	bBladeCascadeReady = false;
+	const int32 FinalProjectileCount = NormalProjectileCount + SafeBonusKunai;
+
+	if (CVarHDLogBladeCascade.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Blade Cascade CONSUMED: normal=%d bonus=%d final=%d"),
+			NormalProjectileCount,
+			SafeBonusKunai,
+			FinalProjectileCount);
+	}
+
+	return FinalProjectileCount;
+}
+
+void UAutoAttackComponent::RegisterKunaiFired()
+{
+	const UUpgradeDefinition* BladeCascadeUpgrade = GetBladeCascadeUpgrade();
+	if (!BladeCascadeUpgrade)
+	{
+		return;
+	}
+
+	const int32 SafeThreshold = FMath::Max(1, BladeCascadeUpgrade->BladeCascadeKunaiThreshold);
+	++BladeCascadeKunaiProgress;
+
+	if (BladeCascadeKunaiProgress >= SafeThreshold)
+	{
+		if (!bBladeCascadeReady)
+		{
+			BladeCascadeKunaiProgress -= SafeThreshold;
+			bBladeCascadeReady = true;
+			if (CVarHDLogBladeCascade.GetValueOnGameThread() != 0)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Blade Cascade READY"));
+			}
+			return;
+		}
+
+		BladeCascadeKunaiProgress = SafeThreshold - 1;
+	}
+
+	if (CVarHDLogBladeCascade.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Blade Cascade: %d/%d"), BladeCascadeKunaiProgress, SafeThreshold);
 	}
 }
 

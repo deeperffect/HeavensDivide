@@ -82,6 +82,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	int32 GetEffectiveProjectilePierceBonus() const;
 
+	void RegisterKunaiFired();
+
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	float GetBaseAttackInterval() const;
 
@@ -224,6 +226,8 @@ private:
 	bool WillNextNinjaAttackTriggerFanOfBlades() const;
 	void RegisterNinjaAttackForFanOfBlades(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
 	void SpawnFanOfBladesVolley(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
+	const UUpgradeDefinition* GetBladeCascadeUpgrade() const;
+	int32 ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount);
 	bool WillNextSamuraiAttackTriggerDoubleCut() const;
 	bool AcquireDoubleCutFollowUpTarget();
 	void StartDoubleCutFollowUp();
@@ -252,10 +256,12 @@ private:
 	int32 ActiveAttackSequence = 0;
 	int32 DoubleCutPrimaryAttackCounter = 0;
 	int32 FanOfBladesAttackCounter = 0;
+	int32 BladeCascadeKunaiProgress = 0;
 	bool bIsAttacking = false;
 	bool bAttackNotifyConsumed = false;
 	bool bActiveAttackIsAssist = false;
 	bool bActiveAttackTriggersFanOfBlades = false;
+	bool bBladeCascadeReady = false;
 	bool bDoubleCutFollowUpActive = false;
 	bool bDoubleCutFollowUpPending = false;
 
