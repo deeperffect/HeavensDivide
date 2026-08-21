@@ -64,7 +64,49 @@ float UExperienceComponent::GetXPPercent() const
 
 int32 UExperienceComponent::CalculateXPToNextLevel() const
 {
-	return FMath::Max(1, BaseXPRequirement + ((FMath::Max(1, CurrentLevel) - 1) * XPRequirementGrowth));
+	struct FLevelXPRequirement
+	{
+		int32 Level;
+		int32 XPToNextLevel;
+	};
+
+	static constexpr FLevelXPRequirement LevelXPRequirements[] =
+	{
+		{ 1, 10 },
+		{ 2, 16 },
+		{ 3, 24 },
+		{ 4, 36 },
+		{ 5, 50 },
+		{ 10, 168 },
+		{ 15, 360 },
+		{ 20, 628 },
+		{ 25, 970 },
+		{ 30, 1388 },
+		{ 40, 2448 },
+		{ 50, 3808 },
+	};
+
+	const int32 SafeLevel = FMath::Max(1, CurrentLevel);
+	if (SafeLevel <= LevelXPRequirements[0].Level)
+	{
+		return LevelXPRequirements[0].XPToNextLevel;
+	}
+
+	for (int32 Index = 1; Index < UE_ARRAY_COUNT(LevelXPRequirements); ++Index)
+	{
+		const FLevelXPRequirement& PreviousRequirement = LevelXPRequirements[Index - 1];
+		const FLevelXPRequirement& NextRequirement = LevelXPRequirements[Index];
+		if (SafeLevel <= NextRequirement.Level)
+		{
+			const float Alpha = static_cast<float>(SafeLevel - PreviousRequirement.Level) / static_cast<float>(NextRequirement.Level - PreviousRequirement.Level);
+			return FMath::Max(1, FMath::RoundToInt(FMath::Lerp(static_cast<float>(PreviousRequirement.XPToNextLevel), static_cast<float>(NextRequirement.XPToNextLevel), Alpha)));
+		}
+	}
+
+	const FLevelXPRequirement& LastRequirement = LevelXPRequirements[UE_ARRAY_COUNT(LevelXPRequirements) - 1];
+	const FLevelXPRequirement& PreviousRequirement = LevelXPRequirements[UE_ARRAY_COUNT(LevelXPRequirements) - 2];
+	const float XPPerLevel = static_cast<float>(LastRequirement.XPToNextLevel - PreviousRequirement.XPToNextLevel) / static_cast<float>(LastRequirement.Level - PreviousRequirement.Level);
+	return FMath::Max(1, FMath::RoundToInt(LastRequirement.XPToNextLevel + (XPPerLevel * (SafeLevel - LastRequirement.Level))));
 }
 
 void UExperienceComponent::BroadcastXPChanged()

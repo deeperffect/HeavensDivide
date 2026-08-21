@@ -109,28 +109,28 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player|Health")
 	float GetActiveDodgeChance() const;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when a player dash successfully starts."))
 	FOnPlayerDash OnDashStarted;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when the current player dash ends."))
 	FOnPlayerDash OnDashEnded;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast whenever current or maximum shared dash charges change."))
 	FOnDashChargesChanged OnDashChargesChanged;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when dash charge recharge starts."))
 	FOnPlayerDash OnDashRechargeStarted;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Dash")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when one dash charge finishes recharging."))
 	FOnPlayerDash OnDashRechargeCompleted;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Swap")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Swap", meta = (ToolTip = "Broadcast when a successful character swap starts the shared swap cooldown."))
 	FOnSwapCooldownStarted OnSwapCooldownStarted;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Swap")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Swap", meta = (ToolTip = "Broadcast when the shared swap cooldown finishes or is reset."))
 	FOnSwapCooldownFinished OnSwapCooldownFinished;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Health")
+	UPROPERTY(BlueprintAssignable, Category = "Player|Health", meta = (ToolTip = "Broadcast when incoming player damage is avoided by dodge chance."))
 	FOnPlayerDamageDodged OnDamageDodged;
 
 protected:
@@ -138,82 +138,85 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input mapping context added for player controls at BeginPlay."))
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input action used for player movement."))
 	TObjectPtr<UInputAction> MoveAction;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input action used to swap between Samurai and Ninja."))
 	TObjectPtr<UInputAction> SwapAction;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input action reserved for assist-related input."))
 	TObjectPtr<UInputAction> AssistAction;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input action used to spend a shared dash charge and dash."))
 	TObjectPtr<UInputAction> DashAction;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Distance traveled during a player dash. Shared by Samurai and Ninja."))
 	float DashDistance = 550.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "How long the dash movement lasts in seconds."))
 	float DashDuration = 0.18f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Seconds required to restore one shared dash charge. Recharges one charge at a time."))
 	float DashRechargeTime = 5.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Swap", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Swap", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Seconds after a successful character swap before another swap is allowed. 0 disables the cooldown."))
 	float SwapCooldown = 3.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Health", meta = (ClampMin = "0.05", UIMin = "0.05"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Health", meta = (ClampMin = "0.05", UIMin = "0.05", ToolTip = "Seconds between passive HP regeneration ticks. Regen amount still comes from character stats."))
 	float HPRegenTickInterval = 0.5f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Characters")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Characters", meta = (ToolTip = "Component that owns Samurai/Ninja instances and handles active character swaps."))
 	TObjectPtr<UCharacterManagerComponent> CharacterManager;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "Shared player health component used by both Samurai and Ninja."))
 	TObjectPtr<UHealthComponent> PlayerHealthComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "Shared experience component that stores current XP and player level."))
 	TObjectPtr<UExperienceComponent> ExperienceComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "Shared/global player stats that apply across Samurai and Ninja."))
 	TObjectPtr<USharedPlayerStatsComponent> SharedPlayerStatsComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "Player upgrade component that owns upgrade pool, acquired levels, and upgrade selection flow."))
 	TObjectPtr<UPlayerUpgradeComponent> PlayerUpgradeComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Synergy")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Synergy", meta = (ToolTip = "Component that handles inactive-character assist and Tag Team style synergy behavior."))
 	TObjectPtr<UInactiveCharacterAssistComponent> InactiveCharacterAssistComponent;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Camera", meta = (ToolTip = "Camera rig actor class spawned to follow the active player character."))
 	TSubclassOf<APlayerCameraRig> PlayerCameraRigClass;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Camera")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Camera", meta = (ToolTip = "Runtime camera rig instance currently following the active character."))
 	TObjectPtr<APlayerCameraRig> PlayerCameraRig;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Main player HUD widget class used for health, XP, dash charges, and swap cooldown display."))
 	TSubclassOf<UPlayerHUDWidget> PlayerHUDClass;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Level-up upgrade selection widget class shown when the player gains a level."))
 	TSubclassOf<ULevelUpWidget> LevelUpWidgetClass;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Runtime instance of the player HUD widget."))
 	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Runtime instance of the currently displayed level-up widget, if any."))
 	TObjectPtr<ULevelUpWidget> LevelUpWidget;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "True after the shared player health reaches zero and death flow has started."))
 	bool bIsPlayerDead = false;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "Number of queued upgrade selections waiting to be resolved. Can be more than one if multiple levels are gained at once."))
 	int32 PendingLevelUpChoices = 0;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "True while the level-up upgrade selection UI is open and gameplay is frozen."))
 	bool bLevelUpSelectionActive = false;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Swap")
+	float PreviousLevelUpGlobalTimeDilation = 1.0f;
+	bool bLevelUpTimeDilationApplied = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Swap", meta = (ToolTip = "Whether the shared character swap cooldown currently allows swapping."))
 	bool bCanSwap = true;
 
 	void Move(const FInputActionValue& Value);

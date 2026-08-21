@@ -20,6 +20,7 @@
 #include "AutoAttackComponent.h"
 #include "CharacterStatsComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "UpgradeDefinition.h"
 
@@ -689,7 +690,17 @@ bool ASurvivorPlayerController::EnsureLevelUpWidget()
 
 void ASurvivorPlayerController::PauseForLevelUpSelection()
 {
-	SetPause(true);
+	if (UWorld* World = GetWorld())
+	{
+		if (!bLevelUpTimeDilationApplied)
+		{
+			PreviousLevelUpGlobalTimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
+			bLevelUpTimeDilationApplied = true;
+		}
+
+		UGameplayStatics::SetGlobalTimeDilation(World, 0.0f);
+	}
+
 	bShowMouseCursor = true;
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
@@ -702,7 +713,15 @@ void ASurvivorPlayerController::PauseForLevelUpSelection()
 
 void ASurvivorPlayerController::ResumeAfterLevelUpSelection()
 {
-	SetPause(false);
+	if (UWorld* World = GetWorld())
+	{
+		if (bLevelUpTimeDilationApplied)
+		{
+			UGameplayStatics::SetGlobalTimeDilation(World, PreviousLevelUpGlobalTimeDilation);
+			bLevelUpTimeDilationApplied = false;
+		}
+	}
+
 	ConfigureInputMode();
 }
 

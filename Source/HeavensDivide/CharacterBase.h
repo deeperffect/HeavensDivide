@@ -49,7 +49,7 @@ public:
 	UCharacterStatsComponent* GetCharacterStats() const;
 	void ApplySharedMoveSpeedMultiplier(float MoveSpeedMultiplier);
 
-	UPROPERTY(BlueprintAssignable, Category = "Character")
+	UPROPERTY(BlueprintAssignable, Category = "Character", meta = (ToolTip = "Broadcast when this character changes between Active, Inactive, and Assisting modes."))
 	FOnCharacterModeChanged OnCharacterModeChanged;
 
 	UFUNCTION(BlueprintPure, Category = "Animation")
@@ -64,31 +64,31 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Visual")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Visual", meta = (ToolTip = "Root scene component used to rotate/face the character visuals independently from the actor capsule."))
 	TObjectPtr<USceneComponent> VisualRoot;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Stats", meta = (ToolTip = "Character-specific runtime stats and upgrade modifiers for this character."))
 	TObjectPtr<UCharacterStatsComponent> CharacterStatsComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mouse Facing", meta = (ClampMin = "0.0", UIMin = "0.0", FormerlySerializedAs = "MouseFacingRotationSpeed"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mouse Facing", meta = (ClampMin = "0.0", UIMin = "0.0", FormerlySerializedAs = "MouseFacingRotationSpeed", ToolTip = "How quickly the character visual turns toward the mouse/facing target. Higher values turn faster."))
 	float FacingRotationSpeed = 12.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death", meta = (ToolTip = "Death montage played for this player character when the shared player health reaches zero."))
 	TObjectPtr<UAnimMontage> DeathMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ToolTip = "Dash montage played by this character when the shared dash system starts a dash."))
 	TObjectPtr<UAnimMontage> DashMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Minimum play rate used when matching the dash montage to the gameplay dash duration."))
 	float MinDashMontagePlayRate = 0.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Maximum play rate used when matching the dash montage to the gameplay dash duration."))
 	float MaxDashMontagePlayRate = 3.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Dash", meta = (ToolTip = "If enabled, the character visual temporarily faces the dash direction while dashing."))
 	bool bFaceDashDirection = true;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character", meta = (ToolTip = "Current gameplay mode for this character: active, inactive, or temporarily assisting."))
 	ECharacterMode CharacterMode = ECharacterMode::Active;
 
 	void UpdateMouseFacing(float DeltaSeconds);

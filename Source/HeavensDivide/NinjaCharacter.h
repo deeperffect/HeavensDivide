@@ -17,6 +17,6 @@ public:
 	ANinjaCharacter();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (ToolTip = "Auto-attack component that owns Ninja projectile attack timing, montages, projectile spawning, and related upgrades."))
 	TObjectPtr<UAutoAttackComponent> AutoAttackComponent;
 };

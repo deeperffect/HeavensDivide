@@ -25,7 +25,7 @@ public:
 	void InitializeParty();
 	void SwapCharacter();
 
-	UPROPERTY(BlueprintAssignable, Category = "Characters")
+	UPROPERTY(BlueprintAssignable, Category = "Characters", meta = (ToolTip = "Broadcast after a successful swap between Samurai and Ninja."))
 	FOnCharacterSwapped OnCharacterSwapped;
 
 	UFUNCTION(BlueprintPure, Category = "Characters")
@@ -41,19 +41,19 @@ public:
 	ANinjaCharacter* GetNinja() const;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Characters", meta = (FormerlySerializedAs = "SamuraiCharacterClass"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Characters", meta = (FormerlySerializedAs = "SamuraiCharacterClass", ToolTip = "Samurai Blueprint class spawned and managed as one of the two player characters."))
 	TSubclassOf<ASamuraiCharacter> SamuraiClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Characters", meta = (FormerlySerializedAs = "NinjaCharacterClass"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Characters", meta = (FormerlySerializedAs = "NinjaCharacterClass", ToolTip = "Ninja Blueprint class spawned and managed as one of the two player characters."))
 	TSubclassOf<ANinjaCharacter> NinjaClass;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Characters")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Characters", meta = (ToolTip = "Runtime Samurai instance owned by the character manager."))
 	TObjectPtr<ASamuraiCharacter> SamuraiCharacter;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Characters")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Characters", meta = (ToolTip = "Runtime Ninja instance owned by the character manager."))
 	TObjectPtr<ANinjaCharacter> NinjaCharacter;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Characters")
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Characters", meta = (ToolTip = "Currently controlled/active player character."))
 	TObjectPtr<ACharacterBase> ActiveCharacter;
 
 	FTransform GetInitialSpawnTransform() const;

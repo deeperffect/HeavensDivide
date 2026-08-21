@@ -325,6 +325,11 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		}
 	}
 
+	if (DamagedEnemies.Num() > 0 && ImpactSound)
+	{
+		UGameplayStatics::PlaySound2D(GetWorld(), ImpactSound);
+	}
+
 	if (bDebugAttackTrace)
 	{
 		const FColor DebugColor = DamagedEnemies.Num() > 0 ? FColor::Red : FColor::Cyan;

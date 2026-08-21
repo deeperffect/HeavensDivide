@@ -17,6 +17,6 @@ public:
 	ASamuraiCharacter();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (ToolTip = "Auto-attack component that owns Samurai melee attack timing, montages, hit traces, and related upgrades."))
 	TObjectPtr<UAutoAttackComponent> AutoAttackComponent;
 };

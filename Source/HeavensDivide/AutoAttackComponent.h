@@ -12,6 +12,7 @@ class AAttackProjectileBase;
 class AEnemyBase;
 class ANinjaCharacter;
 class ASamuraiCharacter;
+class USoundBase;
 class UUpgradeDefinition;
 
 UENUM(BlueprintType)
@@ -112,10 +113,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float ReadyTargetCheckInterval = 0.15f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation", meta = (ToolTip = "When enabled, attack montages can play faster for very short attack intervals. Montages are never slowed below normal speed by attack interval."))
 	bool bScaleMontageWithAttackInterval = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Maximum montage play rate allowed when attack interval scaling speeds up an attack animation."))
 	float MaxAttackMontagePlayRate = 3.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack")
@@ -124,10 +125,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Fan of Blades")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Fan of Blades", meta = (ToolTip = "Optional montage used on the Ninja attack that triggers Fan of Blades. If unset, the normal attack montage is used."))
 	TObjectPtr<UAnimMontage> FanOfBladesAttackMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Double Cut")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Double Cut", meta = (ToolTip = "Optional Samurai follow-up montage used when Double Cut triggers. If unset, the normal attack montage is used."))
 	TObjectPtr<UAnimMontage> DoubleCutMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
@@ -181,16 +182,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Trace")
 	float AttackForwardOffset = 120.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Trace")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Trace", meta = (ToolTip = "Draws the melee attack trace shape for debugging."))
 	bool bDebugAttackTrace = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Double Cut", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Audio", meta = (ToolTip = "2D feedback sound played once when this melee attack trace damages at least one valid enemy. Leave empty for no impact sound."))
+	TObjectPtr<USoundBase> ImpactSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Double Cut", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of normal Samurai melee attacks required before Double Cut triggers."))
 	int32 DoubleCutPrimaryAttackCount = 3;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of Ninja attacks required before Fan of Blades triggers."))
 	int32 FanOfBladesAttackInterval = 4;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of radial kunai spawned when Fan of Blades triggers."))
 	int32 FanOfBladesProjectileCount = 8;
 
 private:

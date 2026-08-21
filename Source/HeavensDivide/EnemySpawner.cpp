@@ -149,6 +149,8 @@ void AEnemySpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 #endif
 
 	SpawnedEnemies.Empty();
+	AliveEnemyCountByClass.Empty();
+	CountedEnemyClassByEnemy.Empty();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -335,6 +337,11 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 		return nullptr;
 	}
 
+	if (!IsSpawnEntryEligible(SpawnEntry, GetCurrentSpawnBudget(), true))
+	{
+		return nullptr;
+	}
+
 	ACharacterBase* ActivePlayer = GetActivePlayerCharacter();
 	if (!ActivePlayer)
 	{
@@ -374,14 +381,18 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 	SpawnedEnemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(), GetDamageMultiplier());
 	SpawnedEnemy->OnDestroyed.AddDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
 	SpawnedEnemies.Add(SpawnedEnemy);
+	IncrementAliveCountForSpawnedEnemy(SpawnedEnemy, SpawnEntry.EnemyClass);
 
 	if (bDebugSpawning)
 	{
-		UE_LOG(LogTemp, Log, TEXT("EnemySpawner spawned %s at %s. Alive=%d Max=%d"),
+		const int32 AliveOfType = GetAliveCountForSpawnClass(SpawnEntry.EnemyClass);
+		UE_LOG(LogTemp, Log, TEXT("EnemySpawner spawned %s at %s. Alive=%d Max=%d AliveOfType=%d/%d"),
 			*GetNameSafe(SpawnEntry.EnemyClass.Get()),
 			*SpawnLocation.ToString(),
 			GetAliveEnemyCount(),
-			CurrentMaxAliveEnemies);
+			CurrentMaxAliveEnemies,
+			AliveOfType,
+			SpawnEntry.MaxAliveOfThisType);
 
 		DrawDebugSphere(GetWorld(), SpawnLocation, 40.0f, 16, FColor::Red, false, 2.0f, 0, 2.0f);
 	}
@@ -411,10 +422,7 @@ const FEnemySpawnEntry* AEnemySpawner::ChooseSpawnEntry(int32 RemainingBudget) c
 	float TotalWeight = 0.0f;
 	for (const FEnemySpawnEntry& Entry : EnemySpawnEntries)
 	{
-		const bool bTimeAllowed = RunTimeSeconds >= Entry.MinimumRunTime
-			&& (Entry.MaximumRunTime <= 0.0f || RunTimeSeconds <= Entry.MaximumRunTime);
-		const bool bBudgetAllowed = Entry.SpawnCost <= FMath::Max(1, RemainingBudget);
-		if (Entry.bEnabled && Entry.EnemyClass && Entry.SpawnWeight > 0.0f && bTimeAllowed && bBudgetAllowed)
+		if (IsSpawnEntryEligible(Entry, RemainingBudget, true))
 		{
 			TotalWeight += Entry.SpawnWeight;
 		}
@@ -428,10 +436,7 @@ const FEnemySpawnEntry* AEnemySpawner::ChooseSpawnEntry(int32 RemainingBudget) c
 	float Roll = FMath::FRandRange(0.0f, TotalWeight);
 	for (const FEnemySpawnEntry& Entry : EnemySpawnEntries)
 	{
-		const bool bTimeAllowed = RunTimeSeconds >= Entry.MinimumRunTime
-			&& (Entry.MaximumRunTime <= 0.0f || RunTimeSeconds <= Entry.MaximumRunTime);
-		const bool bBudgetAllowed = Entry.SpawnCost <= FMath::Max(1, RemainingBudget);
-		if (!Entry.bEnabled || !Entry.EnemyClass || Entry.SpawnWeight <= 0.0f || !bTimeAllowed || !bBudgetAllowed)
+		if (!IsSpawnEntryEligible(Entry, RemainingBudget, false))
 		{
 			continue;
 		}
@@ -768,8 +773,13 @@ int32 AEnemySpawner::GetCurrentSpawnBudget() const
 
 float AEnemySpawner::EvaluateDefaultHealthMultiplier() const
 {
-	const int32 CompletedMinutes = FMath::FloorToInt(GetRunTimeMinutes());
-	return 1.0f + CompletedMinutes * 0.5f;
+	const int32 CompletedMinutes = FMath::Max(0, FMath::FloorToInt(GetRunTimeMinutes()));
+	if (CompletedMinutes <= 5)
+	{
+		return 1.0f + (0.2f * CompletedMinutes);
+	}
+
+	return FMath::Min(2.75f, 2.0f + (0.15f * (CompletedMinutes - 5)));
 }
 
 float AEnemySpawner::EvaluateDefaultDamageMultiplier() const
@@ -792,6 +802,86 @@ float AEnemySpawner::EvaluateDefaultSpawnPressure() const
 	}
 
 	return FMath::Lerp(2.15f, 3.35f, FMath::Clamp((Minutes - 5.0f) / 5.0f, 0.0f, 1.0f));
+}
+
+bool AEnemySpawner::IsSpawnEntryEligible(const FEnemySpawnEntry& Entry, int32 RemainingBudget, bool bLogLimitFailures) const
+{
+	const bool bTimeAllowed = RunTimeSeconds >= Entry.MinimumRunTime
+		&& (Entry.MaximumRunTime <= 0.0f || RunTimeSeconds <= Entry.MaximumRunTime);
+	const bool bBudgetAllowed = Entry.SpawnCost <= FMath::Max(1, RemainingBudget);
+	if (!Entry.bEnabled || !Entry.EnemyClass || Entry.SpawnWeight <= 0.0f || !bTimeAllowed || !bBudgetAllowed)
+	{
+		return false;
+	}
+
+	if (Entry.MaxAliveOfThisType > 0)
+	{
+		const int32 AliveOfType = GetAliveCountForSpawnClass(Entry.EnemyClass);
+		if (AliveOfType >= Entry.MaxAliveOfThisType)
+		{
+			if (bLogLimitFailures && bDebugSpawning)
+			{
+				UE_LOG(LogTemp, Log, TEXT("EnemySpawner skipped %s: alive of type %d / max %d"),
+					*GetNameSafe(Entry.EnemyClass.Get()),
+					AliveOfType,
+					Entry.MaxAliveOfThisType);
+			}
+			return false;
+		}
+	}
+
+	return true;
+}
+
+int32 AEnemySpawner::GetAliveCountForSpawnClass(TSubclassOf<AEnemyBase> EnemyClass) const
+{
+	if (!EnemyClass)
+	{
+		return 0;
+	}
+
+	const int32* AliveCount = AliveEnemyCountByClass.Find(EnemyClass.Get());
+	return AliveCount ? FMath::Max(0, *AliveCount) : 0;
+}
+
+void AEnemySpawner::IncrementAliveCountForSpawnedEnemy(AEnemyBase* SpawnedEnemy, TSubclassOf<AEnemyBase> SpawnClass)
+{
+	if (!SpawnedEnemy || !SpawnClass)
+	{
+		return;
+	}
+
+	UClass* CountedClass = SpawnClass.Get();
+	int32& AliveCount = AliveEnemyCountByClass.FindOrAdd(CountedClass);
+	++AliveCount;
+	CountedEnemyClassByEnemy.FindOrAdd(TObjectKey<AEnemyBase>(SpawnedEnemy)) = CountedClass;
+}
+
+void AEnemySpawner::DecrementAliveCountForDestroyedEnemy(AActor* DestroyedActor)
+{
+	AEnemyBase* DestroyedEnemy = Cast<AEnemyBase>(DestroyedActor);
+	if (!DestroyedEnemy)
+	{
+		return;
+	}
+
+	UClass* CountedClass = nullptr;
+	if (!CountedEnemyClassByEnemy.RemoveAndCopyValue(TObjectKey<AEnemyBase>(DestroyedEnemy), CountedClass) || !CountedClass)
+	{
+		return;
+	}
+
+	int32* AliveCount = AliveEnemyCountByClass.Find(CountedClass);
+	if (!AliveCount)
+	{
+		return;
+	}
+
+	*AliveCount = FMath::Max(0, *AliveCount - 1);
+	if (*AliveCount <= 0)
+	{
+		AliveEnemyCountByClass.Remove(CountedClass);
+	}
 }
 
 void AEnemySpawner::PruneTrackedEnemies()
@@ -833,7 +923,7 @@ void AEnemySpawner::HandleSpawnTimerElapsed()
 			break;
 		}
 
-		AEnemyBase* SpawnedEnemy = SpawnEnemy();
+		AEnemyBase* SpawnedEnemy = SpawnEnemyFromEntry(*Entry);
 		if (!SpawnedEnemy)
 		{
 			break;
@@ -943,6 +1033,8 @@ void AEnemySpawner::LogDirectorStatus() const
 
 void AEnemySpawner::HandleSpawnedEnemyDestroyed(AActor* DestroyedActor)
 {
+	DecrementAliveCountForDestroyedEnemy(DestroyedActor);
+
 	SpawnedEnemies.RemoveAll([DestroyedActor](const TWeakObjectPtr<AEnemyBase>& EnemyPtr)
 	{
 		return !EnemyPtr.IsValid() || EnemyPtr.Get() == DestroyedActor;

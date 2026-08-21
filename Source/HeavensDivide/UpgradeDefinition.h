@@ -104,21 +104,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TArray<EUpgradeSpecialEffect> SpecialEffects;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Kills required from a Samurai melee attack before the Momentum upgrade reduces the next attack cooldown."))
 	int32 MomentumRequiredKills = 5;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", ToolTip = "Fraction of remaining attack cooldown removed when Momentum triggers. 0.4 means reduce remaining cooldown by 40%."))
 	float MomentumRemainingCooldownReduction = 0.4f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of fired kunai required before Blade Cascade grants its bonus kunai."))
 	int32 BladeCascadeKunaiThreshold = 10;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of bonus kunai granted when Blade Cascade triggers."))
 	int32 BladeCascadeBonusKunai = 3;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Temporary attack speed multiplier bonus applied by Handoff after swapping. 0.4 means +40%."))
 	float HandoffAttackSpeedBonus = 0.4f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Duration in seconds for the temporary Handoff attack speed bonus after swapping."))
 	float HandoffDuration = 3.0f;
 };
