@@ -111,7 +111,7 @@ void UHealthComponent::SetMaxHealthPreservePercent(float NewMaxHealth)
 	}
 
 	NewMaxHealth = FMath::Max(0.0f, NewMaxHealth);
-	const float PreviousHealthPercent = GetHealthPercent();
+	const float PreviousHealthPercent = MaxHealth > KINDA_SMALL_NUMBER ? GetHealthPercent() : 1.0f;
 	MaxHealth = NewMaxHealth;
 	CurrentHealth = MaxHealth * PreviousHealthPercent;
 	bDeathBroadcast = CurrentHealth <= 0.0f;

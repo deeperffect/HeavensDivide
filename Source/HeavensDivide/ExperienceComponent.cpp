@@ -73,17 +73,17 @@ int32 UExperienceComponent::CalculateXPToNextLevel() const
 	static constexpr FLevelXPRequirement LevelXPRequirements[] =
 	{
 		{ 1, 10 },
-		{ 2, 16 },
-		{ 3, 24 },
-		{ 4, 36 },
-		{ 5, 50 },
-		{ 10, 168 },
-		{ 15, 360 },
-		{ 20, 628 },
-		{ 25, 970 },
-		{ 30, 1388 },
-		{ 40, 2448 },
-		{ 50, 3808 },
+		{ 2, 15 },
+		{ 3, 21 },
+		{ 4, 29 },
+		{ 5, 38 },
+		{ 10, 107 },
+		{ 15, 213 },
+		{ 20, 357 },
+		{ 25, 538 },
+		{ 30, 757 },
+		{ 40, 1307 },
+		{ 50, 2007 },
 	};
 
 	const int32 SafeLevel = FMath::Max(1, CurrentLevel);

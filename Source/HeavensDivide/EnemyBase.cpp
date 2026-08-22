@@ -458,6 +458,15 @@ void AEnemyBase::HandleDeath()
 
 void AEnemyBase::HandleHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent)
 {
+	if (CurrentHealth <= 0.0f && !bIsDead)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[EnemyDamage] EnemyBase death state sync repaired for %s. Health reached %.3f but EnemyDead was false."),
+			*GetNameSafe(this),
+			CurrentHealth);
+		HandleDeath();
+		return;
+	}
+
 	UpdateHealthBarVisibility(HealthPercent);
 }
 
