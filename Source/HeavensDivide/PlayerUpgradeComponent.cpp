@@ -20,6 +20,7 @@ static TAutoConsoleVariable<int32> CVarHDLogPlayerUpgradeStats(
 	0,
 	TEXT("Logs player upgrade/stat summary after upgrade stat rebuilds when enabled."));
 
+
 UPlayerUpgradeComponent::UPlayerUpgradeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
@@ -592,6 +593,8 @@ FString UPlayerUpgradeComponent::CategoryToString(EUpgradeCategory Category) con
 		return TEXT("Global");
 	case EUpgradeCategory::Synergy:
 		return TEXT("Synergy");
+	case EUpgradeCategory::Cursed:
+		return TEXT("Blood Pact");
 	default:
 		return TEXT("Unknown");
 	}
