@@ -291,6 +291,11 @@ float UPlayerHUDWidget::GetRunTimeSeconds() const
 
 FText UPlayerHUDWidget::FormatRunTime(float RunTimeSeconds) const
 {
+	return FormatRunTimeText(RunTimeSeconds);
+}
+
+FText UPlayerHUDWidget::FormatRunTimeText(float RunTimeSeconds)
+{
 	const float SafeRunTime = FMath::IsFinite(RunTimeSeconds) ? FMath::Max(0.0f, RunTimeSeconds) : 0.0f;
 	const int64 TotalSeconds = FMath::FloorToInt64(SafeRunTime);
 	const int64 Seconds = TotalSeconds % 60;

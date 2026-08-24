@@ -13,6 +13,7 @@
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
 #include "SurvivorPlayerController.h"
+#include "SynergyMetaProgressionSubsystem.h"
 #include "UpgradeDefinition.h"
 
 static TAutoConsoleVariable<int32> CVarHDLogPlayerUpgradeStats(
@@ -63,7 +64,16 @@ bool UPlayerUpgradeComponent::HasUpgradeId(FName UpgradeId) const
 
 bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) const
 {
+	bool bMetaEligible = true;
+	if (Upgrade && Upgrade->Category == EUpgradeCategory::Synergy)
+	{
+		const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+		const USynergyMetaProgressionSubsystem* MetaSubsystem = GameInstance ? GameInstance->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+		bMetaEligible = MetaSubsystem ? MetaSubsystem->IsUpgradeMetaEligible(Upgrade) : !Upgrade->bRequiresMetaUnlock || Upgrade->bUnlockedByDefault;
+	}
+
 	return IsValidUpgradeDefinition(Upgrade)
+		&& bMetaEligible
 		&& GetUpgradeLevel(Upgrade) < Upgrade->MaxLevel
 		&& MeetsPrerequisites(Upgrade);
 }
@@ -294,6 +304,54 @@ bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCatego
 	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
 	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
 	return bHasSelectedCategory;
+}
+
+TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetLockedSynergyDiscoveryCandidates() const
+{
+	TArray<UUpgradeDefinition*> Candidates;
+	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	const USynergyMetaProgressionSubsystem* MetaSubsystem = GameInstance ? GameInstance->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+	if (!MetaSubsystem) return Candidates;
+
+	for (UUpgradeDefinition* Upgrade : UpgradePool)
+	{
+		if (Upgrade && Upgrade->Category == EUpgradeCategory::Synergy && Upgrade->bRequiresMetaUnlock
+			&& !Upgrade->MetaUnlockId.IsNone() && !MetaSubsystem->IsSynergyUpgradeUnlocked(Upgrade->MetaUnlockId))
+		{
+			Candidates.AddUnique(Upgrade);
+		}
+	}
+	return Candidates;
+}
+
+bool UPlayerUpgradeComponent::BeginSynergyDiscoverySelection(int32 UpgradeChoiceCount)
+{
+	ClearCurrentOffer();
+	SelectedCategory = EUpgradeCategory::Synergy;
+	TArray<UUpgradeDefinition*> Remaining = GetLockedSynergyDiscoveryCandidates();
+	const int32 DesiredCount = FMath::Max(0, UpgradeChoiceCount);
+	while (CurrentUpgradeChoices.Num() < DesiredCount && Remaining.Num() > 0)
+	{
+		const int32 PickedIndex = FMath::RandRange(0, Remaining.Num() - 1);
+		CurrentUpgradeChoices.Add(Remaining[PickedIndex]);
+		Remaining.RemoveAtSwap(PickedIndex);
+	}
+	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
+	return bHasSelectedCategory;
+}
+
+bool UPlayerUpgradeComponent::SelectSynergyDiscoveryUpgrade(UUpgradeDefinition* Upgrade)
+{
+	if (!bHasSelectedCategory || !CurrentUpgradeChoices.Contains(Upgrade) || !Upgrade) return false;
+	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+	USynergyMetaProgressionSubsystem* MetaSubsystem = GameInstance ? GameInstance->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+	if (!MetaSubsystem || !MetaSubsystem->UnlockSynergyUpgrade(Upgrade->MetaUnlockId)) return false;
+
+	const bool bGrantedForCurrentRun = AcquireUpgrade(Upgrade);
+	UE_LOG(LogTemp, Log, TEXT("Synergy discovered: %s PermanentUnlock=true CurrentRunGrant=%s"),
+		*Upgrade->MetaUnlockId.ToString(), bGrantedForCurrentRun ? TEXT("true") : TEXT("false"));
+	ClearCurrentOffer();
+	return true;
 }
 
 bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount)

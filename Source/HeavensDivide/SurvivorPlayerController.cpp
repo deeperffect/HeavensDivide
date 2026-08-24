@@ -8,6 +8,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "EnemySpawner.h"
 #include "ExperienceComponent.h"
+#include "GameOverWidget.h"
 #include "HealthComponent.h"
 #include "Interactable.h"
 #include "InactiveCharacterAssistComponent.h"
@@ -20,6 +21,7 @@
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
+#include "SynergyMetaProgressionSubsystem.h"
 #include "AutoAttackComponent.h"
 #include "CharacterStatsComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -27,6 +29,7 @@
 #include "TimerManager.h"
 #include "EngineUtils.h"
 #include "UpgradeDefinition.h"
+#include "UObject/ConstructorHelpers.h"
 
 static TAutoConsoleVariable<int32> CVarHDLogDash(
 	TEXT("hd.LogDash"),
@@ -70,6 +73,7 @@ FString UpgradeCategoryToLogString(EUpgradeCategory Category)
 		return TEXT("Unknown");
 	}
 }
+
 }
 
 ASurvivorPlayerController::ASurvivorPlayerController()
@@ -81,6 +85,10 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	SharedPlayerStatsComponent = CreateDefaultSubobject<USharedPlayerStatsComponent>(TEXT("SharedPlayerStatsComponent"));
 	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
 	InactiveCharacterAssistComponent = CreateDefaultSubobject<UInactiveCharacterAssistComponent>(TEXT("InactiveCharacterAssistComponent"));
+	GameOverWidgetClass = UGameOverWidget::StaticClass();
+	static ConstructorHelpers::FClassFinder<UGameOverWidget> GameOverWidgetBlueprint(
+		TEXT("/Game/HeavensDivide/Blueprints/UI/WBP_GameOver"));
+	if (GameOverWidgetBlueprint.Succeeded()) GameOverWidgetClass = GameOverWidgetBlueprint.Class;
 }
 
 void ASurvivorPlayerController::BeginPlay()
@@ -646,10 +654,26 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	}
 
 	bIsPlayerDead = true;
+	const float FinalRunTimeSeconds = GetRunTimeSeconds();
 	if (RunTimeSource)
 	{
 		RunTimeSource->FreezeRunTime();
+		RunTimeSource->SetSpawningEnabled(false);
 	}
+	CloseLevelUpWidget();
+	PendingLevelUpChoices = 0;
+	PendingBloodShrineRewards = 0;
+	PendingTwinSoulRewards = 0;
+	PendingTwinSoulDiscoveries = 0;
+	bLevelUpSelectionActive = false;
+	bCurrentSelectionIsBloodShrineReward = false;
+	bCurrentSelectionIsTwinSoulReward = false;
+	bCurrentSelectionIsTwinSoulDiscovery = false;
+	bLevelUpTimeDilationApplied = false;
+	StopDashRecharge();
+	StopHPRegeneration();
+	SetIgnoreMoveInput(true);
+	SetIgnoreLookInput(true);
 	UE_LOG(LogTemp, Log, TEXT("Player Death Triggered"));
 
 	if (InactiveCharacterAssistComponent)
@@ -684,6 +708,26 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	}
 
 	UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
+	PresentGameOver(FinalRunTimeSeconds);
+}
+
+void ASurvivorPlayerController::PresentGameOver(float FinalRunTimeSeconds)
+{
+	if (bGameOverPresented) return;
+	bGameOverPresented = true;
+	if (UWorld* World = GetWorld()) UGameplayStatics::SetGlobalTimeDilation(World, 0.0f);
+	GameOverWidget = GameOverWidgetClass ? CreateWidget<UGameOverWidget>(this, GameOverWidgetClass) : nullptr;
+	if (!GameOverWidget) return;
+	GameOverWidget->InitializeGameOver(this, FinalRunTimeSeconds);
+	GameOverWidget->AddToViewport(1000);
+	bShowMouseCursor = true;
+	bEnableClickEvents = true;
+	bEnableMouseOverEvents = true;
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+	GameOverWidget->SetKeyboardFocus();
 }
 
 void ASurvivorPlayerController::HandlePlayerLevelUp(int32 NewLevel)
@@ -728,10 +772,46 @@ void ASurvivorPlayerController::RequestTwinSoulSynergyReward(int32 UpgradeChoice
 	}
 }
 
+void ASurvivorPlayerController::RequestTwinSoulCompletionRewards(int32 NormalChoiceCount, int32 DiscoveryChoiceCount)
+{
+	if (bIsPlayerDead) return;
+	TwinSoulRewardChoiceCount = FMath::Max(1, NormalChoiceCount);
+	TwinSoulDiscoveryChoiceCount = FMath::Max(1, DiscoveryChoiceCount);
+	++PendingTwinSoulRewards;
+
+	USynergyMetaProgressionSubsystem* MetaSubsystem = GetGameInstance()
+		? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+	const bool bHasLockedCandidates = PlayerUpgradeComponent
+		&& PlayerUpgradeComponent->GetLockedSynergyDiscoveryCandidates().Num() > 0;
+	if (MetaSubsystem)
+	{
+		if (!bHasLockedCandidates)
+		{
+			MetaSubsystem->ResetTwinSoulDiscoveryProgress();
+		}
+		else if (MetaSubsystem->RecordTwinSoulCompletion())
+		{
+			++PendingTwinSoulDiscoveries;
+		}
+	}
+
+	if (!bLevelUpSelectionActive) StartNextUpgradeSelection();
+}
+
 void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 {
 	const bool bCompletedTwinSoulReward = bCurrentSelectionIsTwinSoulReward;
-	if (bCurrentSelectionIsTwinSoulReward)
+	const bool bCompletedTwinSoulDiscovery = bCurrentSelectionIsTwinSoulDiscovery;
+	if (bCurrentSelectionIsTwinSoulDiscovery)
+	{
+		PendingTwinSoulDiscoveries = FMath::Max(0, PendingTwinSoulDiscoveries - 1);
+		if (USynergyMetaProgressionSubsystem* MetaSubsystem = GetGameInstance()
+			? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr)
+		{
+			MetaSubsystem->ConsumeTwinSoulDiscoveryProgress();
+		}
+	}
+	else if (bCurrentSelectionIsTwinSoulReward)
 	{
 		PendingTwinSoulRewards = FMath::Max(0, PendingTwinSoulRewards - 1);
 	}
@@ -745,12 +825,14 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 	}
 	bCurrentSelectionIsBloodShrineReward = false;
 	bCurrentSelectionIsTwinSoulReward = false;
-	if (bCompletedTwinSoulReward)
+	bCurrentSelectionIsTwinSoulDiscovery = false;
+	if ((bCompletedTwinSoulReward || bCompletedTwinSoulDiscovery)
+		&& PendingTwinSoulRewards == 0 && PendingTwinSoulDiscoveries == 0)
 	{
 		OnTwinSoulRewardCompleted.Broadcast();
 	}
 
-	if (PendingLevelUpChoices > 0 || PendingBloodShrineRewards > 0 || PendingTwinSoulRewards > 0)
+	if (PendingLevelUpChoices > 0 || PendingBloodShrineRewards > 0 || PendingTwinSoulRewards > 0 || PendingTwinSoulDiscoveries > 0)
 	{
 		StartNextUpgradeSelection();
 		return;
@@ -787,6 +869,28 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 		return;
 	}
 
+	if (PendingTwinSoulDiscoveries > 0)
+	{
+		bCurrentSelectionIsBloodShrineReward = false;
+		bCurrentSelectionIsTwinSoulReward = false;
+		bCurrentSelectionIsTwinSoulDiscovery = true;
+		bLevelUpSelectionActive = true;
+		if (!PlayerUpgradeComponent
+			|| !PlayerUpgradeComponent->BeginSynergyDiscoverySelection(TwinSoulDiscoveryChoiceCount)
+			|| !EnsureLevelUpWidget())
+		{
+			bCurrentSelectionIsTwinSoulDiscovery = false;
+			PendingTwinSoulDiscoveries = FMath::Max(0, PendingTwinSoulDiscoveries - 1);
+			if (PendingTwinSoulRewards == 0 && PendingTwinSoulDiscoveries == 0) OnTwinSoulRewardCompleted.Broadcast();
+			StartNextUpgradeSelection();
+			return;
+		}
+
+		PauseForLevelUpSelection();
+		LevelUpWidget->InitializeSynergyDiscoveryWidget(this);
+		return;
+	}
+
 	if (PendingBloodShrineRewards <= 0)
 	{
 		bLevelUpSelectionActive = false;
@@ -819,6 +923,8 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 void ASurvivorPlayerController::StartNextLevelUpSelection()
 {
 	bCurrentSelectionIsBloodShrineReward = false;
+	bCurrentSelectionIsTwinSoulReward = false;
+	bCurrentSelectionIsTwinSoulDiscovery = false;
 	if (PendingLevelUpChoices <= 0)
 	{
 		bLevelUpSelectionActive = false;

@@ -12,6 +12,7 @@ class UCharacterManagerComponent;
 class UExperienceComponent;
 class UHealthComponent;
 class UInactiveCharacterAssistComponent;
+class UGameOverWidget;
 class ULevelUpWidget;
 class UPlayerUpgradeComponent;
 class UPlayerHUDWidget;
@@ -133,6 +134,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
 	void RequestTwinSoulSynergyReward(int32 UpgradeChoiceCount = 3);
 
+	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
+	void RequestTwinSoulCompletionRewards(int32 NormalChoiceCount = 3, int32 DiscoveryChoiceCount = 3);
+
 	UPROPERTY(BlueprintAssignable, Category = "Player|Rewards")
 	FOnTwinSoulRewardCompleted OnTwinSoulRewardCompleted;
 
@@ -225,17 +229,24 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Level-up upgrade selection widget class shown when the player gains a level."))
 	TSubclassOf<ULevelUpWidget> LevelUpWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Run-over screen shown once after shared player death."))
+	TSubclassOf<UGameOverWidget> GameOverWidgetClass;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Runtime instance of the player HUD widget."))
 	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Runtime instance of the currently displayed level-up widget, if any."))
 	TObjectPtr<ULevelUpWidget> LevelUpWidget;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<UGameOverWidget> GameOverWidget;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Run", meta = (ToolTip = "Authoritative elapsed gameplay-time source shared by enemy scaling and the HUD."))
 	TObjectPtr<AEnemySpawner> RunTimeSource;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "True after the shared player health reaches zero and death flow has started."))
 	bool bIsPlayerDead = false;
+	bool bGameOverPresented = false;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "Number of queued upgrade selections waiting to be resolved. Can be more than one if multiple levels are gained at once."))
 	int32 PendingLevelUpChoices = 0;
@@ -245,6 +256,8 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards")
 	int32 PendingTwinSoulRewards = 0;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards")
+	int32 PendingTwinSoulDiscoveries = 0;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "True while the level-up upgrade selection UI is open and gameplay is frozen."))
 	bool bLevelUpSelectionActive = false;
@@ -280,6 +293,7 @@ protected:
 	void PauseForLevelUpSelection();
 	void ResumeAfterLevelUpSelection();
 	void CloseLevelUpWidget();
+	void PresentGameOver(float FinalRunTimeSeconds);
 	void StartSwapCooldown();
 	void HandleSwapCooldownFinished();
 	void ApplyHandoffBuff(ACharacterBase* NewActiveCharacter);
@@ -319,6 +333,8 @@ protected:
 	bool bCurrentSelectionIsBloodShrineReward = false;
 	int32 BloodShrineRewardChoiceCount = 3;
 	bool bCurrentSelectionIsTwinSoulReward = false;
+	bool bCurrentSelectionIsTwinSoulDiscovery = false;
 	int32 TwinSoulRewardChoiceCount = 3;
+	int32 TwinSoulDiscoveryChoiceCount = 3;
 	TWeakObjectPtr<AActor> ActiveObjective;
 };

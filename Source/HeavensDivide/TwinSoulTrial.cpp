@@ -183,7 +183,7 @@ void ATwinSoulTrial::CompleteTrial()
 	if (TrialState != ETwinSoulTrialState::TrialActive || !PlayerController || PlayerController->IsPlayerDead()) return;
 	TrialState = ETwinSoulTrialState::AwaitingReward;
 	OnTrialCompleted.Broadcast();
-	PlayerController->RequestTwinSoulSynergyReward(RewardChoiceCount);
+	PlayerController->RequestTwinSoulCompletionRewards(RewardChoiceCount, RewardChoiceCount);
 }
 
 void ATwinSoulTrial::HandleRewardCompleted()
@@ -210,6 +210,7 @@ void ATwinSoulTrial::HandlePlayerDeath()
 	{
 		TrialState = ETwinSoulTrialState::Failed;
 		CleanupTargetBindings();
+		if (MainSpawner) MainSpawner->SetTrialSuspended(false);
 		if (PlayerController) PlayerController->EndObjective(this);
 	}
 }

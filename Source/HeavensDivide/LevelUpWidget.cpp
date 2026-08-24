@@ -2,6 +2,15 @@
 
 #include "LevelUpWidget.h"
 
+#include "Blueprint/WidgetTree.h"
+#include "Components/Border.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
 
@@ -11,6 +20,8 @@ void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayer
 	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
 	bCategoryChoiceCommitted = false;
 	bUpgradeChoiceCommitted = false;
+	bSynergyDiscoveryMode = false;
+	SetSynergyDiscoveryPresentation(false);
 	RefreshCategoryChoices();
 }
 
@@ -20,6 +31,19 @@ void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* In
 	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
 	bCategoryChoiceCommitted = true;
 	bUpgradeChoiceCommitted = false;
+	bSynergyDiscoveryMode = false;
+	SetSynergyDiscoveryPresentation(false);
+	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
+}
+
+void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController* InPlayerController)
+{
+	SurvivorPlayerController = InPlayerController;
+	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
+	bCategoryChoiceCommitted = true;
+	bUpgradeChoiceCommitted = false;
+	bSynergyDiscoveryMode = true;
+	SetSynergyDiscoveryPresentation(true);
 	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
 }
 
@@ -95,7 +119,10 @@ bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 	}
 
 	UUpgradeDefinition* SelectedUpgrade = UpgradeChoices[ChoiceIndex];
-	if (!PlayerUpgrades->SelectUpgrade(SelectedUpgrade))
+	const bool bSelected = bSynergyDiscoveryMode
+		? PlayerUpgrades->SelectSynergyDiscoveryUpgrade(SelectedUpgrade)
+		: PlayerUpgrades->SelectUpgrade(SelectedUpgrade);
+	if (!bSelected)
 	{
 		return false;
 	}
@@ -116,4 +143,68 @@ int32 ULevelUpWidget::GetUpgradeLevel(UUpgradeDefinition* Upgrade) const
 UPlayerUpgradeComponent* ULevelUpWidget::GetPlayerUpgrades() const
 {
 	return PlayerUpgrades;
+}
+
+void ULevelUpWidget::SetSynergyDiscoveryPresentation_Implementation(bool bIsDiscovery)
+{
+	EnsureSynergyDiscoveryPresentation();
+	if (SynergyDiscoveryBanner)
+	{
+		SynergyDiscoveryBanner->SetVisibility(bIsDiscovery ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}
+
+void ULevelUpWidget::EnsureSynergyDiscoveryPresentation()
+{
+	if (SynergyDiscoveryBanner || !WidgetTree)
+	{
+		return;
+	}
+
+	UWidget* ExistingRoot = WidgetTree->RootWidget;
+	if (!ExistingRoot)
+	{
+		return;
+	}
+
+	UCanvasPanel* PresentationRoot = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("DiscoveryPresentationRoot"));
+	WidgetTree->RootWidget = PresentationRoot;
+	UCanvasPanelSlot* ExistingRootSlot = PresentationRoot->AddChildToCanvas(ExistingRoot);
+	ExistingRootSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+	ExistingRootSlot->SetOffsets(FMargin(0.0f));
+
+	SynergyDiscoveryBanner = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SynergyDiscoveryBanner"));
+	SynergyDiscoveryBanner->SetBrushColor(FLinearColor(0.075f, 0.025f, 0.12f, 0.94f));
+	SynergyDiscoveryBanner->SetPadding(FMargin(38.0f, 14.0f, 38.0f, 16.0f));
+	SynergyDiscoveryBanner->SetVisibility(ESlateVisibility::Collapsed);
+
+	UVerticalBox* TextStack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("SynergyDiscoveryTextStack"));
+	SynergyDiscoveryBanner->SetContent(TextStack);
+
+	SynergyDiscoveryTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SynergyDiscoveryTitle"));
+	SynergyDiscoveryTitle->SetText(FText::FromString(TEXT("SYNERGY DISCOVERED")));
+	SynergyDiscoveryTitle->SetColorAndOpacity(FSlateColor(FLinearColor(0.95f, 0.72f, 0.20f)));
+	SynergyDiscoveryTitle->SetJustification(ETextJustify::Center);
+	FSlateFontInfo TitleFont = SynergyDiscoveryTitle->GetFont();
+	TitleFont.Size = 30;
+	TitleFont.TypefaceFontName = TEXT("Bold");
+	SynergyDiscoveryTitle->SetFont(TitleFont);
+	TextStack->AddChildToVerticalBox(SynergyDiscoveryTitle);
+
+	SynergyDiscoverySubtitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SynergyDiscoverySubtitle"));
+	SynergyDiscoverySubtitle->SetText(FText::FromString(TEXT("Choose one Synergy to permanently unlock.")));
+	SynergyDiscoverySubtitle->SetColorAndOpacity(FSlateColor(FLinearColor(0.92f, 0.88f, 0.97f)));
+	SynergyDiscoverySubtitle->SetJustification(ETextJustify::Center);
+	FSlateFontInfo SubtitleFont = SynergyDiscoverySubtitle->GetFont();
+	SubtitleFont.Size = 17;
+	SynergyDiscoverySubtitle->SetFont(SubtitleFont);
+	UVerticalBoxSlot* SubtitleSlot = TextStack->AddChildToVerticalBox(SynergyDiscoverySubtitle);
+	SubtitleSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 0.0f));
+
+	UCanvasPanelSlot* BannerSlot = PresentationRoot->AddChildToCanvas(SynergyDiscoveryBanner);
+	BannerSlot->SetAnchors(FAnchors(0.5f, 0.0f));
+	BannerSlot->SetAlignment(FVector2D(0.5f, 0.0f));
+	BannerSlot->SetPosition(FVector2D(0.0f, 38.0f));
+	BannerSlot->SetAutoSize(true);
+	BannerSlot->SetZOrder(100);
 }

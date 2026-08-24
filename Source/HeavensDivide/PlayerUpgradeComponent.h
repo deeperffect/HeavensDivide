@@ -66,6 +66,15 @@ public:
 	bool BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount = 3);
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	bool BeginSynergyDiscoverySelection(int32 UpgradeChoiceCount = 3);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	bool SelectSynergyDiscoveryUpgrade(UUpgradeDefinition* Upgrade);
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
+	TArray<UUpgradeDefinition*> GetLockedSynergyDiscoveryCandidates() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
 	bool SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount = 3);
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")

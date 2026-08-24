@@ -8,6 +8,8 @@
 #include "LevelUpWidget.generated.h"
 
 class ASurvivorPlayerController;
+class UBorder;
+class UTextBlock;
 class UPlayerUpgradeComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelUpWidgetSelectionCompleted);
@@ -23,6 +25,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Level Up")
 	void InitializeDirectUpgradeWidget(ASurvivorPlayerController* InPlayerController);
+
+	UFUNCTION(BlueprintCallable, Category = "Level Up")
+	void InitializeSynergyDiscoveryWidget(ASurvivorPlayerController* InPlayerController);
 
 	UFUNCTION(BlueprintCallable, Category = "Level Up")
 	void RefreshCategoryChoices();
@@ -45,6 +50,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Level Up")
 	void ShowUpgradeChoices(const TArray<UUpgradeDefinition*>& UpgradeChoices);
 
+	UFUNCTION(BlueprintNativeEvent, Category = "Level Up")
+	void SetSynergyDiscoveryPresentation(bool bIsDiscovery);
+	virtual void SetSynergyDiscoveryPresentation_Implementation(bool bIsDiscovery);
+
 	UPROPERTY(BlueprintAssignable, Category = "Level Up")
 	FOnLevelUpWidgetSelectionCompleted OnSelectionCompleted;
 
@@ -56,6 +65,18 @@ protected:
 	TObjectPtr<UPlayerUpgradeComponent> PlayerUpgrades;
 
 private:
+	void EnsureSynergyDiscoveryPresentation();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> SynergyDiscoveryBanner;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> SynergyDiscoveryTitle;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> SynergyDiscoverySubtitle;
+
 	bool bCategoryChoiceCommitted = false;
 	bool bUpgradeChoiceCommitted = false;
+	bool bSynergyDiscoveryMode = false;
 };

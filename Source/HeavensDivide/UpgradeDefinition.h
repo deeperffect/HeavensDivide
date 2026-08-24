@@ -90,6 +90,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	EUpgradeCategory Category = EUpgradeCategory::Global;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Meta Progression", meta = (EditCondition = "Category == EUpgradeCategory::Synergy", EditConditionHides))
+	FName MetaUnlockId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Meta Progression", meta = (EditCondition = "Category == EUpgradeCategory::Synergy", EditConditionHides))
+	bool bRequiresMetaUnlock = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Meta Progression", meta = (EditCondition = "Category == EUpgradeCategory::Synergy && bRequiresMetaUnlock", EditConditionHides))
+	bool bUnlockedByDefault = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade", meta = (ClampMin = "1", UIMin = "1"))
 	int32 MaxLevel = 1;
 

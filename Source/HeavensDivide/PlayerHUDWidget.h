@@ -142,6 +142,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player HUD|Run")
 	FText FormatRunTime(float RunTimeSeconds) const;
 
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Run")
+	static FText FormatRunTimeText(float RunTimeSeconds);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
 	void OnPlayerHealthUpdated(float CurrentHealth, float MaxHealth, float HealthPercent);
 
