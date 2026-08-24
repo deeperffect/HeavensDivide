@@ -134,6 +134,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackDamage = 10.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Attack", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", ToolTip = "Damage multiplier applied to every valid Samurai melee target other than the single best-aligned primary target."))
+	float SecondaryTargetDamageMultiplier = 0.30f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float TargetingRange = 1500.0f;
 

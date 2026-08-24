@@ -290,9 +290,10 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		TraceShape,
 		QueryParams);
 
-	TSet<AEnemyBase*> DamagedEnemies;
-	int32 KilledEnemyCount = 0;
+	TSet<AEnemyBase*> UniqueEnemies;
+	TArray<AEnemyBase*> HitEnemies;
 	const AActor* OwnerActor = OwnerCharacter->GetOwner();
+	const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
 	for (const FHitResult& HitResult : HitResults)
 	{
 		AActor* HitActor = HitResult.GetActor();
@@ -302,7 +303,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		}
 
 		AEnemyBase* HitEnemy = Cast<AEnemyBase>(HitActor);
-		if (!HitEnemy || HitEnemy->IsDead() || DamagedEnemies.Contains(HitEnemy))
+		if (!HitEnemy || HitEnemy->IsDead() || UniqueEnemies.Contains(HitEnemy))
 		{
 			continue;
 		}
@@ -312,14 +313,48 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		{
 			continue;
 		}
-		const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
 		if (!HitEnemy->CanReceivePlayerDamage(AttackSource))
 		{
 			continue;
 		}
 
-		DamagedEnemies.Add(HitEnemy);
-		HitEnemy->ApplyPlayerDamage(EffectiveAttackDamage, AttackSource);
+		UniqueEnemies.Add(HitEnemy);
+		HitEnemies.Add(HitEnemy);
+	}
+
+	AEnemyBase* PrimaryTarget = nullptr;
+	float BestAlignment = -FLT_MAX;
+	float BestDistanceSquared = FLT_MAX;
+	constexpr float AlignmentTieTolerance = 0.0001f;
+	constexpr float DistanceTieToleranceSquared = 1.0f;
+	for (AEnemyBase* Candidate : HitEnemies)
+	{
+		FVector ToCandidate = Candidate->GetActorLocation() - AttackOrigin;
+		ToCandidate.Z = 0.0f;
+		const float DistanceSquared = ToCandidate.SizeSquared();
+		const float Alignment = ToCandidate.Normalize() ? FVector::DotProduct(AttackForward, ToCandidate) : 1.0f;
+		const bool bBetterAlignment = Alignment > BestAlignment + AlignmentTieTolerance;
+		const bool bAlignmentTied = FMath::Abs(Alignment - BestAlignment) <= AlignmentTieTolerance;
+		const bool bNearer = DistanceSquared < BestDistanceSquared - DistanceTieToleranceSquared;
+		const bool bDistanceTied = FMath::Abs(DistanceSquared - BestDistanceSquared) <= DistanceTieToleranceSquared;
+		const bool bStableNameWins = bDistanceTied && PrimaryTarget
+			&& Candidate->GetPathName().Compare(PrimaryTarget->GetPathName(), ESearchCase::CaseSensitive) < 0;
+		if (!PrimaryTarget || bBetterAlignment || (bAlignmentTied && (bNearer || bStableNameWins)))
+		{
+			PrimaryTarget = Candidate;
+			BestAlignment = Alignment;
+			BestDistanceSquared = DistanceSquared;
+		}
+	}
+
+	int32 KilledEnemyCount = 0;
+	const float SecondaryDamage = EffectiveAttackDamage * FMath::Clamp(SecondaryTargetDamageMultiplier, 0.0f, 1.0f);
+	for (AEnemyBase* HitEnemy : HitEnemies)
+	{
+		UHealthComponent* EnemyHealth = HitEnemy ? HitEnemy->GetHealthComponent() : nullptr;
+		if (!EnemyHealth || EnemyHealth->IsDead()) continue;
+		const float DamageToApply = HitEnemy == PrimaryTarget ? EffectiveAttackDamage : SecondaryDamage;
+		HitEnemy->ApplyPlayerDamage(DamageToApply, AttackSource);
 		if (EnemyHealth->IsDead())
 		{
 			++KilledEnemyCount;
@@ -330,14 +365,14 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		}
 	}
 
-	if (DamagedEnemies.Num() > 0 && ImpactSound)
+	if (HitEnemies.Num() > 0 && ImpactSound)
 	{
 		UGameplayStatics::PlaySound2D(GetWorld(), ImpactSound);
 	}
 
 	if (bDebugAttackTrace)
 	{
-		const FColor DebugColor = DamagedEnemies.Num() > 0 ? FColor::Red : FColor::Cyan;
+		const FColor DebugColor = HitEnemies.Num() > 0 ? FColor::Red : FColor::Cyan;
 		constexpr float DebugDuration = 1.5f;
 		DrawDebugLine(GetWorld(), AttackOrigin, HitboxCenter, DebugColor, false, DebugDuration, 0, 4.0f);
 		DrawDebugSphere(GetWorld(), HitboxCenter, EffectiveAttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
