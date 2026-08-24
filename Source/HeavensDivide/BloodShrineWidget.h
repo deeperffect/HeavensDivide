@@ -7,6 +7,7 @@
 #include "BloodShrineWidget.generated.h"
 
 class STextBlock;
+class SBox;
 
 UCLASS()
 class HEAVENSDIVIDE_API UBloodShrineWidget : public UUserWidget
@@ -15,6 +16,8 @@ class HEAVENSDIVIDE_API UBloodShrineWidget : public UUserWidget
 
 public:
 	void ShowInteractionPrompt();
+	void ShowInteractionPrompt(const FText& ShrineName);
+	void ConfigureForWorldSpace();
 	void ShowChallenge(int32 CurrentBlood, int32 RequiredBlood, float TimeRemaining);
 	void ShowResult(bool bSuccess);
 	void HideStatus();
@@ -28,4 +31,6 @@ private:
 	TSharedPtr<STextBlock> HeaderText;
 	TSharedPtr<STextBlock> ProgressText;
 	TSharedPtr<STextBlock> TimeText;
+	TSharedPtr<STextBlock> KeyText;
+	TSharedPtr<SBox> RootBox;
 };

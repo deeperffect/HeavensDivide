@@ -2,22 +2,24 @@
 
 #include "TwinSoulTrial.h"
 
+#include "BloodShrineWidget.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Components/TextRenderComponent.h"
+#include "Components/WidgetComponent.h"
 #include "EnemyBase.h"
 #include "EnemySpawner.h"
 #include "EngineUtils.h"
 #include "HealthComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 
 ATwinSoulTrial::ATwinSoulTrial()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 
@@ -34,12 +36,11 @@ ATwinSoulTrial::ATwinSoulTrial()
 	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 
-	InteractionPrompt = CreateDefaultSubobject<UTextRenderComponent>(TEXT("InteractionPrompt"));
-	InteractionPrompt->SetupAttachment(SceneRoot);
-	InteractionPrompt->SetRelativeLocation(FVector(0.0f, 0.0f, 260.0f));
-	InteractionPrompt->SetText(FText::FromString(TEXT("Enter Twin Soul Trial")));
-	InteractionPrompt->SetHorizontalAlignment(EHTA_Center);
-	InteractionPrompt->SetWorldSize(42.0f);
+	InteractionPromptComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionPromptComponent"));
+	InteractionPromptComponent->SetupAttachment(SceneRoot);
+	InteractionPromptComponent->SetWidgetSpace(EWidgetSpace::World);
+	InteractionPromptComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractionPromptComponent->SetVisibility(false);
 
 	TrialFloor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TrialFloor"));
 	TrialFloor->SetupAttachment(SceneRoot);
@@ -66,11 +67,26 @@ void ATwinSoulTrial::BeginPlay()
 {
 	Super::BeginPlay();
 	FindReferences();
+	CreateInteractionPrompt();
+}
+
+void ATwinSoulTrial::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (TrialState == ETwinSoulTrialState::Inactive)
+	{
+		UpdateInactivePrompt();
+	}
+	FaceInteractionPromptToCamera();
 }
 
 void ATwinSoulTrial::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	CleanupTargetBindings();
+	if (PlayerController)
+	{
+		PlayerController->EndObjective(this);
+	}
 	if (PlayerController)
 	{
 		PlayerController->OnTwinSoulRewardCompleted.RemoveDynamic(this, &ATwinSoulTrial::HandleRewardCompleted);
@@ -85,6 +101,7 @@ void ATwinSoulTrial::EndPlay(const EEndPlayReason::Type EndPlayReason)
 bool ATwinSoulTrial::CanInteract_Implementation(APawn* InteractingPawn) const
 {
 	return TrialState == ETwinSoulTrialState::Inactive && InteractingPawn
+		&& (!PlayerController || !PlayerController->IsAnyObjectiveActive())
 		&& FVector::DistSquared2D(InteractingPawn->GetActorLocation(), GetActorLocation()) <= FMath::Square(300.0f);
 }
 
@@ -101,6 +118,7 @@ bool ATwinSoulTrial::EnterTrial(APawn* InteractingPawn)
 	UCharacterManagerComponent* Manager = PlayerController->GetCharacterManager();
 	ACharacterBase* ActiveCharacter = Manager ? Manager->GetActiveCharacter() : nullptr;
 	if (!ActiveCharacter) return false;
+	if (!PlayerController->TryBeginObjective(this)) return false;
 
 	ReturnTransform = ActiveCharacter->GetActorTransform();
 	ReturnTransform.AddToTranslation(ReturnOffset);
@@ -114,12 +132,13 @@ bool ATwinSoulTrial::EnterTrial(APawn* InteractingPawn)
 		TrialState = ETwinSoulTrialState::Inactive;
 		ActiveCharacter->SetActorTransform(ReturnTransform, false, nullptr, ETeleportType::TeleportPhysics);
 		MainSpawner->SetTrialSuspended(false);
+		PlayerController->EndObjective(this);
 		return false;
 	}
 
 	if (UHealthComponent* Health = PlayerController->GetPlayerHealthComponent()) Health->OnDeath.AddUniqueDynamic(this, &ATwinSoulTrial::HandlePlayerDeath);
 	PlayerController->OnTwinSoulRewardCompleted.AddUniqueDynamic(this, &ATwinSoulTrial::HandleRewardCompleted);
-	InteractionPrompt->SetVisibility(false);
+	if (InteractionPromptComponent) InteractionPromptComponent->SetVisibility(false);
 	OnTrialEntered.Broadcast();
 	return true;
 }
@@ -181,6 +200,7 @@ void ATwinSoulTrial::ReturnPlayerToArena()
 	}
 	if (MainSpawner) MainSpawner->SetTrialSuspended(false);
 	TrialState = ETwinSoulTrialState::Completed;
+	if (PlayerController) PlayerController->EndObjective(this);
 	OnPlayerReturned.Broadcast();
 }
 
@@ -190,6 +210,7 @@ void ATwinSoulTrial::HandlePlayerDeath()
 	{
 		TrialState = ETwinSoulTrialState::Failed;
 		CleanupTargetBindings();
+		if (PlayerController) PlayerController->EndObjective(this);
 	}
 }
 
@@ -199,6 +220,42 @@ void ATwinSoulTrial::FindReferences()
 	if (!MainSpawner && GetWorld())
 	{
 		for (TActorIterator<AEnemySpawner> It(GetWorld()); It; ++It) { MainSpawner = *It; break; }
+	}
+}
+
+void ATwinSoulTrial::CreateInteractionPrompt()
+{
+	if (!InteractionPromptComponent) return;
+	InteractionPromptComponent->SetRelativeLocation(FVector(0.0f, 0.0f, PromptVerticalOffset));
+	InteractionPromptComponent->SetDrawSize(FVector2D(FMath::Max(1.0f, PromptDrawSize.X), FMath::Max(1.0f, PromptDrawSize.Y)));
+	InteractionPromptComponent->SetRelativeScale3D(FVector(FMath::Max(0.01f, PromptWorldScale)));
+	InteractionPromptComponent->SetWidgetClass(UBloodShrineWidget::StaticClass());
+	InteractionPromptComponent->InitWidget();
+	if (UBloodShrineWidget* Prompt = Cast<UBloodShrineWidget>(InteractionPromptComponent->GetUserWidgetObject()))
+	{
+		Prompt->ConfigureForWorldSpace();
+		Prompt->ShowInteractionPrompt(FText::FromString(TEXT("TWIN SOUL TRIAL")));
+	}
+	InteractionPromptComponent->SetVisibility(false);
+}
+
+void ATwinSoulTrial::UpdateInactivePrompt()
+{
+	if (!InteractionPromptComponent || !PlayerController)
+	{
+		return;
+	}
+
+	APawn* Pawn = PlayerController->GetPawn();
+	InteractionPromptComponent->SetVisibility(CanInteract_Implementation(Pawn));
+}
+
+void ATwinSoulTrial::FaceInteractionPromptToCamera()
+{
+	if (!InteractionPromptComponent || !InteractionPromptComponent->IsVisible() || !PlayerController) return;
+	if (APlayerCameraManager* Camera = PlayerController->PlayerCameraManager)
+	{
+		InteractionPromptComponent->SetWorldRotation((Camera->GetCameraLocation() - InteractionPromptComponent->GetComponentLocation()).Rotation());
 	}
 }
 

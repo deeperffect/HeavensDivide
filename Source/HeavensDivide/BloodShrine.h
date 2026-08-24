@@ -13,6 +13,7 @@ class ASurvivorPlayerController;
 class UBloodShrineWidget;
 class USphereComponent;
 class UStaticMeshComponent;
+class UWidgetComponent;
 
 UENUM(BlueprintType)
 enum class EBloodShrineState : uint8
@@ -82,6 +83,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Components")
 	TObjectPtr<USphereComponent> InteractionSphere;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Components")
+	TObjectPtr<UWidgetComponent> InteractionPromptComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
+	float PromptVerticalOffset = 240.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
+	FVector2D PromptDrawSize = FVector2D(360.0f, 160.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt", meta = (ClampMin = "0.01"))
+	float PromptWorldScale = 0.5f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Challenge", meta = (ClampMin = "0.1", UIMin = "0.1"))
 	float ChallengeDuration = 25.0f;
 
@@ -147,7 +160,9 @@ private:
 	void RequestReward();
 	void FindRequiredReferences();
 	void CreateStatusWidget();
+	void CreateInteractionPrompt();
 	void UpdateInactivePrompt();
+	void FaceInteractionPromptToCamera();
 	FName GetPressureModifierId() const;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Blood Shrine", meta = (AllowPrivateAccess = "true"))

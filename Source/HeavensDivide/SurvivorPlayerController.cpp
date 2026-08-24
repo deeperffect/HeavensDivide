@@ -43,6 +43,7 @@ static TAutoConsoleVariable<int32> CVarHDLogHandoff(
 	0,
 	TEXT("Logs Handoff attack speed buff application and expiration when enabled."));
 
+
 namespace HandoffBuffIds
 {
 	static const FName ModifierId(TEXT("Handoff_AttackSpeed"));
@@ -195,6 +196,35 @@ UPlayerUpgradeComponent* ASurvivorPlayerController::GetPlayerUpgrades() const
 bool ASurvivorPlayerController::IsPlayerDead() const
 {
 	return bIsPlayerDead;
+}
+
+bool ASurvivorPlayerController::TryBeginObjective(AActor* ObjectiveActor)
+{
+	if (!IsValid(ObjectiveActor) || ActiveObjective.IsValid())
+	{
+		return false;
+	}
+
+	ActiveObjective = ObjectiveActor;
+	return true;
+}
+
+void ASurvivorPlayerController::EndObjective(AActor* ObjectiveActor)
+{
+	if (ObjectiveActor && ActiveObjective.Get() == ObjectiveActor)
+	{
+		ActiveObjective.Reset();
+	}
+}
+
+bool ASurvivorPlayerController::IsAnyObjectiveActive() const
+{
+	return ActiveObjective.IsValid();
+}
+
+AActor* ASurvivorPlayerController::GetActiveObjective() const
+{
+	return ActiveObjective.Get();
 }
 
 float ASurvivorPlayerController::GetRunTimeSeconds() const

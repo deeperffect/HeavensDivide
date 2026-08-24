@@ -10,11 +10,12 @@
 class AEnemyBase;
 class AEnemySpawner;
 class ASurvivorPlayerController;
+class UBloodShrineWidget;
 class UBoxComponent;
 class USceneComponent;
 class USphereComponent;
 class UStaticMeshComponent;
-class UTextRenderComponent;
+class UWidgetComponent;
 class UMaterialInterface;
 
 UENUM(BlueprintType)
@@ -37,6 +38,7 @@ class HEAVENSDIVIDE_API ATwinSoulTrial : public AActor, public IInteractable
 
 public:
 	ATwinSoulTrial();
+	virtual void Tick(float DeltaSeconds) override;
 
 	virtual bool CanInteract_Implementation(APawn* InteractingPawn) const override;
 	virtual void Interact_Implementation(APawn* InteractingPawn) override;
@@ -75,7 +77,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
 	TObjectPtr<USphereComponent> InteractionSphere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
-	TObjectPtr<UTextRenderComponent> InteractionPrompt;
+	TObjectPtr<UWidgetComponent> InteractionPromptComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
+	float PromptVerticalOffset = 240.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
+	FVector2D PromptDrawSize = FVector2D(360.0f, 160.0f);
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt", meta = (ClampMin = "0.01"))
+	float PromptWorldScale = 0.5f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
 	TObjectPtr<UStaticMeshComponent> TrialFloor;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
@@ -117,6 +126,9 @@ private:
 	void HandleRewardCompleted();
 
 	void FindReferences();
+	void CreateInteractionPrompt();
+	void UpdateInactivePrompt();
+	void FaceInteractionPromptToCamera();
 	bool SpawnTargets();
 	void CompleteTrial();
 	void ReturnPlayerToArena();

@@ -61,6 +61,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Run")
 	float GetRunTimeSeconds() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Objectives")
+	bool TryBeginObjective(AActor* ObjectiveActor);
+
+	UFUNCTION(BlueprintCallable, Category = "Objectives")
+	void EndObjective(AActor* ObjectiveActor);
+
+	UFUNCTION(BlueprintPure, Category = "Objectives")
+	bool IsAnyObjectiveActive() const;
+
+	UFUNCTION(BlueprintPure, Category = "Objectives")
+	AActor* GetActiveObjective() const;
+
 	UFUNCTION(BlueprintPure, Category = "Player|Swap")
 	bool CanSwap() const;
 
@@ -308,4 +320,5 @@ protected:
 	int32 BloodShrineRewardChoiceCount = 3;
 	bool bCurrentSelectionIsTwinSoulReward = false;
 	int32 TwinSoulRewardChoiceCount = 3;
+	TWeakObjectPtr<AActor> ActiveObjective;
 };
