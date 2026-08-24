@@ -312,9 +312,14 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		{
 			continue;
 		}
+		const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
+		if (!HitEnemy->CanReceivePlayerDamage(AttackSource))
+		{
+			continue;
+		}
 
 		DamagedEnemies.Add(HitEnemy);
-		EnemyHealth->ApplyDamage(EffectiveAttackDamage);
+		HitEnemy->ApplyPlayerDamage(EffectiveAttackDamage, AttackSource);
 		if (EnemyHealth->IsDead())
 		{
 			++KilledEnemyCount;

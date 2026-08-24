@@ -63,6 +63,9 @@ public:
 	bool BeginDirectUpgradeSelection(int32 UpgradeChoiceCount = 3);
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
+	bool BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount = 3);
+
+	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")
 	bool SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount = 3);
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Selection")

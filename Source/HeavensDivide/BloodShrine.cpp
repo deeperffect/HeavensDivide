@@ -5,10 +5,12 @@
 #include "BloodShrineWidget.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "EnemyBase.h"
 #include "EnemySpawner.h"
 #include "EngineUtils.h"
 #include "HealthComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
@@ -37,6 +39,12 @@ ABloodShrine::ABloodShrine()
 	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+
+	InteractionPromptComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionPromptComponent"));
+	InteractionPromptComponent->SetupAttachment(SceneRoot);
+	InteractionPromptComponent->SetWidgetSpace(EWidgetSpace::World);
+	InteractionPromptComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	InteractionPromptComponent->SetVisibility(false);
 }
 
 void ABloodShrine::BeginPlay()
@@ -45,6 +53,7 @@ void ABloodShrine::BeginPlay()
 	InteractionSphere->SetSphereRadius(FMath::Max(1.0f, InteractionRadius));
 	FindRequiredReferences();
 	CreateStatusWidget();
+	CreateInteractionPrompt();
 }
 
 void ABloodShrine::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -72,6 +81,7 @@ void ABloodShrine::Tick(float DeltaSeconds)
 	{
 		UpdateInactivePrompt();
 	}
+	FaceInteractionPromptToCamera();
 }
 
 bool ABloodShrine::CanInteract_Implementation(APawn* InteractingPawn) const
@@ -80,6 +90,7 @@ bool ABloodShrine::CanInteract_Implementation(APawn* InteractingPawn) const
 		|| (bAllowReactivation && (ShrineState == EBloodShrineState::Success || ShrineState == EBloodShrineState::Failed));
 	return bStateAllowsInteraction
 		&& InteractingPawn
+		&& (!PlayerController || !PlayerController->IsAnyObjectiveActive())
 		&& FVector::DistSquared2D(InteractingPawn->GetActorLocation(), GetActorLocation()) <= FMath::Square(FMath::Max(1.0f, InteractionRadius));
 }
 
@@ -102,11 +113,16 @@ bool ABloodShrine::ActivateShrine(APawn* InteractingPawn)
 			*GetNameSafe(EnemySpawner), *GetNameSafe(PlayerController), PlayerController && PlayerController->IsPlayerDead() ? TEXT("true") : TEXT("false"));
 		return false;
 	}
+	if (!PlayerController->TryBeginObjective(this))
+	{
+		return false;
+	}
 
 	GetWorldTimerManager().ClearTimer(RewardTimer);
 	bRewardRequested = false;
 	CurrentBlood = 0;
 	ShrineState = EBloodShrineState::Active;
+	if (InteractionPromptComponent) InteractionPromptComponent->SetVisibility(false);
 	ChallengeEndTime = GetWorld()->GetTimeSeconds() + FMath::Max(0.1f, ChallengeDuration);
 
 	EnemySpawner->SetSpawnPressureModifier(GetPressureModifierId(), SpawnPressureMultiplier);
@@ -262,6 +278,10 @@ void ABloodShrine::EndChallenge()
 		EnemySpawner->RemoveSpawnPressureModifier(GetPressureModifierId());
 		EnemySpawner->RemoveEnemySpawnModifierContext(GetPressureModifierId());
 	}
+	if (PlayerController)
+	{
+		PlayerController->EndObjective(this);
+	}
 }
 
 void ABloodShrine::RequestReward()
@@ -306,16 +326,40 @@ void ABloodShrine::CreateStatusWidget()
 	}
 }
 
+void ABloodShrine::CreateInteractionPrompt()
+{
+	if (!InteractionPromptComponent) return;
+	InteractionPromptComponent->SetRelativeLocation(FVector(0.0f, 0.0f, PromptVerticalOffset));
+	InteractionPromptComponent->SetDrawSize(FVector2D(FMath::Max(1.0f, PromptDrawSize.X), FMath::Max(1.0f, PromptDrawSize.Y)));
+	InteractionPromptComponent->SetRelativeScale3D(FVector(FMath::Max(0.01f, PromptWorldScale)));
+	InteractionPromptComponent->SetWidgetClass(UBloodShrineWidget::StaticClass());
+	InteractionPromptComponent->InitWidget();
+	if (UBloodShrineWidget* Prompt = Cast<UBloodShrineWidget>(InteractionPromptComponent->GetUserWidgetObject()))
+	{
+		Prompt->ConfigureForWorldSpace();
+		Prompt->ShowInteractionPrompt();
+	}
+	InteractionPromptComponent->SetVisibility(false);
+}
+
 void ABloodShrine::UpdateInactivePrompt()
 {
-	if (!StatusWidget || !PlayerController)
+	if (!InteractionPromptComponent || !PlayerController)
 	{
 		return;
 	}
 
 	APawn* Pawn = PlayerController->GetPawn();
-	if (CanInteract_Implementation(Pawn)) StatusWidget->ShowInteractionPrompt();
-	else StatusWidget->HideStatus();
+	InteractionPromptComponent->SetVisibility(CanInteract_Implementation(Pawn));
+}
+
+void ABloodShrine::FaceInteractionPromptToCamera()
+{
+	if (!InteractionPromptComponent || !InteractionPromptComponent->IsVisible() || !PlayerController) return;
+	if (APlayerCameraManager* Camera = PlayerController->PlayerCameraManager)
+	{
+		InteractionPromptComponent->SetWorldRotation((Camera->GetCameraLocation() - InteractionPromptComponent->GetComponentLocation()).Rotation());
+	}
 }
 
 FName ABloodShrine::GetPressureModifierId() const

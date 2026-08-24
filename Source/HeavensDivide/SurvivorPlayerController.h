@@ -27,6 +27,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDashChargesChanged, int32, Curre
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwapCooldownStarted, float, CooldownDuration);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSwapCooldownFinished);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDamageDodged, float, IncomingDamage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTwinSoulRewardCompleted);
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
@@ -59,6 +60,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Run")
 	float GetRunTimeSeconds() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Objectives")
+	bool TryBeginObjective(AActor* ObjectiveActor);
+
+	UFUNCTION(BlueprintCallable, Category = "Objectives")
+	void EndObjective(AActor* ObjectiveActor);
+
+	UFUNCTION(BlueprintPure, Category = "Objectives")
+	bool IsAnyObjectiveActive() const;
+
+	UFUNCTION(BlueprintPure, Category = "Objectives")
+	AActor* GetActiveObjective() const;
 
 	UFUNCTION(BlueprintPure, Category = "Player|Swap")
 	bool CanSwap() const;
@@ -116,6 +129,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
 	void RequestBloodShrineUpgradeReward(int32 UpgradeChoiceCount = 3);
+
+	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
+	void RequestTwinSoulSynergyReward(int32 UpgradeChoiceCount = 3);
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Rewards")
+	FOnTwinSoulRewardCompleted OnTwinSoulRewardCompleted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when a player dash successfully starts."))
 	FOnPlayerDash OnDashStarted;
@@ -224,6 +243,9 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards", meta = (ToolTip = "Queued Blood Shrine reward selections waiting for the shared upgrade UI."))
 	int32 PendingBloodShrineRewards = 0;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards")
+	int32 PendingTwinSoulRewards = 0;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "True while the level-up upgrade selection UI is open and gameplay is frozen."))
 	bool bLevelUpSelectionActive = false;
 
@@ -296,4 +318,7 @@ protected:
 	bool bIsDashing = false;
 	bool bCurrentSelectionIsBloodShrineReward = false;
 	int32 BloodShrineRewardChoiceCount = 3;
+	bool bCurrentSelectionIsTwinSoulReward = false;
+	int32 TwinSoulRewardChoiceCount = 3;
+	TWeakObjectPtr<AActor> ActiveObjective;
 };

@@ -43,6 +43,7 @@ static TAutoConsoleVariable<int32> CVarHDLogHandoff(
 	0,
 	TEXT("Logs Handoff attack speed buff application and expiration when enabled."));
 
+
 namespace HandoffBuffIds
 {
 	static const FName ModifierId(TEXT("Handoff_AttackSpeed"));
@@ -195,6 +196,35 @@ UPlayerUpgradeComponent* ASurvivorPlayerController::GetPlayerUpgrades() const
 bool ASurvivorPlayerController::IsPlayerDead() const
 {
 	return bIsPlayerDead;
+}
+
+bool ASurvivorPlayerController::TryBeginObjective(AActor* ObjectiveActor)
+{
+	if (!IsValid(ObjectiveActor) || ActiveObjective.IsValid())
+	{
+		return false;
+	}
+
+	ActiveObjective = ObjectiveActor;
+	return true;
+}
+
+void ASurvivorPlayerController::EndObjective(AActor* ObjectiveActor)
+{
+	if (ObjectiveActor && ActiveObjective.Get() == ObjectiveActor)
+	{
+		ActiveObjective.Reset();
+	}
+}
+
+bool ASurvivorPlayerController::IsAnyObjectiveActive() const
+{
+	return ActiveObjective.IsValid();
+}
+
+AActor* ASurvivorPlayerController::GetActiveObjective() const
+{
+	return ActiveObjective.Get();
 }
 
 float ASurvivorPlayerController::GetRunTimeSeconds() const
@@ -681,9 +711,29 @@ void ASurvivorPlayerController::RequestBloodShrineUpgradeReward(int32 UpgradeCho
 	}
 }
 
+void ASurvivorPlayerController::RequestTwinSoulSynergyReward(int32 UpgradeChoiceCount)
+{
+	if (bIsPlayerDead)
+	{
+		return;
+	}
+
+	TwinSoulRewardChoiceCount = FMath::Max(1, UpgradeChoiceCount);
+	++PendingTwinSoulRewards;
+	if (!bLevelUpSelectionActive)
+	{
+		StartNextUpgradeSelection();
+	}
+}
+
 void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 {
-	if (bCurrentSelectionIsBloodShrineReward)
+	const bool bCompletedTwinSoulReward = bCurrentSelectionIsTwinSoulReward;
+	if (bCurrentSelectionIsTwinSoulReward)
+	{
+		PendingTwinSoulRewards = FMath::Max(0, PendingTwinSoulRewards - 1);
+	}
+	else if (bCurrentSelectionIsBloodShrineReward)
 	{
 		PendingBloodShrineRewards = FMath::Max(0, PendingBloodShrineRewards - 1);
 	}
@@ -692,8 +742,13 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 		PendingLevelUpChoices = FMath::Max(0, PendingLevelUpChoices - 1);
 	}
 	bCurrentSelectionIsBloodShrineReward = false;
+	bCurrentSelectionIsTwinSoulReward = false;
+	if (bCompletedTwinSoulReward)
+	{
+		OnTwinSoulRewardCompleted.Broadcast();
+	}
 
-	if (PendingLevelUpChoices > 0 || PendingBloodShrineRewards > 0)
+	if (PendingLevelUpChoices > 0 || PendingBloodShrineRewards > 0 || PendingTwinSoulRewards > 0)
 	{
 		StartNextUpgradeSelection();
 		return;
@@ -709,6 +764,24 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 	if (PendingLevelUpChoices > 0)
 	{
 		StartNextLevelUpSelection();
+		return;
+	}
+
+	if (PendingTwinSoulRewards > 0)
+	{
+		bCurrentSelectionIsBloodShrineReward = false;
+		bCurrentSelectionIsTwinSoulReward = true;
+		bLevelUpSelectionActive = true;
+		if (!PlayerUpgradeComponent
+			|| !PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Synergy, TwinSoulRewardChoiceCount)
+			|| !EnsureLevelUpWidget())
+		{
+			HandleLevelUpSelectionCompleted();
+			return;
+		}
+
+		PauseForLevelUpSelection();
+		LevelUpWidget->InitializeDirectUpgradeWidget(this);
 		return;
 	}
 

@@ -10,7 +10,7 @@
 
 TSharedRef<SWidget> UBloodShrineWidget::RebuildWidget()
 {
-	return SNew(SBox)
+	return SAssignNew(RootBox, SBox)
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Top)
 		.Padding(FMargin(0.0f, 70.0f, 0.0f, 0.0f))
@@ -20,6 +20,10 @@ TSharedRef<SWidget> UBloodShrineWidget::RebuildWidget()
 			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
 			[
 				SNew(SVerticalBox)
+				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.0f, 0.0f, 0.0f, 4.0f)
+				[
+					SAssignNew(KeyText, STextBlock).Text(FText::FromString(TEXT("E"))).Font(FAppStyle::GetFontStyle("HeadingExtraSmall"))
+				]
 				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 				[
 					SAssignNew(HeaderText, STextBlock).Font(FAppStyle::GetFontStyle("HeadingExtraSmall"))
@@ -38,12 +42,24 @@ TSharedRef<SWidget> UBloodShrineWidget::RebuildWidget()
 
 void UBloodShrineWidget::ShowInteractionPrompt()
 {
+	ShowInteractionPrompt(FText::FromString(TEXT("BLOOD SHRINE")));
+}
+
+void UBloodShrineWidget::ShowInteractionPrompt(const FText& ShrineName)
+{
+	if (KeyText) KeyText->SetVisibility(EVisibility::Visible);
 	SetVisibility(ESlateVisibility::HitTestInvisible);
-	SetLines(FText::FromString(TEXT("BLOOD SHRINE")), FText::FromString(TEXT("Press E to activate")), FText::GetEmpty());
+	SetLines(ShrineName, FText::FromString(TEXT("Press E to activate")), FText::GetEmpty());
+}
+
+void UBloodShrineWidget::ConfigureForWorldSpace()
+{
+	if (RootBox) RootBox->SetPadding(FMargin(0.0f));
 }
 
 void UBloodShrineWidget::ShowChallenge(int32 CurrentBlood, int32 RequiredBlood, float TimeRemaining)
 {
+	if (KeyText) KeyText->SetVisibility(EVisibility::Collapsed);
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	SetLines(
 		FText::FromString(TEXT("BLOOD SHRINE")),
@@ -53,6 +69,7 @@ void UBloodShrineWidget::ShowChallenge(int32 CurrentBlood, int32 RequiredBlood, 
 
 void UBloodShrineWidget::ShowResult(bool bSuccess)
 {
+	if (KeyText) KeyText->SetVisibility(EVisibility::Collapsed);
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	SetLines(FText::FromString(bSuccess ? TEXT("BLOOD SHRINE COMPLETE") : TEXT("BLOOD SHRINE FAILED")), FText::GetEmpty(), FText::GetEmpty());
 }

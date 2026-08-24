@@ -335,6 +335,40 @@ void AEnemySpawner::FreezeRunTime()
 	GetWorldTimerManager().ClearTimer(RunTimeTimerHandle);
 }
 
+void AEnemySpawner::SetTrialSuspended(bool bSuspended)
+{
+	if (bTrialSuspended == bSuspended)
+	{
+		return;
+	}
+
+	bTrialSuspended = bSuspended;
+	if (bTrialSuspended)
+	{
+		GetWorldTimerManager().PauseTimer(RunTimeTimerHandle);
+		GetWorldTimerManager().PauseTimer(SpawnTimerHandle);
+		GetWorldTimerManager().PauseTimer(DistantEnemyCheckTimerHandle);
+	}
+	else
+	{
+		if (!bRunTimeFrozen)
+		{
+			GetWorldTimerManager().UnPauseTimer(RunTimeTimerHandle);
+		}
+		GetWorldTimerManager().UnPauseTimer(SpawnTimerHandle);
+		GetWorldTimerManager().UnPauseTimer(DistantEnemyCheckTimerHandle);
+	}
+
+	PruneTrackedEnemies();
+	for (const TWeakObjectPtr<AEnemyBase>& EnemyPtr : SpawnedEnemies)
+	{
+		if (AEnemyBase* Enemy = EnemyPtr.Get())
+		{
+			Enemy->SetGameplaySuspended(bTrialSuspended);
+		}
+	}
+}
+
 void AEnemySpawner::SetSpawnPressureModifier(FName ModifierId, float Multiplier)
 {
 	if (ModifierId.IsNone())
@@ -1017,7 +1051,7 @@ void AEnemySpawner::HandleRunTimeTimerElapsed()
 
 void AEnemySpawner::HandleSpawnTimerElapsed()
 {
-	if (!bSpawningEnabled
+	if (bTrialSuspended || !bSpawningEnabled
 #if !UE_BUILD_SHIPPING
 		|| bStressPauseNormalSpawning
 #endif
@@ -1057,6 +1091,11 @@ void AEnemySpawner::HandleSpawnTimerElapsed()
 
 void AEnemySpawner::HandleDistantEnemyCheckTimerElapsed()
 {
+	if (bTrialSuspended)
+	{
+		return;
+	}
+
 	ACharacterBase* ActivePlayer = GetActivePlayerCharacter();
 	if (!ActivePlayer || MaxEnemyDistanceFromPlayer <= 0.0f)
 	{

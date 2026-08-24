@@ -166,6 +166,11 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			LogProjectileFilterResult(OtherActor, false);
 			return;
 		}
+		const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(GameplayOwner);
+		if (!HitEnemy->CanReceivePlayerDamage(AttackSource))
+		{
+			return;
+		}
 
 		LogProjectileFilterResult(OtherActor, true);
 		const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForMarkedForDeath(this, GameplayOwner);
@@ -193,7 +198,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 
 		const FVector ExecutionLocation = HitEnemy->GetActorLocation();
-		EnemyHealth->ApplyDamage(FinalDamage);
+		HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bKilledEnemy)
 		{
