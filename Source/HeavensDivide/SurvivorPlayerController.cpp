@@ -64,6 +64,8 @@ FString UpgradeCategoryToLogString(EUpgradeCategory Category)
 		return TEXT("Global");
 	case EUpgradeCategory::Synergy:
 		return TEXT("Synergy");
+	case EUpgradeCategory::Cursed:
+		return TEXT("Blood Pact");
 	default:
 		return TEXT("Unknown");
 	}
@@ -795,9 +797,10 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 
 	bCurrentSelectionIsBloodShrineReward = true;
 	bLevelUpSelectionActive = true;
-	if (!PlayerUpgradeComponent || !PlayerUpgradeComponent->BeginDirectUpgradeSelection(BloodShrineRewardChoiceCount))
+	if (!PlayerUpgradeComponent
+		|| !PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Cursed, BloodShrineRewardChoiceCount))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Blood Shrine reward skipped: no currently acquirable upgrades."));
+		UE_LOG(LogTemp, Warning, TEXT("Blood Shrine reward skipped: no currently eligible Blood Pact upgrades."));
 		HandleLevelUpSelectionCompleted();
 		return;
 	}

@@ -14,7 +14,8 @@ enum class EUpgradeCategory : uint8
 	Samurai,
 	Ninja,
 	Global,
-	Synergy
+	Synergy,
+	Cursed UMETA(DisplayName = "Blood Pact")
 };
 
 UENUM(BlueprintType)
