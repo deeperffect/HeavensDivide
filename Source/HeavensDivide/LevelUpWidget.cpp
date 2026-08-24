@@ -14,6 +14,15 @@ void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayer
 	RefreshCategoryChoices();
 }
 
+void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* InPlayerController)
+{
+	SurvivorPlayerController = InPlayerController;
+	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
+	bCategoryChoiceCommitted = true;
+	bUpgradeChoiceCommitted = false;
+	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
+}
+
 void ULevelUpWidget::RefreshCategoryChoices()
 {
 	if (!PlayerUpgrades)

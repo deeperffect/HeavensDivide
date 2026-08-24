@@ -13,6 +13,7 @@ class UCharacterManagerComponent;
 class UExperienceComponent;
 class UHealthComponent;
 class ASurvivorPlayerController;
+class UTextBlock;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDHealthUpdated, float, CurrentHealth, float, MaxHealth, float, HealthPercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDActiveCharacterChanged, ACharacterBase*, NewActiveCharacter);
@@ -135,6 +136,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player HUD|State")
 	bool IsNinjaActive() const;
 
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Run")
+	float GetRunTimeSeconds() const;
+
+	UFUNCTION(BlueprintPure, Category = "Player HUD|Run")
+	FText FormatRunTime(float RunTimeSeconds) const;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
 	void OnPlayerHealthUpdated(float CurrentHealth, float MaxHealth, float HealthPercent);
 
@@ -208,6 +215,7 @@ public:
 	FPlayerHUDSwapCooldownFinished SwapCooldownFinished;
 
 protected:
+	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void NativeDestruct() override;
 
@@ -243,6 +251,9 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player HUD|Health Animation")
 	float DelayedHealthPercent = 1.0f;
+
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
+	TObjectPtr<UTextBlock> RunTimerText;
 
 private:
 	UFUNCTION()
@@ -288,10 +299,13 @@ private:
 	void BroadcastDashChargeSlots();
 	void BroadcastSwapCooldownProgress();
 	void BroadcastSwapCooldownFinished();
+	void InitializeRunTimerDisplay();
+	void UpdateRunTimerDisplay();
 
 	FTimerHandle HealthChipDelayTimerHandle;
 	float TargetHealthPercent = 1.0f;
 	bool bHealthChipChasing = false;
 	bool bDashRechargeProgressActive = false;
 	bool bSwapCooldownProgressActive = false;
+	int64 LastDisplayedRunTimeSecond = INDEX_NONE;
 };

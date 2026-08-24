@@ -22,6 +22,12 @@ void AMeleeEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float 
 	AttackDamage *= FMath::Max(0.0f, DamageMultiplier);
 }
 
+void AMeleeEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier)
+{
+	Super::ApplySpawnInstanceModifiers(HealthMultiplier, DamageMultiplier, MovementSpeedMultiplier);
+	AttackDamage *= FMath::Max(0.0f, DamageMultiplier);
+}
+
 void AMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopAttackTimer();

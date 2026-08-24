@@ -15,6 +15,12 @@ void ARangedEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float
 	AttackDamage *= FMath::Max(0.0f, DamageMultiplier);
 }
 
+void ARangedEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier)
+{
+	Super::ApplySpawnInstanceModifiers(HealthMultiplier, DamageMultiplier, MovementSpeedMultiplier);
+	AttackDamage *= FMath::Max(0.0f, DamageMultiplier);
+}
+
 void ARangedEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopAttackTimer();

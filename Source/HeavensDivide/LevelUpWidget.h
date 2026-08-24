@@ -22,6 +22,9 @@ public:
 	void InitializeLevelUpWidget(ASurvivorPlayerController* InPlayerController);
 
 	UFUNCTION(BlueprintCallable, Category = "Level Up")
+	void InitializeDirectUpgradeWidget(ASurvivorPlayerController* InPlayerController);
+
+	UFUNCTION(BlueprintCallable, Category = "Level Up")
 	void RefreshCategoryChoices();
 
 	UFUNCTION(BlueprintCallable, Category = "Level Up")

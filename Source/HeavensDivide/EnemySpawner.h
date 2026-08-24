@@ -13,6 +13,29 @@ class AEnemySpawnArea;
 class UAutoAttackComponent;
 class UCurveFloat;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnerEnemyKilled, AEnemyBase*, Enemy);
+
+USTRUCT(BlueprintType)
+struct FEnemySpawnModifierContext
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Modifiers")
+	bool bMakeBloodbound = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Modifiers", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float HealthMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Modifiers", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float DamageMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Modifiers", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float MovementSpeedMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Modifiers")
+	bool bDropsXP = true;
+};
+
 USTRUCT(BlueprintType)
 struct FEnemySpawnEntry
 {
@@ -73,6 +96,33 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Run")
 	float GetRunTimeMinutes() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Run")
+	void FreezeRunTime();
+
+	UFUNCTION(BlueprintCallable, Category = "Run Scaling|Modifiers")
+	void SetSpawnPressureModifier(FName ModifierId, float Multiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Run Scaling|Modifiers")
+	void RemoveSpawnPressureModifier(FName ModifierId);
+
+	UFUNCTION(BlueprintPure, Category = "Run Scaling|Modifiers")
+	float GetSpawnPressureModifierProduct() const;
+
+	UFUNCTION(BlueprintPure, Category = "Run Scaling|Modifiers")
+	float GetEffectiveSpawnPressure() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy Spawning|Modifiers")
+	void SetEnemySpawnModifierContext(FName ModifierId, const FEnemySpawnModifierContext& ModifierContext);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy Spawning|Modifiers")
+	void RemoveEnemySpawnModifierContext(FName ModifierId);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy Spawning|Modifiers", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	int32 ConvertRandomAliveEnemiesToBloodbound(const FEnemySpawnModifierContext& BloodboundContext, float ConversionPercent);
+
+	UPROPERTY(BlueprintAssignable, Category = "Enemy Spawning|Events")
+	FSpawnerEnemyKilled OnEnemyKilled;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Pool", meta = (ToolTip = "List of enemy types this spawner can create. Each entry has its own weight, runtime window, cost, and optional per-type alive cap."))
@@ -196,11 +246,14 @@ protected:
 
 	TMap<UClass*, int32> AliveEnemyCountByClass;
 	TMap<TObjectKey<AEnemyBase>, UClass*> CountedEnemyClassByEnemy;
+	TMap<FName, float> SpawnPressureModifiers;
+	TMap<FName, FEnemySpawnModifierContext> EnemySpawnModifierContexts;
 
 	FTimerHandle SpawnTimerHandle;
 	FTimerHandle RunTimeTimerHandle;
 	FTimerHandle DistantEnemyCheckTimerHandle;
 	float RunTimeSeconds = 0.0f;
+	bool bRunTimeFrozen = false;
 
 	ACharacterBase* GetActivePlayerCharacter() const;
 	const FEnemySpawnEntry* ChooseSpawnEntry(int32 RemainingBudget) const;
@@ -227,6 +280,7 @@ protected:
 	void IncrementAliveCountForSpawnedEnemy(AEnemyBase* SpawnedEnemy, TSubclassOf<AEnemyBase> SpawnClass);
 	void DecrementAliveCountForDestroyedEnemy(AActor* DestroyedActor);
 	void PruneTrackedEnemies();
+	void ApplyEnemySpawnModifierContexts(AEnemyBase* SpawnedEnemy) const;
 	void HandleRunTimeTimerElapsed();
 	void HandleSpawnTimerElapsed();
 	void HandleDistantEnemyCheckTimerElapsed();
@@ -235,6 +289,9 @@ protected:
 
 	UFUNCTION()
 	void HandleSpawnedEnemyDestroyed(AActor* DestroyedActor);
+
+	UFUNCTION()
+	void HandleSpawnedEnemyDied(AEnemyBase* Enemy);
 
 #if !UE_BUILD_SHIPPING
 	TSubclassOf<AEnemyBase> GetStressTestEnemyClass() const;

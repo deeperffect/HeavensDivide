@@ -21,8 +21,11 @@
 #include "HAL/IConsoleManager.h"
 #include "IAnimationBudgetAllocator.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "NavigationPath.h"
 #include "NavigationSystem.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "SkeletalMeshComponentBudgeted.h"
 #include "Stats/Stats.h"
 #include "SurvivorPlayerController.h"
@@ -164,6 +167,9 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	LightweightMovementComponent = CreateDefaultSubobject<UEnemyLightweightMovementComponent>(TEXT("LightweightMovementComponent"));
+	BloodboundNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("BloodboundNiagaraComponent"));
+	BloodboundNiagaraComponent->SetupAttachment(GetMesh());
+	BloodboundNiagaraComponent->SetAutoActivate(false);
 
 	HealthBarWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBarWidgetComponent"));
 	HealthBarWidgetComponent->SetupAttachment(RootComponent);
@@ -212,6 +218,11 @@ void AEnemyBase::BeginPlay()
 	UpdateAnimationProfilingState();
 	StartBehaviorUpdates();
 	StartSeparationUpdates();
+
+	if (bIsBloodbound)
+	{
+		ActivateBloodboundVisuals();
+	}
 }
 
 void AEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -355,6 +366,113 @@ void AEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float Damag
 	}
 }
 
+void AEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier)
+{
+	const float SafeHealthMultiplier = FMath::IsFinite(HealthMultiplier) ? FMath::Max(0.0f, HealthMultiplier) : 1.0f;
+	const float SafeMovementMultiplier = FMath::IsFinite(MovementSpeedMultiplier) ? FMath::Max(0.0f, MovementSpeedMultiplier) : 1.0f;
+	if (HealthComponent)
+	{
+		HealthComponent->SetMaxHealthPreservePercent(HealthComponent->GetMaxHealth() * SafeHealthMultiplier);
+	}
+
+	MoveSpeed *= SafeMovementMultiplier;
+	if (LightweightMovementComponent)
+	{
+		LightweightMovementComponent->SetMoveSpeed(MoveSpeed);
+	}
+}
+
+void AEnemyBase::MakeBloodbound(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier, bool bInDropsXP)
+{
+	if (bIsBloodbound)
+	{
+		return;
+	}
+
+	bIsBloodbound = true;
+	bDropsXP = bInDropsXP;
+	BloodboundHealthMultiplier = FMath::IsFinite(HealthMultiplier) ? FMath::Max(0.0f, HealthMultiplier) : 1.0f;
+	BloodboundDamageMultiplier = FMath::IsFinite(DamageMultiplier) ? FMath::Max(0.0f, DamageMultiplier) : 1.0f;
+	BloodboundMovementSpeedMultiplier = FMath::IsFinite(MovementSpeedMultiplier) ? FMath::Max(0.0f, MovementSpeedMultiplier) : 1.0f;
+	ApplySpawnInstanceModifiers(BloodboundHealthMultiplier, BloodboundDamageMultiplier, BloodboundMovementSpeedMultiplier);
+	ActivateBloodboundVisuals();
+	OnBecameBloodbound.Broadcast(this);
+}
+
+void AEnemyBase::ActivateBloodboundVisuals()
+{
+	if (BloodboundNiagaraComponent)
+	{
+		if (BloodboundNiagaraSystem)
+		{
+			BloodboundNiagaraComponent->SetAsset(BloodboundNiagaraSystem);
+			BloodboundNiagaraComponent->Activate(true);
+		}
+		else
+		{
+			BloodboundNiagaraComponent->DeactivateImmediate();
+		}
+	}
+
+	USkeletalMeshComponent* EnemyMesh = GetMesh();
+	if (!EnemyMesh)
+	{
+		return;
+	}
+
+	if (BloodboundDynamicMaterialInstances.IsEmpty())
+	{
+		const int32 MaterialCount = EnemyMesh->GetNumMaterials();
+		BloodboundDynamicMaterialInstances.Reserve(MaterialCount);
+		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+		{
+			if (UMaterialInstanceDynamic* DynamicMaterial = EnemyMesh->CreateDynamicMaterialInstance(MaterialIndex))
+			{
+				BloodboundDynamicMaterialInstances.Add(DynamicMaterial);
+			}
+		}
+	}
+
+	for (UMaterialInstanceDynamic* DynamicMaterial : BloodboundDynamicMaterialInstances)
+	{
+		if (!DynamicMaterial)
+		{
+			continue;
+		}
+
+		DynamicMaterial->SetScalarParameterValue(BloodboundMaterialScalarParameterName, BloodboundMaterialAmount);
+		DynamicMaterial->SetVectorParameterValue(BloodboundMaterialTintParameterName, BloodboundTint);
+		DynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, BloodboundEmissiveStrength);
+	}
+
+	if (BloodboundOverlayMaterial && !BloodboundOverlayDynamicMaterial)
+	{
+		BloodboundOverlayDynamicMaterial = UMaterialInstanceDynamic::Create(BloodboundOverlayMaterial, this);
+		if (BloodboundOverlayDynamicMaterial)
+		{
+			BloodboundOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialScalarParameterName, BloodboundMaterialAmount);
+			BloodboundOverlayDynamicMaterial->SetVectorParameterValue(BloodboundMaterialTintParameterName, BloodboundTint);
+			BloodboundOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, BloodboundEmissiveStrength);
+			EnemyMesh->SetOverlayMaterial(BloodboundOverlayDynamicMaterial);
+		}
+	}
+}
+
+bool AEnemyBase::IsBloodbound() const
+{
+	return bIsBloodbound;
+}
+
+int32 AEnemyBase::GetBloodValue() const
+{
+	return FMath::Max(0, BloodValue);
+}
+
+bool AEnemyBase::ShouldDropXP() const
+{
+	return bDropsXP;
+}
+
 void AEnemyBase::LogEnemyDebugState(const TCHAR* Context) const
 {
 	const UHealthComponent* EnemyHealth = HealthComponent;
@@ -414,6 +532,7 @@ void AEnemyBase::HandleDeath()
 	}
 
 	bIsDead = true;
+	OnEnemyDied.Broadcast(this);
 	ClearMark();
 	HideMarkIndicator();
 	HideHealthBar();
@@ -561,7 +680,7 @@ void AEnemyBase::CachePlayerExperienceComponent()
 
 void AEnemyBase::SpawnExperiencePickup()
 {
-	if (bExperiencePickupSpawned || XPReward <= 0)
+	if (bExperiencePickupSpawned || XPReward <= 0 || !ShouldDropXP())
 	{
 		return;
 	}

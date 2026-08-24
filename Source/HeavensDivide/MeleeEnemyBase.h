@@ -20,6 +20,7 @@ public:
 	virtual void PerformAttackHit();
 
 	virtual void ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier) override;
+	virtual void ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier) override;
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

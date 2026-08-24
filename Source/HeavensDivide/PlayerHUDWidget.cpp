@@ -2,14 +2,24 @@
 
 #include "PlayerHUDWidget.h"
 
+#include "Blueprint/WidgetTree.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/TextBlock.h"
 #include "ExperienceComponent.h"
 #include "HealthComponent.h"
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
+
+void UPlayerHUDWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	InitializeRunTimerDisplay();
+}
 
 void UPlayerHUDWidget::InitializeFromCharacterManager(UCharacterManagerComponent* InCharacterManager)
 {
@@ -78,6 +88,7 @@ void UPlayerHUDWidget::NativeDestruct()
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	UpdateRunTimerDisplay();
 
 	if (bDashRechargeProgressActive)
 	{
@@ -271,6 +282,98 @@ bool UPlayerHUDWidget::IsSamuraiActive() const
 bool UPlayerHUDWidget::IsNinjaActive() const
 {
 	return Ninja && GetActiveCharacter() == Ninja;
+}
+
+float UPlayerHUDWidget::GetRunTimeSeconds() const
+{
+	return SurvivorPlayerController ? SurvivorPlayerController->GetRunTimeSeconds() : 0.0f;
+}
+
+FText UPlayerHUDWidget::FormatRunTime(float RunTimeSeconds) const
+{
+	const float SafeRunTime = FMath::IsFinite(RunTimeSeconds) ? FMath::Max(0.0f, RunTimeSeconds) : 0.0f;
+	const int64 TotalSeconds = FMath::FloorToInt64(SafeRunTime);
+	const int64 Seconds = TotalSeconds % 60;
+	const int64 TotalMinutes = TotalSeconds / 60;
+	if (TotalMinutes < 60)
+	{
+		return FText::FromString(FString::Printf(TEXT("%02lld:%02lld"), TotalMinutes, Seconds));
+	}
+
+	const int64 Hours = TotalMinutes / 60;
+	const int64 Minutes = TotalMinutes % 60;
+	return FText::FromString(FString::Printf(TEXT("%lld:%02lld:%02lld"), Hours, Minutes, Seconds));
+}
+
+void UPlayerHUDWidget::InitializeRunTimerDisplay()
+{
+	if (!RunTimerText && WidgetTree)
+	{
+		UCanvasPanel* TargetCanvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
+		if (!TargetCanvas)
+		{
+			TArray<UWidget*> AllWidgets;
+			WidgetTree->GetAllWidgets(AllWidgets);
+			for (UWidget* Widget : AllWidgets)
+			{
+				if (UCanvasPanel* Canvas = Cast<UCanvasPanel>(Widget))
+				{
+					TargetCanvas = Canvas;
+					break;
+				}
+			}
+		}
+
+		if (TargetCanvas)
+		{
+			RunTimerText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("RunTimerText"));
+			if (UCanvasPanelSlot* TimerSlot = TargetCanvas->AddChildToCanvas(RunTimerText))
+			{
+				TimerSlot->SetAnchors(FAnchors(0.5f, 0.0f));
+				TimerSlot->SetAlignment(FVector2D(0.5f, 0.0f));
+				TimerSlot->SetPosition(FVector2D(0.0f, 24.0f));
+				TimerSlot->SetAutoSize(true);
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("PlayerHUDWidget could not create the run timer: no CanvasPanel exists in the HUD widget tree."));
+		}
+	}
+
+	if (RunTimerText)
+	{
+		FSlateFontInfo TimerFont = RunTimerText->GetFont();
+		TimerFont.Size = 32;
+		RunTimerText->SetFont(TimerFont);
+		RunTimerText->SetJustification(ETextJustify::Center);
+		RunTimerText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+		RunTimerText->SetShadowOffset(FVector2D(1.5f, 1.5f));
+		RunTimerText->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.8f));
+		RunTimerText->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+
+	LastDisplayedRunTimeSecond = INDEX_NONE;
+	UpdateRunTimerDisplay();
+}
+
+void UPlayerHUDWidget::UpdateRunTimerDisplay()
+{
+	if (!RunTimerText)
+	{
+		return;
+	}
+
+	const float RunTimeSeconds = GetRunTimeSeconds();
+	const float SafeRunTime = FMath::IsFinite(RunTimeSeconds) ? FMath::Max(0.0f, RunTimeSeconds) : 0.0f;
+	const int64 WholeSecond = FMath::FloorToInt64(SafeRunTime);
+	if (WholeSecond == LastDisplayedRunTimeSecond)
+	{
+		return;
+	}
+
+	LastDisplayedRunTimeSecond = WholeSecond;
+	RunTimerText->SetText(FormatRunTime(SafeRunTime));
 }
 
 void UPlayerHUDWidget::HandlePlayerHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent)

@@ -134,6 +134,7 @@ void AEnemySpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		if (AEnemyBase* Enemy = EnemyPtr.Get())
 		{
 			Enemy->OnDestroyed.RemoveDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
+			Enemy->OnEnemyDied.RemoveDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDied);
 		}
 	}
 
@@ -151,6 +152,8 @@ void AEnemySpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	SpawnedEnemies.Empty();
 	AliveEnemyCountByClass.Empty();
 	CountedEnemyClassByEnemy.Empty();
+	SpawnPressureModifiers.Empty();
+	EnemySpawnModifierContexts.Empty();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -321,6 +324,112 @@ float AEnemySpawner::GetRunTimeMinutes() const
 	return RunTimeSeconds / 60.0f;
 }
 
+void AEnemySpawner::FreezeRunTime()
+{
+	if (bRunTimeFrozen)
+	{
+		return;
+	}
+
+	bRunTimeFrozen = true;
+	GetWorldTimerManager().ClearTimer(RunTimeTimerHandle);
+}
+
+void AEnemySpawner::SetSpawnPressureModifier(FName ModifierId, float Multiplier)
+{
+	if (ModifierId.IsNone())
+	{
+		return;
+	}
+
+	SpawnPressureModifiers.FindOrAdd(ModifierId) = FMath::Max(0.0f, Multiplier);
+	GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
+	RescheduleSpawnTimer();
+}
+
+void AEnemySpawner::RemoveSpawnPressureModifier(FName ModifierId)
+{
+	if (!ModifierId.IsNone() && SpawnPressureModifiers.Remove(ModifierId) > 0)
+	{
+		GetWorldTimerManager().ClearTimer(SpawnTimerHandle);
+		RescheduleSpawnTimer();
+	}
+}
+
+float AEnemySpawner::GetSpawnPressureModifierProduct() const
+{
+	float Product = 1.0f;
+	for (const TPair<FName, float>& Pair : SpawnPressureModifiers)
+	{
+		Product *= FMath::Max(0.0f, Pair.Value);
+	}
+	return Product;
+}
+
+float AEnemySpawner::GetEffectiveSpawnPressure() const
+{
+	return GetSpawnPressure() * GetSpawnPressureModifierProduct();
+}
+
+void AEnemySpawner::SetEnemySpawnModifierContext(FName ModifierId, const FEnemySpawnModifierContext& ModifierContext)
+{
+	if (!ModifierId.IsNone())
+	{
+		EnemySpawnModifierContexts.FindOrAdd(ModifierId) = ModifierContext;
+	}
+}
+
+void AEnemySpawner::RemoveEnemySpawnModifierContext(FName ModifierId)
+{
+	if (!ModifierId.IsNone())
+	{
+		EnemySpawnModifierContexts.Remove(ModifierId);
+	}
+}
+
+int32 AEnemySpawner::ConvertRandomAliveEnemiesToBloodbound(const FEnemySpawnModifierContext& BloodboundContext, float ConversionPercent)
+{
+	const float SafeConversionPercent = FMath::IsFinite(ConversionPercent)
+		? FMath::Clamp(ConversionPercent, 0.0f, 1.0f)
+		: 0.0f;
+
+	PruneTrackedEnemies();
+	TArray<AEnemyBase*> EligibleEnemies;
+	EligibleEnemies.Reserve(SpawnedEnemies.Num());
+	for (const TWeakObjectPtr<AEnemyBase>& EnemyPtr : SpawnedEnemies)
+	{
+		AEnemyBase* Enemy = EnemyPtr.Get();
+		if (!IsValid(Enemy)
+			|| Enemy->IsActorBeingDestroyed()
+			|| !CountedEnemyClassByEnemy.Contains(TObjectKey<AEnemyBase>(Enemy))
+			|| Enemy->IsDead()
+			|| Enemy->IsBloodbound())
+		{
+			continue;
+		}
+
+		EligibleEnemies.Add(Enemy);
+	}
+
+	const int32 ConversionCount = FMath::Clamp(
+		FMath::RoundToInt(static_cast<float>(EligibleEnemies.Num()) * SafeConversionPercent),
+		0,
+		EligibleEnemies.Num());
+	for (int32 Index = 0; Index < ConversionCount; ++Index)
+	{
+		const int32 SelectedIndex = FMath::RandRange(Index, EligibleEnemies.Num() - 1);
+		EligibleEnemies.Swap(Index, SelectedIndex);
+		AEnemyBase* SelectedEnemy = EligibleEnemies[Index];
+		SelectedEnemy->MakeBloodbound(
+			BloodboundContext.HealthMultiplier,
+			BloodboundContext.DamageMultiplier,
+			BloodboundContext.MovementSpeedMultiplier,
+			BloodboundContext.bDropsXP);
+	}
+
+	return ConversionCount;
+}
+
 AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntry)
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemySpawner_SpawnEnemyFromEntry);
@@ -379,7 +488,9 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 
 	SpawnedEnemy->SpawnDefaultController();
 	SpawnedEnemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(), GetDamageMultiplier());
+	ApplyEnemySpawnModifierContexts(SpawnedEnemy);
 	SpawnedEnemy->OnDestroyed.AddDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
+	SpawnedEnemy->OnEnemyDied.AddUniqueDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDied);
 	SpawnedEnemies.Add(SpawnedEnemy);
 	IncrementAliveCountForSpawnedEnemy(SpawnedEnemy, SpawnEntry.EnemyClass);
 
@@ -749,25 +860,25 @@ float AEnemySpawner::GetSpawnPressure() const
 
 float AEnemySpawner::GetCurrentSpawnInterval() const
 {
-	const float Pressure = FMath::Max(0.1f, GetSpawnPressure());
+	const float Pressure = FMath::Max(0.1f, GetEffectiveSpawnPressure());
 	return FMath::Max(MinSpawnInterval, BaseSpawnInterval / Pressure);
 }
 
 int32 AEnemySpawner::GetCurrentEnemiesPerSpawn() const
 {
-	const float Pressure = GetSpawnPressure();
+	const float Pressure = GetEffectiveSpawnPressure();
 	return FMath::Clamp(FMath::RoundToInt(BaseEnemiesPerSpawn * FMath::Sqrt(FMath::Max(1.0f, Pressure))), 1, MaxEnemiesPerSpawn);
 }
 
 int32 AEnemySpawner::GetCurrentMaxAliveEnemies() const
 {
-	const float Pressure = GetSpawnPressure();
+	const float Pressure = GetEffectiveSpawnPressure();
 	return FMath::Clamp(FMath::RoundToInt(BaseMaxAliveEnemies * Pressure), 1, MaximumAliveEnemies);
 }
 
 int32 AEnemySpawner::GetCurrentSpawnBudget() const
 {
-	const float Pressure = GetSpawnPressure();
+	const float Pressure = GetEffectiveSpawnPressure();
 	return FMath::Clamp(FMath::RoundToInt(BaseSpawnBudget * FMath::Sqrt(FMath::Max(1.0f, Pressure))), 1, MaxSpawnBudget);
 }
 
@@ -894,6 +1005,11 @@ void AEnemySpawner::PruneTrackedEnemies()
 
 void AEnemySpawner::HandleRunTimeTimerElapsed()
 {
+	if (bRunTimeFrozen)
+	{
+		return;
+	}
+
 	RunTimeSeconds += RunTimeUpdateInterval;
 	RescheduleSpawnTimer();
 	LogDirectorStatus();
@@ -1046,6 +1162,46 @@ void AEnemySpawner::HandleSpawnedEnemyDestroyed(AActor* DestroyedActor)
 		return !EnemyPtr.IsValid() || EnemyPtr.Get() == DestroyedActor;
 	});
 #endif
+}
+
+void AEnemySpawner::ApplyEnemySpawnModifierContexts(AEnemyBase* SpawnedEnemy) const
+{
+	if (!SpawnedEnemy || EnemySpawnModifierContexts.Num() == 0)
+	{
+		return;
+	}
+
+	bool bMakeBloodbound = false;
+	bool bDropsXP = true;
+	float HealthMultiplier = 1.0f;
+	float DamageMultiplier = 1.0f;
+	float MovementSpeedMultiplier = 1.0f;
+	for (const TPair<FName, FEnemySpawnModifierContext>& Pair : EnemySpawnModifierContexts)
+	{
+		const FEnemySpawnModifierContext& Context = Pair.Value;
+		bMakeBloodbound |= Context.bMakeBloodbound;
+		bDropsXP &= Context.bDropsXP;
+		HealthMultiplier *= FMath::Max(0.0f, Context.HealthMultiplier);
+		DamageMultiplier *= FMath::Max(0.0f, Context.DamageMultiplier);
+		MovementSpeedMultiplier *= FMath::Max(0.0f, Context.MovementSpeedMultiplier);
+	}
+
+	if (bMakeBloodbound)
+	{
+		SpawnedEnemy->MakeBloodbound(HealthMultiplier, DamageMultiplier, MovementSpeedMultiplier, bDropsXP);
+	}
+	else
+	{
+		SpawnedEnemy->ApplySpawnInstanceModifiers(HealthMultiplier, DamageMultiplier, MovementSpeedMultiplier);
+	}
+}
+
+void AEnemySpawner::HandleSpawnedEnemyDied(AEnemyBase* Enemy)
+{
+	if (Enemy)
+	{
+		OnEnemyKilled.Broadcast(Enemy);
+	}
 }
 
 #if !UE_BUILD_SHIPPING

@@ -18,10 +18,16 @@ class UCharacterManagerComponent;
 class UEnemyLightweightMovementComponent;
 class UExperienceComponent;
 class AExperiencePickup;
+class UNiagaraComponent;
+class UNiagaraSystem;
+class UMaterialInterface;
+class UMaterialInstanceDynamic;
 
 class AEnemyBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyMarkStateChanged, AEnemyBase*, Enemy);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyDied, AEnemyBase*, Enemy);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyBecameBloodbound, AEnemyBase*, Enemy);
 
 UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
@@ -75,6 +81,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Scaling")
 	virtual void ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier);
 
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Scaling")
+	virtual void ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Bloodbound")
+	void MakeBloodbound(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier, bool bInDropsXP);
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Bloodbound")
+	bool IsBloodbound() const;
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Bloodbound")
+	int32 GetBloodValue() const;
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Rewards")
+	bool ShouldDropXP() const;
+
 	UFUNCTION(BlueprintPure, Category = "Enemy|Movement")
 	FVector GetEnemyMovementVelocity() const;
 
@@ -86,6 +107,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Enemy|Mark", meta = (ToolTip = "Broadcast when this enemy's Mark is cleared without being consumed."))
 	FEnemyMarkStateChanged OnMarkCleared;
+
+	UPROPERTY(BlueprintAssignable, Category = "Enemy|Events", meta = (ToolTip = "Authoritative one-shot notification emitted when health death processing begins."))
+	FEnemyDied OnEnemyDied;
+
+	UPROPERTY(BlueprintAssignable, Category = "Enemy|Bloodbound")
+	FEnemyBecameBloodbound OnBecameBloodbound;
 
 	void LogEnemyDebugState(const TCHAR* Context) const;
 
@@ -101,6 +128,33 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Custom lightweight movement component used instead of CharacterMovement for enemy movement."))
 	TObjectPtr<UEnemyLightweightMovementComponent> LightweightMovementComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Optional attached Niagara aura used while this enemy is Bloodbound."))
+	TObjectPtr<UNiagaraComponent> BloodboundNiagaraComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals", meta = (ToolTip = "Optional lightweight persistent Niagara aura. It stays inactive until this enemy becomes Bloodbound."))
+	TObjectPtr<UNiagaraSystem> BloodboundNiagaraSystem;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals", meta = (ToolTip = "Optional overlay material that adds a Bloodbound silhouette treatment without replacing the enemy's original materials."))
+	TObjectPtr<UMaterialInterface> BloodboundOverlayMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals")
+	FLinearColor BloodboundTint = FLinearColor(0.35f, 0.005f, 0.01f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float BloodboundEmissiveStrength = 0.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
+	float BloodboundMaterialAmount = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals")
+	FName BloodboundMaterialScalarParameterName = TEXT("BloodboundAmount");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals")
+	FName BloodboundMaterialTintParameterName = TEXT("BloodboundTint");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals")
+	FName BloodboundMaterialEmissiveParameterName = TEXT("BloodboundEmissiveStrength");
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Widget class used for this enemy's health bar. Leave empty to hide health bars for this enemy type."))
 	TSubclassOf<UEnemyHealthBarWidget> HealthBarWidgetClass;
@@ -222,6 +276,30 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0", UIMin = "0", ToolTip = "XP value awarded through the spawned experience pickup when this enemy dies."))
 	int32 XPReward = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound", meta = (ClampMin = "0", UIMin = "0", ToolTip = "Blood Shrine progress awarded when this enemy is Bloodbound and dies."))
+	int32 BloodValue = 1;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Bloodbound")
+	bool bIsBloodbound = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Rewards")
+	bool bDropsXP = true;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Bloodbound")
+	float BloodboundHealthMultiplier = 1.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Bloodbound")
+	float BloodboundDamageMultiplier = 1.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Bloodbound")
+	float BloodboundMovementSpeedMultiplier = 1.0f;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> BloodboundDynamicMaterialInstances;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> BloodboundOverlayDynamicMaterial;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ToolTip = "Experience pickup actor class spawned when this enemy dies. Leave empty for no XP pickup."))
 	TSubclassOf<AExperiencePickup> ExperiencePickupClass;
 
@@ -241,6 +319,7 @@ protected:
 	bool EnsureTargetFromCharacterManager();
 	void CachePlayerExperienceComponent();
 	void SpawnExperiencePickup();
+	void ActivateBloodboundVisuals();
 	void InitializeHealthBar();
 	void UpdateHealthBarVisibility(float HealthPercent);
 	void HideHealthBar();

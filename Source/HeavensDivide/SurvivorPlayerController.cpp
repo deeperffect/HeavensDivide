@@ -6,10 +6,13 @@
 #include "CharacterManagerComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "EnemySpawner.h"
 #include "ExperienceComponent.h"
 #include "HealthComponent.h"
+#include "Interactable.h"
 #include "InactiveCharacterAssistComponent.h"
 #include "InputActionValue.h"
+#include "InputCoreTypes.h"
 #include "LevelUpWidget.h"
 #include "PlayerCameraRig.h"
 #include "PlayerHUDWidget.h"
@@ -22,6 +25,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "EngineUtils.h"
 #include "UpgradeDefinition.h"
 
 static TAutoConsoleVariable<int32> CVarHDLogDash(
@@ -95,6 +99,7 @@ void ASurvivorPlayerController::BeginPlay()
 		CharacterManager->OnCharacterSwapped.AddDynamic(this, &ASurvivorPlayerController::HandleCharacterSwapped);
 	}
 	InitializePlayerCameraRig();
+	ResolveRunTimeSource();
 	InitializePlayerHUD();
 
 	if (PlayerHealthComponent)
@@ -190,6 +195,11 @@ UPlayerUpgradeComponent* ASurvivorPlayerController::GetPlayerUpgrades() const
 bool ASurvivorPlayerController::IsPlayerDead() const
 {
 	return bIsPlayerDead;
+}
+
+float ASurvivorPlayerController::GetRunTimeSeconds() const
+{
+	return RunTimeSource ? RunTimeSource->GetRunTimeSeconds() : 0.0f;
 }
 
 bool ASurvivorPlayerController::CanSwap() const
@@ -423,6 +433,8 @@ void ASurvivorPlayerController::SetupInputComponent()
 	{
 		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::Dash);
 	}
+
+	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &ASurvivorPlayerController::Interact);
 }
 
 void ASurvivorPlayerController::Move(const FInputActionValue& Value)
@@ -467,6 +479,44 @@ void ASurvivorPlayerController::Swap(const FInputActionValue& Value)
 void ASurvivorPlayerController::Dash(const FInputActionValue& Value)
 {
 	TryDash();
+}
+
+void ASurvivorPlayerController::Interact()
+{
+	if (bIsPlayerDead || bLevelUpSelectionActive || !GetWorld())
+	{
+		return;
+	}
+
+	APawn* InteractingPawn = GetPawn();
+	if (!InteractingPawn)
+	{
+		return;
+	}
+
+	AActor* BestInteractable = nullptr;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+	{
+		AActor* Candidate = *It;
+		if (!Candidate || !Candidate->GetClass()->ImplementsInterface(UInteractable::StaticClass())
+			|| !IInteractable::Execute_CanInteract(Candidate, InteractingPawn))
+		{
+			continue;
+		}
+
+		const float DistanceSquared = FVector::DistSquared2D(InteractingPawn->GetActorLocation(), Candidate->GetActorLocation());
+		if (DistanceSquared < BestDistanceSquared)
+		{
+			BestDistanceSquared = DistanceSquared;
+			BestInteractable = Candidate;
+		}
+	}
+
+	if (BestInteractable)
+	{
+		IInteractable::Execute_Interact(BestInteractable, InteractingPawn);
+	}
 }
 
 void ASurvivorPlayerController::ConfigureInputMode()
@@ -522,6 +572,21 @@ void ASurvivorPlayerController::InitializePlayerHUD()
 	PlayerHUDWidget->InitializeFromPlayerController(this);
 }
 
+void ASurvivorPlayerController::ResolveRunTimeSource()
+{
+	RunTimeSource = nullptr;
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	for (TActorIterator<AEnemySpawner> It(GetWorld()); It; ++It)
+	{
+		RunTimeSource = *It;
+		break;
+	}
+}
+
 void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)
 {
 	if (bIsPlayerDead)
@@ -549,6 +614,10 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	}
 
 	bIsPlayerDead = true;
+	if (RunTimeSource)
+	{
+		RunTimeSource->FreezeRunTime();
+	}
 	UE_LOG(LogTemp, Log, TEXT("Player Death Triggered"));
 
 	if (InactiveCharacterAssistComponent)
@@ -593,30 +662,87 @@ void ASurvivorPlayerController::HandlePlayerLevelUp(int32 NewLevel)
 
 	if (!bLevelUpSelectionActive)
 	{
-		StartNextLevelUpSelection();
+		StartNextUpgradeSelection();
+	}
+}
+
+void ASurvivorPlayerController::RequestBloodShrineUpgradeReward(int32 UpgradeChoiceCount)
+{
+	if (bIsPlayerDead)
+	{
+		return;
+	}
+
+	BloodShrineRewardChoiceCount = FMath::Max(1, UpgradeChoiceCount);
+	++PendingBloodShrineRewards;
+	if (!bLevelUpSelectionActive)
+	{
+		StartNextUpgradeSelection();
 	}
 }
 
 void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 {
-	PendingLevelUpChoices = FMath::Max(0, PendingLevelUpChoices - 1);
-	UE_LOG(LogTemp, Log, TEXT("Pending selections remaining = %d"), PendingLevelUpChoices);
-
-	if (PendingLevelUpChoices > 0)
+	if (bCurrentSelectionIsBloodShrineReward)
 	{
-		StartNextLevelUpSelection();
+		PendingBloodShrineRewards = FMath::Max(0, PendingBloodShrineRewards - 1);
+	}
+	else
+	{
+		PendingLevelUpChoices = FMath::Max(0, PendingLevelUpChoices - 1);
+	}
+	bCurrentSelectionIsBloodShrineReward = false;
+
+	if (PendingLevelUpChoices > 0 || PendingBloodShrineRewards > 0)
+	{
+		StartNextUpgradeSelection();
 		return;
 	}
 
 	bLevelUpSelectionActive = false;
 	CloseLevelUpWidget();
 	ResumeAfterLevelUpSelection();
-	UE_LOG(LogTemp, Log, TEXT("LEVEL-UP FLOW COMPLETE"));
-	UE_LOG(LogTemp, Log, TEXT("Gameplay resumed"));
+}
+
+void ASurvivorPlayerController::StartNextUpgradeSelection()
+{
+	if (PendingLevelUpChoices > 0)
+	{
+		StartNextLevelUpSelection();
+		return;
+	}
+
+	if (PendingBloodShrineRewards <= 0)
+	{
+		bLevelUpSelectionActive = false;
+		CloseLevelUpWidget();
+		ResumeAfterLevelUpSelection();
+		return;
+	}
+
+	bCurrentSelectionIsBloodShrineReward = true;
+	bLevelUpSelectionActive = true;
+	if (!PlayerUpgradeComponent || !PlayerUpgradeComponent->BeginDirectUpgradeSelection(BloodShrineRewardChoiceCount))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Blood Shrine reward skipped: no currently acquirable upgrades."));
+		HandleLevelUpSelectionCompleted();
+		return;
+	}
+
+	if (!EnsureLevelUpWidget())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Blood Shrine reward skipped: upgrade widget unavailable."));
+		HandleLevelUpSelectionCompleted();
+		return;
+	}
+
+	PauseForLevelUpSelection();
+	LevelUpWidget->InitializeDirectUpgradeWidget(this);
 }
 
 void ASurvivorPlayerController::StartNextLevelUpSelection()
 {
+	bCurrentSelectionIsBloodShrineReward = false;
 	if (PendingLevelUpChoices <= 0)
 	{
 		bLevelUpSelectionActive = false;

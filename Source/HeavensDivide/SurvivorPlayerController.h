@@ -18,6 +18,8 @@ class UPlayerHUDWidget;
 class USharedPlayerStatsComponent;
 class ACharacterBase;
 class APlayerCameraRig;
+class ABloodShrine;
+class AEnemySpawner;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
@@ -54,6 +56,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
+
+	UFUNCTION(BlueprintPure, Category = "Run")
+	float GetRunTimeSeconds() const;
 
 	UFUNCTION(BlueprintPure, Category = "Player|Swap")
 	bool CanSwap() const;
@@ -108,6 +113,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player|Health")
 	float GetActiveDodgeChance() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
+	void RequestBloodShrineUpgradeReward(int32 UpgradeChoiceCount = 3);
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when a player dash successfully starts."))
 	FOnPlayerDash OnDashStarted;
@@ -204,11 +212,17 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Runtime instance of the currently displayed level-up widget, if any."))
 	TObjectPtr<ULevelUpWidget> LevelUpWidget;
 
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Run", meta = (ToolTip = "Authoritative elapsed gameplay-time source shared by enemy scaling and the HUD."))
+	TObjectPtr<AEnemySpawner> RunTimeSource;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "True after the shared player health reaches zero and death flow has started."))
 	bool bIsPlayerDead = false;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "Number of queued upgrade selections waiting to be resolved. Can be more than one if multiple levels are gained at once."))
 	int32 PendingLevelUpChoices = 0;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards", meta = (ToolTip = "Queued Blood Shrine reward selections waiting for the shared upgrade UI."))
+	int32 PendingBloodShrineRewards = 0;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "True while the level-up upgrade selection UI is open and gameplay is frozen."))
 	bool bLevelUpSelectionActive = false;
@@ -223,9 +237,11 @@ protected:
 	void StopMoveInput(const FInputActionValue& Value);
 	void Swap(const FInputActionValue& Value);
 	void Dash(const FInputActionValue& Value);
+	void Interact();
 	void ConfigureInputMode();
 	void InitializePlayerCameraRig();
 	void InitializePlayerHUD();
+	void ResolveRunTimeSource();
 	UFUNCTION()
 	void HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
 	UFUNCTION()
@@ -237,6 +253,7 @@ protected:
 	UFUNCTION()
 	void HandleSharedPlayerStatsChanged();
 	void StartNextLevelUpSelection();
+	void StartNextUpgradeSelection();
 	bool EnsureLevelUpWidget();
 	void PauseForLevelUpSelection();
 	void ResumeAfterLevelUpSelection();
@@ -277,4 +294,6 @@ protected:
 	int32 CurrentDashCharges = 1;
 	int32 MaxDashCharges = 1;
 	bool bIsDashing = false;
+	bool bCurrentSelectionIsBloodShrineReward = false;
+	int32 BloodShrineRewardChoiceCount = 3;
 };

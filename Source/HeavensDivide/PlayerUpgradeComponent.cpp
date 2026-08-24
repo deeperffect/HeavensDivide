@@ -262,6 +262,30 @@ bool UPlayerUpgradeComponent::BeginUpgradeSelection(int32 CategoryChoiceCount)
 	return CurrentCategoryChoices.Num() > 0;
 }
 
+bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCount)
+{
+	ClearCurrentOffer();
+	TArray<UUpgradeDefinition*> RemainingUpgrades;
+	for (UUpgradeDefinition* Upgrade : UpgradePool)
+	{
+		if (Upgrade && IsCategoryUnlocked(Upgrade->Category) && CanAcquireUpgrade(Upgrade))
+		{
+			RemainingUpgrades.Add(Upgrade);
+		}
+	}
+
+	const int32 DesiredChoiceCount = FMath::Max(0, UpgradeChoiceCount);
+	while (CurrentUpgradeChoices.Num() < DesiredChoiceCount && RemainingUpgrades.Num() > 0)
+	{
+		const int32 PickedIndex = FMath::RandRange(0, RemainingUpgrades.Num() - 1);
+		CurrentUpgradeChoices.Add(RemainingUpgrades[PickedIndex]);
+		RemainingUpgrades.RemoveAtSwap(PickedIndex);
+	}
+
+	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
+	return bHasSelectedCategory;
+}
+
 bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
 	if (!CurrentCategoryChoices.Contains(Category))
