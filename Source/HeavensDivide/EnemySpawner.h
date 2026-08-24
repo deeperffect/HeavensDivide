@@ -100,6 +100,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Run")
 	void FreezeRunTime();
 
+	UFUNCTION(BlueprintCallable, Category = "Run")
+	void SetTrialSuspended(bool bSuspended);
+
+	UFUNCTION(BlueprintPure, Category = "Run")
+	bool IsTrialSuspended() const { return bTrialSuspended; }
+
 	UFUNCTION(BlueprintCallable, Category = "Run Scaling|Modifiers")
 	void SetSpawnPressureModifier(FName ModifierId, float Multiplier);
 
@@ -254,6 +260,7 @@ protected:
 	FTimerHandle DistantEnemyCheckTimerHandle;
 	float RunTimeSeconds = 0.0f;
 	bool bRunTimeFrozen = false;
+	bool bTrialSuspended = false;
 
 	ACharacterBase* GetActivePlayerCharacter() const;
 	const FEnemySpawnEntry* ChooseSpawnEntry(int32 RemainingBudget) const;

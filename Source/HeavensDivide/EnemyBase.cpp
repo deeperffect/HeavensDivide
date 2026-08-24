@@ -26,6 +26,8 @@
 #include "NavigationSystem.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "NinjaCharacter.h"
+#include "SamuraiCharacter.h"
 #include "SkeletalMeshComponentBudgeted.h"
 #include "Stats/Stats.h"
 #include "SurvivorPlayerController.h"
@@ -379,6 +381,76 @@ void AEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float Damag
 	if (LightweightMovementComponent)
 	{
 		LightweightMovementComponent->SetMoveSpeed(MoveSpeed);
+	}
+}
+
+bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource)
+{
+	if (!CanReceivePlayerDamage(AttackSource) || !HealthComponent)
+	{
+		return false;
+	}
+
+	const float PreviousHealth = HealthComponent->GetCurrentHealth();
+	HealthComponent->ApplyDamage(DamageAmount);
+	return HealthComponent->GetCurrentHealth() < PreviousHealth;
+}
+
+bool AEnemyBase::CanReceivePlayerDamage(EPlayerAttackSource AttackSource) const
+{
+	return !bIsDead
+		&& (RequiredPlayerAttackSource == EPlayerAttackSource::Other || RequiredPlayerAttackSource == AttackSource);
+}
+
+EPlayerAttackSource AEnemyBase::ResolvePlayerAttackSource(const AActor* DamageSourceActor)
+{
+	if (Cast<ASamuraiCharacter>(DamageSourceActor))
+	{
+		return EPlayerAttackSource::Samurai;
+	}
+	if (Cast<ANinjaCharacter>(DamageSourceActor))
+	{
+		return EPlayerAttackSource::Ninja;
+	}
+	return EPlayerAttackSource::Other;
+}
+
+void AEnemyBase::ConfigureObjectiveEnemy(float MaxHealth, EPlayerAttackSource RequiredSource, UMaterialInterface* OverlayMaterial, FLinearColor OverlayTint)
+{
+	RequiredPlayerAttackSource = RequiredSource;
+	bDropsXP = false;
+	BloodValue = 0;
+	if (HealthComponent)
+	{
+		HealthComponent->SetMaxHealthPreservePercent(FMath::Max(1.0f, MaxHealth));
+	}
+
+	BloodboundOverlayMaterial = OverlayMaterial;
+	BloodboundTint = OverlayTint;
+	BloodboundMaterialAmount = 1.0f;
+	BloodboundEmissiveStrength = 0.75f;
+	ActivateBloodboundVisuals();
+}
+
+void AEnemyBase::SetGameplaySuspended(bool bSuspended)
+{
+	if (bGameplaySuspended == bSuspended || bIsDead)
+	{
+		return;
+	}
+
+	bGameplaySuspended = bSuspended;
+	if (bGameplaySuspended)
+	{
+		StopEnemyBehavior();
+		StopBehaviorUpdates();
+		StopSeparationUpdates();
+		StopEnemyMovement();
+	}
+	else
+	{
+		StartBehaviorUpdates();
+		StartSeparationUpdates();
 	}
 }
 

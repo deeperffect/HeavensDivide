@@ -25,6 +25,14 @@ class UMaterialInstanceDynamic;
 
 class AEnemyBase;
 
+UENUM(BlueprintType)
+enum class EPlayerAttackSource : uint8
+{
+	Other,
+	Samurai,
+	Ninja
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyMarkStateChanged, AEnemyBase*, Enemy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyDied, AEnemyBase*, Enemy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyBecameBloodbound, AEnemyBase*, Enemy);
@@ -83,6 +91,22 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Scaling")
 	virtual void ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Damage")
+	virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource);
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Damage")
+	bool CanReceivePlayerDamage(EPlayerAttackSource AttackSource) const;
+	EPlayerAttackSource GetRequiredPlayerAttackSource() const { return RequiredPlayerAttackSource; }
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Damage")
+	static EPlayerAttackSource ResolvePlayerAttackSource(const AActor* DamageSourceActor);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Objective")
+	void ConfigureObjectiveEnemy(float MaxHealth, EPlayerAttackSource RequiredSource, UMaterialInterface* OverlayMaterial, FLinearColor OverlayTint);
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Objective")
+	void SetGameplaySuspended(bool bSuspended);
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Bloodbound")
 	void MakeBloodbound(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier, bool bInDropsXP);
@@ -293,6 +317,12 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Bloodbound")
 	float BloodboundMovementSpeedMultiplier = 1.0f;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Objective")
+	EPlayerAttackSource RequiredPlayerAttackSource = EPlayerAttackSource::Other;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Objective")
+	bool bGameplaySuspended = false;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> BloodboundDynamicMaterialInstances;

@@ -286,6 +286,15 @@ bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCou
 	return bHasSelectedCategory;
 }
 
+bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount)
+{
+	ClearCurrentOffer();
+	SelectedCategory = Category;
+	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
+	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
+	return bHasSelectedCategory;
+}
+
 bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
 	if (!CurrentCategoryChoices.Contains(Category))
