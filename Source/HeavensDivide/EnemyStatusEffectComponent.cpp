@@ -131,10 +131,13 @@ float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffe
 	const UPlayerUpgradeComponent* Upgrades = State.SourceUpgrades.Get();
 	if (!Upgrades || State.Stacks <= 0) return 0.0f;
 	const float Power = Status == EEnemyStatusEffect::Bleed ? Upgrades->GetSamuraiPowerMultiplier() : Upgrades->GetNinjaPowerMultiplier();
-	const int32 SupportLevel = Upgrades->GetUpgradeLevelById(Status == EEnemyStatusEffect::Bleed ? StatusUpgradeIds::DeepCuts : StatusUpgradeIds::PotentVenom);
-	const float PerLevel = Status == EEnemyStatusEffect::Bleed ? DeepCutsDamagePerLevel : PotentVenomDamagePerLevel;
+	const FName SupportId = Status == EEnemyStatusEffect::Bleed ? StatusUpgradeIds::DeepCuts : StatusUpgradeIds::PotentVenom;
+	const int32 SupportLevel = Upgrades->GetUpgradeLevelById(SupportId);
+	const float LegacyPerLevel = Status == EEnemyStatusEffect::Bleed ? DeepCutsDamagePerLevel : PotentVenomDamagePerLevel;
+	const float StoredMagnitude = Upgrades->GetAccumulatedUpgradeMagnitude(SupportId);
+	const float SupportMagnitude = StoredMagnitude > 0.0f ? StoredMagnitude : SupportLevel * FMath::Max(0.0f, LegacyPerLevel);
 	const float BaseTick = Status == EEnemyStatusEffect::Bleed ? BaseBleedDamagePerTick : BasePoisonDamagePerTick;
-	return BaseTick * FMath::Max(0.0f, Power) * (1.0f + SupportLevel * FMath::Max(0.0f, PerLevel)) * State.Stacks;
+	return BaseTick * FMath::Max(0.0f, Power) * (1.0f + SupportMagnitude) * State.Stacks;
 }
 
 int32 UEnemyStatusEffectComponent::CalculateRemainingTickCount(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const

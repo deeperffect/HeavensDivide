@@ -115,6 +115,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	int32 GetEffectiveProjectileSplitBonus() const;
 
+	// Fires one Ninja projectile volley from an external origin without advancing
+	// normal attack-cycle systems (Fan of Blades, Blade Cascade, assists, or swap synergies).
+	bool SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange);
+
+	UAnimMontage* GetAttackMontageForShadowClone() const { return AttackMontage; }
+
 	void RegisterKunaiFired();
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
@@ -293,7 +299,7 @@ private:
 	void StartDoubleCutFollowUp();
 	void ConsumePendingDoubleCutFollowUp();
 	void HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount);
+	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount, bool bRegisterAttackCycle = true);
 	AEnemyBase* FindNearestEnemyTarget() const;
 	AEnemyBase* FindBestMeleeTarget(const FVector& SearchLocation, float SearchRadius) const;
 	float ScoreMeleeTarget(AEnemyBase* Candidate, const TArray<AEnemyBase*>& Candidates, const FVector& SearchLocation, float SearchRadius, int32& OutClusterCount, float& OutDistancePenalty, float& OutImmediateThreatBonus) const;

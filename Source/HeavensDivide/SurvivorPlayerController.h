@@ -22,6 +22,7 @@ class APlayerCameraRig;
 class ABloodShrine;
 class AEnemySpawner;
 class AEnemyBase;
+class AShadowClone;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
@@ -33,6 +34,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTwinSoulRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSamuraiTrialRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNinjaTrialRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnHemotoxicReactionTriggered, AEnemyBase*, Enemy, FVector, Location, float, Damage, int32, ConsumedBleedStacks, int32, ConsumedPoisonStacks);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerShadowCloneSpawned, AShadowClone*, ShadowClone);
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
@@ -192,6 +194,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Player|Health", meta = (ToolTip = "Broadcast when incoming player damage is avoided by dodge chance."))
 	FOnPlayerDamageDodged OnDamageDodged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Player|Shadow Clone")
+	FOnPlayerShadowCloneSpawned OnShadowCloneSpawned;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -220,6 +225,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Seconds required to restore one shared dash charge. Recharges one charge at a time."))
 	float DashRechargeTime = 5.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shadow Clone")
+	TSubclassOf<AShadowClone> ShadowCloneClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shadow Clone", meta = (ClampMin = "1", UIMin = "1"))
+	int32 MaxActiveShadowClones = 5;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Swap", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Seconds after a successful character swap before another swap is allowed. 0 disables the cooldown."))
 	float SwapCooldown = 3.0f;
@@ -346,6 +357,8 @@ protected:
 	FVector GetDashDirection(const ACharacterBase* ActiveCharacter) const;
 	void HandleDashStep(float DeltaTime);
 	void FinishDash();
+	void SpawnShadowCloneForCompletedDash();
+	void DestroyAllShadowClones();
 	void ConsumeDashCharge();
 	void RestoreDashCharge(int32 ChargeAmount, const TCHAR* RestoreReason);
 	void StartDashRechargeIfNeeded();
@@ -368,6 +381,10 @@ protected:
 	int32 CurrentDashCharges = 1;
 	int32 MaxDashCharges = 1;
 	bool bIsDashing = false;
+	bool bPendingNinjaShadowClone = false;
+	FTransform PendingShadowCloneTransform;
+	UPROPERTY(Transient)
+	TArray<TWeakObjectPtr<AShadowClone>> ActiveShadowClones;
 	bool bCurrentSelectionIsBloodShrineReward = false;
 	int32 BloodShrineRewardChoiceCount = 3;
 	bool bCurrentSelectionIsTwinSoulReward = false;

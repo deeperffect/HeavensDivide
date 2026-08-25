@@ -34,6 +34,7 @@ void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* In
 	bSynergyDiscoveryMode = false;
 	SetSynergyDiscoveryPresentation(false);
 	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
+	ShowUpgradeOffers(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeOffers() : TArray<FUpgradeOffer>());
 }
 
 void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController* InPlayerController)
@@ -45,6 +46,7 @@ void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController*
 	bSynergyDiscoveryMode = true;
 	SetSynergyDiscoveryPresentation(true);
 	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
+	ShowUpgradeOffers(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeOffers() : TArray<FUpgradeOffer>());
 }
 
 void ULevelUpWidget::RefreshCategoryChoices()
@@ -95,7 +97,22 @@ bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
 	}
 
 	ShowUpgradeChoices(UpgradeChoices);
+	ShowUpgradeOffers(PlayerUpgrades->GetCurrentUpgradeOffers());
 	return UpgradeChoices.Num() > 0;
+}
+
+bool ULevelUpWidget::GetOfferForUpgrade(UUpgradeDefinition* Upgrade, FUpgradeOffer& OutOffer) const
+{
+	if (!PlayerUpgrades) return false;
+	for (const FUpgradeOffer& Offer : PlayerUpgrades->GetCurrentUpgradeOffers())
+	{
+		if (Offer.UpgradeDefinition == Upgrade)
+		{
+			OutOffer = Offer;
+			return true;
+		}
+	}
+	return false;
 }
 
 bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)

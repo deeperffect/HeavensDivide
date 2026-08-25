@@ -25,6 +25,11 @@ static TAutoConsoleVariable<int32> CVarHDLogPlayerUpgradeStats(
 UPlayerUpgradeComponent::UPlayerUpgradeComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	RarityTimeBrackets = {
+		{ 0.0f, 75.0f, 23.0f, 2.0f },
+		{ 300.0f, 55.0f, 38.0f, 7.0f },
+		{ 600.0f, 40.0f, 45.0f, 15.0f }
+	};
 }
 
 int32 UPlayerUpgradeComponent::GetUpgradeLevel(UUpgradeDefinition* Upgrade) const
@@ -95,6 +100,12 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 
 bool UPlayerUpgradeComponent::AcquireUpgrade(UUpgradeDefinition* Upgrade)
 {
+	const float Magnitude = Upgrade && Upgrade->bUsesRolledRarity ? ResolveMagnitude(Upgrade, EUpgradeRarity::Common) : 0.0f;
+	return AcquireUpgradeResolved(Upgrade, Magnitude, EUpgradeRarity::Common);
+}
+
+bool UPlayerUpgradeComponent::AcquireUpgradeResolved(UUpgradeDefinition* Upgrade, float ResolvedMagnitude, EUpgradeRarity Rarity)
+{
 	if (!CanAcquireUpgrade(Upgrade))
 	{
 		return false;
@@ -103,6 +114,13 @@ bool UPlayerUpgradeComponent::AcquireUpgrade(UUpgradeDefinition* Upgrade)
 	const int32 NewLevel = GetUpgradeLevel(Upgrade) + 1;
 	UpgradeLevels.FindOrAdd(Upgrade->UpgradeId) = NewLevel;
 	AcquiredUpgradeDefinitions.FindOrAdd(Upgrade->UpgradeId) = Upgrade;
+	if (Upgrade->bUsesRolledRarity)
+	{
+		AccumulatedUpgradeMagnitudes.FindOrAdd(Upgrade->UpgradeId) += ResolvedMagnitude;
+		UE_LOG(LogTemp, Log, TEXT("[UpgradeRarity] ACQUIRED %s Rarity=%s Magnitude=%.3f Accumulated=%.3f"),
+			*Upgrade->UpgradeId.ToString(), *GetRarityDisplayName(Rarity).ToString(), ResolvedMagnitude,
+			AccumulatedUpgradeMagnitudes.FindRef(Upgrade->UpgradeId));
+	}
 
 	RebuildUpgradeModifiers(Upgrade, NewLevel);
 	if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Samurai)
@@ -319,6 +337,7 @@ bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCou
 	}
 
 	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
+	BuildOffersFromCurrentChoices(false);
 	return bHasSelectedCategory;
 }
 
@@ -328,6 +347,7 @@ bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCatego
 	SelectedCategory = Category;
 	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
 	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
+	BuildOffersFromCurrentChoices(false);
 	return bHasSelectedCategory;
 }
 
@@ -382,6 +402,7 @@ bool UPlayerUpgradeComponent::BeginSynergyDiscoverySelection(int32 UpgradeChoice
 		Remaining.RemoveAtSwap(PickedIndex);
 	}
 	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
+	BuildOffersFromCurrentChoices(false);
 	return bHasSelectedCategory;
 }
 
@@ -399,6 +420,11 @@ bool UPlayerUpgradeComponent::SelectSynergyDiscoveryUpgrade(UUpgradeDefinition* 
 	return true;
 }
 
+float UPlayerUpgradeComponent::GetAccumulatedUpgradeMagnitude(FName UpgradeId) const
+{
+	return AccumulatedUpgradeMagnitudes.FindRef(UpgradeId);
+}
+
 bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
 	if (!CurrentCategoryChoices.Contains(Category))
@@ -410,6 +436,7 @@ bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 Up
 	SelectedCategory = Category;
 	bHasSelectedCategory = true;
 	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
+	BuildOffersFromCurrentChoices(true);
 
 	UE_LOG(LogTemp, Log, TEXT("Category selected: %s"), *CategoryToString(Category));
 	UE_LOG(LogTemp, Log, TEXT("Eligible %s upgrades:"), *CategoryToString(Category));
@@ -429,20 +456,37 @@ bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 Up
 
 bool UPlayerUpgradeComponent::SelectUpgrade(UUpgradeDefinition* Upgrade)
 {
-	if (!bHasSelectedCategory || !CurrentUpgradeChoices.Contains(Upgrade))
+	UUpgradeDefinition* ResolvedUpgrade = Upgrade;
+	if (Upgrade && !CurrentUpgradeChoices.Contains(Upgrade))
+	{
+		ResolvedUpgrade = nullptr;
+		for (UUpgradeDefinition* Candidate : CurrentUpgradeChoices)
+		{
+			if (Candidate && Candidate->UpgradeId == Upgrade->UpgradeId)
+			{
+				ResolvedUpgrade = Candidate;
+				break;
+			}
+		}
+	}
+	if (!bHasSelectedCategory || !ResolvedUpgrade || !CurrentUpgradeChoices.Contains(ResolvedUpgrade))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Upgrade selection rejected: %s was not offered."), *UpgradeToLogString(Upgrade));
 		return false;
 	}
 
-	if (!AcquireUpgrade(Upgrade))
+	const FUpgradeOffer* Offer = CurrentUpgradeOffers.FindByPredicate([ResolvedUpgrade](const FUpgradeOffer& Candidate)
+	{
+		return Candidate.UpgradeDefinition == ResolvedUpgrade;
+	});
+	if (!AcquireUpgradeResolved(ResolvedUpgrade, Offer ? Offer->ResolvedMagnitude : 0.0f, Offer ? Offer->RolledRarity : EUpgradeRarity::Common))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Upgrade selection failed to acquire: %s"), *UpgradeToLogString(Upgrade));
 		return false;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("Upgrade selected: %s"), *UpgradeToLogString(Upgrade));
-	UE_LOG(LogTemp, Log, TEXT("New Level: %d"), GetUpgradeLevel(Upgrade));
+	UE_LOG(LogTemp, Log, TEXT("Upgrade selected: %s"), *UpgradeToLogString(ResolvedUpgrade));
+	UE_LOG(LogTemp, Log, TEXT("New Level: %d"), GetUpgradeLevel(ResolvedUpgrade));
 	UE_LOG(LogTemp, Log, TEXT("=== UPGRADE SELECTION END ==="));
 	ClearCurrentOffer();
 	return true;
@@ -461,7 +505,9 @@ EUpgradeCategory UPlayerUpgradeComponent::GetSelectedCategory() const
 TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetCurrentUpgradeChoices() const
 {
 	TArray<UUpgradeDefinition*> UpgradeChoices;
-	for (UUpgradeDefinition* Upgrade : CurrentUpgradeChoices)
+	const TArray<TObjectPtr<UUpgradeDefinition>>& Source = CurrentPresentationChoices.Num() == CurrentUpgradeChoices.Num()
+		? CurrentPresentationChoices : CurrentUpgradeChoices;
+	for (UUpgradeDefinition* Upgrade : Source)
 	{
 		UpgradeChoices.Add(Upgrade);
 	}
@@ -497,6 +543,10 @@ bool UPlayerUpgradeComponent::DebugForceAcquireUpgrade(UUpgradeDefinition* Upgra
 	const int32 NewLevel = FMath::Clamp(Level, 1, FMath::Max(1, Upgrade->MaxLevel));
 	UpgradeLevels.FindOrAdd(Upgrade->UpgradeId) = NewLevel;
 	AcquiredUpgradeDefinitions.FindOrAdd(Upgrade->UpgradeId) = Upgrade;
+	if (Upgrade->bUsesRolledRarity)
+	{
+		AccumulatedUpgradeMagnitudes.FindOrAdd(Upgrade->UpgradeId) = ResolveMagnitude(Upgrade, EUpgradeRarity::Common) * NewLevel;
+	}
 
 	RebuildUpgradeModifiers(Upgrade, NewLevel);
 	if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Samurai)
@@ -696,10 +746,162 @@ void UPlayerUpgradeComponent::UpdateCategoryBadLuckHistory(const TArray<EUpgrade
 	}
 }
 
+EUpgradeRarity UPlayerUpgradeComponent::RollRarity() const
+{
+	const ASurvivorPlayerController* Controller = Cast<ASurvivorPlayerController>(GetOwner());
+	const float RunTime = Controller ? Controller->GetRunTimeSeconds() : 0.0f;
+	FUpgradeRarityTimeBracket Bracket;
+	for (const FUpgradeRarityTimeBracket& Candidate : RarityTimeBrackets)
+	{
+		if (RunTime >= Candidate.MinimumRunTimeSeconds && Candidate.MinimumRunTimeSeconds >= Bracket.MinimumRunTimeSeconds)
+		{
+			Bracket = Candidate;
+		}
+	}
+	const float Total = FMath::Max(0.0f, Bracket.CommonWeight) + FMath::Max(0.0f, Bracket.RareWeight) + FMath::Max(0.0f, Bracket.EpicWeight);
+	float Roll = FMath::FRandRange(0.0f, Total);
+	if ((Roll -= FMath::Max(0.0f, Bracket.CommonWeight)) <= 0.0f) return EUpgradeRarity::Common;
+	if ((Roll -= FMath::Max(0.0f, Bracket.RareWeight)) <= 0.0f) return EUpgradeRarity::Rare;
+	return EUpgradeRarity::Epic;
+}
+
+float UPlayerUpgradeComponent::ResolveMagnitude(const UUpgradeDefinition* Upgrade, EUpgradeRarity Rarity) const
+{
+	if (!Upgrade || !Upgrade->bUsesRolledRarity) return 0.0f;
+	for (const FUpgradeRarityMagnitude& Entry : Upgrade->RarityMagnitudes)
+	{
+		if (Entry.Rarity == Rarity) return Entry.Magnitude;
+	}
+	return Upgrade->StatModifiers.Num() > 0 ? Upgrade->StatModifiers[0].ValuePerLevel : 0.0f;
+}
+
+FText UPlayerUpgradeComponent::ResolveOfferDescription(const UUpgradeDefinition* Upgrade, float Magnitude) const
+{
+	if (Upgrade && Upgrade->bUsesRolledRarity)
+	{
+		for (const FUpgradeRarityMagnitude& Entry : Upgrade->RarityMagnitudes)
+		{
+			if (FMath::IsNearlyEqual(Entry.Magnitude, Magnitude) && !Entry.DescriptionOverride.IsEmpty()) return Entry.DescriptionOverride;
+		}
+	}
+	if (!Upgrade || !Upgrade->bUsesRolledRarity || Upgrade->RolledDescriptionFormat.IsEmpty())
+	{
+		return Upgrade ? Upgrade->Description : FText::GetEmpty();
+	}
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("Magnitude"), FText::AsNumber(Magnitude));
+	Arguments.Add(TEXT("Percent"), FText::AsNumber(FMath::RoundToInt(Magnitude * 100.0f)));
+	return FText::Format(Upgrade->RolledDescriptionFormat, Arguments);
+}
+
+FUpgradeOffer UPlayerUpgradeComponent::MakeUpgradeOffer(UUpgradeDefinition* Upgrade) const
+{
+	FUpgradeOffer Offer;
+	Offer.UpgradeDefinition = Upgrade;
+	Offer.bDisplaysRarity = IsNormalScalableUpgrade(Upgrade);
+	Offer.RolledRarity = Offer.bDisplaysRarity ? RollRarity() : EUpgradeRarity::Common;
+	Offer.ResolvedMagnitude = Offer.bDisplaysRarity ? ResolveMagnitude(Upgrade, Offer.RolledRarity) : 0.0f;
+	Offer.ResolvedDescription = ResolveOfferDescription(Upgrade, Offer.ResolvedMagnitude);
+	return Offer;
+}
+
+bool UPlayerUpgradeComponent::IsNormalScalableUpgrade(const UUpgradeDefinition* Upgrade) const
+{
+	return Upgrade && Upgrade->bUsesRolledRarity
+		&& (Upgrade->Category == EUpgradeCategory::Samurai || Upgrade->Category == EUpgradeCategory::Ninja || Upgrade->Category == EUpgradeCategory::Global);
+}
+
+void UPlayerUpgradeComponent::BuildOffersFromCurrentChoices(bool bApplyNormalLevelGuarantee)
+{
+	CurrentUpgradeOffers.Reset();
+	for (UUpgradeDefinition* Upgrade : CurrentUpgradeChoices)
+	{
+		if (bApplyNormalLevelGuarantee)
+		{
+			CurrentUpgradeOffers.Add(MakeUpgradeOffer(Upgrade));
+		}
+		else
+		{
+			FUpgradeOffer FixedOffer;
+			FixedOffer.UpgradeDefinition = Upgrade;
+			FixedOffer.ResolvedDescription = Upgrade ? Upgrade->Description : FText::GetEmpty();
+			CurrentUpgradeOffers.Add(FixedOffer);
+		}
+	}
+	if (bApplyNormalLevelGuarantee) ApplyMilestoneGuarantee();
+	CurrentPresentationChoices.Reset();
+	for (const FUpgradeOffer& Offer : CurrentUpgradeOffers)
+	{
+		UUpgradeDefinition* Presentation = Offer.UpgradeDefinition;
+		if (Offer.bDisplaysRarity && Offer.UpgradeDefinition)
+		{
+			Presentation = DuplicateObject<UUpgradeDefinition>(Offer.UpgradeDefinition, this);
+			Presentation->Rarity = Offer.RolledRarity;
+			Presentation->Description = Offer.ResolvedDescription;
+		}
+		CurrentPresentationChoices.Add(Presentation);
+	}
+	for (const FUpgradeOffer& Offer : CurrentUpgradeOffers)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[UpgradeRarity] OFFER %s Rarity=%s Magnitude=%.3f DisplaysRarity=%s"),
+			Offer.UpgradeDefinition ? *Offer.UpgradeDefinition->UpgradeId.ToString() : TEXT("None"),
+			*GetRarityDisplayName(Offer.RolledRarity).ToString(), Offer.ResolvedMagnitude,
+			Offer.bDisplaysRarity ? TEXT("true") : TEXT("false"));
+	}
+}
+
+void UPlayerUpgradeComponent::ApplyMilestoneGuarantee()
+{
+	const int32 Level = GetCurrentPlayerLevel();
+	const bool bEpicRequired = Level >= 10 && Level % 5 == 0;
+	const bool bRareRequired = Level == 5;
+	if (!bEpicRequired && !bRareRequired) return;
+
+	auto Satisfies = [bEpicRequired](const FUpgradeOffer& Offer)
+	{
+		return Offer.bDisplaysRarity && (bEpicRequired ? Offer.RolledRarity == EUpgradeRarity::Epic : Offer.RolledRarity != EUpgradeRarity::Common);
+	};
+	if (CurrentUpgradeOffers.ContainsByPredicate(Satisfies)) return;
+
+	int32 PromoteIndex = CurrentUpgradeOffers.IndexOfByPredicate([](const FUpgradeOffer& Offer) { return Offer.bDisplaysRarity; });
+	if (PromoteIndex == INDEX_NONE)
+	{
+		TArray<UUpgradeDefinition*> Candidates;
+		for (UUpgradeDefinition* Upgrade : UpgradePool)
+		{
+			if (IsNormalScalableUpgrade(Upgrade) && CanAcquireUpgrade(Upgrade) && !CurrentUpgradeChoices.Contains(Upgrade)) Candidates.Add(Upgrade);
+		}
+		if (Candidates.Num() == 0 || CurrentUpgradeOffers.Num() == 0) return;
+		const int32 Pick = FMath::RandRange(0, Candidates.Num() - 1);
+		PromoteIndex = FMath::RandRange(0, CurrentUpgradeOffers.Num() - 1);
+		CurrentUpgradeChoices[PromoteIndex] = Candidates[Pick];
+		CurrentUpgradeOffers[PromoteIndex] = MakeUpgradeOffer(Candidates[Pick]);
+	}
+
+	FUpgradeOffer& Offer = CurrentUpgradeOffers[PromoteIndex];
+	Offer.RolledRarity = bEpicRequired ? EUpgradeRarity::Epic : EUpgradeRarity::Rare;
+	Offer.ResolvedMagnitude = ResolveMagnitude(Offer.UpgradeDefinition, Offer.RolledRarity);
+	Offer.ResolvedDescription = ResolveOfferDescription(Offer.UpgradeDefinition, Offer.ResolvedMagnitude);
+	UE_LOG(LogTemp, Log, TEXT("[UpgradeRarity] MILESTONE Level=%d Promoted=%s Rarity=%s"), Level,
+		*Offer.UpgradeDefinition->UpgradeId.ToString(), *GetRarityDisplayName(Offer.RolledRarity).ToString());
+}
+
+FText UPlayerUpgradeComponent::GetRarityDisplayName(EUpgradeRarity Rarity) const
+{
+	switch (Rarity)
+	{
+	case EUpgradeRarity::Rare: return FText::FromString(TEXT("RARE"));
+	case EUpgradeRarity::Epic: return FText::FromString(TEXT("EPIC"));
+	default: return FText::FromString(TEXT("COMMON"));
+	}
+}
+
 void UPlayerUpgradeComponent::ClearCurrentOffer()
 {
 	CurrentCategoryChoices.Reset();
 	CurrentUpgradeChoices.Reset();
+	CurrentUpgradeOffers.Reset();
+	CurrentPresentationChoices.Reset();
 	SelectedCategory = EUpgradeCategory::Global;
 	bHasSelectedCategory = false;
 }
@@ -769,7 +971,10 @@ void UPlayerUpgradeComponent::RebuildUpgradeModifiers(UUpgradeDefinition* Upgrad
 	for (int32 Index = 0; Index < Upgrade->StatModifiers.Num(); ++Index)
 	{
 		const FUpgradeStatModifierDefinition& ModifierDefinition = Upgrade->StatModifiers[Index];
-		const float ModifierValue = ModifierDefinition.ValuePerLevel * NewLevel;
+		const float* StoredMagnitude = AccumulatedUpgradeMagnitudes.Find(Upgrade->UpgradeId);
+		const float ModifierValue = Upgrade->bUsesRolledRarity && StoredMagnitude
+			? *StoredMagnitude
+			: ModifierDefinition.ValuePerLevel * NewLevel;
 
 		if (ModifierDefinition.Target == EUpgradeStatTarget::SharedPlayer)
 		{

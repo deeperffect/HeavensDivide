@@ -5,6 +5,7 @@
 #include "AutoAttackComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Actor.h"
+#include "ShadowClone.h"
 
 void UAnimNotify_SpawnAutoAttackProjectile::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -22,6 +23,12 @@ void UAnimNotify_SpawnAutoAttackProjectile::Notify(USkeletalMeshComponent* MeshC
 	if (!Owner)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Projectile notify skipped: owning actor invalid."));
+		return;
+	}
+
+	if (AShadowClone* ShadowClone = Cast<AShadowClone>(Owner))
+	{
+		ShadowClone->HandleAttackProjectileNotify();
 		return;
 	}
 

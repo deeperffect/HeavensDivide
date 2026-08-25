@@ -28,6 +28,21 @@ enum class EUpgradeRarity : uint8
 	Epic
 };
 
+USTRUCT(BlueprintType)
+struct FUpgradeRarityMagnitude
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade|Rarity")
+	EUpgradeRarity Rarity = EUpgradeRarity::Common;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade|Rarity")
+	float Magnitude = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade|Rarity", meta = (MultiLine = true))
+	FText DescriptionOverride;
+};
+
 UENUM(BlueprintType)
 enum class EUpgradeInvestmentOwner : uint8
 {
@@ -72,7 +87,9 @@ enum class EUpgradeSpecialEffect : uint8
 	SamuraiDeathblow,
 	HemotoxicReaction,
 	VirulentStrain,
-	AcceleratedVenom
+	AcceleratedVenom,
+	ShadowStep,
+	AfterimageFrenzy
 };
 
 USTRUCT(BlueprintType)
@@ -153,6 +170,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	EUpgradeRarity Rarity = EUpgradeRarity::Common;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Rarity")
+	bool bUsesRolledRarity = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Rarity", meta = (EditCondition = "bUsesRolledRarity", EditConditionHides))
+	TArray<FUpgradeRarityMagnitude> RarityMagnitudes;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Rarity", meta = (EditCondition = "bUsesRolledRarity", EditConditionHides, ToolTip = "Offer-specific description. Use {Magnitude} for the resolved numeric value and {Percent} for the value multiplied by 100."))
+	FText RolledDescriptionFormat;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Prerequisites")
 	TArray<FName> PrerequisiteUpgradeIds;
 
@@ -203,4 +229,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Accelerated Venom", meta = (ClampMin = "1.0", UIMin = "1.0"))
 	float AcceleratedVenomTickRateMultiplier = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Afterimage Frenzy", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float AfterimageFrenzyAttackSpeedBonus = 2.0f;
 };

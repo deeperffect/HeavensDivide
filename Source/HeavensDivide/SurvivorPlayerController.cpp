@@ -23,6 +23,7 @@
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
+#include "ShadowClone.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "AutoAttackComponent.h"
 #include "CharacterStatsComponent.h"
@@ -88,6 +89,7 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	SharedPlayerStatsComponent = CreateDefaultSubobject<USharedPlayerStatsComponent>(TEXT("SharedPlayerStatsComponent"));
 	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
 	InactiveCharacterAssistComponent = CreateDefaultSubobject<UInactiveCharacterAssistComponent>(TEXT("InactiveCharacterAssistComponent"));
+	ShadowCloneClass = AShadowClone::StaticClass();
 	GameOverWidgetClass = UGameOverWidget::StaticClass();
 	static ConstructorHelpers::FClassFinder<UGameOverWidget> GameOverWidgetBlueprint(
 		TEXT("/Game/HeavensDivide/Blueprints/UI/WBP_GameOver"));
@@ -150,6 +152,7 @@ void ASurvivorPlayerController::BeginPlay()
 
 void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	DestroyAllShadowClones();
 	if (CharacterManager)
 	{
 		RemoveHandoffBuff(CharacterManager->GetSamurai());
@@ -324,6 +327,12 @@ bool ASurvivorPlayerController::TryDash()
 	if (ActiveDashDirection.IsNearlyZero())
 	{
 		return false;
+	}
+	bPendingNinjaShadowClone = ActiveCharacter->IsA<ANinjaCharacter>()
+		&& PlayerUpgradeComponent && PlayerUpgradeComponent->HasUpgradeId(TEXT("ShadowStep"));
+	if (bPendingNinjaShadowClone)
+	{
+		PendingShadowCloneTransform = ActiveCharacter->GetActorTransform();
 	}
 
 	DashElapsedTime = 0.0f;
@@ -704,6 +713,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	}
 
 	bIsPlayerDead = true;
+	DestroyAllShadowClones();
 	const float FinalRunTimeSeconds = GetRunTimeSeconds();
 	if (RunTimeSource)
 	{
@@ -1514,6 +1524,7 @@ void ASurvivorPlayerController::FinishDash()
 	}
 
 	bIsDashing = false;
+	SpawnShadowCloneForCompletedDash();
 	DashElapsedTime = 0.0f;
 	ActiveDashDirection = FVector::ZeroVector;
 	if (ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
@@ -1530,6 +1541,43 @@ void ASurvivorPlayerController::FinishDash()
 	{
 		UE_LOG(LogTemp, Log, TEXT("Dash ended"));
 	}
+}
+
+void ASurvivorPlayerController::SpawnShadowCloneForCompletedDash()
+{
+	const bool bShouldSpawn = bPendingNinjaShadowClone && !bIsPlayerDead && GetWorld() && ShadowCloneClass;
+	bPendingNinjaShadowClone = false;
+	if (!bShouldSpawn) return;
+
+	ANinjaCharacter* Ninja = CharacterManager ? Cast<ANinjaCharacter>(CharacterManager->GetActiveCharacter()) : nullptr;
+	if (!Ninja) return;
+	ActiveShadowClones.RemoveAll([](const TWeakObjectPtr<AShadowClone>& Clone) { return !Clone.IsValid(); });
+	while (ActiveShadowClones.Num() >= FMath::Max(1, MaxActiveShadowClones))
+	{
+		if (AShadowClone* Oldest = ActiveShadowClones[0].Get()) Oldest->Destroy();
+		ActiveShadowClones.RemoveAt(0);
+	}
+
+	FActorSpawnParameters Params;
+	Params.Owner = this;
+	Params.Instigator = Ninja;
+	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AShadowClone* Clone = GetWorld()->SpawnActor<AShadowClone>(ShadowCloneClass, PendingShadowCloneTransform, Params);
+	if (!Clone) return;
+	const int32 BonusAttacks = FMath::Max(0, FMath::RoundToInt(PlayerUpgradeComponent->GetAccumulatedUpgradeMagnitude(TEXT("MultipleStrikes"))));
+	Clone->InitializeShadowClone(Ninja, this, 1 + BonusAttacks);
+	ActiveShadowClones.Add(Clone);
+	OnShadowCloneSpawned.Broadcast(Clone);
+}
+
+void ASurvivorPlayerController::DestroyAllShadowClones()
+{
+	for (const TWeakObjectPtr<AShadowClone>& Clone : ActiveShadowClones)
+	{
+		if (Clone.IsValid()) Clone->Destroy();
+	}
+	ActiveShadowClones.Reset();
+	bPendingNinjaShadowClone = false;
 }
 
 void ASurvivorPlayerController::ConsumeDashCharge()

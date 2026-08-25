@@ -514,7 +514,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	OwnerCharacter->ClearFacingOverride();
 }
 
-void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount)
+void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount, bool bRegisterAttackCycle)
 {
 	if (!OwnerCharacter || !ProjectileClass || !GetWorld())
 	{
@@ -552,7 +552,39 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		GetEffectiveProjectileBounceBonus(),
 		GetEffectiveProjectileSplitBonus());
 
-	RegisterKunaiFired();
+	if (bRegisterAttackCycle)
+	{
+		RegisterKunaiFired();
+	}
+}
+
+bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange)
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass || !GetWorld() || IsOwningPlayerDead())
+	{
+		return false;
+	}
+
+	TArray<AEnemyBase*> Targets;
+	FindEnemyTargetsSortedFromLocation(SpawnLocation, FMath::Max(0.0f, SearchRange), Targets);
+	if (Targets.Num() == 0) return false;
+
+	const int32 ProjectileCount = FMath::Max(1, GetEffectiveProjectileCount());
+	const float Damage = GetEffectiveAttackDamage();
+	const float Speed = GetEffectiveProjectileSpeed();
+	const int32 Pierce = GetEffectiveProjectilePierceBonus();
+	int32 Spawned = 0;
+	for (int32 Index = 0; Index < ProjectileCount; ++Index)
+	{
+		AEnemyBase* Target = Targets[Index % Targets.Num()];
+		if (!Target || Target->IsDead()) continue;
+		FVector Direction = GetEnemyAimLocation(Target) - SpawnLocation;
+		Direction.Z = 0.0f;
+		if (!Direction.Normalize()) continue;
+		SpawnProjectileInstance(SpawnLocation, Direction, Damage, Speed, Pierce, false);
+		++Spawned;
+	}
+	return Spawned > 0;
 }
 
 AEnemyBase* UAutoAttackComponent::FindAssistTarget() const

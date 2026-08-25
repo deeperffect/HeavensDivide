@@ -12,6 +12,42 @@ class UUpgradeDefinition;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUpgradeAcquired, UUpgradeDefinition*, Upgrade, int32, NewLevel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnUpgradeLevelChanged, UUpgradeDefinition*, Upgrade, int32, NewLevel);
 
+USTRUCT(BlueprintType)
+struct FUpgradeOffer
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Upgrade Offer")
+	TObjectPtr<UUpgradeDefinition> UpgradeDefinition;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Upgrade Offer")
+	EUpgradeRarity RolledRarity = EUpgradeRarity::Common;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Upgrade Offer")
+	float ResolvedMagnitude = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Upgrade Offer")
+	FText ResolvedDescription;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Upgrade Offer")
+	bool bDisplaysRarity = false;
+};
+
+USTRUCT(BlueprintType)
+struct FUpgradeRarityTimeBracket
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rarity", meta = (ClampMin = "0.0"))
+	float MinimumRunTimeSeconds = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rarity", meta = (ClampMin = "0.0"))
+	float CommonWeight = 75.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rarity", meta = (ClampMin = "0.0"))
+	float RareWeight = 23.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rarity", meta = (ClampMin = "0.0"))
+	float EpicWeight = 2.0f;
+};
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UPlayerUpgradeComponent : public UActorComponent
 {
@@ -49,6 +85,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades")
 	bool AcquireUpgrade(UUpgradeDefinition* Upgrade);
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Rarity")
+	float GetAccumulatedUpgradeMagnitude(FName UpgradeId) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Upgrades")
 	void RebuildAllUpgradeModifiers();
@@ -104,6 +143,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Upgrades|Selection")
 	TArray<UUpgradeDefinition*> GetCurrentUpgradeChoices() const;
 
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Rarity")
+	TArray<FUpgradeOffer> GetCurrentUpgradeOffers() const { return CurrentUpgradeOffers; }
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Rarity")
+	FText GetRarityDisplayName(EUpgradeRarity Rarity) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Upgrades|Debug")
 	bool DebugAcquireUpgrade(UUpgradeDefinition* Upgrade);
 
@@ -147,6 +192,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Mastery", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float PowerPerMasteryPoint = 0.05f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Rarity")
+	TArray<FUpgradeRarityTimeBracket> RarityTimeBrackets;
+
 private:
 	float GetBaseCategoryWeight(EUpgradeCategory Category) const;
 	float GetCategoryRollWeight(EUpgradeCategory Category) const;
@@ -160,12 +208,23 @@ private:
 	bool IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const;
 	bool MeetsPrerequisites(const UUpgradeDefinition* Upgrade) const;
 	void RebuildUpgradeModifiers(UUpgradeDefinition* Upgrade, int32 NewLevel);
+	bool AcquireUpgradeResolved(UUpgradeDefinition* Upgrade, float ResolvedMagnitude, EUpgradeRarity Rarity);
+	FUpgradeOffer MakeUpgradeOffer(UUpgradeDefinition* Upgrade) const;
+	EUpgradeRarity RollRarity() const;
+	float ResolveMagnitude(const UUpgradeDefinition* Upgrade, EUpgradeRarity Rarity) const;
+	FText ResolveOfferDescription(const UUpgradeDefinition* Upgrade, float Magnitude) const;
+	void BuildOffersFromCurrentChoices(bool bApplyNormalLevelGuarantee);
+	void ApplyMilestoneGuarantee();
+	bool IsNormalScalableUpgrade(const UUpgradeDefinition* Upgrade) const;
 	void ClearUpgradeModifiers(UUpgradeDefinition* Upgrade);
 	FName MakeUpgradeModifierSourceId(const UUpgradeDefinition* Upgrade) const;
 	FName MakeUpgradeModifierId(const UUpgradeDefinition* Upgrade, int32 ModifierIndex) const;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades", meta = (AllowPrivateAccess = "true"))
 	TMap<FName, int32> UpgradeLevels;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Rarity", meta = (AllowPrivateAccess = "true"))
+	TMap<FName, float> AccumulatedUpgradeMagnitudes;
 
 	UPROPERTY()
 	TMap<FName, TObjectPtr<UUpgradeDefinition>> AcquiredUpgradeDefinitions;
@@ -178,6 +237,12 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (AllowPrivateAccess = "true"))
 	TArray<TObjectPtr<UUpgradeDefinition>> CurrentUpgradeChoices;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Rarity", meta = (AllowPrivateAccess = "true"))
+	TArray<FUpgradeOffer> CurrentUpgradeOffers;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UUpgradeDefinition>> CurrentPresentationChoices;
 
 	UPROPERTY()
 	TMap<EUpgradeCategory, int32> CategoryRollsSinceLastOffered;

@@ -16,7 +16,7 @@
 ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 {
 	bForceSamuraiOnEntry = false;
-	bLockSwappingDuringTrial = false;
+	bLockSwappingDuringTrial = true;
 	bSuspendAutoAttacksDuringTrial = false;
 	constexpr float ArenaYaw=45.0f;
 	const FRotator ArenaRotation(0.0f,ArenaYaw,0.0f);
@@ -97,6 +97,11 @@ void ASamuraiTechniqueTrial::Tick(float DeltaSeconds)
 bool ASamuraiTechniqueTrial::BeginChallenge()
 {
 	if(!PlayerController||Lanes.Num()!=3)return false;
+	// Samurai Memory Trial is character-specific. Reinforce the lock here as
+	// well as in the class default so older Blueprint defaults cannot permit a
+	// mid-trial swap. TechniqueTrialBase releases it during every cleanup path.
+	bLockSwappingDuringTrial = true;
+	PlayerController->SetSwapLocked(true);
 	LaneMaterials.Reset();
 	for(UStaticMeshComponent* Lane:Lanes)
 	{

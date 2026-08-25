@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "UpgradeDefinition.h"
+#include "PlayerUpgradeComponent.h"
 #include "LevelUpWidget.generated.h"
 
 class ASurvivorPlayerController;
@@ -49,6 +49,12 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Level Up")
 	void ShowUpgradeChoices(const TArray<UUpgradeDefinition*>& UpgradeChoices);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Level Up|Rarity")
+	void ShowUpgradeOffers(const TArray<FUpgradeOffer>& UpgradeOffers);
+
+	UFUNCTION(BlueprintPure, Category = "Level Up|Rarity")
+	bool GetOfferForUpgrade(UUpgradeDefinition* Upgrade, FUpgradeOffer& OutOffer) const;
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Level Up")
 	void SetSynergyDiscoveryPresentation(bool bIsDiscovery);
