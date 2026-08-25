@@ -12,6 +12,7 @@ class AAttackProjectileBase;
 class AEnemyBase;
 class ANinjaCharacter;
 class ASamuraiCharacter;
+class ASamuraiBladeWave;
 class USoundBase;
 class UUpgradeDefinition;
 enum class EPlayerAttackSource : uint8;
@@ -253,6 +254,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of radial kunai spawned when Fan of Blades triggers."))
 	int32 FanOfBladesProjectileCount = 8;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Blade Wave")
+	TSubclassOf<ASamuraiBladeWave> BladeWaveClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Blade Wave", meta=(ClampMin="1.0"))
+	float BladeWaveTravelDistance = 650.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Blade Wave", meta=(ClampMin="1.0"))
+	float BladeWaveSpeed = 1400.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Blade Wave", meta=(ClampMin="1.0"))
+	float BladeWaveBaseWidth = 300.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Blade Wave", meta=(ClampMin="0.0"))
+	float BladeWaveDamageMultiplier = 0.65f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Blade Wave")
+	float CrossingBladeSideAngle = 30.0f;
+
 private:
 	UFUNCTION()
 	void HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode);
@@ -292,6 +306,7 @@ private:
 	bool WillNextNinjaAttackTriggerFanOfBlades() const;
 	void RegisterNinjaAttackForFanOfBlades(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
 	void SpawnFanOfBladesVolley(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
+	void SpawnBladeWavesForAttack(float ResolvedPrimaryDamage);
 	const UUpgradeDefinition* GetBladeCascadeUpgrade() const;
 	int32 ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount);
 	bool WillNextSamuraiAttackTriggerDoubleCut() const;
@@ -325,6 +340,8 @@ private:
 	int32 DoubleCutPrimaryAttackCounter = 0;
 	int32 FanOfBladesAttackCounter = 0;
 	int32 BladeCascadeKunaiProgress = 0;
+	int32 CrossingBladesAttackCounter = 0;
+	float LastResolvedPrimaryAttackDamage = 0.0f;
 	bool bIsAttacking = false;
 	bool bAttackNotifyConsumed = false;
 	bool bActiveAttackIsAssist = false;

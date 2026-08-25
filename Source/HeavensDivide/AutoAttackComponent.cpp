@@ -17,6 +17,7 @@
 #include "NinjaCharacter.h"
 #include "PlayerUpgradeComponent.h"
 #include "SamuraiCharacter.h"
+#include "SamuraiBladeWave.h"
 #include "SharedPlayerStatsComponent.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
@@ -67,6 +68,7 @@ static const UPlayerUpgradeComponent* GetPlayerUpgradesForAutoAttackMarkedForDea
 UAutoAttackComponent::UAutoAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
+	BladeWaveClass = ASamuraiBladeWave::StaticClass();
 }
 
 void UAutoAttackComponent::BeginPlay()
@@ -221,9 +223,16 @@ void UAutoAttackComponent::PerformAttackTrace()
 		return;
 	}
 
+	// Reaching this point means the attack montage's hit notify was consumed for
+	// one legitimate Samurai swing. This shared commit path includes both the
+	// primary swing and Double Cut's actual follow-up swing.
+	LastResolvedPrimaryAttackDamage = GetEffectiveAttackDamage();
+	const bool bMeleeTraceResolved = ExecuteMeleeAttackTrace();
+	SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
+
 	if (bDoubleCutFollowUpActive)
 	{
-		if (ExecuteMeleeAttackTrace())
+		if (bMeleeTraceResolved)
 		{
 			OnAutoAttack.Broadcast(this, EAutoAttackSource::DoubleCut);
 		}
@@ -231,7 +240,7 @@ void UAutoAttackComponent::PerformAttackTrace()
 	}
 
 	const bool bCountsForDoubleCut = !ProjectileClass && HasDoubleCutUpgrade();
-	if (ExecuteMeleeAttackTrace() && bCountsForDoubleCut)
+	if (bMeleeTraceResolved && bCountsForDoubleCut)
 	{
 		RegisterDoubleCutPrimaryAttack();
 	}
@@ -355,6 +364,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 	const float ResolvedPrimaryDamage = ActiveTechnique == ESamuraiTechnique::Duelist
 		? ResolveDuelistPrimaryDamage(PrimaryTarget, EffectiveAttackDamage)
 		: EffectiveAttackDamage;
+	LastResolvedPrimaryAttackDamage = ResolvedPrimaryDamage;
 	const float SecondaryDamage = EffectiveAttackDamage * FMath::Clamp(SecondaryTargetDamageMultiplier, 0.0f, 1.0f);
 	float PrimaryHealthBeforeHit = 0.0f;
 	FVector PrimaryDeathLocation = FVector::ZeroVector;
@@ -585,6 +595,49 @@ bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, 
 		++Spawned;
 	}
 	return Spawned > 0;
+}
+
+void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
+{
+	ASamuraiCharacter* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
+	ASurvivorPlayerController* Controller = Samurai ? Cast<ASurvivorPlayerController>(Samurai->GetOwner()) : nullptr;
+	UPlayerUpgradeComponent* Upgrades = Controller ? Controller->GetPlayerUpgrades() : nullptr;
+	if (!Samurai || !Upgrades || !Upgrades->HasUpgradeId(TEXT("BladeWave")) || !BladeWaveClass || !GetWorld()) return;
+
+	FVector Forward = Samurai->GetVisualForwardVector();
+	if (bActiveAttackIsAssist)
+	{
+		if (AEnemyBase* AssistTarget = CurrentAttackTarget.Get(); AssistTarget && !AssistTarget->IsDead())
+		{
+			Forward = AssistTarget->GetActorLocation() - Samurai->GetActorLocation();
+		}
+	}
+	Forward.Z = 0.0f;
+	if (!Forward.Normalize()) return;
+	const float WideArc = FMath::Max(0.0f, Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("WideArc")));
+	const float AreaMultiplier = AttackRadius > KINDA_SMALL_NUMBER ? GetEffectiveAttackRadius() / AttackRadius : 1.0f;
+	const float WaveWidth = BladeWaveBaseWidth * FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc);
+	const float WaveDamage = FMath::Max(0.0f, ResolvedPrimaryDamage) * BladeWaveDamageMultiplier * (1.0f + WideArc);
+	const bool bReturns = Upgrades->HasUpgradeId(TEXT("ReturningBlade"));
+	const bool bCrossing = Upgrades->HasUpgradeId(TEXT("CrossingBlades"));
+	++CrossingBladesAttackCounter;
+	const bool bTriple = bCrossing && CrossingBladesAttackCounter % 3 == 0;
+	const float Angles[3] = { -CrossingBladeSideAngle, 0.0f, CrossingBladeSideAngle };
+	const int32 WaveCount = bTriple ? 3 : 1;
+	for (int32 Index = 0; Index < WaveCount; ++Index)
+	{
+		const float Angle = bTriple ? Angles[Index] : 0.0f;
+		const FVector Direction = Forward.RotateAngleAxis(Angle, FVector::UpVector);
+		const FVector SpawnLocation = Samurai->GetActorLocation() + Direction * 80.0f + FVector(0.0f, 0.0f, 60.0f);
+		FActorSpawnParameters Params;
+		Params.Owner = Samurai;
+		Params.Instigator = Samurai;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (ASamuraiBladeWave* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(BladeWaveClass, SpawnLocation, Direction.Rotation(), Params))
+		{
+			Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth, BladeWaveTravelDistance, BladeWaveSpeed, bReturns);
+		}
+	}
 }
 
 AEnemyBase* UAutoAttackComponent::FindAssistTarget() const
