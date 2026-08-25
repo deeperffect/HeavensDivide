@@ -29,6 +29,21 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Upgrades")
 	bool HasUpgradeId(FName UpgradeId) const;
 
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Mastery")
+	int32 GetMasteryPoints(EUpgradeInvestmentOwner InvestmentOwner) const;
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Mastery")
+	int32 GetSamuraiMasteryPoints() const { return SamuraiMasteryPoints; }
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Mastery")
+	int32 GetNinjaMasteryPoints() const { return NinjaMasteryPoints; }
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Mastery")
+	float GetSamuraiPowerMultiplier() const;
+
+	UFUNCTION(BlueprintPure, Category = "Upgrades|Mastery")
+	float GetNinjaPowerMultiplier() const;
+
 	UFUNCTION(BlueprintPure, Category = "Upgrades")
 	bool CanAcquireUpgrade(UUpgradeDefinition* Upgrade) const;
 
@@ -129,6 +144,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (ClampMin = "1", UIMin = "1"))
 	int32 SynergyUnlockLevel = 5;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Mastery", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float PowerPerMasteryPoint = 0.05f;
+
 private:
 	float GetBaseCategoryWeight(EUpgradeCategory Category) const;
 	float GetCategoryRollWeight(EUpgradeCategory Category) const;
@@ -165,4 +183,10 @@ private:
 	TMap<EUpgradeCategory, int32> CategoryRollsSinceLastOffered;
 
 	bool bHasSelectedCategory = false;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Mastery", meta = (AllowPrivateAccess = "true"))
+	int32 SamuraiMasteryPoints = 0;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Upgrades|Mastery", meta = (AllowPrivateAccess = "true"))
+	int32 NinjaMasteryPoints = 0;
 };

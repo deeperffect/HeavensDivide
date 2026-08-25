@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EnemyStatusTypes.h"
 #include "GameFramework/Character.h"
 #include "EnemyBase.generated.h"
 
@@ -22,6 +23,8 @@ class UNiagaraComponent;
 class UNiagaraSystem;
 class UMaterialInterface;
 class UMaterialInstanceDynamic;
+class UEnemyStatusEffectComponent;
+class UEnemyStatusIndicatorWidget;
 
 class AEnemyBase;
 
@@ -94,6 +97,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Damage")
 	virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource);
+	bool ApplyStatus(EEnemyStatusEffect Status, class UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource AttackSource);
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Status")
+	bool HasStatus(EEnemyStatusEffect Status) const;
+
+	UFUNCTION(BlueprintPure, Category = "Enemy|Status")
+	int32 GetStatusStacks(EEnemyStatusEffect Status) const;
+	UEnemyStatusEffectComponent* GetStatusEffectComponent() const { return StatusEffectComponent; }
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Damage")
 	bool CanReceivePlayerDamage(EPlayerAttackSource AttackSource) const;
@@ -153,8 +164,32 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "World-space widget component shown while this enemy is Marked for Death."))
 	TObjectPtr<UWidgetComponent> MarkIndicatorWidgetComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UWidgetComponent> BleedStatusWidgetComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UWidgetComponent> PoisonStatusWidgetComponent;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Custom lightweight movement component used instead of CharacterMovement for enemy movement."))
 	TObjectPtr<UEnemyLightweightMovementComponent> LightweightMovementComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<UEnemyStatusEffectComponent> StatusEffectComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
+	FVector BleedStatusIndicatorRelativeLocation = FVector(-22.0f, 0.0f, 145.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status", meta=(ToolTip="Additional offset from the Bleed/status anchor used for Poison only when both statuses are visible."))
+	FVector PoisonStatusIndicatorRelativeLocation = FVector(0.0f, 0.0f, 40.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
+	FVector2D StatusIndicatorDrawSize = FVector2D(36.0f, 36.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
+	bool bShowStatusStackCountAtOne = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status", meta=(ClampMin="6", ClampMax="32"))
+	int32 StatusStackFontSize = 12;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Optional attached Niagara aura used while this enemy is Bloodbound."))
 	TObjectPtr<UNiagaraComponent> BloodboundNiagaraComponent;
@@ -413,6 +448,11 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Enemy")
 	void OnEnemyDeath();
+
+	UFUNCTION()
+	void HandleStatusStacksChanged(EEnemyStatusEffect Status, int32 StackCount);
+	void InitializeStatusIndicators();
+	void UpdateStatusIndicatorLayout();
 
 	UPROPERTY()
 	TObjectPtr<UCharacterManagerComponent> ObservedCharacterManager;

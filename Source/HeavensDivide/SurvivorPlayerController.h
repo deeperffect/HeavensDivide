@@ -21,6 +21,7 @@ class ACharacterBase;
 class APlayerCameraRig;
 class ABloodShrine;
 class AEnemySpawner;
+class AEnemyBase;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
@@ -31,6 +32,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDamageDodged, float, Incomi
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTwinSoulRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSamuraiTrialRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNinjaTrialRewardCompleted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnHemotoxicReactionTriggered, AEnemyBase*, Enemy, FVector, Location, float, Damage, int32, ConsumedBleedStacks, int32, ConsumedPoisonStacks);
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
@@ -162,6 +164,9 @@ public:
 	FOnSamuraiTrialRewardCompleted OnSamuraiTrialRewardCompleted;
 	UPROPERTY(BlueprintAssignable, Category = "Player|Rewards")
 	FOnNinjaTrialRewardCompleted OnNinjaTrialRewardCompleted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Synergy|Hemotoxic Reaction")
+	FOnHemotoxicReactionTriggered OnHemotoxicReactionTriggered;
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when a player dash successfully starts."))
 	FOnPlayerDash OnDashStarted;
@@ -298,6 +303,7 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Swap", meta = (ToolTip = "Reusable gameplay lock which blocks swap input without changing the normal cooldown."))
 	bool bSwapLocked = false;
 	bool bSuppressSwapEffects = false;
+	bool bPlayerInitiatedSwapPending = false;
 
 	void Move(const FInputActionValue& Value);
 	void StopMoveInput(const FInputActionValue& Value);
@@ -310,6 +316,7 @@ protected:
 	void ResolveRunTimeSource();
 	UFUNCTION()
 	void HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
+	void TryTriggerHemotoxicReaction(ACharacterBase* NewCharacter);
 	UFUNCTION()
 	void HandlePlayerDeath();
 	UFUNCTION()

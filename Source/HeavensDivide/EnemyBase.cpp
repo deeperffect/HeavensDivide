@@ -10,6 +10,8 @@
 #include "EnemyHealthBarWidget.h"
 #include "EnemyLightweightMovementComponent.h"
 #include "EnemyMarkIndicatorWidget.h"
+#include "EnemyStatusEffectComponent.h"
+#include "EnemyStatusIndicatorWidget.h"
 #include "ExperiencePickup.h"
 #include "ExperienceComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -168,6 +170,7 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	StatusEffectComponent = CreateDefaultSubobject<UEnemyStatusEffectComponent>(TEXT("StatusEffectComponent"));
 	LightweightMovementComponent = CreateDefaultSubobject<UEnemyLightweightMovementComponent>(TEXT("LightweightMovementComponent"));
 	BloodboundNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("BloodboundNiagaraComponent"));
 	BloodboundNiagaraComponent->SetupAttachment(GetMesh());
@@ -190,6 +193,20 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	MarkIndicatorWidgetComponent->SetHiddenInGame(true);
 	MarkIndicatorWidgetComponent->SetVisibility(false);
 	MarkIndicatorWidgetComponent->SetComponentTickEnabled(false);
+
+	BleedStatusWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("BleedStatusWidgetComponent"));
+	BleedStatusWidgetComponent->SetupAttachment(RootComponent);
+	PoisonStatusWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("PoisonStatusWidgetComponent"));
+	PoisonStatusWidgetComponent->SetupAttachment(RootComponent);
+	for (UWidgetComponent* StatusWidget : { BleedStatusWidgetComponent.Get(), PoisonStatusWidgetComponent.Get() })
+	{
+		StatusWidget->SetWidgetSpace(EWidgetSpace::Screen);
+		StatusWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		StatusWidget->SetHiddenInGame(true);
+		StatusWidget->SetVisibility(false);
+		StatusWidget->SetComponentTickEnabled(false);
+		StatusWidget->SetWidgetClass(UEnemyStatusIndicatorWidget::StaticClass());
+	}
 
 	ConfigureEnemyCapsuleCollisionDefaults();
 
@@ -214,6 +231,8 @@ void AEnemyBase::BeginPlay()
 
 	InitializeHealthBar();
 	InitializeMarkIndicator();
+	InitializeStatusIndicators();
+	if (StatusEffectComponent) StatusEffectComponent->OnStatusStacksChanged.AddUniqueDynamic(this, &AEnemyBase::HandleStatusStacksChanged);
 	InitializeTargetFromCharacterManager();
 	CachePlayerExperienceComponent();
 	InitializeAnimationBudgeting();
@@ -238,6 +257,10 @@ void AEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		HealthComponent->OnHealthChanged.RemoveDynamic(this, &AEnemyBase::HandleHealthChanged);
 		HealthComponent->OnDeath.RemoveDynamic(this, &AEnemyBase::HandleDeath);
+	}
+	if (StatusEffectComponent)
+	{
+		StatusEffectComponent->OnStatusStacksChanged.RemoveDynamic(this, &AEnemyBase::HandleStatusStacksChanged);
 	}
 
 	StopEnemyBehavior();
@@ -460,7 +483,6 @@ void AEnemyBase::MakeBloodbound(float HealthMultiplier, float DamageMultiplier, 
 	{
 		return;
 	}
-
 	CapturePreBloodboundState();
 	bIsBloodbound = true;
 	bDropsXP = bInDropsXP;
@@ -470,6 +492,70 @@ void AEnemyBase::MakeBloodbound(float HealthMultiplier, float DamageMultiplier, 
 	ApplySpawnInstanceModifiers(BloodboundHealthMultiplier, BloodboundDamageMultiplier, BloodboundMovementSpeedMultiplier);
 	ActivateBloodboundVisuals();
 	OnBecameBloodbound.Broadcast(this);
+}
+
+bool AEnemyBase::ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource AttackSource)
+{
+	return StatusEffectComponent && StatusEffectComponent->ApplyStatus(Status, SourceUpgrades, AttackSource);
+}
+
+bool AEnemyBase::HasStatus(EEnemyStatusEffect Status) const
+{
+	return StatusEffectComponent && StatusEffectComponent->HasStatus(Status);
+}
+
+int32 AEnemyBase::GetStatusStacks(EEnemyStatusEffect Status) const
+{
+	return StatusEffectComponent ? StatusEffectComponent->GetStatusStacks(Status) : 0;
+}
+
+void AEnemyBase::InitializeStatusIndicators()
+{
+	if (BleedStatusWidgetComponent)
+	{
+		BleedStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation);
+		BleedStatusWidgetComponent->SetDrawSize(StatusIndicatorDrawSize);
+	}
+	if (PoisonStatusWidgetComponent)
+	{
+		PoisonStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation);
+		PoisonStatusWidgetComponent->SetDrawSize(StatusIndicatorDrawSize);
+	}
+	UpdateStatusIndicatorLayout();
+}
+
+void AEnemyBase::HandleStatusStacksChanged(EEnemyStatusEffect Status, int32 StackCount)
+{
+	UWidgetComponent* Component = Status == EEnemyStatusEffect::Bleed ? BleedStatusWidgetComponent.Get() : PoisonStatusWidgetComponent.Get();
+	if (!Component) return;
+	const bool bActive = StackCount > 0;
+	Component->SetHiddenInGame(!bActive);
+	Component->SetVisibility(bActive);
+	if (bActive)
+	{
+		if (UEnemyStatusIndicatorWidget* Widget = Cast<UEnemyStatusIndicatorWidget>(Component->GetUserWidgetObject()))
+		{
+			Widget->SetStatusPresentation(Status, StackCount, bShowStatusStackCountAtOne, StatusStackFontSize);
+		}
+	}
+	UpdateStatusIndicatorLayout();
+}
+
+void AEnemyBase::UpdateStatusIndicatorLayout()
+{
+	const bool bBleedVisible = StatusEffectComponent && StatusEffectComponent->GetStatusStacks(EEnemyStatusEffect::Bleed) > 0;
+	const bool bPoisonVisible = StatusEffectComponent && StatusEffectComponent->GetStatusStacks(EEnemyStatusEffect::Poison) > 0;
+	if (BleedStatusWidgetComponent)
+	{
+		BleedStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation);
+	}
+	if (PoisonStatusWidgetComponent)
+	{
+		// Poison occupies the same proven anchor as Bleed when shown alone. If both
+		// are active, Poison moves above it so neither status covers the health bar.
+		PoisonStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation
+			+ (bBleedVisible && bPoisonVisible ? PoisonStatusIndicatorRelativeLocation : FVector::ZeroVector));
+	}
 }
 
 bool AEnemyBase::RemoveBloodbound()
@@ -667,6 +753,7 @@ void AEnemyBase::HandleDeath()
 	}
 
 	bIsDead = true;
+	if (StatusEffectComponent) StatusEffectComponent->ClearAllStatuses();
 	OnEnemyDied.Broadcast(this);
 	ClearMark();
 	HideMarkIndicator();

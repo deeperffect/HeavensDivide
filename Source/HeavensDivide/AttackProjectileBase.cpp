@@ -10,6 +10,7 @@
 #include "CharacterManagerComponent.h"
 #include "CharacterStatsComponent.h"
 #include "EnemyBase.h"
+#include "EnemyStatusEffectComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -24,6 +25,7 @@ namespace MarkedForDeathUpgradeIds
 	static const FName MarkedBlade(TEXT("MarkedBlade"));
 	static const FName ChainExecution(TEXT("ChainExecution"));
 	static const FName ExecutionersKunai(TEXT("ExecutionersKunai"));
+	static const FName VenomousKunai(TEXT("VenomousKunai"));
 }
 
 static const UPlayerUpgradeComponent* GetPlayerUpgradesForMarkedForDeath(const UObject* WorldContextObject, const AActor* GameplayOwner)
@@ -181,6 +183,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		const bool bHasMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::MarkedBlade);
 		const bool bHasChainExecution = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::ChainExecution);
 		const bool bHasExecutionersKunai = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::ExecutionersKunai);
+		const bool bHasVenomousKunai = AttackSource == EPlayerAttackSource::Ninja && PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::VenomousKunai);
 		const float NormalDamage = ProjectileDamage;
 		float FinalDamage = NormalDamage;
 		const bool bWasMarked = bHasMarkedBlade && HitEnemy->IsMarked();
@@ -204,6 +207,10 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		const FVector ExecutionLocation = HitEnemy->GetActorLocation();
 		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
+		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
+		{
+			HitEnemy->ApplyStatus(EEnemyStatusEffect::Poison, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
+		}
 		if (bKilledEnemy)
 		{
 			const ANinjaCharacter* NinjaOwner = Cast<ANinjaCharacter>(GameplayOwner);

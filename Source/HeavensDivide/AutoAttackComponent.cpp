@@ -9,6 +9,7 @@
 #include "Components/CapsuleComponent.h"
 #include "DrawDebugHelpers.h"
 #include "EnemyBase.h"
+#include "EnemyStatusEffectComponent.h"
 #include "GameFramework/Character.h"
 #include "HealthComponent.h"
 #include "HAL/IConsoleManager.h"
@@ -49,6 +50,7 @@ static TAutoConsoleVariable<int32> CVarHDLogBladeCascade(
 namespace AutoAttackMarkedForDeathUpgradeIds
 {
 	static const FName MarkedBlade(TEXT("MarkedBlade"));
+	static const FName BleedingEdge(TEXT("BleedingEdge"));
 }
 
 static const UPlayerUpgradeComponent* GetPlayerUpgradesForAutoAttackMarkedForDeath(const UObject* WorldContextObject, const AActor* PlayerCharacter)
@@ -294,6 +296,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 	TArray<AEnemyBase*> HitEnemies;
 	const AActor* OwnerActor = OwnerCharacter->GetOwner();
 	const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
+	const bool bCanApplyBleed = AttackSource == EPlayerAttackSource::Samurai && PlayerUpgrades && PlayerUpgrades->HasUpgradeId(AutoAttackMarkedForDeathUpgradeIds::BleedingEdge);
 	for (const FHitResult& HitResult : HitResults)
 	{
 		AActor* HitActor = HitResult.GetActor();
@@ -363,9 +366,10 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		{
 			PrimaryHealthBeforeHit = PrimaryHealth->GetCurrentHealth();
 			PrimaryDeathLocation = PrimaryTarget->GetActorLocation();
-			PrimaryTarget->ApplyPlayerDamage(ResolvedPrimaryDamage, AttackSource);
+			const bool bDamageApplied = PrimaryTarget->ApplyPlayerDamage(ResolvedPrimaryDamage, AttackSource);
 			bPrimaryKilled = PrimaryHealth->IsDead();
 			if (bPrimaryKilled) ++KilledEnemyCount;
+			if (bDamageApplied && !bPrimaryKilled && bCanApplyBleed) PrimaryTarget->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
 			if (bCanApplyMarkedBlade) PrimaryTarget->ApplyMark();
 		}
 	}
@@ -394,8 +398,9 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		if (!HitEnemy || HitEnemy == PrimaryTarget) continue;
 		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
 		if (!EnemyHealth || EnemyHealth->IsDead()) continue;
-		HitEnemy->ApplyPlayerDamage(SecondaryDamage, AttackSource);
+		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(SecondaryDamage, AttackSource);
 		if (EnemyHealth->IsDead()) ++KilledEnemyCount;
+		if (bDamageApplied && !EnemyHealth->IsDead() && bCanApplyBleed) HitEnemy->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
 		if (bCanApplyMarkedBlade) HitEnemy->ApplyMark();
 	}
 
@@ -1398,7 +1403,14 @@ float UAutoAttackComponent::GetEffectiveAttackDamage() const
 	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(OwnerCharacter ? OwnerCharacter->GetOwner() : nullptr);
 	const USharedPlayerStatsComponent* SharedStats = SurvivorController ? SurvivorController->GetSharedPlayerStats() : nullptr;
 	const float GlobalDamageMultiplier = SharedStats ? SharedStats->GetFinalDamageMultiplier() : 1.0f;
-	return AttackDamage * DamageMultiplier * GlobalDamageMultiplier;
+	const UPlayerUpgradeComponent* PlayerUpgrades = SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+	float PowerMultiplier = 1.0f;
+	if (PlayerUpgrades)
+	{
+		if (OwnerCharacter && OwnerCharacter->IsA<ASamuraiCharacter>()) PowerMultiplier = PlayerUpgrades->GetSamuraiPowerMultiplier();
+		else if (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>()) PowerMultiplier = PlayerUpgrades->GetNinjaPowerMultiplier();
+	}
+	return AttackDamage * DamageMultiplier * GlobalDamageMultiplier * PowerMultiplier;
 }
 
 float UAutoAttackComponent::GetEffectiveAttackRadius() const

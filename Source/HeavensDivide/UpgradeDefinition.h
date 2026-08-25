@@ -29,6 +29,25 @@ enum class EUpgradeRarity : uint8
 };
 
 UENUM(BlueprintType)
+enum class EUpgradeInvestmentOwner : uint8
+{
+	None,
+	Samurai,
+	Ninja
+};
+
+UENUM(BlueprintType)
+enum class EUpgradeRole : uint8
+{
+	Stat,
+	Starter,
+	Support,
+	Evolution,
+	Mechanic,
+	Special
+};
+
+UENUM(BlueprintType)
 enum class EUpgradeStatTarget : uint8
 {
 	Samurai,
@@ -50,7 +69,8 @@ enum class EUpgradeSpecialEffect : uint8
 	BladeCascade,
 	SamuraiCleaver,
 	SamuraiDuelist,
-	SamuraiDeathblow
+	SamuraiDeathblow,
+	HemotoxicReaction
 };
 
 USTRUCT(BlueprintType)
@@ -94,6 +114,15 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	EUpgradeCategory Category = EUpgradeCategory::Global;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Taxonomy")
+	EUpgradeInvestmentOwner InvestmentOwner = EUpgradeInvestmentOwner::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Taxonomy")
+	EUpgradeRole Role = EUpgradeRole::Stat;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Taxonomy")
+	FName BuildFamilyId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Meta Progression", meta = (EditCondition = "Category == EUpgradeCategory::Synergy", EditConditionHides))
 	FName MetaUnlockId = NAME_None;
@@ -139,4 +168,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Duration in seconds for the temporary Handoff attack speed bonus after swapping."))
 	float HandoffDuration = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Hemotoxic Reaction", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float HemotoxicReactionMultiplier = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Hemotoxic Reaction", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
+	float HemotoxicReactionRadius = 900.0f;
 };

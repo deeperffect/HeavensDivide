@@ -105,6 +105,16 @@ bool UPlayerUpgradeComponent::AcquireUpgrade(UUpgradeDefinition* Upgrade)
 	AcquiredUpgradeDefinitions.FindOrAdd(Upgrade->UpgradeId) = Upgrade;
 
 	RebuildUpgradeModifiers(Upgrade, NewLevel);
+	if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Samurai)
+	{
+		++SamuraiMasteryPoints;
+		UE_LOG(LogTemp, Log, TEXT("[Mastery] Samurai Points=%d Power=%.3f Upgrade=%s Level=%d"), SamuraiMasteryPoints, GetSamuraiPowerMultiplier(), *Upgrade->UpgradeId.ToString(), NewLevel);
+	}
+	else if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Ninja)
+	{
+		++NinjaMasteryPoints;
+		UE_LOG(LogTemp, Log, TEXT("[Mastery] Ninja Points=%d Power=%.3f Upgrade=%s Level=%d"), NinjaMasteryPoints, GetNinjaPowerMultiplier(), *Upgrade->UpgradeId.ToString(), NewLevel);
+	}
 	LogPlayerUpgradeStats();
 
 	OnUpgradeAcquired.Broadcast(Upgrade, NewLevel);
@@ -321,6 +331,26 @@ bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCatego
 	return bHasSelectedCategory;
 }
 
+int32 UPlayerUpgradeComponent::GetMasteryPoints(EUpgradeInvestmentOwner InvestmentOwner) const
+{
+	switch (InvestmentOwner)
+	{
+	case EUpgradeInvestmentOwner::Samurai: return SamuraiMasteryPoints;
+	case EUpgradeInvestmentOwner::Ninja: return NinjaMasteryPoints;
+	default: return 0;
+	}
+}
+
+float UPlayerUpgradeComponent::GetSamuraiPowerMultiplier() const
+{
+	return 1.0f + FMath::Max(0, SamuraiMasteryPoints) * FMath::Max(0.0f, PowerPerMasteryPoint);
+}
+
+float UPlayerUpgradeComponent::GetNinjaPowerMultiplier() const
+{
+	return 1.0f + FMath::Max(0, NinjaMasteryPoints) * FMath::Max(0.0f, PowerPerMasteryPoint);
+}
+
 TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetLockedSynergyDiscoveryCandidates() const
 {
 	TArray<UUpgradeDefinition*> Candidates;
@@ -469,6 +499,18 @@ bool UPlayerUpgradeComponent::DebugForceAcquireUpgrade(UUpgradeDefinition* Upgra
 	AcquiredUpgradeDefinitions.FindOrAdd(Upgrade->UpgradeId) = Upgrade;
 
 	RebuildUpgradeModifiers(Upgrade, NewLevel);
+	if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Samurai)
+	{
+		++SamuraiMasteryPoints;
+		UE_LOG(LogTemp, Log, TEXT("[Mastery] Samurai Points=%d Power=%.3f Upgrade=%s Level=%d"),
+			SamuraiMasteryPoints, GetSamuraiPowerMultiplier(), *Upgrade->UpgradeId.ToString(), NewLevel);
+	}
+	else if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Ninja)
+	{
+		++NinjaMasteryPoints;
+		UE_LOG(LogTemp, Log, TEXT("[Mastery] Ninja Points=%d Power=%.3f Upgrade=%s Level=%d"),
+			NinjaMasteryPoints, GetNinjaPowerMultiplier(), *Upgrade->UpgradeId.ToString(), NewLevel);
+	}
 	LogPlayerUpgradeStats();
 
 	OnUpgradeAcquired.Broadcast(Upgrade, NewLevel);
