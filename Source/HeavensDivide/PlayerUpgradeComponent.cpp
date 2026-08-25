@@ -612,6 +612,14 @@ bool UPlayerUpgradeComponent::MeetsPrerequisites(const UUpgradeDefinition* Upgra
 		}
 	}
 
+	for (const FUpgradePrerequisiteRequirement& Requirement : Upgrade->PrerequisiteRequirements)
+	{
+		if (Requirement.UpgradeId.IsNone() || GetUpgradeLevelById(Requirement.UpgradeId) < FMath::Max(1, Requirement.MinimumLevel))
+		{
+			return false;
+		}
+	}
+
 	return true;
 }
 

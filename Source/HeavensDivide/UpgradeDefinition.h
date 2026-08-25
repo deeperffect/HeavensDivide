@@ -70,7 +70,9 @@ enum class EUpgradeSpecialEffect : uint8
 	SamuraiCleaver,
 	SamuraiDuelist,
 	SamuraiDeathblow,
-	HemotoxicReaction
+	HemotoxicReaction,
+	VirulentStrain,
+	AcceleratedVenom
 };
 
 USTRUCT(BlueprintType)
@@ -92,6 +94,18 @@ struct FUpgradeStatModifierDefinition
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade")
 	float ValuePerLevel = 0.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FUpgradePrerequisiteRequirement
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade|Prerequisites")
+	FName UpgradeId = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Upgrade|Prerequisites", meta = (ClampMin = "1", UIMin = "1"))
+	int32 MinimumLevel = 1;
 };
 
 UCLASS(BlueprintType)
@@ -142,6 +156,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Prerequisites")
 	TArray<FName> PrerequisiteUpgradeIds;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Prerequisites")
+	TArray<FUpgradePrerequisiteRequirement> PrerequisiteRequirements;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TArray<FUpgradeStatModifierDefinition> StatModifiers;
 
@@ -174,4 +191,16 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Hemotoxic Reaction", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
 	float HemotoxicReactionRadius = 900.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Virulent Strain", meta = (ClampMin = "1", UIMin = "1"))
+	int32 VirulentStrainThreshold = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Virulent Strain", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
+	float VirulentStrainRadius = 350.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Virulent Strain", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float VirulentStrainDamageMultiplier = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Accelerated Venom", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float AcceleratedVenomTickRateMultiplier = 2.0f;
 };

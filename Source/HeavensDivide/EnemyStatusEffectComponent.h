@@ -8,9 +8,12 @@
 #include "EnemyStatusEffectComponent.generated.h"
 
 class UPlayerUpgradeComponent;
+class UUpgradeDefinition;
+class AEnemyBase;
 enum class EPlayerAttackSource : uint8;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEnemyStatusStacksChanged, EEnemyStatusEffect, Status, int32, StackCount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FVirulentStrainPulse, AEnemyBase*, SourceEnemy, FVector, Location, float, Radius, float, Damage, int32, PoisonStacks);
 
 USTRUCT()
 struct FEnemyDamageStatusState
@@ -21,6 +24,7 @@ struct FEnemyDamageStatusState
 	float RemainingDuration = 0.0f;
 	TWeakObjectPtr<UPlayerUpgradeComponent> SourceUpgrades;
 	FTimerHandle TickTimer;
+	float ActiveTickInterval = 0.0f;
 };
 
 /** Lightweight, timer-driven damage-over-time state owned by one enemy. */
@@ -51,6 +55,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category="Enemy|Status")
 	FEnemyStatusStacksChanged OnStatusStacksChanged;
+
+	UPROPERTY(BlueprintAssignable, Category="Enemy|Status|Virulent Strain")
+	FVirulentStrainPulse OnVirulentStrainPulse;
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -86,7 +93,13 @@ private:
 	FEnemyDamageStatusState& GetState(EEnemyStatusEffect Status);
 	const FEnemyDamageStatusState& GetState(EEnemyStatusEffect Status) const;
 	float GetTickInterval(EEnemyStatusEffect Status) const;
+	float GetEffectiveTickInterval(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const;
 	float GetDuration(EEnemyStatusEffect Status) const;
+	void RefreshPoisonTickRate();
+	void EnsureUpgradeListener(UPlayerUpgradeComponent* Upgrades);
+	UFUNCTION()
+	void HandleSourceUpgradeAcquired(UUpgradeDefinition* Upgrade, int32 NewLevel);
+	void TryTriggerVirulentStrain(AEnemyBase* SourceEnemy, UPlayerUpgradeComponent* Upgrades, int32 PoisonStacks, float ResolvedPoisonTickDamage);
 	float CalculateStatusDamagePerTick(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const;
 	int32 CalculateRemainingTickCount(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const;
 	void TickBleed();
