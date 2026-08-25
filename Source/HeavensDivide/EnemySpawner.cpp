@@ -459,6 +459,10 @@ int32 AEnemySpawner::ConvertRandomAliveEnemiesToBloodbound(const FEnemySpawnModi
 			BloodboundContext.DamageMultiplier,
 			BloodboundContext.MovementSpeedMultiplier,
 			BloodboundContext.bDropsXP);
+		if (SelectedEnemy->IsBloodbound())
+		{
+			OnEnemyBecameBloodbound.Broadcast(SelectedEnemy);
+		}
 	}
 
 	return ConversionCount;
@@ -523,6 +527,10 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 	SpawnedEnemy->SpawnDefaultController();
 	SpawnedEnemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(), GetDamageMultiplier());
 	ApplyEnemySpawnModifierContexts(SpawnedEnemy);
+	if (SpawnedEnemy->IsBloodbound())
+	{
+		OnEnemyBecameBloodbound.Broadcast(SpawnedEnemy);
+	}
 	SpawnedEnemy->OnDestroyed.AddDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
 	SpawnedEnemy->OnEnemyDied.AddUniqueDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDied);
 	SpawnedEnemies.Add(SpawnedEnemy);
@@ -1203,7 +1211,7 @@ void AEnemySpawner::HandleSpawnedEnemyDestroyed(AActor* DestroyedActor)
 #endif
 }
 
-void AEnemySpawner::ApplyEnemySpawnModifierContexts(AEnemyBase* SpawnedEnemy) const
+void AEnemySpawner::ApplyEnemySpawnModifierContexts(AEnemyBase* SpawnedEnemy)
 {
 	if (!SpawnedEnemy || EnemySpawnModifierContexts.Num() == 0)
 	{

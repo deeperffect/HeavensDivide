@@ -83,6 +83,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	int32 GetEffectiveProjectilePierceBonus() const;
 
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	int32 GetEffectiveProjectileBounceBonus() const;
+
+	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
+	int32 GetEffectiveProjectileSplitBonus() const;
+
 	void RegisterKunaiFired();
 
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")

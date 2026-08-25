@@ -28,6 +28,18 @@ void AMeleeEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float 
 	AttackDamage *= FMath::Max(0.0f, DamageMultiplier);
 }
 
+void AMeleeEnemyBase::CapturePreBloodboundState()
+{
+	Super::CapturePreBloodboundState();
+	PreBloodboundAttackDamage = AttackDamage;
+}
+
+void AMeleeEnemyBase::RestorePreBloodboundState()
+{
+	Super::RestorePreBloodboundState();
+	AttackDamage = PreBloodboundAttackDamage;
+}
+
 void AMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopAttackTimer();

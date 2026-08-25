@@ -19,7 +19,9 @@ enum class ECharacterStatType : uint8
 	DamageReduction UMETA(ToolTip = "Reduces incoming damage for this character. Add Flat 0.10 means 10% less damage taken."),
 	HealthOnKill UMETA(ToolTip = "Heals this character when their attack kills enemies. Add Flat 1.0 means heal 1 HP per kill."),
 	DodgeChance UMETA(ToolTip = "Chance for this character to avoid incoming damage. Add Flat 0.10 means 10% dodge chance."),
-	ProjectilePierceBonus UMETA(ToolTip = "Adds extra enemies this character's projectiles can pierce before ending.")
+	ProjectilePierceBonus UMETA(ToolTip = "Adds extra enemies this character's projectiles can pierce before ending."),
+	ProjectileBounceBonus UMETA(ToolTip = "Adds projectile retargets after a projectile would otherwise end."),
+	ProjectileSplitBonus UMETA(ToolTip = "Enables one projectile split per original projectile.")
 };
 
 UENUM(BlueprintType)
@@ -89,6 +91,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	int32 GetFinalProjectilePierceBonus() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetFinalProjectileBounceBonus() const;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+	int32 GetFinalProjectileSplitBonus() const;
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetFinalProjectileSpeedMultiplier() const;

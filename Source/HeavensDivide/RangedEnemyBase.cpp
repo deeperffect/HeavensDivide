@@ -21,6 +21,18 @@ void ARangedEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float
 	AttackDamage *= FMath::Max(0.0f, DamageMultiplier);
 }
 
+void ARangedEnemyBase::CapturePreBloodboundState()
+{
+	Super::CapturePreBloodboundState();
+	PreBloodboundAttackDamage = AttackDamage;
+}
+
+void ARangedEnemyBase::RestorePreBloodboundState()
+{
+	Super::RestorePreBloodboundState();
+	AttackDamage = PreBloodboundAttackDamage;
+}
+
 void ARangedEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	StopAttackTimer();

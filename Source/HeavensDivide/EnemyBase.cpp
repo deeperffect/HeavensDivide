@@ -456,11 +456,12 @@ void AEnemyBase::SetGameplaySuspended(bool bSuspended)
 
 void AEnemyBase::MakeBloodbound(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier, bool bInDropsXP)
 {
-	if (bIsBloodbound)
+	if (bIsBloodbound || bIsDead)
 	{
 		return;
 	}
 
+	CapturePreBloodboundState();
 	bIsBloodbound = true;
 	bDropsXP = bInDropsXP;
 	BloodboundHealthMultiplier = FMath::IsFinite(HealthMultiplier) ? FMath::Max(0.0f, HealthMultiplier) : 1.0f;
@@ -469,6 +470,46 @@ void AEnemyBase::MakeBloodbound(float HealthMultiplier, float DamageMultiplier, 
 	ApplySpawnInstanceModifiers(BloodboundHealthMultiplier, BloodboundDamageMultiplier, BloodboundMovementSpeedMultiplier);
 	ActivateBloodboundVisuals();
 	OnBecameBloodbound.Broadcast(this);
+}
+
+bool AEnemyBase::RemoveBloodbound()
+{
+	if (!bIsBloodbound || bIsDead || !bHasPreBloodboundState)
+	{
+		return false;
+	}
+
+	RestorePreBloodboundState();
+	bIsBloodbound = false;
+	BloodboundHealthMultiplier = 1.0f;
+	BloodboundDamageMultiplier = 1.0f;
+	BloodboundMovementSpeedMultiplier = 1.0f;
+	bHasPreBloodboundState = false;
+	DeactivateBloodboundVisuals();
+	return true;
+}
+
+void AEnemyBase::CapturePreBloodboundState()
+{
+	PreBloodboundMaxHealth = HealthComponent ? HealthComponent->GetMaxHealth() : 0.0f;
+	PreBloodboundMoveSpeed = MoveSpeed;
+	bPreBloodboundDropsXP = bDropsXP;
+	PreBloodboundOverlayMaterial = GetMesh() ? GetMesh()->GetOverlayMaterial() : nullptr;
+	bHasPreBloodboundState = true;
+}
+
+void AEnemyBase::RestorePreBloodboundState()
+{
+	if (HealthComponent && PreBloodboundMaxHealth > 0.0f)
+	{
+		HealthComponent->SetMaxHealthPreservePercent(PreBloodboundMaxHealth);
+	}
+	MoveSpeed = PreBloodboundMoveSpeed;
+	if (LightweightMovementComponent)
+	{
+		LightweightMovementComponent->SetMoveSpeed(MoveSpeed);
+	}
+	bDropsXP = bPreBloodboundDropsXP;
 }
 
 void AEnemyBase::ActivateBloodboundVisuals()
@@ -527,6 +568,28 @@ void AEnemyBase::ActivateBloodboundVisuals()
 			BloodboundOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, BloodboundEmissiveStrength);
 			EnemyMesh->SetOverlayMaterial(BloodboundOverlayDynamicMaterial);
 		}
+	}
+}
+
+void AEnemyBase::DeactivateBloodboundVisuals()
+{
+	if (BloodboundNiagaraComponent)
+	{
+		BloodboundNiagaraComponent->DeactivateImmediate();
+	}
+
+	for (UMaterialInstanceDynamic* DynamicMaterial : BloodboundDynamicMaterialInstances)
+	{
+		if (DynamicMaterial)
+		{
+			DynamicMaterial->SetScalarParameterValue(BloodboundMaterialScalarParameterName, 0.0f);
+			DynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, 0.0f);
+		}
+	}
+
+	if (USkeletalMeshComponent* EnemyMesh = GetMesh())
+	{
+		EnemyMesh->SetOverlayMaterial(PreBloodboundOverlayMaterial);
 	}
 }
 

@@ -987,7 +987,7 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 		bCurrentSelectionIsNinjaTrialReward=true;
 		bLevelUpSelectionActive=true;
 		if(!PlayerUpgradeComponent
-			||!PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Ninja,NinjaTrialRewardChoiceCount)
+			||!PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::NinjaTrial,NinjaTrialRewardChoiceCount)
 			||!EnsureLevelUpWidget())
 		{
 			HandleLevelUpSelectionCompleted();

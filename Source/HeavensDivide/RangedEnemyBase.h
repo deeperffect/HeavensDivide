@@ -22,6 +22,8 @@ public:
 	virtual void ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier) override;
 
 protected:
+	virtual void CapturePreBloodboundState() override;
+	virtual void RestorePreBloodboundState() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void UpdateEnemyBehavior(float DeltaSeconds) override;
 	virtual bool ShouldSkipMovement() const override;
@@ -38,6 +40,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackDamage = 10.0f;
+	float PreBloodboundAttackDamage = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack")
 	TObjectPtr<UAnimMontage> AttackMontage;

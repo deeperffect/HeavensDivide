@@ -133,6 +133,7 @@ bool ABloodShrine::ActivateShrine(APawn* InteractingPawn)
 	BloodboundContext.MovementSpeedMultiplier = BloodboundMovementSpeedMultiplier;
 	BloodboundContext.bDropsXP = bBloodboundDropsXP;
 	EnemySpawner->SetEnemySpawnModifierContext(GetPressureModifierId(), BloodboundContext);
+	EnemySpawner->OnEnemyBecameBloodbound.AddUniqueDynamic(this, &ABloodShrine::HandleEnemyBecameBloodbound);
 	EnemySpawner->ConvertRandomAliveEnemiesToBloodbound(BloodboundContext, InitialBloodboundConversionPercent);
 	EnemySpawner->OnEnemyKilled.AddUniqueDynamic(this, &ABloodShrine::HandleEnemyKilled);
 	if (UHealthComponent* PlayerHealth = PlayerController->GetPlayerHealthComponent())
@@ -193,6 +194,14 @@ void ABloodShrine::HandleEnemyKilled(AEnemyBase* Enemy)
 	if (CurrentBlood >= FMath::Max(1, RequiredBlood))
 	{
 		SucceedChallenge();
+	}
+}
+
+void ABloodShrine::HandleEnemyBecameBloodbound(AEnemyBase* Enemy)
+{
+	if (ShrineState == EBloodShrineState::Active && IsValid(Enemy))
+	{
+		OwnedBloodboundEnemies.AddUnique(Enemy);
 	}
 }
 
@@ -275,13 +284,28 @@ void ABloodShrine::EndChallenge()
 	if (EnemySpawner)
 	{
 		EnemySpawner->OnEnemyKilled.RemoveDynamic(this, &ABloodShrine::HandleEnemyKilled);
+		EnemySpawner->OnEnemyBecameBloodbound.RemoveDynamic(this, &ABloodShrine::HandleEnemyBecameBloodbound);
 		EnemySpawner->RemoveSpawnPressureModifier(GetPressureModifierId());
 		EnemySpawner->RemoveEnemySpawnModifierContext(GetPressureModifierId());
 	}
+	RevertOwnedBloodboundEnemies();
 	if (PlayerController)
 	{
 		PlayerController->EndObjective(this);
 	}
+}
+
+void ABloodShrine::RevertOwnedBloodboundEnemies()
+{
+	for (const TWeakObjectPtr<AEnemyBase>& EnemyPtr : OwnedBloodboundEnemies)
+	{
+		AEnemyBase* Enemy = EnemyPtr.Get();
+		if (IsValid(Enemy) && !Enemy->IsActorBeingDestroyed() && !Enemy->IsDead())
+		{
+			Enemy->RemoveBloodbound();
+		}
+	}
+	OwnedBloodboundEnemies.Reset();
 }
 
 void ABloodShrine::RequestReward()

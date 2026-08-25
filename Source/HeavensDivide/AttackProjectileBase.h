@@ -37,7 +37,9 @@ public:
 		bool bInCanTriggerExecutionersKunai = true,
 		AActor* InIgnoredOverlapActor = nullptr,
 		bool bFlattenLaunchDirection = true,
-		int32 InAdditionalPierceCount = 0);
+		int32 InAdditionalPierceCount = 0,
+		int32 InAdditionalBounceCount = 0,
+		int32 InSplitUpgradeLevel = 0);
 
 protected:
 	virtual void BeginPlay() override;
@@ -84,6 +86,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Marked for Death", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Speed multiplier applied only to Executioner's Kunai bonus projectiles."))
 	float ExecutionersKunaiSpeedMultiplier = 2.5f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Bounce", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float BounceSearchRadius = 700.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Split", meta = (ClampMin = "1", UIMin = "1"))
+	int32 SplitProjectileCount = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile|Split", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float SplitAngleDegrees = 25.0f;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Projectile")
 	EProjectileTargetType TargetType = EProjectileTargetType::Enemies;
 
@@ -106,6 +117,10 @@ private:
 	void LogProjectileFilterResult(AActor* OtherActor, bool bValidDamageTarget) const;
 	void BeginImpactTrailFade();
 	bool ConsumeEnemyHit(AEnemyBase* HitEnemy);
+	bool TryBounceFromImpact(const FVector& ImpactLocation);
+	AEnemyBase* FindBounceTarget(const FVector& SearchLocation) const;
+	void TrySpawnSplitProjectiles(AEnemyBase* HitEnemy, const FVector& ImpactLocation);
+	void SpawnSplitProjectile(const FVector& SpawnLocation, const FVector& Direction, AEnemyBase* HitEnemy);
 	void TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation);
 	void TryTriggerExecutionersKunai(AEnemyBase* ConsumedMarkEnemy, const FVector& MarkConsumedLocation);
 	AEnemyBase* FindExecutionersKunaiTarget(AEnemyBase* ConsumedMarkEnemy, const FVector& SearchLocation) const;
@@ -122,6 +137,8 @@ private:
 	float SourceTargetingRange = 0.0f;
 	int32 AdditionalPierceCount = 0;
 	int32 RemainingEnemyHits = 1;
+	int32 RemainingBounces = 0;
+	bool bCanTriggerSplit = false;
 	bool bIsProjectileInitialized = false;
 	bool bCanTriggerExecutionersKunai = true;
 	bool bImpactResolved = false;

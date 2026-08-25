@@ -111,6 +111,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Bloodbound")
 	void MakeBloodbound(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier, bool bInDropsXP);
 
+	UFUNCTION(BlueprintCallable, Category = "Enemy|Bloodbound")
+	bool RemoveBloodbound();
+
 	UFUNCTION(BlueprintPure, Category = "Enemy|Bloodbound")
 	bool IsBloodbound() const;
 
@@ -330,6 +333,14 @@ protected:
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInstanceDynamic> BloodboundOverlayDynamicMaterial;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> PreBloodboundOverlayMaterial;
+
+	float PreBloodboundMaxHealth = 0.0f;
+	float PreBloodboundMoveSpeed = 0.0f;
+	bool bPreBloodboundDropsXP = true;
+	bool bHasPreBloodboundState = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ToolTip = "Experience pickup actor class spawned when this enemy dies. Leave empty for no XP pickup."))
 	TSubclassOf<AExperiencePickup> ExperiencePickupClass;
 
@@ -349,7 +360,10 @@ protected:
 	bool EnsureTargetFromCharacterManager();
 	void CachePlayerExperienceComponent();
 	void SpawnExperiencePickup();
+	virtual void CapturePreBloodboundState();
+	virtual void RestorePreBloodboundState();
 	void ActivateBloodboundVisuals();
+	void DeactivateBloodboundVisuals();
 	void InitializeHealthBar();
 	void UpdateHealthBarVisibility(float HealthPercent);
 	void HideHealthBar();

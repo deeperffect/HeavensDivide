@@ -151,12 +151,16 @@ private:
 	void HandleEnemyKilled(AEnemyBase* Enemy);
 
 	UFUNCTION()
+	void HandleEnemyBecameBloodbound(AEnemyBase* Enemy);
+
+	UFUNCTION()
 	void HandlePlayerDeath();
 
 	void UpdateChallenge();
 	void SucceedChallenge();
 	void FailChallenge(bool bShowFailure);
 	void EndChallenge();
+	void RevertOwnedBloodboundEnemies();
 	void RequestReward();
 	void FindRequiredReferences();
 	void CreateStatusWidget();
@@ -181,4 +185,5 @@ private:
 	FTimerHandle RewardTimer;
 	double ChallengeEndTime = 0.0;
 	bool bRewardRequested = false;
+	TArray<TWeakObjectPtr<AEnemyBase>> OwnedBloodboundEnemies;
 };

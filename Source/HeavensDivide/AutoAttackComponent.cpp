@@ -509,7 +509,9 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		true,
 		nullptr,
 		true,
-		AdditionalPierceCount);
+		AdditionalPierceCount,
+		GetEffectiveProjectileBounceBonus(),
+		GetEffectiveProjectileSplitBonus());
 
 	RegisterKunaiFired();
 }
@@ -1400,6 +1402,18 @@ int32 UAutoAttackComponent::GetEffectiveProjectilePierceBonus() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
 	return CharacterStats ? CharacterStats->GetFinalProjectilePierceBonus() : 0;
+}
+
+int32 UAutoAttackComponent::GetEffectiveProjectileBounceBonus() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	return CharacterStats ? CharacterStats->GetFinalProjectileBounceBonus() : 0;
+}
+
+int32 UAutoAttackComponent::GetEffectiveProjectileSplitBonus() const
+{
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	return CharacterStats ? CharacterStats->GetFinalProjectileSplitBonus() : 0;
 }
 
 float UAutoAttackComponent::GetBaseAttackInterval() const

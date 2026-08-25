@@ -85,7 +85,9 @@ void AAttackProjectileBase::InitializeProjectile(
 	bool bInCanTriggerExecutionersKunai,
 	AActor* InIgnoredOverlapActor,
 	bool bFlattenLaunchDirection,
-	int32 InAdditionalPierceCount)
+	int32 InAdditionalPierceCount,
+	int32 InAdditionalBounceCount,
+	int32 InSplitUpgradeLevel)
 {
 	GameplayOwner = InGameplayOwner;
 	SetOwner(InGameplayOwner);
@@ -95,6 +97,8 @@ void AAttackProjectileBase::InitializeProjectile(
 	IgnoredOverlapActor = InIgnoredOverlapActor;
 	AdditionalPierceCount = FMath::Max(0, InAdditionalPierceCount);
 	RemainingEnemyHits = FMath::Max(1, 1 + AdditionalPierceCount);
+	RemainingBounces = FMath::Max(0, InAdditionalBounceCount);
+	bCanTriggerSplit = InSplitUpgradeLevel > 0;
 	DamagedEnemies.Reset();
 
 	if (APawn* OwnerPawn = Cast<APawn>(InGameplayOwner))
@@ -198,7 +202,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 
 		const FVector ExecutionLocation = HitEnemy->GetActorLocation();
-		HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
+		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bKilledEnemy)
 		{
@@ -240,9 +244,24 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			TryTriggerExecutionersKunai(HitEnemy, ExecutionLocation);
 		}
 
+		if (bDamageApplied && bCanTriggerSplit)
+		{
+			const FVector SplitImpactLocation = SweepResult.ImpactPoint.IsNearlyZero()
+				? HitEnemy->GetActorLocation()
+				: FVector(SweepResult.ImpactPoint);
+			TrySpawnSplitProjectiles(HitEnemy, SplitImpactLocation);
+			bCanTriggerSplit = false;
+		}
+
 		if (ConsumeEnemyHit(HitEnemy))
 		{
-			BeginImpactTrailFade();
+			const FVector ImpactLocation = SweepResult.ImpactPoint.IsNearlyZero()
+				? HitEnemy->GetActorLocation()
+				: FVector(SweepResult.ImpactPoint);
+			if (!bDamageApplied || !TryBounceFromImpact(ImpactLocation))
+			{
+				BeginImpactTrailFade();
+			}
 		}
 		return;
 	}
@@ -356,6 +375,107 @@ bool AAttackProjectileBase::ConsumeEnemyHit(AEnemyBase* HitEnemy)
 
 	--RemainingEnemyHits;
 	return RemainingEnemyHits <= 0;
+}
+
+bool AAttackProjectileBase::TryBounceFromImpact(const FVector& ImpactLocation)
+{
+	if (RemainingBounces <= 0 || !ProjectileMovement)
+	{
+		return false;
+	}
+
+	AEnemyBase* BounceTarget = FindBounceTarget(ImpactLocation);
+	if (!BounceTarget)
+	{
+		return false;
+	}
+
+	FVector BounceDirection = BounceTarget->GetActorLocation() - ImpactLocation;
+	BounceDirection.Z = 0.0f;
+	if (!BounceDirection.Normalize())
+	{
+		return false;
+	}
+
+	--RemainingBounces;
+	RemainingEnemyHits = FMath::Max(1, 1 + AdditionalPierceCount);
+	SetActorLocation(ImpactLocation + BounceDirection * 20.0f);
+	SetActorRotation(BounceDirection.Rotation());
+	ProjectileMovement->Velocity = BounceDirection * ProjectileSpeed;
+	return true;
+}
+
+AEnemyBase* AAttackProjectileBase::FindBounceTarget(const FVector& SearchLocation) const
+{
+	if (!GetWorld() || BounceSearchRadius <= 0.0f)
+	{
+		return nullptr;
+	}
+
+	TArray<FOverlapResult> OverlapResults;
+	FCollisionObjectQueryParams ObjectQueryParams;
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ProjectileBounceTargeting), false, this);
+	QueryParams.AddIgnoredActor(this);
+	if (GameplayOwner) QueryParams.AddIgnoredActor(GameplayOwner);
+	GetWorld()->OverlapMultiByObjectType(OverlapResults, SearchLocation, FQuat::Identity, ObjectQueryParams,
+		FCollisionShape::MakeSphere(BounceSearchRadius), QueryParams);
+
+	AEnemyBase* BestTarget = nullptr;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(GameplayOwner);
+	for (const FOverlapResult& Result : OverlapResults)
+	{
+		AEnemyBase* Candidate = Cast<AEnemyBase>(Result.GetActor());
+		if (!Candidate || Candidate->IsDead() || DamagedEnemies.Contains(Candidate) || !Candidate->CanReceivePlayerDamage(AttackSource))
+		{
+			continue;
+		}
+		const UHealthComponent* Health = Candidate->GetHealthComponent();
+		const float DistanceSquared = FVector::DistSquared(SearchLocation, Candidate->GetActorLocation());
+		if (Health && !Health->IsDead() && DistanceSquared <= FMath::Square(BounceSearchRadius) && DistanceSquared < BestDistanceSquared)
+		{
+			BestTarget = Candidate;
+			BestDistanceSquared = DistanceSquared;
+		}
+	}
+	return BestTarget;
+}
+
+void AAttackProjectileBase::TrySpawnSplitProjectiles(AEnemyBase* HitEnemy, const FVector& ImpactLocation)
+{
+	if (!GetWorld() || SplitProjectileCount <= 0 || !ProjectileMovement)
+	{
+		return;
+	}
+
+	FVector IncomingDirection = ProjectileMovement->Velocity.GetSafeNormal2D();
+	if (IncomingDirection.IsNearlyZero())
+	{
+		IncomingDirection = GetActorForwardVector().GetSafeNormal2D();
+	}
+	const int32 ChildCount = FMath::Max(1, SplitProjectileCount);
+	for (int32 Index = 0; Index < ChildCount; ++Index)
+	{
+		const float Alpha = ChildCount == 1 ? 0.5f : static_cast<float>(Index) / static_cast<float>(ChildCount - 1);
+		const float Angle = FMath::Lerp(-FMath::Abs(SplitAngleDegrees), FMath::Abs(SplitAngleDegrees), Alpha);
+		SpawnSplitProjectile(ImpactLocation, IncomingDirection.RotateAngleAxis(Angle, FVector::UpVector), HitEnemy);
+	}
+}
+
+void AAttackProjectileBase::SpawnSplitProjectile(const FVector& SpawnLocation, const FVector& Direction, AEnemyBase* HitEnemy)
+{
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = GameplayOwner;
+	SpawnParameters.Instigator = GetInstigator();
+	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AAttackProjectileBase* Child = GetWorld()->SpawnActor<AAttackProjectileBase>(GetClass(), SpawnLocation + Direction * 20.0f, Direction.Rotation(), SpawnParameters);
+	if (!Child) return;
+	Child->InitializeProjectile(GameplayOwner, Direction, ProjectileDamage, ProjectileSpeed, TargetType, SourceTargetingRange,
+		bCanTriggerExecutionersKunai, HitEnemy, true, AdditionalPierceCount, RemainingBounces, 0);
+	Child->DamagedEnemies = DamagedEnemies;
+	if (HitEnemy) Child->DamagedEnemies.Add(HitEnemy);
 }
 
 void AAttackProjectileBase::TryTriggerChainExecution(AEnemyBase* ExecutedEnemy, const FVector& ExecutionLocation)
@@ -651,7 +771,9 @@ void AAttackProjectileBase::SpawnExecutionersKunai(AEnemyBase* TargetEnemy, AEne
 		false,
 		TargetEnemy != ConsumedMarkEnemy ? ConsumedMarkEnemy : nullptr,
 		false,
-		AdditionalPierceCount);
+		AdditionalPierceCount,
+		RemainingBounces,
+		bCanTriggerSplit ? 1 : 0);
 
 	if (AActor* GameplayOwnerActor = GameplayOwner.Get())
 	{

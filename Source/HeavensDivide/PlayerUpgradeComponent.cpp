@@ -653,6 +653,8 @@ FString UPlayerUpgradeComponent::CategoryToString(EUpgradeCategory Category) con
 		return TEXT("Synergy");
 	case EUpgradeCategory::Cursed:
 		return TEXT("Blood Pact");
+	case EUpgradeCategory::NinjaTrial:
+		return TEXT("Ninja Technique");
 	default:
 		return TEXT("Unknown");
 	}

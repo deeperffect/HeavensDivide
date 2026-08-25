@@ -14,6 +14,7 @@ class UAutoAttackComponent;
 class UCurveFloat;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnerEnemyKilled, AEnemyBase*, Enemy);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnerEnemyBecameBloodbound, AEnemyBase*, Enemy);
 
 USTRUCT(BlueprintType)
 struct FEnemySpawnModifierContext
@@ -129,6 +130,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Enemy Spawning|Events")
 	FSpawnerEnemyKilled OnEnemyKilled;
+
+	UPROPERTY(BlueprintAssignable, Category = "Enemy Spawning|Events")
+	FSpawnerEnemyBecameBloodbound OnEnemyBecameBloodbound;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Pool", meta = (ToolTip = "List of enemy types this spawner can create. Each entry has its own weight, runtime window, cost, and optional per-type alive cap."))
@@ -287,7 +291,7 @@ protected:
 	void IncrementAliveCountForSpawnedEnemy(AEnemyBase* SpawnedEnemy, TSubclassOf<AEnemyBase> SpawnClass);
 	void DecrementAliveCountForDestroyedEnemy(AActor* DestroyedActor);
 	void PruneTrackedEnemies();
-	void ApplyEnemySpawnModifierContexts(AEnemyBase* SpawnedEnemy) const;
+	void ApplyEnemySpawnModifierContexts(AEnemyBase* SpawnedEnemy);
 	void HandleRunTimeTimerElapsed();
 	void HandleSpawnTimerElapsed();
 	void HandleDistantEnemyCheckTimerElapsed();
