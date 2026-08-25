@@ -247,6 +247,7 @@ bool ASurvivorPlayerController::CanSwap() const
 	return !bIsPlayerDead
 		&& !bIsDashing
 		&& !bLevelUpSelectionActive
+		&& !bSwapLocked
 		&& bCanSwap
 		&& CharacterManager
 		&& CharacterManager->GetActiveCharacter()
@@ -633,6 +634,12 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 	{
 		return;
 	}
+	if (bSuppressSwapEffects)
+	{
+		ApplySharedMoveSpeedToParty();
+		SetCameraFollowTarget(NewCharacter);
+		return;
+	}
 
 	StartSwapCooldown();
 
@@ -665,10 +672,12 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	PendingBloodShrineRewards = 0;
 	PendingTwinSoulRewards = 0;
 	PendingTwinSoulDiscoveries = 0;
+	PendingSamuraiTrialRewards = 0;
 	bLevelUpSelectionActive = false;
 	bCurrentSelectionIsBloodShrineReward = false;
 	bCurrentSelectionIsTwinSoulReward = false;
 	bCurrentSelectionIsTwinSoulDiscovery = false;
+	bCurrentSelectionIsSamuraiTrialReward = false;
 	bLevelUpTimeDilationApplied = false;
 	StopDashRecharge();
 	StopHPRegeneration();
@@ -709,6 +718,35 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 
 	UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
 	PresentGameOver(FinalRunTimeSeconds);
+}
+
+void ASurvivorPlayerController::SetSwapLocked(bool bLocked)
+{
+	bSwapLocked = bLocked;
+}
+
+bool ASurvivorPlayerController::ForceSamuraiActive()
+{
+	if (!CharacterManager || !CharacterManager->GetSamurai()) return false;
+	if (CharacterManager->GetActiveCharacter() == CharacterManager->GetSamurai()) return true;
+	if (InactiveCharacterAssistComponent) InactiveCharacterAssistComponent->DeactivateAssistEffect(true);
+	bSuppressSwapEffects = true;
+	CharacterManager->SwapCharacter();
+	bSuppressSwapEffects = false;
+	if (InactiveCharacterAssistComponent) InactiveCharacterAssistComponent->RefreshAssistEffectState();
+	return CharacterManager->GetActiveCharacter() == CharacterManager->GetSamurai();
+}
+
+bool ASurvivorPlayerController::ForceNinjaActive()
+{
+	if(!CharacterManager||!CharacterManager->GetNinja())return false;
+	if(CharacterManager->GetActiveCharacter()==CharacterManager->GetNinja())return true;
+	if(InactiveCharacterAssistComponent)InactiveCharacterAssistComponent->DeactivateAssistEffect(true);
+	bSuppressSwapEffects=true;
+	CharacterManager->SwapCharacter();
+	bSuppressSwapEffects=false;
+	if(InactiveCharacterAssistComponent)InactiveCharacterAssistComponent->RefreshAssistEffectState();
+	return CharacterManager->GetActiveCharacter()==CharacterManager->GetNinja();
 }
 
 void ASurvivorPlayerController::PresentGameOver(float FinalRunTimeSeconds)
@@ -798,10 +836,28 @@ void ASurvivorPlayerController::RequestTwinSoulCompletionRewards(int32 NormalCho
 	if (!bLevelUpSelectionActive) StartNextUpgradeSelection();
 }
 
+void ASurvivorPlayerController::RequestSamuraiTrialUpgradeReward(int32 UpgradeChoiceCount)
+{
+	if (bIsPlayerDead) return;
+	SamuraiTrialRewardChoiceCount = FMath::Max(1, UpgradeChoiceCount);
+	++PendingSamuraiTrialRewards;
+	if (!bLevelUpSelectionActive) StartNextUpgradeSelection();
+}
+
+void ASurvivorPlayerController::RequestNinjaTrialUpgradeReward(int32 UpgradeChoiceCount)
+{
+	if(bIsPlayerDead)return;
+	NinjaTrialRewardChoiceCount=FMath::Max(1,UpgradeChoiceCount);
+	++PendingNinjaTrialRewards;
+	if(!bLevelUpSelectionActive)StartNextUpgradeSelection();
+}
+
 void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 {
 	const bool bCompletedTwinSoulReward = bCurrentSelectionIsTwinSoulReward;
 	const bool bCompletedTwinSoulDiscovery = bCurrentSelectionIsTwinSoulDiscovery;
+	const bool bCompletedSamuraiTrialReward = bCurrentSelectionIsSamuraiTrialReward;
+	const bool bCompletedNinjaTrialReward = bCurrentSelectionIsNinjaTrialReward;
 	if (bCurrentSelectionIsTwinSoulDiscovery)
 	{
 		PendingTwinSoulDiscoveries = FMath::Max(0, PendingTwinSoulDiscoveries - 1);
@@ -810,6 +866,14 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 		{
 			MetaSubsystem->ConsumeTwinSoulDiscoveryProgress();
 		}
+	}
+	else if (bCurrentSelectionIsSamuraiTrialReward)
+	{
+		PendingSamuraiTrialRewards = FMath::Max(0, PendingSamuraiTrialRewards - 1);
+	}
+	else if(bCurrentSelectionIsNinjaTrialReward)
+	{
+		PendingNinjaTrialRewards=FMath::Max(0,PendingNinjaTrialRewards-1);
 	}
 	else if (bCurrentSelectionIsTwinSoulReward)
 	{
@@ -826,13 +890,17 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 	bCurrentSelectionIsBloodShrineReward = false;
 	bCurrentSelectionIsTwinSoulReward = false;
 	bCurrentSelectionIsTwinSoulDiscovery = false;
+	bCurrentSelectionIsSamuraiTrialReward = false;
+	bCurrentSelectionIsNinjaTrialReward = false;
+	if (bCompletedSamuraiTrialReward && PendingSamuraiTrialRewards == 0) OnSamuraiTrialRewardCompleted.Broadcast();
+	if(bCompletedNinjaTrialReward&&PendingNinjaTrialRewards==0)OnNinjaTrialRewardCompleted.Broadcast();
 	if ((bCompletedTwinSoulReward || bCompletedTwinSoulDiscovery)
 		&& PendingTwinSoulRewards == 0 && PendingTwinSoulDiscoveries == 0)
 	{
 		OnTwinSoulRewardCompleted.Broadcast();
 	}
 
-	if (PendingLevelUpChoices > 0 || PendingBloodShrineRewards > 0 || PendingTwinSoulRewards > 0 || PendingTwinSoulDiscoveries > 0)
+	if (PendingLevelUpChoices > 0 || PendingBloodShrineRewards > 0 || PendingTwinSoulRewards > 0 || PendingTwinSoulDiscoveries > 0 || PendingSamuraiTrialRewards > 0 || PendingNinjaTrialRewards > 0)
 	{
 		StartNextUpgradeSelection();
 		return;
@@ -891,6 +959,45 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 		return;
 	}
 
+	if (PendingSamuraiTrialRewards > 0)
+	{
+		bCurrentSelectionIsBloodShrineReward = false;
+		bCurrentSelectionIsTwinSoulReward = false;
+		bCurrentSelectionIsTwinSoulDiscovery = false;
+		bCurrentSelectionIsSamuraiTrialReward = true;
+		bLevelUpSelectionActive = true;
+		if (!PlayerUpgradeComponent
+			|| !PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Samurai, SamuraiTrialRewardChoiceCount)
+			|| !EnsureLevelUpWidget())
+		{
+			HandleLevelUpSelectionCompleted();
+			return;
+		}
+		PauseForLevelUpSelection();
+		LevelUpWidget->InitializeDirectUpgradeWidget(this);
+		return;
+	}
+
+	if(PendingNinjaTrialRewards>0)
+	{
+		bCurrentSelectionIsBloodShrineReward=false;
+		bCurrentSelectionIsTwinSoulReward=false;
+		bCurrentSelectionIsTwinSoulDiscovery=false;
+		bCurrentSelectionIsSamuraiTrialReward=false;
+		bCurrentSelectionIsNinjaTrialReward=true;
+		bLevelUpSelectionActive=true;
+		if(!PlayerUpgradeComponent
+			||!PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Ninja,NinjaTrialRewardChoiceCount)
+			||!EnsureLevelUpWidget())
+		{
+			HandleLevelUpSelectionCompleted();
+			return;
+		}
+		PauseForLevelUpSelection();
+		LevelUpWidget->InitializeDirectUpgradeWidget(this);
+		return;
+	}
+
 	if (PendingBloodShrineRewards <= 0)
 	{
 		bLevelUpSelectionActive = false;
@@ -925,6 +1032,8 @@ void ASurvivorPlayerController::StartNextLevelUpSelection()
 	bCurrentSelectionIsBloodShrineReward = false;
 	bCurrentSelectionIsTwinSoulReward = false;
 	bCurrentSelectionIsTwinSoulDiscovery = false;
+	bCurrentSelectionIsSamuraiTrialReward = false;
+	bCurrentSelectionIsNinjaTrialReward = false;
 	if (PendingLevelUpChoices <= 0)
 	{
 		bLevelUpSelectionActive = false;

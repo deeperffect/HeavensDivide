@@ -6,6 +6,7 @@
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "EnemyBase.h"
@@ -126,7 +127,14 @@ bool ATwinSoulTrial::EnterTrial(APawn* InteractingPawn)
 	bCrimsonDead = false;
 	bVioletDead = false;
 	MainSpawner->SetTrialSuspended(true);
-	ActiveCharacter->SetActorLocation(GetActorLocation() + TrialArenaOffset + TrialPlayerOffset, false, nullptr, ETeleportType::TeleportPhysics);
+	FVector TrialLocation=GetActorLocation()+TrialArenaOffset+TrialPlayerOffset;
+	if(TrialFloor)
+	{
+		const float FloorTop=TrialFloor->Bounds.Origin.Z+TrialFloor->Bounds.BoxExtent.Z;
+		const UCapsuleComponent* Capsule=ActiveCharacter->GetCapsuleComponent();
+		TrialLocation.Z=FloorTop+(Capsule?Capsule->GetScaledCapsuleHalfHeight():0.0f)+2.0f;
+	}
+	ActiveCharacter->SetActorLocation(TrialLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	if (!SpawnTargets())
 	{
 		TrialState = ETwinSoulTrialState::Inactive;

@@ -29,6 +29,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwapCooldownStarted, float, Coold
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSwapCooldownFinished);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDamageDodged, float, IncomingDamage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTwinSoulRewardCompleted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSamuraiTrialRewardCompleted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNinjaTrialRewardCompleted);
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
@@ -89,6 +91,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player|Swap")
 	void ResetSwapCooldown();
 
+	UFUNCTION(BlueprintCallable, Category = "Player|Swap")
+	void SetSwapLocked(bool bLocked);
+
+	UFUNCTION(BlueprintPure, Category = "Player|Swap")
+	bool IsSwapLocked() const { return bSwapLocked; }
+
+	UFUNCTION(BlueprintCallable, Category = "Player|Swap")
+	bool ForceSamuraiActive();
+	UFUNCTION(BlueprintCallable, Category = "Player|Swap")
+	bool ForceNinjaActive();
+
 	UFUNCTION(BlueprintCallable, Category = "Player|Dash")
 	bool TryDash();
 
@@ -137,8 +150,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
 	void RequestTwinSoulCompletionRewards(int32 NormalChoiceCount = 3, int32 DiscoveryChoiceCount = 3);
 
+	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
+	void RequestSamuraiTrialUpgradeReward(int32 UpgradeChoiceCount = 3);
+	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
+	void RequestNinjaTrialUpgradeReward(int32 UpgradeChoiceCount = 3);
+
 	UPROPERTY(BlueprintAssignable, Category = "Player|Rewards")
 	FOnTwinSoulRewardCompleted OnTwinSoulRewardCompleted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Player|Rewards")
+	FOnSamuraiTrialRewardCompleted OnSamuraiTrialRewardCompleted;
+	UPROPERTY(BlueprintAssignable, Category = "Player|Rewards")
+	FOnNinjaTrialRewardCompleted OnNinjaTrialRewardCompleted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when a player dash successfully starts."))
 	FOnPlayerDash OnDashStarted;
@@ -258,6 +281,10 @@ protected:
 	int32 PendingTwinSoulRewards = 0;
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards")
 	int32 PendingTwinSoulDiscoveries = 0;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards")
+	int32 PendingSamuraiTrialRewards = 0;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards")
+	int32 PendingNinjaTrialRewards = 0;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "True while the level-up upgrade selection UI is open and gameplay is frozen."))
 	bool bLevelUpSelectionActive = false;
@@ -267,6 +294,10 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Swap", meta = (ToolTip = "Whether the shared character swap cooldown currently allows swapping."))
 	bool bCanSwap = true;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Swap", meta = (ToolTip = "Reusable gameplay lock which blocks swap input without changing the normal cooldown."))
+	bool bSwapLocked = false;
+	bool bSuppressSwapEffects = false;
 
 	void Move(const FInputActionValue& Value);
 	void StopMoveInput(const FInputActionValue& Value);
@@ -334,7 +365,11 @@ protected:
 	int32 BloodShrineRewardChoiceCount = 3;
 	bool bCurrentSelectionIsTwinSoulReward = false;
 	bool bCurrentSelectionIsTwinSoulDiscovery = false;
+	bool bCurrentSelectionIsSamuraiTrialReward = false;
+	bool bCurrentSelectionIsNinjaTrialReward = false;
 	int32 TwinSoulRewardChoiceCount = 3;
 	int32 TwinSoulDiscoveryChoiceCount = 3;
+	int32 SamuraiTrialRewardChoiceCount = 3;
+	int32 NinjaTrialRewardChoiceCount = 3;
 	TWeakObjectPtr<AActor> ActiveObjective;
 };
