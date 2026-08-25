@@ -348,21 +348,55 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 	}
 
 	int32 KilledEnemyCount = 0;
+	const ESamuraiTechnique ActiveTechnique = GetActiveSamuraiTechnique();
+	const float ResolvedPrimaryDamage = ActiveTechnique == ESamuraiTechnique::Duelist
+		? ResolveDuelistPrimaryDamage(PrimaryTarget, EffectiveAttackDamage)
+		: EffectiveAttackDamage;
 	const float SecondaryDamage = EffectiveAttackDamage * FMath::Clamp(SecondaryTargetDamageMultiplier, 0.0f, 1.0f);
+	float PrimaryHealthBeforeHit = 0.0f;
+	FVector PrimaryDeathLocation = FVector::ZeroVector;
+	bool bPrimaryKilled = false;
+
+	if (PrimaryTarget)
+	{
+		if (UHealthComponent* PrimaryHealth = PrimaryTarget->GetHealthComponent(); PrimaryHealth && !PrimaryHealth->IsDead())
+		{
+			PrimaryHealthBeforeHit = PrimaryHealth->GetCurrentHealth();
+			PrimaryDeathLocation = PrimaryTarget->GetActorLocation();
+			PrimaryTarget->ApplyPlayerDamage(ResolvedPrimaryDamage, AttackSource);
+			bPrimaryKilled = PrimaryHealth->IsDead();
+			if (bPrimaryKilled) ++KilledEnemyCount;
+			if (bCanApplyMarkedBlade) PrimaryTarget->ApplyMark();
+		}
+	}
+
+	if (bPrimaryKilled)
+	{
+		if (ActiveTechnique == ESamuraiTechnique::Cleaver)
+		{
+			ExecuteCleaverChain(PrimaryTarget, PrimaryDeathLocation, FMath::Max(0.0f, ResolvedPrimaryDamage - PrimaryHealthBeforeHit), AttackSource);
+		}
+		else if (ActiveTechnique == ESamuraiTechnique::Deathblow)
+		{
+			ExecuteDeathblow(PrimaryTarget, PrimaryDeathLocation, ResolvedPrimaryDamage, AttackSource, bCanApplyMarkedBlade);
+		}
+		else if (ActiveTechnique == ESamuraiTechnique::Duelist)
+		{
+			if (DuelistTarget.Get() == PrimaryTarget)
+			{
+				ResetDuelistState();
+			}
+		}
+	}
+
 	for (AEnemyBase* HitEnemy : HitEnemies)
 	{
-		UHealthComponent* EnemyHealth = HitEnemy ? HitEnemy->GetHealthComponent() : nullptr;
+		if (!HitEnemy || HitEnemy == PrimaryTarget) continue;
+		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
 		if (!EnemyHealth || EnemyHealth->IsDead()) continue;
-		const float DamageToApply = HitEnemy == PrimaryTarget ? EffectiveAttackDamage : SecondaryDamage;
-		HitEnemy->ApplyPlayerDamage(DamageToApply, AttackSource);
-		if (EnemyHealth->IsDead())
-		{
-			++KilledEnemyCount;
-		}
-		if (bCanApplyMarkedBlade)
-		{
-			HitEnemy->ApplyMark();
-		}
+		HitEnemy->ApplyPlayerDamage(SecondaryDamage, AttackSource);
+		if (EnemyHealth->IsDead()) ++KilledEnemyCount;
+		if (bCanApplyMarkedBlade) HitEnemy->ApplyMark();
 	}
 
 	if (HitEnemies.Num() > 0 && ImpactSound)
@@ -1402,6 +1436,149 @@ int32 UAutoAttackComponent::GetEffectiveProjectilePierceBonus() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
 	return CharacterStats ? CharacterStats->GetFinalProjectilePierceBonus() : 0;
+}
+
+ESamuraiTechnique UAutoAttackComponent::GetActiveSamuraiTechnique() const
+{
+	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+	if (!PlayerUpgrades) return ESamuraiTechnique::None;
+	if (PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::SamuraiCleaver) > 0) return ESamuraiTechnique::Cleaver;
+	if (PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::SamuraiDuelist) > 0) return ESamuraiTechnique::Duelist;
+	if (PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::SamuraiDeathblow) > 0) return ESamuraiTechnique::Deathblow;
+	return ESamuraiTechnique::None;
+}
+
+float UAutoAttackComponent::ResolveDuelistPrimaryDamage(AEnemyBase* PrimaryTarget, float BasePrimaryDamage)
+{
+	if (!PrimaryTarget)
+	{
+		return BasePrimaryDamage;
+	}
+
+	if (bDoubleCutFollowUpActive)
+	{
+		const int32 AppliedStacks = DuelistTarget.Get() == PrimaryTarget ? DuelistStackCount : 0;
+		return BasePrimaryDamage * (1.0f + FMath::Max(0.0f, DuelistDamagePerStack) * AppliedStacks);
+	}
+
+	AEnemyBase* PreviousTarget = DuelistTarget.Get();
+	if (PreviousTarget != PrimaryTarget)
+	{
+		DuelistTarget = PrimaryTarget;
+		DuelistStackCount = 0;
+		OnDuelistTargetChanged.Broadcast(PreviousTarget, PrimaryTarget);
+		OnDuelistStackChanged.Broadcast(DuelistStackCount);
+	}
+	else
+	{
+		if (DuelistStackCount < MAX_int32)
+		{
+			++DuelistStackCount;
+		}
+		OnDuelistStackChanged.Broadcast(DuelistStackCount);
+	}
+
+	return BasePrimaryDamage * (1.0f + FMath::Max(0.0f, DuelistDamagePerStack) * DuelistStackCount);
+}
+
+void UAutoAttackComponent::ResetDuelistState()
+{
+	AEnemyBase* PreviousTarget = DuelistTarget.Get();
+	DuelistTarget.Reset();
+	DuelistStackCount = 0;
+	if (PreviousTarget) OnDuelistTargetChanged.Broadcast(PreviousTarget, nullptr);
+	OnDuelistStackChanged.Broadcast(0);
+}
+
+void UAutoAttackComponent::ExecuteCleaverChain(AEnemyBase* OriginalPrimaryTarget, const FVector& OriginLocation, float RemainingDamage, EPlayerAttackSource AttackSource)
+{
+	if (!GetWorld() || RemainingDamage <= KINDA_SMALL_NUMBER) return;
+
+	TSet<AEnemyBase*> VisitedTargets;
+	if (OriginalPrimaryTarget) VisitedTargets.Add(OriginalPrimaryTarget);
+	FVector FromLocation = OriginLocation;
+	const int32 SafeTargetLimit = FMath::Max(1, MaxCleaverChainTargets);
+	for (int32 ChainIndex = 0; ChainIndex < SafeTargetLimit && RemainingDamage > KINDA_SMALL_NUMBER; ++ChainIndex)
+	{
+		AEnemyBase* Target = FindCleaverTarget(FromLocation, VisitedTargets, AttackSource);
+		if (!Target) break;
+		UHealthComponent* Health = Target->GetHealthComponent();
+		if (!Health || Health->IsDead()) break;
+
+		VisitedTargets.Add(Target);
+		const float HealthBeforeHit = Health->GetCurrentHealth();
+		const FVector TargetLocation = Target->GetActorLocation();
+		OnCleaverTransfer.Broadcast(FromLocation, TargetLocation, RemainingDamage);
+		if (!Target->ApplyPlayerDamage(RemainingDamage, AttackSource)) break;
+		if (!Health->IsDead()) break;
+
+		RemainingDamage = FMath::Max(0.0f, RemainingDamage - HealthBeforeHit);
+		FromLocation = TargetLocation;
+	}
+}
+
+AEnemyBase* UAutoAttackComponent::FindCleaverTarget(const FVector& SearchLocation, const TSet<AEnemyBase*>& VisitedTargets, EPlayerAttackSource AttackSource) const
+{
+	if (!GetWorld() || CleaverChainRadius <= 0.0f) return nullptr;
+	TArray<FOverlapResult> Results;
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(CleaverChainTargeting), false, OwnerCharacter);
+	if (OwnerCharacter) QueryParams.AddIgnoredActor(OwnerCharacter);
+	GetWorld()->OverlapMultiByObjectType(Results, SearchLocation, FQuat::Identity, ObjectParams,
+		FCollisionShape::MakeSphere(CleaverChainRadius), QueryParams);
+
+	AEnemyBase* BestTarget = nullptr;
+	float BestDistanceSquared = TNumericLimits<float>::Max();
+	for (const FOverlapResult& Result : Results)
+	{
+		AEnemyBase* Candidate = Cast<AEnemyBase>(Result.GetActor());
+		if (!Candidate || Candidate->IsDead() || VisitedTargets.Contains(Candidate)
+			|| Candidate->GetRequiredPlayerAttackSource() != EPlayerAttackSource::Other
+			|| !Candidate->CanReceivePlayerDamage(AttackSource)) continue;
+		const UHealthComponent* Health = Candidate->GetHealthComponent();
+		const float DistanceSquared = FVector::DistSquared(SearchLocation, Candidate->GetActorLocation());
+		if (Health && !Health->IsDead() && DistanceSquared <= FMath::Square(CleaverChainRadius) && DistanceSquared < BestDistanceSquared)
+		{
+			BestTarget = Candidate;
+			BestDistanceSquared = DistanceSquared;
+		}
+	}
+	return BestTarget;
+}
+
+void UAutoAttackComponent::ExecuteDeathblow(AEnemyBase* DeadPrimaryTarget, const FVector& OriginLocation, float ResolvedPrimaryDamage, EPlayerAttackSource AttackSource, bool bApplyMarkedBlade)
+{
+	if (!GetWorld() || ResolvedPrimaryDamage <= 0.0f) return;
+	const UCharacterStatsComponent* Stats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	const float AreaMultiplier = Stats ? Stats->GetFinalAttackAreaMultiplier() : 1.0f;
+	const float Radius = FMath::Max(0.0f, DeathblowBaseRadius) * FMath::Max(0.0f, AreaMultiplier);
+	const float Damage = ResolvedPrimaryDamage * FMath::Max(0.0f, DeathblowDamageMultiplier);
+	OnDeathblowTriggered.Broadcast(OriginLocation, Radius, Damage);
+	if (Radius <= 0.0f || Damage <= 0.0f) return;
+
+	TArray<FOverlapResult> Results;
+	FCollisionObjectQueryParams ObjectParams;
+	ObjectParams.AddObjectTypesToQuery(ECC_Pawn);
+	ObjectParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(DeathblowTargets), false, OwnerCharacter);
+	if (OwnerCharacter) QueryParams.AddIgnoredActor(OwnerCharacter);
+	if (DeadPrimaryTarget) QueryParams.AddIgnoredActor(DeadPrimaryTarget);
+	GetWorld()->OverlapMultiByObjectType(Results, OriginLocation, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), QueryParams);
+
+	TSet<AEnemyBase*> DamagedTargets;
+	for (const FOverlapResult& Result : Results)
+	{
+		AEnemyBase* Candidate = Cast<AEnemyBase>(Result.GetActor());
+		if (!Candidate || Candidate == DeadPrimaryTarget || Candidate->IsDead() || DamagedTargets.Contains(Candidate)
+			|| Candidate->GetRequiredPlayerAttackSource() != EPlayerAttackSource::Other
+			|| !Candidate->CanReceivePlayerDamage(AttackSource)) continue;
+		UHealthComponent* Health = Candidate->GetHealthComponent();
+		if (!Health || Health->IsDead()) continue;
+		DamagedTargets.Add(Candidate);
+		if (Candidate->ApplyPlayerDamage(Damage, AttackSource) && bApplyMarkedBlade) Candidate->ApplyMark();
+	}
 }
 
 int32 UAutoAttackComponent::GetEffectiveProjectileBounceBonus() const

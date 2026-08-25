@@ -72,8 +72,23 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 		bMetaEligible = MetaSubsystem ? MetaSubsystem->IsUpgradeMetaEligible(Upgrade) : !Upgrade->bRequiresMetaUnlock || Upgrade->bUnlockedByDefault;
 	}
 
+	bool bExclusivityEligible = true;
+	if (Upgrade && !Upgrade->ExclusivityGroup.IsNone())
+	{
+		for (const TPair<FName, TObjectPtr<UUpgradeDefinition>>& Pair : AcquiredUpgradeDefinitions)
+		{
+			const UUpgradeDefinition* Acquired = Pair.Value;
+			if (Acquired && Acquired != Upgrade && Acquired->ExclusivityGroup == Upgrade->ExclusivityGroup && GetUpgradeLevelById(Pair.Key) > 0)
+			{
+				bExclusivityEligible = false;
+				break;
+			}
+		}
+	}
+
 	return IsValidUpgradeDefinition(Upgrade)
 		&& bMetaEligible
+		&& bExclusivityEligible
 		&& GetUpgradeLevel(Upgrade) < Upgrade->MaxLevel
 		&& MeetsPrerequisites(Upgrade);
 }
@@ -655,6 +670,8 @@ FString UPlayerUpgradeComponent::CategoryToString(EUpgradeCategory Category) con
 		return TEXT("Blood Pact");
 	case EUpgradeCategory::NinjaTrial:
 		return TEXT("Ninja Technique");
+	case EUpgradeCategory::SamuraiTrial:
+		return TEXT("Samurai Technique");
 	default:
 		return TEXT("Unknown");
 	}

@@ -14,6 +14,7 @@ class ANinjaCharacter;
 class ASamuraiCharacter;
 class USoundBase;
 class UUpgradeDefinition;
+enum class EPlayerAttackSource : uint8;
 
 UENUM(BlueprintType)
 enum class EAutoAttackSource : uint8
@@ -25,6 +26,19 @@ enum class EAutoAttackSource : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnAutoAttack, UAutoAttackComponent*, AttackComponent, EAutoAttackSource, AttackSource);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnCleaverTransfer, FVector, FromLocation, FVector, ToLocation, float, Damage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDuelistTargetChanged, AEnemyBase*, OldTarget, AEnemyBase*, NewTarget);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDuelistStackChanged, int32, NewStackCount);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDeathblowTriggered, FVector, Location, float, Radius, float, Damage);
+
+UENUM(BlueprintType)
+enum class ESamuraiTechnique : uint8
+{
+	None,
+	Cleaver,
+	Duelist,
+	Deathblow
+};
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
@@ -54,6 +68,18 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Auto Attack|Projectile")
 	void SpawnAutoAttackProjectile();
+
+	UPROPERTY(BlueprintAssignable, Category = "Auto Attack|Samurai Technique")
+	FOnCleaverTransfer OnCleaverTransfer;
+
+	UPROPERTY(BlueprintAssignable, Category = "Auto Attack|Samurai Technique")
+	FOnDuelistTargetChanged OnDuelistTargetChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Auto Attack|Samurai Technique")
+	FOnDuelistStackChanged OnDuelistStackChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Auto Attack|Samurai Technique")
+	FOnDeathblowTriggered OnDeathblowTriggered;
 
 	AEnemyBase* FindAssistTarget() const;
 	AEnemyBase* FindAssistTargetNearLocation(const FVector& SearchLocation, float SearchRadius) const;
@@ -142,6 +168,21 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Attack", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", ToolTip = "Damage multiplier applied to every valid Samurai melee target other than the single best-aligned primary target."))
 	float SecondaryTargetDamageMultiplier = 0.30f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Technique|Cleaver", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float CleaverChainRadius = 600.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Technique|Cleaver", meta = (ClampMin = "1", UIMin = "1"))
+	int32 MaxCleaverChainTargets = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Technique|Duelist", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float DuelistDamagePerStack = 0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Technique|Deathblow", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float DeathblowDamageMultiplier = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Technique|Deathblow", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float DeathblowBaseRadius = 450.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float TargetingRange = 1500.0f;
@@ -232,6 +273,12 @@ private:
 	bool TryConsumeAttackNotify();
 	bool ExecuteMeleeAttackTrace();
 	void HandleSamuraiMomentum(int32 KilledEnemyCount);
+	ESamuraiTechnique GetActiveSamuraiTechnique() const;
+	float ResolveDuelistPrimaryDamage(AEnemyBase* PrimaryTarget, float BasePrimaryDamage);
+	void ResetDuelistState();
+	void ExecuteCleaverChain(AEnemyBase* OriginalPrimaryTarget, const FVector& OriginLocation, float RemainingDamage, EPlayerAttackSource AttackSource);
+	AEnemyBase* FindCleaverTarget(const FVector& SearchLocation, const TSet<AEnemyBase*>& VisitedTargets, EPlayerAttackSource AttackSource) const;
+	void ExecuteDeathblow(AEnemyBase* DeadPrimaryTarget, const FVector& OriginLocation, float ResolvedPrimaryDamage, EPlayerAttackSource AttackSource, bool bApplyMarkedBlade);
 	void RegisterDoubleCutPrimaryAttack();
 	bool HasDoubleCutUpgrade() const;
 	const UUpgradeDefinition* GetMomentumUpgrade() const;
@@ -260,6 +307,8 @@ private:
 	TObjectPtr<ACharacterBase> OwnerCharacter;
 
 	TWeakObjectPtr<AEnemyBase> CurrentAttackTarget;
+	TWeakObjectPtr<AEnemyBase> DuelistTarget;
+	int32 DuelistStackCount = 0;
 
 	FTimerHandle AttackTimerHandle;
 	double LastAttackStartTime = -DBL_MAX;

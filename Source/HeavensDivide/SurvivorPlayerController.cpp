@@ -967,7 +967,7 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 		bCurrentSelectionIsSamuraiTrialReward = true;
 		bLevelUpSelectionActive = true;
 		if (!PlayerUpgradeComponent
-			|| !PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Samurai, SamuraiTrialRewardChoiceCount)
+			|| !PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::SamuraiTrial, SamuraiTrialRewardChoiceCount)
 			|| !EnsureLevelUpWidget())
 		{
 			HandleLevelUpSelectionCompleted();

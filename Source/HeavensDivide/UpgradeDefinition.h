@@ -16,7 +16,8 @@ enum class EUpgradeCategory : uint8
 	Global,
 	Synergy,
 	Cursed UMETA(DisplayName = "Blood Pact"),
-	NinjaTrial UMETA(DisplayName = "Ninja Technique")
+	NinjaTrial UMETA(DisplayName = "Ninja Technique"),
+	SamuraiTrial UMETA(DisplayName = "Samurai Technique")
 };
 
 UENUM(BlueprintType)
@@ -46,7 +47,10 @@ enum class EUpgradeSpecialEffect : uint8
 	DoubleCut,
 	Momentum,
 	FanOfBlades,
-	BladeCascade
+	BladeCascade,
+	SamuraiCleaver,
+	SamuraiDuelist,
+	SamuraiDeathblow
 };
 
 USTRUCT(BlueprintType)
@@ -114,6 +118,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TArray<EUpgradeSpecialEffect> SpecialEffects;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Exclusivity", meta = (ToolTip = "Optional run-local exclusivity group. Once one upgrade in this group is acquired, other upgrades in the same group become ineligible."))
+	FName ExclusivityGroup = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Kills required from a Samurai melee attack before the Momentum upgrade reduces the next attack cooldown."))
 	int32 MomentumRequiredKills = 5;
