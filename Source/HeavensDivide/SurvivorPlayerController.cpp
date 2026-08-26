@@ -6,6 +6,8 @@
 #include "CharacterManagerComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
 #include "EnemySpawner.h"
 #include "ExperienceComponent.h"
 #include "EnemyBase.h"
@@ -51,7 +53,6 @@ static TAutoConsoleVariable<int32> CVarHDLogHandoff(
 	0,
 	TEXT("Logs Handoff attack speed buff application and expiration when enabled."));
 
-
 namespace HandoffBuffIds
 {
 	static const FName ModifierId(TEXT("Handoff_AttackSpeed"));
@@ -90,6 +91,10 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	SharedPlayerStatsComponent = CreateDefaultSubobject<USharedPlayerStatsComponent>(TEXT("SharedPlayerStatsComponent"));
 	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
 	InactiveCharacterAssistComponent = CreateDefaultSubobject<UInactiveCharacterAssistComponent>(TEXT("InactiveCharacterAssistComponent"));
+	InteractAction = CreateDefaultSubobject<UInputAction>(TEXT("IA_Interact_Runtime"));
+	InteractAction->ValueType = EInputActionValueType::Boolean;
+	AimAction = CreateDefaultSubobject<UInputAction>(TEXT("IA_Aim_Runtime"));
+	AimAction->ValueType = EInputActionValueType::Axis2D;
 	ShadowCloneClass = AShadowClone::StaticClass();
 	GameOverWidgetClass = UGameOverWidget::StaticClass();
 	static ConstructorHelpers::FClassFinder<UGameOverWidget> GameOverWidgetBlueprint(
@@ -114,6 +119,12 @@ void ASurvivorPlayerController::BeginPlay()
 			InactiveCharacterAssistComponent->RefreshAssistEffectState();
 		}
 		CharacterManager->OnCharacterSwapped.AddDynamic(this, &ASurvivorPlayerController::HandleCharacterSwapped);
+		if (const ACharacterBase* ActiveCharacter = CharacterManager->GetActiveCharacter())
+		{
+			LastValidControllerAimDirection = ActiveCharacter->GetVisualForwardVector();
+			LastValidControllerAimDirection.Z = 0.0f;
+			LastValidControllerAimDirection.Normalize();
+		}
 	}
 	InitializePlayerCameraRig();
 	ResolveRunTimeSource();
@@ -147,6 +158,22 @@ void ASurvivorPlayerController::BeginPlay()
 	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
 	if (InputSubsystem && DefaultMappingContext)
 	{
+		auto EnsureMapping = [this](UInputAction* Action, const FKey Key)
+		{
+			if (Action && !DefaultMappingContext->GetMappings().ContainsByPredicate([Action, Key](const FEnhancedActionKeyMapping& Mapping)
+			{
+				return Mapping.Action == Action && Mapping.Key == Key;
+			}))
+			{
+				DefaultMappingContext->MapKey(Action, Key);
+			}
+		};
+
+		EnsureMapping(MoveAction, EKeys::Gamepad_Left2D);
+		EnsureMapping(DashAction, EKeys::Gamepad_FaceButton_Right);
+		EnsureMapping(SwapAction, EKeys::Gamepad_FaceButton_Top);
+		EnsureMapping(InteractAction, EKeys::Gamepad_FaceButton_Bottom);
+		EnsureMapping(AimAction, EKeys::Gamepad_Right2D);
 		InputSubsystem->AddMappingContext(DefaultMappingContext, 0);
 	}
 }
@@ -167,6 +194,7 @@ void ASurvivorPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
+	UpdateManualTargetingInput();
 	UpdateMouseFacingTarget();
 	HandleDashStep(DeltaTime);
 }
@@ -487,13 +515,21 @@ void ASurvivorPlayerController::SetupInputComponent()
 	{
 		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::Dash);
 	}
+	if (EnhancedInputComponent && InteractAction)
+	{
+		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::Interact);
+	}
+	if (EnhancedInputComponent && AimAction)
+	{
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &ASurvivorPlayerController::Aim);
+	}
 
 	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &ASurvivorPlayerController::Interact);
 }
 
 void ASurvivorPlayerController::Move(const FInputActionValue& Value)
 {
-	if (bIsPlayerDead)
+	if (bIsPlayerDead || bLevelUpSelectionActive)
 	{
 		return;
 	}
@@ -518,6 +554,7 @@ void ASurvivorPlayerController::StopMoveInput(const FInputActionValue& Value)
 
 void ASurvivorPlayerController::Swap(const FInputActionValue& Value)
 {
+	if (bLevelUpSelectionActive) return;
 	if (!CanSwap())
 	{
 		UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
@@ -534,11 +571,13 @@ void ASurvivorPlayerController::Swap(const FInputActionValue& Value)
 
 void ASurvivorPlayerController::Dash(const FInputActionValue& Value)
 {
+	if (bLevelUpSelectionActive) return;
 	TryDash();
 }
 
 void ASurvivorPlayerController::Interact()
 {
+	if (bLevelUpSelectionActive) return;
 	if (bIsPlayerDead || bLevelUpSelectionActive || !GetWorld())
 	{
 		return;
@@ -668,6 +707,12 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 	ApplySharedMoveSpeedToParty();
 	SetCameraFollowTarget(NewCharacter);
 	if (bWasPlayerInitiatedSwap) TryTriggerHemotoxicReaction(NewCharacter);
+}
+
+void ASurvivorPlayerController::Aim(const FInputActionValue& Value)
+{
+	if (bIsPlayerDead || bLevelUpSelectionActive || IsAutoTargetingEnabled()) return;
+	ApplyControllerAimInput(Value.Get<FVector2D>());
 }
 
 void ASurvivorPlayerController::TryTriggerHemotoxicReaction(ACharacterBase* NewCharacter)
@@ -1421,6 +1466,15 @@ void ASurvivorPlayerController::UpdateMouseFacingTarget()
 	{
 		return;
 	}
+	if (!IsAutoTargetingEnabled() && bControllerIsActiveTargetingDevice)
+	{
+		FVector AimDirection;
+		if (GetCursorAttackDirection(ControlledCharacter->GetActorLocation(), AimDirection))
+		{
+			ControlledCharacter->SetFacingTarget(ControlledCharacter->GetActorLocation() + AimDirection * 1000.0f);
+		}
+		return;
+	}
 
 	FVector MouseWorldPosition;
 	if (GetMouseWorldPosition(MouseWorldPosition))
@@ -1445,6 +1499,16 @@ void ASurvivorPlayerController::SetAutoTargetingEnabled(bool bEnabled)
 
 bool ASurvivorPlayerController::GetCursorAttackDirection(const FVector& AttackOrigin, FVector& OutDirection) const
 {
+	if (bControllerIsActiveTargetingDevice)
+	{
+		OutDirection = LastValidControllerAimDirection;
+		OutDirection.Z = 0.0f;
+		if (OutDirection.Normalize())
+		{
+			return true;
+		}
+	}
+
 	FVector CursorWorldPosition;
 	if (GetMouseWorldPosition(CursorWorldPosition))
 	{
@@ -1460,6 +1524,54 @@ bool ASurvivorPlayerController::GetCursorAttackDirection(const FVector& AttackOr
 	OutDirection = ActiveCharacter ? ActiveCharacter->GetVisualForwardVector() : FVector::ForwardVector;
 	OutDirection.Z = 0.0f;
 	return OutDirection.Normalize();
+}
+
+void ASurvivorPlayerController::UpdateManualTargetingInput()
+{
+	if (bIsPlayerDead || bLevelUpSelectionActive || IsAutoTargetingEnabled())
+	{
+		return;
+	}
+
+	float MouseDeltaX = 0.0f;
+	float MouseDeltaY = 0.0f;
+	GetInputMouseDelta(MouseDeltaX, MouseDeltaY);
+	const bool bMouseButtonPressed = WasInputKeyJustPressed(EKeys::LeftMouseButton)
+		|| WasInputKeyJustPressed(EKeys::RightMouseButton)
+		|| WasInputKeyJustPressed(EKeys::MiddleMouseButton);
+	if (!FMath::IsNearlyZero(MouseDeltaX) || !FMath::IsNearlyZero(MouseDeltaY) || bMouseButtonPressed)
+	{
+		bControllerIsActiveTargetingDevice = false;
+	}
+
+	const FVector2D StickInput(GetInputAnalogKeyState(EKeys::Gamepad_RightX), GetInputAnalogKeyState(EKeys::Gamepad_RightY));
+	ApplyControllerAimInput(StickInput);
+}
+
+void ASurvivorPlayerController::ApplyControllerAimInput(const FVector2D& StickInput)
+{
+	if (StickInput.SizeSquared() < FMath::Square(FMath::Clamp(ControllerAimDeadzone, 0.0f, 1.0f)))
+	{
+		return;
+	}
+
+	FRotator CameraRotation = PlayerCameraManager ? PlayerCameraManager->GetCameraRotation() : GetControlRotation();
+	CameraRotation.Pitch = 0.0f;
+	CameraRotation.Roll = 0.0f;
+	FVector CameraForward = CameraRotation.Vector();
+	CameraForward.Z = 0.0f;
+	CameraForward.Normalize();
+	FVector CameraRight = FRotationMatrix(CameraRotation).GetUnitAxis(EAxis::Y);
+	CameraRight.Z = 0.0f;
+	CameraRight.Normalize();
+
+	FVector WorldAimDirection = CameraRight * StickInput.X - CameraForward * StickInput.Y;
+	WorldAimDirection.Z = 0.0f;
+	if (WorldAimDirection.Normalize())
+	{
+		LastValidControllerAimDirection = WorldAimDirection;
+		bControllerIsActiveTargetingDevice = true;
+	}
 }
 
 bool ASurvivorPlayerController::GetMouseWorldPosition(FVector& OutWorldPosition) const

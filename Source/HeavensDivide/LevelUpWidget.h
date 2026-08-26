@@ -63,7 +63,14 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Level Up")
 	FOnLevelUpWidgetSelectionCompleted OnSelectionCompleted;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Level Up|Controller")
+	void SetControllerFocusPresentation(int32 ChoiceIndex, bool bShowingCategoryChoices);
+
 protected:
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply NativeOnAnalogValueChanged(const FGeometry& InGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
+
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Level Up")
 	TObjectPtr<ASurvivorPlayerController> SurvivorPlayerController;
 
@@ -72,6 +79,12 @@ protected:
 
 private:
 	void EnsureSynergyDiscoveryPresentation();
+	void InitializeControllerNavigation();
+	void MoveControllerFocus(int32 Direction);
+	void RefreshControllerFocus();
+	void RebuildFocusableChoices();
+	FReply HandleControllerKey(const FKeyEvent& InKeyEvent);
+	int32 GetVisibleChoiceCount() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UBorder> SynergyDiscoveryBanner;
@@ -85,4 +98,9 @@ private:
 	bool bCategoryChoiceCommitted = false;
 	bool bUpgradeChoiceCommitted = false;
 	bool bSynergyDiscoveryMode = false;
+	int32 ControllerFocusedChoiceIndex = 0;
+	bool bControllerAnalogNavigationHeld = false;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<class UButton>> FocusableChoiceButtons;
 };

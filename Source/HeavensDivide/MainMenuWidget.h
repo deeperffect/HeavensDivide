@@ -36,6 +36,8 @@ public:
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeConstruct() override;
+	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 
 private:
@@ -46,6 +48,7 @@ private:
 	void AddSynergyCollectionCard(UUpgradeDefinition* Definition, bool bUnlocked, int32 CardIndex);
 	UButton* AddMenuButton(class UVerticalBox* Parent, const FText& Label, FName WidgetName);
 	void SetResetConfirmationVisible(bool bVisible);
+	void FocusNamedWidget(FName WidgetName);
 
 	UFUNCTION()
 	void HandleNewRun();

@@ -4,6 +4,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
+#include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Overlay.h"
@@ -23,6 +24,7 @@ void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayer
 	bSynergyDiscoveryMode = false;
 	SetSynergyDiscoveryPresentation(false);
 	RefreshCategoryChoices();
+	InitializeControllerNavigation();
 }
 
 void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* InPlayerController)
@@ -35,6 +37,7 @@ void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* In
 	SetSynergyDiscoveryPresentation(false);
 	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
 	ShowUpgradeOffers(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeOffers() : TArray<FUpgradeOffer>());
+	InitializeControllerNavigation();
 }
 
 void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController* InPlayerController)
@@ -47,6 +50,7 @@ void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController*
 	SetSynergyDiscoveryPresentation(true);
 	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
 	ShowUpgradeOffers(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeOffers() : TArray<FUpgradeOffer>());
+	InitializeControllerNavigation();
 }
 
 void ULevelUpWidget::RefreshCategoryChoices()
@@ -98,7 +102,134 @@ bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
 
 	ShowUpgradeChoices(UpgradeChoices);
 	ShowUpgradeOffers(PlayerUpgrades->GetCurrentUpgradeOffers());
+	ControllerFocusedChoiceIndex = 0;
+	RefreshControllerFocus();
 	return UpgradeChoices.Num() > 0;
+}
+
+void ULevelUpWidget::InitializeControllerNavigation()
+{
+	SetIsFocusable(true);
+	ControllerFocusedChoiceIndex = 0;
+	bControllerAnalogNavigationHeld = false;
+	RefreshControllerFocus();
+}
+
+int32 ULevelUpWidget::GetVisibleChoiceCount() const
+{
+	if (!PlayerUpgrades) return 0;
+	return bCategoryChoiceCommitted
+		? PlayerUpgrades->GetCurrentUpgradeChoices().Num()
+		: PlayerUpgrades->GetCurrentCategoryChoices().Num();
+}
+
+void ULevelUpWidget::MoveControllerFocus(int32 Direction)
+{
+	const int32 ChoiceCount = GetVisibleChoiceCount();
+	if (ChoiceCount <= 0 || Direction == 0) return;
+	ControllerFocusedChoiceIndex = (ControllerFocusedChoiceIndex + Direction + ChoiceCount) % ChoiceCount;
+	RefreshControllerFocus();
+}
+
+void ULevelUpWidget::RefreshControllerFocus()
+{
+	const int32 ChoiceCount = GetVisibleChoiceCount();
+	ControllerFocusedChoiceIndex = ChoiceCount > 0 ? FMath::Clamp(ControllerFocusedChoiceIndex, 0, ChoiceCount - 1) : 0;
+	RebuildFocusableChoices();
+	SetControllerFocusPresentation(ControllerFocusedChoiceIndex, !bCategoryChoiceCommitted);
+
+	for (int32 Index = 0; Index < FocusableChoiceButtons.Num(); ++Index)
+	{
+		if (UButton* Button = FocusableChoiceButtons[Index])
+		{
+			Button->SetRenderScale(Index == ControllerFocusedChoiceIndex ? FVector2D(1.045f) : FVector2D(1.0f));
+		}
+	}
+
+	// The Blueprint buttons are mouse click targets with focus disabled. The focusable
+	// native widget owns controller input and the indexed buttons provide presentation.
+	SetUserFocus(SurvivorPlayerController);
+}
+
+void ULevelUpWidget::RebuildFocusableChoices()
+{
+	FocusableChoiceButtons.Reset();
+	if (!WidgetTree) return;
+
+	const FString RequiredPrefix = bCategoryChoiceCommitted ? TEXT("UpgradeButton_") : TEXT("CategoryButton_");
+	TArray<UWidget*> Widgets;
+	WidgetTree->GetAllWidgets(Widgets);
+	for (UWidget* Widget : Widgets)
+	{
+		UButton* Button = Cast<UButton>(Widget);
+		if (Button && Button->GetName().StartsWith(RequiredPrefix) && Button->IsVisible() && Button->GetIsEnabled())
+		{
+			FocusableChoiceButtons.Add(Button);
+		}
+	}
+	FocusableChoiceButtons.Sort([](const UButton& A, const UButton& B)
+	{
+		return A.GetName() < B.GetName();
+	});
+}
+
+FReply ULevelUpWidget::HandleControllerKey(const FKeyEvent& InKeyEvent)
+{
+	const FKey Key = InKeyEvent.GetKey();
+	if (Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Left || Key == EKeys::Up)
+	{
+		MoveControllerFocus(-1);
+		return FReply::Handled();
+	}
+	if (Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Right || Key == EKeys::Down)
+	{
+		MoveControllerFocus(1);
+		return FReply::Handled();
+	}
+	if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter || Key == EKeys::SpaceBar)
+	{
+		const bool bSelected = bCategoryChoiceCommitted
+			? SelectUpgradeChoice(ControllerFocusedChoiceIndex)
+			: SelectCategoryChoice(ControllerFocusedChoiceIndex);
+		return bSelected ? FReply::Handled() : FReply::Unhandled();
+	}
+	if (Key == EKeys::Gamepad_FaceButton_Right)
+	{
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
+FReply ULevelUpWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	const FReply Reply = HandleControllerKey(InKeyEvent);
+	return Reply.IsEventHandled() ? Reply : Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply ULevelUpWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	const FReply Reply = HandleControllerKey(InKeyEvent);
+	return Reply.IsEventHandled() ? Reply : Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply ULevelUpWidget::NativeOnAnalogValueChanged(const FGeometry& InGeometry, const FAnalogInputEvent& InAnalogInputEvent)
+{
+	const FKey Key = InAnalogInputEvent.GetKey();
+	if (Key == EKeys::Gamepad_LeftX)
+	{
+		const float Value = InAnalogInputEvent.GetAnalogValue();
+		if (FMath::Abs(Value) >= 0.5f)
+		{
+			if (!bControllerAnalogNavigationHeld) MoveControllerFocus(Value > 0.0f ? 1 : -1);
+			bControllerAnalogNavigationHeld = true;
+		}
+		else
+		{
+			bControllerAnalogNavigationHeld = false;
+		}
+		return FReply::Handled();
+	}
+	return Super::NativeOnAnalogValueChanged(InGeometry, InAnalogInputEvent);
 }
 
 bool ULevelUpWidget::GetOfferForUpgrade(UUpgradeDefinition* Upgrade, FUpgradeOffer& OutOffer) const

@@ -40,6 +40,12 @@ void UMainMenuWidget::NativeOnInitialized()
 	ShowMainPanel();
 }
 
+void UMainMenuWidget::NativeConstruct()
+{
+	Super::NativeConstruct();
+	ShowMainPanel();
+}
+
 void UMainMenuWidget::BuildMenu()
 {
 	if (!WidgetTree || WidgetTree->RootWidget)
@@ -278,6 +284,9 @@ void UMainMenuWidget::AddSynergyCollectionCard(UUpgradeDefinition* Definition, b
 UButton* UMainMenuWidget::AddMenuButton(UVerticalBox* Parent, const FText& Label, FName WidgetName)
 {
 	UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), WidgetName);
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+	Button->IsFocusable = true;
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	Button->SetBackgroundColor(FLinearColor(0.12f, 0.15f, 0.22f, 0.96f));
 	UTextBlock* LabelText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	LabelText->SetText(Label);
@@ -297,7 +306,7 @@ void UMainMenuWidget::ShowMainPanel()
 {
 	SetResetConfirmationVisible(false);
 	if (MenuSwitcher) MenuSwitcher->SetActiveWidgetIndex(0);
-	if (NewRunButton) NewRunButton->SetKeyboardFocus();
+	if (NewRunButton) NewRunButton->SetUserFocus(GetOwningPlayer());
 }
 
 void UMainMenuWidget::ShowCollectionPanel()
@@ -305,6 +314,7 @@ void UMainMenuWidget::ShowCollectionPanel()
 	SetResetConfirmationVisible(false);
 	RefreshCollection();
 	if (MenuSwitcher) MenuSwitcher->SetActiveWidgetIndex(1);
+	FocusNamedWidget(TEXT("CollectionBackButton"));
 }
 
 void UMainMenuWidget::ShowSettingsPanel()
@@ -312,11 +322,21 @@ void UMainMenuWidget::ShowSettingsPanel()
 	SetResetConfirmationVisible(false);
 	RefreshAutoTargetingSetting();
 	if (MenuSwitcher) MenuSwitcher->SetActiveWidgetIndex(2);
+	if (AutoTargetingCheckBox) AutoTargetingCheckBox->SetUserFocus(GetOwningPlayer());
 }
 
 void UMainMenuWidget::ShowResetConfirmation()
 {
 	SetResetConfirmationVisible(true);
+	FocusNamedWidget(TEXT("CancelResetButton"));
+}
+
+void UMainMenuWidget::FocusNamedWidget(FName WidgetName)
+{
+	if (UWidget* Widget = GetWidgetFromName(WidgetName))
+	{
+		Widget->SetUserFocus(GetOwningPlayer());
+	}
 }
 
 void UMainMenuWidget::SetResetConfirmationVisible(bool bVisible)
@@ -359,7 +379,7 @@ void UMainMenuWidget::HandleExitGame()
 
 FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
-	if (InKeyEvent.GetKey() == EKeys::Escape)
+	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Right)
 	{
 		if (bResetConfirmationOpen)
 		{
@@ -373,4 +393,23 @@ FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 		}
 	}
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UMainMenuWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Right)
+	{
+		if (bResetConfirmationOpen)
+		{
+			SetResetConfirmationVisible(false);
+			ShowMainPanel();
+			return FReply::Handled();
+		}
+		if (MenuSwitcher && MenuSwitcher->GetActiveWidgetIndex() != 0)
+		{
+			ShowMainPanel();
+			return FReply::Handled();
+		}
+	}
+	return Super::NativeOnPreviewKeyDown(InGeometry, InKeyEvent);
 }

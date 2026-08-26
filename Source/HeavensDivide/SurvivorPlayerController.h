@@ -226,6 +226,15 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input action used to spend a shared dash charge and dash."))
 	TObjectPtr<UInputAction> DashAction;
 
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> InteractAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> AimAction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input|Targeting", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", ToolTip = "Right-stick magnitude required before controller aim replaces mouse aim."))
+	float ControllerAimDeadzone = 0.25f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Dash", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Distance traveled during a player dash. Shared by Samurai and Ninja."))
 	float DashDistance = 550.0f;
 
@@ -329,6 +338,7 @@ protected:
 	void StopMoveInput(const FInputActionValue& Value);
 	void Swap(const FInputActionValue& Value);
 	void Dash(const FInputActionValue& Value);
+	void Aim(const FInputActionValue& Value);
 	void Interact();
 	void ConfigureInputMode();
 	void InitializePlayerCameraRig();
@@ -362,6 +372,8 @@ protected:
 	void ApplySharedPlayerStats();
 	void ApplyDashChargeStats();
 	void UpdateMouseFacingTarget();
+	void UpdateManualTargetingInput();
+	void ApplyControllerAimInput(const FVector2D& StickInput);
 	bool GetMouseWorldPosition(FVector& OutWorldPosition) const;
 	FVector GetDashDirection(const ACharacterBase* ActiveCharacter) const;
 	void HandleDashStep(float DeltaTime);
@@ -385,6 +397,8 @@ protected:
 	FTimerHandle DashRechargeTimerHandle;
 	FTimerHandle HPRegenTimerHandle;
 	FVector2D LastMovementInput = FVector2D::ZeroVector;
+	FVector LastValidControllerAimDirection = FVector::ForwardVector;
+	bool bControllerIsActiveTargetingDevice = false;
 	FVector ActiveDashDirection = FVector::ZeroVector;
 	float DashElapsedTime = 0.0f;
 	int32 CurrentDashCharges = 1;

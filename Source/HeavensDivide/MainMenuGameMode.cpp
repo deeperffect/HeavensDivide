@@ -40,5 +40,5 @@ void AMainMenuGameMode::BeginPlay()
 	InputMode.SetWidgetToFocus(MainMenuWidget->TakeWidget());
 	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 	PlayerController->SetInputMode(InputMode);
-	MainMenuWidget->SetKeyboardFocus();
+	MainMenuWidget->ShowMainPanel();
 }
