@@ -7,8 +7,13 @@
 #include "CharacterManagerComponent.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Border.h"
+#include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "ExperienceComponent.h"
+#include "FinalBossBase.h"
 #include "HealthComponent.h"
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
@@ -71,6 +76,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 
 void UPlayerHUDWidget::NativeDestruct()
 {
+	HideBossHealthBar();
 	StopHealthChipChase();
 	UnbindCharacterHealth();
 	UnbindPlayerExperience();
@@ -282,6 +288,88 @@ bool UPlayerHUDWidget::IsSamuraiActive() const
 bool UPlayerHUDWidget::IsNinjaActive() const
 {
 	return Ninja && GetActiveCharacter() == Ninja;
+}
+
+void UPlayerHUDWidget::ShowBossHealthBar(AFinalBossBase* Boss)
+{
+	if (!Boss || !Boss->GetHealthComponent()) return;
+	HideBossHealthBar();
+	EnsureBossHealthPresentation();
+	DisplayedBoss = Boss;
+	Boss->GetHealthComponent()->OnHealthChanged.AddUniqueDynamic(this, &UPlayerHUDWidget::HandleBossHealthChanged);
+	if (BossNameText) BossNameText->SetText(Boss->GetBossDisplayName());
+	if (BossHealthContainer) BossHealthContainer->SetVisibility(ESlateVisibility::HitTestInvisible);
+	HandleBossHealthChanged(
+		Boss->GetHealthComponent()->GetCurrentHealth(),
+		Boss->GetHealthComponent()->GetMaxHealth(),
+		Boss->GetHealthComponent()->GetHealthPercent());
+}
+
+void UPlayerHUDWidget::HideBossHealthBar(AFinalBossBase* Boss)
+{
+	AFinalBossBase* CurrentBoss = DisplayedBoss.Get();
+	if (Boss && CurrentBoss && Boss != CurrentBoss) return;
+	if (CurrentBoss && CurrentBoss->GetHealthComponent())
+	{
+		CurrentBoss->GetHealthComponent()->OnHealthChanged.RemoveDynamic(this, &UPlayerHUDWidget::HandleBossHealthChanged);
+	}
+	DisplayedBoss.Reset();
+	if (BossHealthContainer) BossHealthContainer->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UPlayerHUDWidget::HandleBossHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent)
+{
+	if (BossHealthProgressBar) BossHealthProgressBar->SetPercent(FMath::Clamp(HealthPercent, 0.0f, 1.0f));
+	if (BossHealthValueText)
+	{
+		BossHealthValueText->SetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), FMath::Max(0.0f, CurrentHealth), FMath::Max(0.0f, MaxHealth))));
+	}
+	if (CurrentHealth <= 0.0f) HideBossHealthBar();
+}
+
+void UPlayerHUDWidget::EnsureBossHealthPresentation()
+{
+	if (BossHealthContainer || !WidgetTree || !WidgetTree->RootWidget) return;
+	UWidget* ExistingRoot = WidgetTree->RootWidget;
+	UCanvasPanel* CanvasRoot = Cast<UCanvasPanel>(ExistingRoot);
+	if (!CanvasRoot)
+	{
+		CanvasRoot = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("PlayerHUDPresentationRoot"));
+		WidgetTree->RootWidget = CanvasRoot;
+		UCanvasPanelSlot* ExistingSlot = CanvasRoot->AddChildToCanvas(ExistingRoot);
+		ExistingSlot->SetAnchors(FAnchors(0.0f, 0.0f, 1.0f, 1.0f));
+		ExistingSlot->SetOffsets(FMargin(0.0f));
+	}
+
+	BossHealthContainer = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("BossHealthContainer"));
+	BossHealthContainer->SetBrushColor(FLinearColor(0.015f, 0.01f, 0.015f, 0.92f));
+	BossHealthContainer->SetPadding(FMargin(18.0f, 10.0f));
+	BossHealthContainer->SetVisibility(ESlateVisibility::Collapsed);
+	UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("BossHealthStack"));
+	BossHealthContainer->SetContent(Stack);
+
+	BossNameText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("BossNameText"));
+	BossNameText->SetJustification(ETextJustify::Center);
+	BossNameText->SetColorAndOpacity(FSlateColor(FLinearColor(0.93f, 0.80f, 0.62f)));
+	FSlateFontInfo NameFont = BossNameText->GetFont();
+	NameFont.Size = 22;
+	NameFont.TypefaceFontName = TEXT("Bold");
+	BossNameText->SetFont(NameFont);
+	Stack->AddChildToVerticalBox(BossNameText)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 5.0f));
+
+	BossHealthProgressBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("BossHealthProgressBar"));
+	BossHealthProgressBar->SetFillColorAndOpacity(FLinearColor(0.68f, 0.055f, 0.045f, 1.0f));
+	Stack->AddChildToVerticalBox(BossHealthProgressBar)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 4.0f));
+	BossHealthValueText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("BossHealthValueText"));
+	BossHealthValueText->SetJustification(ETextJustify::Center);
+	BossHealthValueText->SetColorAndOpacity(FSlateColor(FLinearColor(0.85f, 0.85f, 0.88f)));
+	Stack->AddChildToVerticalBox(BossHealthValueText);
+
+	UCanvasPanelSlot* BossSlot = CanvasRoot->AddChildToCanvas(BossHealthContainer);
+	BossSlot->SetAnchors(FAnchors(0.5f, 0.12f));
+	BossSlot->SetAlignment(FVector2D(0.5f, 0.0f));
+	BossSlot->SetSize(FVector2D(720.0f, 92.0f));
+	BossSlot->SetZOrder(200);
 }
 
 float UPlayerHUDWidget::GetRunTimeSeconds() const

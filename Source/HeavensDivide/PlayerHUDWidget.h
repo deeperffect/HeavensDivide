@@ -14,6 +14,9 @@ class UExperienceComponent;
 class UHealthComponent;
 class ASurvivorPlayerController;
 class UTextBlock;
+class UBorder;
+class UProgressBar;
+class AFinalBossBase;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDHealthUpdated, float, CurrentHealth, float, MaxHealth, float, HealthPercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDActiveCharacterChanged, ACharacterBase*, NewActiveCharacter);
@@ -145,6 +148,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player HUD|Run")
 	static FText FormatRunTimeText(float RunTimeSeconds);
 
+	UFUNCTION(BlueprintCallable, Category="Player HUD|Boss") void ShowBossHealthBar(AFinalBossBase* Boss);
+	UFUNCTION(BlueprintCallable, Category="Player HUD|Boss") void HideBossHealthBar(AFinalBossBase* Boss = nullptr);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "Player HUD")
 	void OnPlayerHealthUpdated(float CurrentHealth, float MaxHealth, float HealthPercent);
 
@@ -259,6 +265,8 @@ protected:
 	TObjectPtr<UTextBlock> RunTimerText;
 
 private:
+	void EnsureBossHealthPresentation();
+	UFUNCTION() void HandleBossHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent);
 	UFUNCTION()
 	void HandlePlayerHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent);
 
@@ -311,4 +319,9 @@ private:
 	bool bDashRechargeProgressActive = false;
 	bool bSwapCooldownProgressActive = false;
 	int64 LastDisplayedRunTimeSecond = INDEX_NONE;
+	TWeakObjectPtr<AFinalBossBase> DisplayedBoss;
+	UPROPERTY(Transient) TObjectPtr<UBorder> BossHealthContainer;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> BossNameText;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> BossHealthValueText;
+	UPROPERTY(Transient) TObjectPtr<UProgressBar> BossHealthProgressBar;
 };

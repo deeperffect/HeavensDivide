@@ -436,6 +436,7 @@ protected:
 	void UpdateAnimationBudgetSignificance();
 	void LogAnimationBudgetSetup(USkeletalMeshComponentBudgeted* BudgetedMesh, bool bAllocatorEnabled) const;
 	virtual bool ShouldForceHighAnimationBudgetSignificance() const;
+	virtual bool ShouldUseWorldHealthBar() const { return true; }
 	virtual void UpdateEnemyBehavior(float DeltaSeconds);
 	virtual bool ShouldSkipMovement() const;
 	virtual void StopEnemyBehavior();

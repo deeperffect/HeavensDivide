@@ -10,6 +10,7 @@
 #include "InputMappingContext.h"
 #include "EnemySpawner.h"
 #include "ExperienceComponent.h"
+#include "FinalBossBase.h"
 #include "EnemyBase.h"
 #include "EnemyStatusEffectComponent.h"
 #include "GameOverWidget.h"
@@ -527,6 +528,19 @@ void ASurvivorPlayerController::SetupInputComponent()
 	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &ASurvivorPlayerController::Interact);
 }
 
+void ASurvivorPlayerController::ShowBossHealthBar(AFinalBossBase* Boss)
+{
+	ActiveBossHealthBar = Boss;
+	if (PlayerHUDWidget) PlayerHUDWidget->ShowBossHealthBar(Boss);
+}
+
+void ASurvivorPlayerController::HideBossHealthBar(AFinalBossBase* Boss)
+{
+	if (Boss && ActiveBossHealthBar.IsValid() && ActiveBossHealthBar.Get() != Boss) return;
+	ActiveBossHealthBar.Reset();
+	if (PlayerHUDWidget) PlayerHUDWidget->HideBossHealthBar(Boss);
+}
+
 void ASurvivorPlayerController::Move(const FInputActionValue& Value)
 {
 	if (bIsPlayerDead || bLevelUpSelectionActive)
@@ -665,6 +679,7 @@ void ASurvivorPlayerController::InitializePlayerHUD()
 
 	PlayerHUDWidget->AddToViewport();
 	PlayerHUDWidget->InitializeFromPlayerController(this);
+	if (AFinalBossBase* Boss = ActiveBossHealthBar.Get()) PlayerHUDWidget->ShowBossHealthBar(Boss);
 }
 
 void ASurvivorPlayerController::ResolveRunTimeSource()

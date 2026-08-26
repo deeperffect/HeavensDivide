@@ -23,6 +23,7 @@ class ABloodShrine;
 class AEnemySpawner;
 class AEnemyBase;
 class AShadowClone;
+class AFinalBossBase;
 struct FInputActionValue;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
@@ -117,6 +118,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Player|Dash")
 	bool TryDash();
+
+	void ShowBossHealthBar(AFinalBossBase* Boss);
+	void HideBossHealthBar(AFinalBossBase* Boss);
 
 	UFUNCTION(BlueprintPure, Category = "Player|Dash")
 	bool CanDash() const;
@@ -419,4 +423,5 @@ protected:
 	int32 SamuraiTrialRewardChoiceCount = 3;
 	int32 NinjaTrialRewardChoiceCount = 3;
 	TWeakObjectPtr<AActor> ActiveObjective;
+	TWeakObjectPtr<AFinalBossBase> ActiveBossHealthBar;
 };

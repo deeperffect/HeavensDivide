@@ -951,6 +951,11 @@ void AEnemyBase::SpawnExperiencePickup()
 
 void AEnemyBase::InitializeHealthBar()
 {
+	if (!ShouldUseWorldHealthBar())
+	{
+		HideHealthBar();
+		return;
+	}
 	if (!HealthBarWidgetComponent)
 	{
 		return;
@@ -981,6 +986,11 @@ void AEnemyBase::InitializeHealthBar()
 
 void AEnemyBase::UpdateHealthBarVisibility(float HealthPercent)
 {
+	if (!ShouldUseWorldHealthBar())
+	{
+		HideHealthBar();
+		return;
+	}
 	if (!HealthBarWidgetComponent)
 	{
 		return;
