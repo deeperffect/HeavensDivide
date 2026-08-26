@@ -7,6 +7,7 @@
 class ASurvivorPlayerController;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
+class UDecalComponent;
 class UStaticMeshComponent;
 
 UCLASS(Blueprintable)
@@ -20,6 +21,9 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	void InitializeTelegraph(ASurvivorPlayerController* InPlayerController, float InRadius, float InDuration, float InDamage, UMaterialInterface* InMaterial);
+	void InitializePersistentCircle(float InRadius, UMaterialInterface* InMaterial);
+	void InitializePersistentRectangle(float InLength, float InWidth, UMaterialInterface* InMaterial);
+	void SetTelegraphFillAmount(float FillAmount);
 	void CancelTelegraph();
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Boss|Telegraph")
@@ -28,6 +32,9 @@ public:
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss|Telegraph")
 	TObjectPtr<UStaticMeshComponent> TelegraphVisual;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss|Telegraph")
+	TObjectPtr<UDecalComponent> CircleDecalVisual;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss|Telegraph")
 	FLinearColor TelegraphColor = FLinearColor::Red;
