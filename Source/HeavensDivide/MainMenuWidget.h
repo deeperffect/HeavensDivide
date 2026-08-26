@@ -7,6 +7,7 @@
 #include "MainMenuWidget.generated.h"
 
 class UButton;
+class UCheckBox;
 class UTextBlock;
 class UUniformGridPanel;
 class UWidgetSwitcher;
@@ -40,6 +41,8 @@ protected:
 private:
 	void BuildMenu();
 	class UVerticalBox* BuildCollectionPanel();
+	class UVerticalBox* BuildSettingsPanel();
+	void RefreshAutoTargetingSetting();
 	void AddSynergyCollectionCard(UUpgradeDefinition* Definition, bool bUnlocked, int32 CardIndex);
 	UButton* AddMenuButton(class UVerticalBox* Parent, const FText& Label, FName WidgetName);
 	void SetResetConfirmationVisible(bool bVisible);
@@ -50,6 +53,8 @@ private:
 	void HandleCollection();
 	UFUNCTION()
 	void HandleSettings();
+	UFUNCTION()
+	void HandleAutoTargetingChanged(bool bIsChecked);
 	UFUNCTION()
 	void HandleResetProgress();
 	UFUNCTION()
@@ -73,6 +78,10 @@ private:
 	TObjectPtr<UTextBlock> CollectionProgressText;
 	UPROPERTY(Transient)
 	TObjectPtr<UUniformGridPanel> SynergyCollectionGrid;
+	UPROPERTY(Transient)
+	TObjectPtr<UCheckBox> AutoTargetingCheckBox;
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> AutoTargetingStateText;
 
 	bool bResetConfirmationOpen = false;
 };

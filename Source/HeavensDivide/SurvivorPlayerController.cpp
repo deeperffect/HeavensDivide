@@ -12,6 +12,7 @@
 #include "EnemyStatusEffectComponent.h"
 #include "GameOverWidget.h"
 #include "HealthComponent.h"
+#include "HeavensDivideGameUserSettings.h"
 #include "Interactable.h"
 #include "InactiveCharacterAssistComponent.h"
 #include "InputActionValue.h"
@@ -1428,6 +1429,39 @@ void ASurvivorPlayerController::UpdateMouseFacingTarget()
 	}
 }
 
+bool ASurvivorPlayerController::IsAutoTargetingEnabled() const
+{
+	const UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+	return !Settings || Settings->IsAutoTargetingEnabled();
+}
+
+void ASurvivorPlayerController::SetAutoTargetingEnabled(bool bEnabled)
+{
+	if (UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
+	{
+		Settings->SetAutoTargetingEnabled(bEnabled);
+	}
+}
+
+bool ASurvivorPlayerController::GetCursorAttackDirection(const FVector& AttackOrigin, FVector& OutDirection) const
+{
+	FVector CursorWorldPosition;
+	if (GetMouseWorldPosition(CursorWorldPosition))
+	{
+		OutDirection = CursorWorldPosition - AttackOrigin;
+		OutDirection.Z = 0.0f;
+		if (OutDirection.Normalize())
+		{
+			return true;
+		}
+	}
+
+	const ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+	OutDirection = ActiveCharacter ? ActiveCharacter->GetVisualForwardVector() : FVector::ForwardVector;
+	OutDirection.Z = 0.0f;
+	return OutDirection.Normalize();
+}
+
 bool ASurvivorPlayerController::GetMouseWorldPosition(FVector& OutWorldPosition) const
 {
 	FHitResult HitResult;
@@ -1451,6 +1485,18 @@ bool ASurvivorPlayerController::GetMouseWorldPosition(FVector& OutWorldPosition)
 	{
 		OutWorldPosition = HitResult.ImpactPoint;
 		return true;
+	}
+
+	const ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+	const float GameplayPlaneZ = ActiveCharacter ? ActiveCharacter->GetActorLocation().Z : 0.0f;
+	if (!FMath::IsNearlyZero(WorldDirection.Z))
+	{
+		const float DistanceAlongRay = (GameplayPlaneZ - WorldLocation.Z) / WorldDirection.Z;
+		if (DistanceAlongRay > 0.0f)
+		{
+			OutWorldPosition = WorldLocation + WorldDirection * DistanceAlongRay;
+			return true;
+		}
 	}
 
 	return false;

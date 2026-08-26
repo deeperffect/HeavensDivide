@@ -296,6 +296,8 @@ private:
 	bool CanExecuteAttackInCurrentMode() const;
 	bool CanStartAttackNow() const;
 	bool IsOwningPlayerDead() const;
+	bool IsCursorTargetingEnabledForNormalAttack() const;
+	bool ResolveCursorAttackDirection(FVector& OutDirection) const;
 	bool TryConsumeAttackNotify();
 	bool ExecuteMeleeAttackTrace();
 	void HandleSamuraiMomentum(int32 KilledEnemyCount);
@@ -336,6 +338,7 @@ private:
 	TObjectPtr<ACharacterBase> OwnerCharacter;
 
 	TWeakObjectPtr<AEnemyBase> CurrentAttackTarget;
+	FVector ActiveAttackDirection = FVector::ZeroVector;
 	TWeakObjectPtr<AEnemyBase> DuelistTarget;
 	int32 DuelistStackCount = 0;
 

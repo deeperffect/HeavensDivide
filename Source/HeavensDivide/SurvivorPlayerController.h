@@ -65,6 +65,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
 
+	UFUNCTION(BlueprintPure, Category = "Player|Targeting")
+	bool IsAutoTargetingEnabled() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Player|Targeting")
+	void SetAutoTargetingEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintPure, Category = "Player|Targeting")
+	bool GetCursorAttackDirection(const FVector& AttackOrigin, FVector& OutDirection) const;
+
 	UFUNCTION(BlueprintPure, Category = "Run")
 	float GetRunTimeSeconds() const;
 

@@ -451,17 +451,6 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
-	TArray<AEnemyBase*> TargetCandidates;
-	FindEnemyTargetsSorted(TargetCandidates);
-	if (TargetCandidates.Num() == 0)
-	{
-		if (OwnerCharacter)
-		{
-			OwnerCharacter->ClearFacingOverride();
-		}
-		return;
-	}
-
 	const FVector SpawnLocation = GetProjectileSpawnLocation();
 	const float EffectiveProjectileSpeed = GetEffectiveProjectileSpeed();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
@@ -469,11 +458,30 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	const int32 EffectiveProjectileCount = ConsumeBladeCascadeBonusForNormalVolley(NormalProjectileCount);
 	const int32 EffectiveProjectilePierceBonus = GetEffectiveProjectilePierceBonus();
 
-	AEnemyBase* PrimaryTarget = TargetCandidates[0];
-	if (!PrimaryTarget || PrimaryTarget->IsDead()) return;
-	FVector BaseDirection = GetEnemyAimLocation(PrimaryTarget) - SpawnLocation;
-	BaseDirection.Z = 0.0f;
-	if (!BaseDirection.Normalize()) return;
+	AEnemyBase* PrimaryTarget = nullptr;
+	FVector BaseDirection = FVector::ZeroVector;
+	if (IsCursorTargetingEnabledForNormalAttack())
+	{
+		BaseDirection = ActiveAttackDirection;
+		BaseDirection.Z = 0.0f;
+		if (!BaseDirection.Normalize() && !ResolveCursorAttackDirection(BaseDirection)) return;
+	}
+	else
+	{
+		TArray<AEnemyBase*> TargetCandidates;
+		FindEnemyTargetsSorted(TargetCandidates);
+		if (TargetCandidates.IsEmpty())
+		{
+			if (OwnerCharacter) OwnerCharacter->ClearFacingOverride();
+			return;
+		}
+
+		PrimaryTarget = TargetCandidates[0];
+		if (!PrimaryTarget || PrimaryTarget->IsDead()) return;
+		BaseDirection = GetEnemyAimLocation(PrimaryTarget) - SpawnLocation;
+		BaseDirection.Z = 0.0f;
+		if (!BaseDirection.Normalize()) return;
+	}
 	TArray<FVector> VolleyDirections;
 	BuildCenteredProjectileSpreadDirections(BaseDirection, EffectiveProjectileCount, KunaiSpreadAngle, bNormalVolleyExtraProjectileOnRight, VolleyDirections);
 	if (EffectiveProjectileCount % 2 == 0) bNormalVolleyExtraProjectileOnRight = !bNormalVolleyExtraProjectileOnRight;
@@ -490,7 +498,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 			UE_LOG(LogTemp, Log, TEXT("Ninja Attack Projectile %d/%d -> %s Direction=%s"),
 				ProjectileIndex + 1,
 				EffectiveProjectileCount,
-				*GetNameSafe(PrimaryTarget),
+				PrimaryTarget ? *GetNameSafe(PrimaryTarget) : TEXT("Cursor"),
 				*SpawnDirection.ToString());
 		}
 
@@ -1110,6 +1118,25 @@ bool UAutoAttackComponent::StartTargetedAttack()
 		return false;
 	}
 
+	if (IsCursorTargetingEnabledForNormalAttack())
+	{
+		FVector CursorDirection;
+		if (!ResolveCursorAttackDirection(CursorDirection))
+		{
+			return false;
+		}
+
+		CurrentAttackTarget.Reset();
+		ActiveAttackDirection = CursorDirection;
+		OwnerCharacter->SetFacingOverrideTarget(OwnerCharacter->GetActorLocation() + CursorDirection * FMath::Max(100.0f, GetEffectiveTargetingRange()));
+		if (PlayAttackMontage())
+		{
+			OnAutoAttack.Broadcast(this, EAutoAttackSource::NormalAutoAttack);
+			return true;
+		}
+		return false;
+	}
+
 	AEnemyBase* TargetEnemy = FindNearestEnemyTarget();
 	if (!TargetEnemy)
 	{
@@ -1123,6 +1150,9 @@ bool UAutoAttackComponent::StartTargetedAttack()
 
 	CurrentAttackTarget = TargetEnemy;
 	const FVector AimLocation = GetEnemyAimLocation(TargetEnemy);
+	ActiveAttackDirection = AimLocation - OwnerCharacter->GetActorLocation();
+	ActiveAttackDirection.Z = 0.0f;
+	ActiveAttackDirection.Normalize();
 	OwnerCharacter->SetFacingOverrideTarget(AimLocation);
 
 	if (PlayAttackMontage())
@@ -1158,6 +1188,31 @@ bool UAutoAttackComponent::IsOwningPlayerDead() const
 {
 	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(OwnerCharacter ? OwnerCharacter->GetOwner() : nullptr);
 	return SurvivorController && SurvivorController->IsPlayerDead();
+}
+
+bool UAutoAttackComponent::IsCursorTargetingEnabledForNormalAttack() const
+{
+	if (bActiveAttackIsAssist || !OwnerCharacter || OwnerCharacter->GetCharacterMode() != ECharacterMode::Active)
+	{
+		return false;
+	}
+
+	const ASurvivorPlayerController* Controller = Cast<ASurvivorPlayerController>(OwnerCharacter->GetOwner());
+	if (!Controller)
+	{
+		Controller = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	}
+	return Controller && !Controller->IsAutoTargetingEnabled();
+}
+
+bool UAutoAttackComponent::ResolveCursorAttackDirection(FVector& OutDirection) const
+{
+	const ASurvivorPlayerController* Controller = Cast<ASurvivorPlayerController>(OwnerCharacter ? OwnerCharacter->GetOwner() : nullptr);
+	if (!Controller)
+	{
+		Controller = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	}
+	return Controller && OwnerCharacter && Controller->GetCursorAttackDirection(OwnerCharacter->GetActorLocation(), OutDirection);
 }
 
 bool UAutoAttackComponent::TryConsumeAttackNotify()
@@ -1461,6 +1516,22 @@ bool UAutoAttackComponent::AcquireDoubleCutFollowUpTarget()
 	{
 		CurrentAttackTarget.Reset();
 		return false;
+	}
+
+	if (IsCursorTargetingEnabledForNormalAttack())
+	{
+		FVector CursorDirection;
+		if (!ResolveCursorAttackDirection(CursorDirection))
+		{
+			return false;
+		}
+
+		CurrentAttackTarget.Reset();
+		ActiveAttackDirection = CursorDirection;
+		const FVector FacingTarget = OwnerCharacter->GetActorLocation() + CursorDirection * FMath::Max(100.0f, GetEffectiveTargetingRange());
+		OwnerCharacter->SetFacingOverrideTarget(FacingTarget);
+		OwnerCharacter->SetVisualFacingRotation(FRotator(0.0f, CursorDirection.Rotation().Yaw, 0.0f));
+		return true;
 	}
 
 	AEnemyBase* TargetEnemy = FindNearestEnemyTarget();

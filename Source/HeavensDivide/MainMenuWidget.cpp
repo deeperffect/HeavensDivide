@@ -5,10 +5,13 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/CheckBox.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/Spacer.h"
 #include "Components/TextBlock.h"
 #include "Components/UniformGridPanel.h"
@@ -18,13 +21,13 @@
 #include "Components/WidgetSwitcher.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "HeavensDivideGameUserSettings.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "UpgradeDefinition.h"
 
 namespace MainMenuCopy
 {
 	static const FText Title = FText::FromString(TEXT("HEAVENS DIVIDE"));
-	static const FText SettingsPlaceholder = FText::FromString(TEXT("Settings UI will be implemented later."));
 	static const FText ResetTitle = FText::FromString(TEXT("RESET ALL PROGRESS?"));
 	static const FText ResetBody = FText::FromString(TEXT("This will permanently erase your unlocked Synergies and Twin Soul discovery progress."));
 }
@@ -81,29 +84,7 @@ void UMainMenuWidget::BuildMenu()
 	ExitButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleExitGame);
 
 	MenuSwitcher->AddChild(BuildCollectionPanel());
-
-	auto AddPlaceholderPanel = [this](FName PanelName, const FText& Heading, const FText& Body)
-	{
-		UVerticalBox* Panel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), PanelName);
-		MenuSwitcher->AddChild(Panel);
-		UTextBlock* HeadingText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		HeadingText->SetText(Heading);
-		HeadingText->SetJustification(ETextJustify::Center);
-		HeadingText->SetColorAndOpacity(FSlateColor(FLinearColor(0.93f, 0.76f, 0.34f)));
-		FSlateFontInfo HeadingFont = HeadingText->GetFont();
-		HeadingFont.Size = 36;
-		HeadingFont.TypefaceFontName = TEXT("Bold");
-		HeadingText->SetFont(HeadingFont);
-		Panel->AddChildToVerticalBox(HeadingText)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 24.0f));
-		UTextBlock* BodyText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-		BodyText->SetText(Body);
-		BodyText->SetJustification(ETextJustify::Center);
-		BodyText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-		Panel->AddChildToVerticalBox(BodyText)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 28.0f));
-		UButton* BackButton = AddMenuButton(Panel, FText::FromString(TEXT("BACK")), *FString::Printf(TEXT("%sBackButton"), *PanelName.ToString()));
-		BackButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
-	};
-	AddPlaceholderPanel(TEXT("SettingsPanel"), FText::FromString(TEXT("SETTINGS")), MainMenuCopy::SettingsPlaceholder);
+	MenuSwitcher->AddChild(BuildSettingsPanel());
 
 	ResetConfirmationOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ResetConfirmationOverlay"));
 	ResetConfirmationOverlay->SetBrushColor(FLinearColor(0.035f, 0.01f, 0.015f, 0.98f));
@@ -202,6 +183,67 @@ void UMainMenuWidget::RefreshCollection()
 	}
 }
 
+UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
+{
+	UVerticalBox* Panel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("SettingsPanel"));
+
+	UTextBlock* Heading = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SettingsHeading"));
+	Heading->SetText(FText::FromString(TEXT("SETTINGS")));
+	Heading->SetJustification(ETextJustify::Center);
+	Heading->SetColorAndOpacity(FSlateColor(FLinearColor(0.93f, 0.76f, 0.34f)));
+	FSlateFontInfo HeadingFont = Heading->GetFont();
+	HeadingFont.Size = 36;
+	HeadingFont.TypefaceFontName = TEXT("Bold");
+	Heading->SetFont(HeadingFont);
+	Panel->AddChildToVerticalBox(Heading)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 28.0f));
+
+	UHorizontalBox* SettingRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("AutoTargetingRow"));
+	Panel->AddChildToVerticalBox(SettingRow)->SetPadding(FMargin(0.0f, 6.0f, 0.0f, 28.0f));
+
+	UTextBlock* Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("AutoTargetingLabel"));
+	Label->SetText(FText::FromString(TEXT("Auto Targeting")));
+	Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+	FSlateFontInfo LabelFont = Label->GetFont();
+	LabelFont.Size = 22;
+	Label->SetFont(LabelFont);
+	UHorizontalBoxSlot* LabelSlot = SettingRow->AddChildToHorizontalBox(Label);
+	LabelSlot->SetPadding(FMargin(0.0f, 0.0f, 28.0f, 0.0f));
+	LabelSlot->SetVerticalAlignment(VAlign_Center);
+
+	AutoTargetingCheckBox = WidgetTree->ConstructWidget<UCheckBox>(UCheckBox::StaticClass(), TEXT("AutoTargetingCheckBox"));
+	SettingRow->AddChildToHorizontalBox(AutoTargetingCheckBox)->SetVerticalAlignment(VAlign_Center);
+	AutoTargetingCheckBox->OnCheckStateChanged.AddDynamic(this, &UMainMenuWidget::HandleAutoTargetingChanged);
+
+	AutoTargetingStateText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("AutoTargetingStateText"));
+	AutoTargetingStateText->SetColorAndOpacity(FSlateColor(FLinearColor(0.93f, 0.76f, 0.34f)));
+	AutoTargetingStateText->SetFont(LabelFont);
+	UHorizontalBoxSlot* StateSlot = SettingRow->AddChildToHorizontalBox(AutoTargetingStateText);
+	StateSlot->SetPadding(FMargin(12.0f, 0.0f, 0.0f, 0.0f));
+	StateSlot->SetVerticalAlignment(VAlign_Center);
+
+	UButton* BackButton = AddMenuButton(Panel, FText::FromString(TEXT("BACK")), TEXT("SettingsBackButton"));
+	BackButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
+	RefreshAutoTargetingSetting();
+	return Panel;
+}
+
+void UMainMenuWidget::RefreshAutoTargetingSetting()
+{
+	const UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+	const bool bEnabled = !Settings || Settings->IsAutoTargetingEnabled();
+	if (AutoTargetingCheckBox) AutoTargetingCheckBox->SetIsChecked(bEnabled);
+	if (AutoTargetingStateText) AutoTargetingStateText->SetText(FText::FromString(bEnabled ? TEXT("ON") : TEXT("OFF")));
+}
+
+void UMainMenuWidget::HandleAutoTargetingChanged(bool bIsChecked)
+{
+	if (UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
+	{
+		Settings->SetAutoTargetingEnabled(bIsChecked);
+	}
+	if (AutoTargetingStateText) AutoTargetingStateText->SetText(FText::FromString(bIsChecked ? TEXT("ON") : TEXT("OFF")));
+}
+
 void UMainMenuWidget::AddSynergyCollectionCard(UUpgradeDefinition* Definition, bool bUnlocked, int32 CardIndex)
 {
 	if (!Definition || !SynergyCollectionGrid) return;
@@ -268,6 +310,7 @@ void UMainMenuWidget::ShowCollectionPanel()
 void UMainMenuWidget::ShowSettingsPanel()
 {
 	SetResetConfirmationVisible(false);
+	RefreshAutoTargetingSetting();
 	if (MenuSwitcher) MenuSwitcher->SetActiveWidgetIndex(2);
 }
 
