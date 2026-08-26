@@ -256,3 +256,48 @@ bool UEnemyLightweightMovementComponent::WasLastMoveBlockedByWorldGeometry() con
 {
 	return bLastMoveBlockedByWorldGeometry;
 }
+
+bool UEnemyLightweightMovementComponent::MoveOwnerToNoSlide(const FVector& DesiredLocation, FHitResult& OutBlockingHit)
+{
+	OutBlockingHit = FHitResult();
+	AActor* Owner = GetOwner();
+	UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+	if (!Owner || !World)
+	{
+		return false;
+	}
+
+	float CapsuleRadius = 34.0f;
+	float CapsuleHalfHeight = 88.0f;
+	if (const ACharacter* OwnerCharacter = Cast<ACharacter>(Owner))
+	{
+		if (const UCapsuleComponent* CapsuleComponent = OwnerCharacter->GetCapsuleComponent())
+		{
+			CapsuleRadius = CapsuleComponent->GetScaledCapsuleRadius();
+			CapsuleHalfHeight = CapsuleComponent->GetScaledCapsuleHalfHeight();
+		}
+	}
+
+	const FVector StartLocation = Owner->GetActorLocation();
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyCommittedMovement), false, Owner);
+	TArray<FHitResult> MoveHits;
+	const bool bHasMoveHits = World->SweepMultiByChannel(
+		MoveHits,
+		StartLocation,
+		DesiredLocation,
+		FQuat::Identity,
+		ECC_Pawn,
+		FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight),
+		QueryParams);
+	const bool bHitBlockingGeometry = bHasMoveHits && FindBlockingWorldGeometryHit(MoveHits, OutBlockingHit);
+
+	FVector FinalLocation = DesiredLocation;
+	if (bHitBlockingGeometry)
+	{
+		FinalLocation = GetSafeMovementHitLocation(StartLocation, OutBlockingHit, 2.0f);
+		FinalLocation.Z = StartLocation.Z;
+	}
+	Owner->SetActorLocation(FinalLocation, false);
+	bLastMoveBlockedByWorldGeometry = bHitBlockingGeometry;
+	return bHitBlockingGeometry;
+}

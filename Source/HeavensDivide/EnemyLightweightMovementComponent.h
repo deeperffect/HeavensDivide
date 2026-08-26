@@ -28,6 +28,10 @@ public:
 	FVector GetCurrentVelocity() const;
 	bool WasLastMoveBlockedByWorldGeometry() const;
 
+	// Uses the same world-blocker query as normal enemy movement, but stops at
+	// the first lateral blocker instead of sliding. Intended for committed moves.
+	bool MoveOwnerToNoSlide(const FVector& DesiredLocation, FHitResult& OutBlockingHit);
+
 private:
 	UPROPERTY(Transient)
 	FVector RequestedMoveDirection = FVector::ZeroVector;

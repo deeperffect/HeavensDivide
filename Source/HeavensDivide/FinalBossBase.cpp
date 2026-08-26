@@ -5,8 +5,10 @@
 #include "CharacterBase.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "HealthComponent.h"
+#include "EnemyLightweightMovementComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "SurvivorPlayerController.h"
 #include "Animation/AnimInstance.h"
@@ -51,6 +53,7 @@ void AFinalBossBase::BeginPlay()
 {
 	Super::BeginPlay();
 	if (HealthComponent) HealthComponent->SetMaxHealthPreservePercent(BossMaxHealth);
+	if (HealthComponent) HealthComponent->OnHealthChanged.AddUniqueDynamic(this, &AFinalBossBase::HandleBossHealthChangedForPhase);
 	MoveSpeed = BossMoveSpeed;
 	ApplySpawnInstanceModifiers(1.0f, 1.0f, 1.0f);
 	PlayerController = ResolvePlayerController();
@@ -104,6 +107,17 @@ void AFinalBossBase::DebugForceAttack(EFinalBossAttack Attack)
 
 void AFinalBossBase::DebugForceForwardCleave() { DebugForceAttack(EFinalBossAttack::ForwardCleave); }
 
+void AFinalBossBase::ForcePhase2()
+{
+	if (!IsDead() && !bPhase2Active && !bPhase2TransitionQueued) QueuePhase2Transition();
+}
+
+bool AFinalBossBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource)
+{
+	if (BossState == EFinalBossState::PhaseTransition && bPhase2InvulnerableDuringTransition) return false;
+	return Super::ApplyPlayerDamage(DamageAmount, AttackSource);
+}
+
 void AFinalBossBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -115,15 +129,19 @@ void AFinalBossBase::Tick(float DeltaSeconds)
 	{
 		UpdateDash(DeltaSeconds);
 	}
-	else if (BossState == EFinalBossState::Recovery || BossState == EFinalBossState::Cooldown)
+	else if (BossState == EFinalBossState::Recovery || BossState == EFinalBossState::Cooldown || BossState == EFinalBossState::PhaseTransition)
 	{
 		StateElapsed += DeltaSeconds;
-		if (BossState == EFinalBossState::Recovery && StateElapsed >= GetRecoveryDurationForAttack(CurrentAttack))
+		if (BossState == EFinalBossState::PhaseTransition && !bPhase2TransitionMontagePlaying && StateElapsed >= Phase2FallbackTransitionDuration)
+		{
+			CompletePhase2Transition();
+		}
+		else if (BossState == EFinalBossState::Recovery && StateElapsed >= GetRecoveryDurationForAttack(CurrentAttack))
 		{
 			BossState = EFinalBossState::Cooldown;
 			StateElapsed = 0.0f;
 		}
-		else if (BossState == EFinalBossState::Cooldown && StateElapsed >= AttackCooldown)
+		else if (BossState == EFinalBossState::Cooldown && StateElapsed >= GetCurrentAttackCooldown())
 		{
 			ChooseAttack();
 		}
@@ -201,6 +219,17 @@ bool AFinalBossBase::IsAttackWithinStartDistance(EFinalBossAttack Attack, float 
 
 float AFinalBossBase::GetRecoveryDurationForAttack(EFinalBossAttack Attack) const
 {
+	if (bPhase2Active)
+	{
+		switch (Attack)
+		{
+		case EFinalBossAttack::ForwardCleave: return FMath::Max(0.0f, Phase2ForwardCleaveRecoveryDuration);
+		case EFinalBossAttack::PointBlankAoE: return FMath::Max(0.0f, Phase2PointBlankAOERecoveryDuration);
+		case EFinalBossAttack::LongDash: return FMath::Max(0.0f, Phase2LongDashRecoveryDuration);
+		case EFinalBossAttack::GroundPursuit: return FMath::Max(0.0f, Phase2GroundPursuitRecoveryDuration);
+		default: return 0.0f;
+		}
+	}
 	switch (Attack)
 	{
 	case EFinalBossAttack::ForwardCleave: return FMath::Max(0.0f, ForwardCleaveRecoveryDuration);
@@ -211,19 +240,129 @@ float AFinalBossBase::GetRecoveryDurationForAttack(EFinalBossAttack Attack) cons
 	}
 }
 
+float AFinalBossBase::GetCurrentAttackCooldown() const
+{
+	return FMath::Max(0.0f, bPhase2Active ? Phase2AttackCooldown : AttackCooldown);
+}
+
+void AFinalBossBase::HandleBossHealthChangedForPhase(float CurrentHealth, float MaxHealth, float HealthPercent)
+{
+	if (!bPhase2Active && !bPhase2TransitionQueued
+		&& HealthPercent <= FMath::Clamp(Phase2HealthThreshold, 0.0f, 1.0f)
+		&& CurrentHealth > 0.0f && MaxHealth > 0.0f)
+	{
+		QueuePhase2Transition();
+	}
+}
+
+void AFinalBossBase::QueuePhase2Transition()
+{
+	if (bPhase2Active || bPhase2TransitionQueued || IsDead()) return;
+	bPhase2TransitionQueued = true;
+	if (BossState != EFinalBossState::Windup && BossState != EFinalBossState::AttackActive)
+	{
+		BeginPhase2Transition();
+	}
+}
+
+void AFinalBossBase::BeginPhase2Transition()
+{
+	if (bPhase2Active || IsDead()) return;
+	bPhase2TransitionQueued = true;
+	bGroundPursuitWindowActive = false;
+	HideAttackTelegraphs();
+	StopDash();
+	StopEnemyMovement();
+	BossState = EFinalBossState::PhaseTransition;
+	StateElapsed = 0.0f;
+	PreviousAttack = EFinalBossAttack::None;
+	CurrentAttack = EFinalBossAttack::None;
+	BP_OnBossPhase2TransitionStarted();
+
+	bPhase2TransitionMontagePlaying = false;
+	if (Phase2TransitionMontage)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+		{
+			if (AnimInstance->Montage_Play(Phase2TransitionMontage) > 0.0f)
+			{
+				bPhase2TransitionMontagePlaying = true;
+				FOnMontageEnded EndDelegate;
+				EndDelegate.BindUObject(this, &AFinalBossBase::HandlePhase2TransitionMontageEnded);
+				AnimInstance->Montage_SetEndDelegate(EndDelegate, Phase2TransitionMontage);
+			}
+		}
+	}
+}
+
+void AFinalBossBase::HandlePhase2TransitionMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (Montage == Phase2TransitionMontage && BossState == EFinalBossState::PhaseTransition && bCombatEnabled) CompletePhase2Transition();
+}
+
+void AFinalBossBase::CompletePhase2Transition()
+{
+	if (bPhase2Active || IsDead()) return;
+	bPhase2TransitionMontagePlaying = false;
+	bPhase2TransitionQueued = false;
+	bPhase2Active = true;
+	PreviousAttack = EFinalBossAttack::None;
+	CurrentAttack = EFinalBossAttack::None;
+	BossState = EFinalBossState::Cooldown;
+	StateElapsed = 0.0f;
+	OnBossPhase2Started.Broadcast();
+	BP_OnBossPhase2Started();
+}
+
+void AFinalBossBase::ConfigurePhase2CleaveDirection()
+{
+	float AngleDegrees = 0.0f;
+	if (Phase2CleaveTelegraphIndex == 1) AngleDegrees = -Phase2ForwardCleaveSideAngle;
+	else if (Phase2CleaveTelegraphIndex >= 2) AngleDegrees = Phase2ForwardCleaveSideAngle;
+	ActivePhase2CleaveDirection = FQuat(FVector::UpVector, FMath::DegreesToRadians(AngleDegrees))
+		.RotateVector(Phase2CleaveBaseDirection).GetSafeNormal2D();
+	if (ActivePhase2CleaveDirection.IsNearlyZero()) ActivePhase2CleaveDirection = Phase2CleaveBaseDirection;
+#if !UE_BUILD_SHIPPING
+	if (bDebugAttackTelegraphs)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[BossTripleCleave] Index=%d Angle=%.1f BaseDirection=%s ActiveDirection=%s"),
+			Phase2CleaveTelegraphIndex, AngleDegrees,
+			*Phase2CleaveBaseDirection.ToCompactString(), *ActivePhase2CleaveDirection.ToCompactString());
+	}
+#endif
+	++Phase2CleaveTelegraphIndex;
+}
+
+void AFinalBossBase::ReacquireDashDirection()
+{
+	const ACharacterBase* Player = PlayerController ? Cast<ACharacterBase>(PlayerController->GetPawn()) : nullptr;
+	if (!Player) return;
+	LockedAttackOrigin = GetActorLocation();
+	LockedAttackDirection = (Player->GetActorLocation() - LockedAttackOrigin).GetSafeNormal2D();
+	if (LockedAttackDirection.IsNearlyZero()) LockedAttackDirection = GetActorForwardVector().GetSafeNormal2D();
+	SetActorRotation(LockedAttackDirection.Rotation());
+}
+
 void AFinalBossBase::BeginAttack(EFinalBossAttack Attack)
 {
 	ACharacterBase* Player = PlayerController ? Cast<ACharacterBase>(PlayerController->GetPawn()) : nullptr;
 	if (!Player) { StopBossCombat(); return; }
 	CurrentAttack = Attack;
+	if (Attack == EFinalBossAttack::LongDash) BeginDashRootMotionOverride();
 	LockedAttackOrigin = GetActorLocation();
 	LockedAttackDirection = (Player->GetActorLocation() - LockedAttackOrigin).GetSafeNormal2D();
 	if (LockedAttackDirection.IsNearlyZero()) LockedAttackDirection = GetActorForwardVector().GetSafeNormal2D();
 	SetActorRotation(LockedAttackDirection.Rotation());
+	Phase2BaseAttackDirection = LockedAttackDirection;
+	Phase2CleaveBaseDirection = LockedAttackDirection;
+	ActivePhase2CleaveDirection = LockedAttackDirection;
+	Phase2CleaveTelegraphIndex = 0;
+	Phase2DashTelegraphIndex = 0;
 	bAttackExecuted = false;
 	bGroundPursuitWindowActive = Attack == EFinalBossAttack::GroundPursuit;
 	BossState = EFinalBossState::Windup;
 	StateElapsed = 0.0f;
+	StopEnemyMovement();
 	if (!PlayCurrentAttackMontage())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[BossAttack] Missing or unplayable montage for attack %d on %s; attack skipped."), static_cast<int32>(Attack), *GetNameSafe(this));
@@ -239,9 +378,9 @@ UAnimMontage* AFinalBossBase::GetMontageForAttack(EFinalBossAttack Attack) const
 {
 	switch (Attack)
 	{
-	case EFinalBossAttack::ForwardCleave: return ForwardCleaveMontage;
-	case EFinalBossAttack::PointBlankAoE: return PointBlankAOEMontage;
-	case EFinalBossAttack::LongDash: return LongDashMontage;
+	case EFinalBossAttack::ForwardCleave: return bPhase2Active ? Phase2ForwardCleaveMontage.Get() : ForwardCleaveMontage.Get();
+	case EFinalBossAttack::PointBlankAoE: return bPhase2Active ? Phase2AOEMontage.Get() : PointBlankAOEMontage.Get();
+	case EFinalBossAttack::LongDash: return bPhase2Active ? Phase2LongDashMontage.Get() : LongDashMontage.Get();
 	case EFinalBossAttack::GroundPursuit: return GroundPursuitMontage;
 	default: return nullptr;
 	}
@@ -251,7 +390,8 @@ bool AFinalBossBase::PlayCurrentAttackMontage()
 {
 	UAnimMontage* Montage = GetMontageForAttack(CurrentAttack);
 	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
-	if (!Montage || !AnimInstance || AnimInstance->Montage_Play(Montage) <= 0.0f) return false;
+	const float PlayRate = bPhase2Active && CurrentAttack == EFinalBossAttack::PointBlankAoE ? FMath::Max(0.01f, Phase2AOEMontagePlayRate) : 1.0f;
+	if (!Montage || !AnimInstance || AnimInstance->Montage_Play(Montage, PlayRate) <= 0.0f) return false;
 	FOnMontageEnded EndDelegate;
 	EndDelegate.BindUObject(this, &AFinalBossBase::HandleAttackMontageEnded);
 	AnimInstance->Montage_SetEndDelegate(EndDelegate, Montage);
@@ -261,9 +401,25 @@ bool AFinalBossBase::PlayCurrentAttackMontage()
 void AFinalBossBase::HandleBossTelegraphStart()
 {
 	if (!bCombatEnabled || IsDead() || BossState != EFinalBossState::Windup) return;
-	if (CurrentAttack == EFinalBossAttack::ForwardCleave) { ShowRectangleTelegraph(ForwardAttackLength, ForwardAttackWidth); StartRectangleFill(); }
-	else if (CurrentAttack == EFinalBossAttack::LongDash) { ShowRectangleTelegraph(DashDistance, DashWidth); StartRectangleFill(); }
-	else if (CurrentAttack == EFinalBossAttack::PointBlankAoE) { ShowCircleTelegraph(AoERadius); StartRectangleFill(); }
+	if (bPhase2Active && CurrentAttack == EFinalBossAttack::ForwardCleave)
+	{
+		ConfigurePhase2CleaveDirection();
+		bAttackExecuted = false;
+	}
+	else if (bPhase2Active && CurrentAttack == EFinalBossAttack::LongDash)
+	{
+		if (Phase2DashTelegraphIndex > 0) ReacquireDashDirection();
+		++Phase2DashTelegraphIndex;
+		bAttackExecuted = false;
+	}
+	if (CurrentAttack == EFinalBossAttack::ForwardCleave)
+	{
+		ShowRectangleTelegraph(ForwardAttackLength, ForwardAttackWidth,
+			bPhase2Active ? ActivePhase2CleaveDirection : LockedAttackDirection);
+		StartRectangleFill();
+	}
+	else if (CurrentAttack == EFinalBossAttack::LongDash) { ShowRectangleTelegraph(DashDistance, DashWidth, LockedAttackDirection); StartRectangleFill(); }
+	else if (CurrentAttack == EFinalBossAttack::PointBlankAoE) { ShowCircleTelegraph(bPhase2Active ? Phase2AoERadius : AoERadius); StartRectangleFill(); }
 }
 
 void AFinalBossBase::HandleBossAttackExecute()
@@ -273,8 +429,15 @@ void AFinalBossBase::HandleBossAttackExecute()
 	StopRectangleFill();
 	SetRectangleFill(1.0f);
 	OnBossAttackImpact.Broadcast(CurrentAttack);
-	if (CurrentAttack == EFinalBossAttack::ForwardCleave) DamagePlayerInRectangle(ForwardAttackLength, ForwardAttackWidth, ForwardAttackDamage);
-	else if (CurrentAttack == EFinalBossAttack::PointBlankAoE) DamagePlayerInCircle(AoERadius, AoEDamage);
+	if (CurrentAttack == EFinalBossAttack::ForwardCleave)
+	{
+		DamagePlayerInRectangle(
+			ForwardAttackLength,
+			ForwardAttackWidth,
+			ForwardAttackDamage * (bPhase2Active ? Phase2ForwardCleaveDamageMultiplier : 1.0f),
+			bPhase2Active ? ActivePhase2CleaveDirection : LockedAttackDirection);
+	}
+	else if (CurrentAttack == EFinalBossAttack::PointBlankAoE) DamagePlayerInCircle(bPhase2Active ? Phase2AoERadius : AoERadius, AoEDamage * (bPhase2Active ? Phase2AOEDamageMultiplier : 1.0f));
 	else if (CurrentAttack == EFinalBossAttack::LongDash) StartDash();
 }
 
@@ -287,17 +450,26 @@ void AFinalBossBase::HandleBossTelegraphEnd()
 
 void AFinalBossBase::HandleBossSpawnGroundCircle()
 {
-	if (bCombatEnabled && !IsDead() && CurrentAttack == EFinalBossAttack::GroundPursuit && bGroundPursuitWindowActive) SpawnGroundCircle();
+	if (bCombatEnabled && !IsDead() && CurrentAttack == EFinalBossAttack::GroundPursuit && bGroundPursuitWindowActive)
+	{
+		const int32 CircleCount = bPhase2Active ? FMath::Max(1, Phase2GroundPursuitCirclesPerNotify) : 1;
+		for (int32 Index = 0; Index < CircleCount; ++Index) SpawnGroundCircle();
+	}
 }
 
 void AFinalBossBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Montage != GetMontageForAttack(CurrentAttack) || BossState == EFinalBossState::Dead) return;
 	bGroundPursuitWindowActive = false;
+	EndDashRootMotionOverride();
 	StopDash();
 	HideAttackTelegraphs();
 	if (bDebugAttackTelegraphs) UE_LOG(LogTemp, Log, TEXT("[BossAttack] Montage ended Attack=%d Interrupted=%d"), static_cast<int32>(CurrentAttack), bInterrupted ? 1 : 0);
-	if (bCombatEnabled) BeginRecovery();
+	if (bCombatEnabled)
+	{
+		if (bPhase2TransitionQueued && !bPhase2Active) BeginPhase2Transition();
+		else BeginRecovery();
+	}
 }
 
 void AFinalBossBase::BeginRecovery()
@@ -308,16 +480,17 @@ void AFinalBossBase::BeginRecovery()
 	StateElapsed = 0.0f;
 }
 
-void AFinalBossBase::ShowRectangleTelegraph(float Length, float Width)
+void AFinalBossBase::ShowRectangleTelegraph(float Length, float Width, const FVector& AttackDirection)
 {
 	if (!GetWorld() || !GroundTelegraphClass) return;
 	if (IsValid(ActiveAttackTelegraph)) ActiveAttackTelegraph->CancelTelegraph();
 	const float GroundZ = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 4.0f;
-	FVector Center = LockedAttackOrigin + LockedAttackDirection * Length * 0.5f;
+	const FVector SafeDirection = AttackDirection.GetSafeNormal2D();
+	FVector Center = LockedAttackOrigin + SafeDirection * Length * 0.5f;
 	Center.Z = GroundZ;
 	FActorSpawnParameters Params;
 	Params.Owner = this;
-	ActiveAttackTelegraph = GetWorld()->SpawnActor<ABossGroundTelegraph>(GroundTelegraphClass, Center, LockedAttackDirection.Rotation(), Params);
+	ActiveAttackTelegraph = GetWorld()->SpawnActor<ABossGroundTelegraph>(GroundTelegraphClass, Center, SafeDirection.Rotation(), Params);
 	if (ActiveAttackTelegraph)
 	{
 		ActiveAttackTelegraph->InitializePersistentRectangle(Length, Width, RectangleTelegraphMaterial);
@@ -392,13 +565,14 @@ float AFinalBossBase::GetSecondsUntilExecuteNotify() const
 	return FMath::Max(0.01f, ForwardAttackTelegraphDuration);
 }
 
-void AFinalBossBase::DamagePlayerInRectangle(float Length, float Width, float Damage)
+void AFinalBossBase::DamagePlayerInRectangle(float Length, float Width, float Damage, const FVector& AttackDirection)
 {
 	const ACharacterBase* Player = PlayerController ? Cast<ACharacterBase>(PlayerController->GetPawn()) : nullptr;
 	if (!Player) return;
 	const FVector Delta = Player->GetActorLocation() - LockedAttackOrigin;
-	const float Forward = FVector::DotProduct(Delta, LockedAttackDirection);
-	const FVector Right = FVector::CrossProduct(FVector::UpVector, LockedAttackDirection);
+	const FVector SafeDirection = AttackDirection.GetSafeNormal2D();
+	const float Forward = FVector::DotProduct(Delta, SafeDirection);
+	const FVector Right = FVector::CrossProduct(FVector::UpVector, SafeDirection);
 	if (Forward >= 0.0f && Forward <= Length && FMath::Abs(FVector::DotProduct(Delta, Right)) <= Width * 0.5f) PlayerController->ApplyDamageToPlayer(Damage);
 }
 
@@ -410,17 +584,81 @@ void AFinalBossBase::DamagePlayerInCircle(float Radius, float Damage)
 
 void AFinalBossBase::StartDash()
 {
+	StopEnemyMovement();
+	BeginDashCollisionOverride();
 	BossState = EFinalBossState::AttackActive;
 	DashElapsed = 0.0f;
 	DashStart = GetActorLocation();
 	DashEnd = DashStart + LockedAttackDirection * DashDistance;
 	bDashHitPlayer = false;
 	HideAttackTelegraphs();
+
+#if !UE_BUILD_SHIPPING
+	if (bDebugAttackTelegraphs)
+	{
+		const UCapsuleComponent* Capsule = GetCapsuleComponent();
+		UE_LOG(LogTemp, Warning,
+			TEXT("[BossDash] Begin Location=%s Destination=%s Direction=%s CollisionEnabled=%s Profile=%s ObjectType=%d Pawn=%d WorldStatic=%d WorldDynamic=%d Montage=%s MontageHasRootMotion=%d AnimRootMotionModeBefore=%d"),
+			*GetActorLocation().ToCompactString(), *DashEnd.ToCompactString(), *LockedAttackDirection.ToCompactString(),
+			Capsule ? *UEnum::GetValueAsString(Capsule->GetCollisionEnabled()) : TEXT("None"),
+			Capsule ? *Capsule->GetCollisionProfileName().ToString() : TEXT("None"),
+			Capsule ? static_cast<int32>(Capsule->GetCollisionObjectType()) : -1,
+			Capsule ? static_cast<int32>(Capsule->GetCollisionResponseToChannel(ECC_Pawn)) : -1,
+			Capsule ? static_cast<int32>(Capsule->GetCollisionResponseToChannel(ECC_WorldStatic)) : -1,
+			Capsule ? static_cast<int32>(Capsule->GetCollisionResponseToChannel(ECC_WorldDynamic)) : -1,
+			*GetNameSafe(GetMontageForAttack(CurrentAttack)),
+			GetMontageForAttack(CurrentAttack) && GetMontageForAttack(CurrentAttack)->HasRootMotion() ? 1 : 0,
+			static_cast<int32>(PreDashRootMotionMode.GetValue()));
+	}
+#endif
 }
 
 void AFinalBossBase::StopDash()
 {
+	EndDashCollisionOverride();
 	if (CurrentAttack == EFinalBossAttack::LongDash && BossState == EFinalBossState::AttackActive) BossState = EFinalBossState::Windup;
+}
+
+void AFinalBossBase::BeginDashCollisionOverride()
+{
+	if (bDashCollisionOverrideActive) return;
+	if (UCapsuleComponent* BossCapsule = GetCapsuleComponent())
+	{
+		PreDashPawnCollisionResponse = BossCapsule->GetCollisionResponseToChannel(ECC_Pawn);
+		BossCapsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		bDashCollisionOverrideActive = true;
+	}
+}
+
+void AFinalBossBase::EndDashCollisionOverride()
+{
+	if (!bDashCollisionOverrideActive) return;
+	if (UCapsuleComponent* BossCapsule = GetCapsuleComponent())
+	{
+		BossCapsule->SetCollisionResponseToChannel(ECC_Pawn, PreDashPawnCollisionResponse);
+	}
+	bDashCollisionOverrideActive = false;
+}
+
+void AFinalBossBase::BeginDashRootMotionOverride()
+{
+	if (bDashRootMotionOverrideActive) return;
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		PreDashRootMotionMode = AnimInstance->RootMotionMode;
+		AnimInstance->SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
+		bDashRootMotionOverrideActive = true;
+	}
+}
+
+void AFinalBossBase::EndDashRootMotionOverride()
+{
+	if (!bDashRootMotionOverrideActive) return;
+	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
+	{
+		AnimInstance->SetRootMotionMode(PreDashRootMotionMode);
+	}
+	bDashRootMotionOverrideActive = false;
 }
 
 void AFinalBossBase::UpdateDash(float DeltaSeconds)
@@ -428,7 +666,18 @@ void AFinalBossBase::UpdateDash(float DeltaSeconds)
 	DashElapsed += DeltaSeconds;
 	const FVector Previous = GetActorLocation();
 	const float Alpha = FMath::Clamp(DashElapsed / FMath::Max(0.01f, DashTravelDuration), 0.0f, 1.0f);
-	SetActorLocation(FMath::Lerp(DashStart, DashEnd, Alpha), true);
+	const FVector DesiredLocation = FMath::Lerp(DashStart, DashEnd, Alpha);
+	FHitResult MovementHit;
+	bool bDashBlockedByWorld = false;
+	if (LightweightMovementComponent)
+	{
+		bDashBlockedByWorld = LightweightMovementComponent->MoveOwnerToNoSlide(DesiredLocation, MovementHit);
+	}
+	else
+	{
+		SetActorLocation(DesiredLocation, true, &MovementHit);
+		bDashBlockedByWorld = MovementHit.bBlockingHit;
+	}
 	if (!bDashHitPlayer && PlayerController)
 	{
 		if (const ACharacterBase* Player = Cast<ACharacterBase>(PlayerController->GetPawn()))
@@ -436,6 +685,25 @@ void AFinalBossBase::UpdateDash(float DeltaSeconds)
 			const FVector Closest = FMath::ClosestPointOnSegment(Player->GetActorLocation(), Previous, GetActorLocation());
 			if (FVector::DistSquared2D(Closest, Player->GetActorLocation()) <= FMath::Square(DashWidth * 0.5f)) { bDashHitPlayer = true; PlayerController->ApplyDamageToPlayer(DashDamage); }
 		}
+	}
+	if (bDashBlockedByWorld)
+	{
+#if !UE_BUILD_SHIPPING
+		if (bDebugAttackTelegraphs)
+		{
+			const UPrimitiveComponent* HitComponent = MovementHit.GetComponent();
+			UE_LOG(LogTemp, Warning,
+				TEXT("[BossDash] BlockingHit Actor=%s Component=%s Profile=%s ObjectType=%d Blocking=%d Time=%.3f DistanceTraveled=%.1f ImpactPoint=%s ImpactNormal=%s Before=%s Result=%s"),
+				*GetNameSafe(MovementHit.GetActor()), *GetNameSafe(HitComponent),
+				HitComponent ? *HitComponent->GetCollisionProfileName().ToString() : TEXT("None"),
+				HitComponent ? static_cast<int32>(HitComponent->GetCollisionObjectType()) : -1,
+				MovementHit.bBlockingHit ? 1 : 0, MovementHit.Time,
+				FVector::Dist2D(Previous, GetActorLocation()), *MovementHit.ImpactPoint.ToCompactString(),
+				*MovementHit.ImpactNormal.ToCompactString(), *Previous.ToCompactString(), *GetActorLocation().ToCompactString());
+		}
+#endif
+		StopDash();
+		return;
 	}
 	if (Alpha >= 1.0f) StopDash();
 }
@@ -535,11 +803,18 @@ void AFinalBossBase::SpawnGroundCircle()
 void AFinalBossBase::CleanupCurrentAttack(bool bCancelPendingGroundTelegraphs)
 {
 	bGroundPursuitWindowActive = false;
+	Phase2CleaveTelegraphIndex = 0;
+	Phase2CleaveBaseDirection = FVector::ForwardVector;
+	ActivePhase2CleaveDirection = FVector::ForwardVector;
+	EndDashCollisionOverride();
 	HideAttackTelegraphs();
 	if (UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr)
 	{
 		if (UAnimMontage* Montage = GetMontageForAttack(CurrentAttack)) AnimInstance->Montage_Stop(0.1f, Montage);
+		if (Phase2TransitionMontage && AnimInstance->Montage_IsPlaying(Phase2TransitionMontage)) AnimInstance->Montage_Stop(0.1f, Phase2TransitionMontage);
 	}
+	EndDashRootMotionOverride();
+	bPhase2TransitionMontagePlaying = false;
 	if (bCancelPendingGroundTelegraphs)
 	{
 		for (ABossGroundTelegraph* Telegraph : ActiveGroundTelegraphs) if (IsValid(Telegraph)) Telegraph->CancelTelegraph();
