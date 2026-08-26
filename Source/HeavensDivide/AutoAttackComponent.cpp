@@ -54,7 +54,7 @@ namespace AutoAttackMarkedForDeathUpgradeIds
 	static const FName BleedingEdge(TEXT("BleedingEdge"));
 }
 
-static const UPlayerUpgradeComponent* GetPlayerUpgradesForAutoAttackMarkedForDeath(const UObject* WorldContextObject, const AActor* PlayerCharacter)
+static UPlayerUpgradeComponent* GetPlayerUpgradesForAutoAttackMarkedForDeath(const UObject* WorldContextObject, const AActor* PlayerCharacter)
 {
 	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(PlayerCharacter ? PlayerCharacter->GetOwner() : nullptr);
 	if (!SurvivorController)
@@ -469,23 +469,19 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	const int32 EffectiveProjectileCount = ConsumeBladeCascadeBonusForNormalVolley(NormalProjectileCount);
 	const int32 EffectiveProjectilePierceBonus = GetEffectiveProjectilePierceBonus();
 
+	AEnemyBase* PrimaryTarget = TargetCandidates[0];
+	if (!PrimaryTarget || PrimaryTarget->IsDead()) return;
+	FVector BaseDirection = GetEnemyAimLocation(PrimaryTarget) - SpawnLocation;
+	BaseDirection.Z = 0.0f;
+	if (!BaseDirection.Normalize()) return;
+	TArray<FVector> VolleyDirections;
+	BuildCenteredProjectileSpreadDirections(BaseDirection, EffectiveProjectileCount, KunaiSpreadAngle, bNormalVolleyExtraProjectileOnRight, VolleyDirections);
+	if (EffectiveProjectileCount % 2 == 0) bNormalVolleyExtraProjectileOnRight = !bNormalVolleyExtraProjectileOnRight;
+
 	int32 SpawnedProjectileCount = 0;
-	for (int32 ProjectileIndex = 0; ProjectileIndex < EffectiveProjectileCount; ++ProjectileIndex)
+	for (int32 ProjectileIndex = 0; ProjectileIndex < VolleyDirections.Num(); ++ProjectileIndex)
 	{
-		AEnemyBase* AssignedTarget = TargetCandidates[ProjectileIndex % TargetCandidates.Num()];
-		if (!AssignedTarget || AssignedTarget->IsDead())
-		{
-			continue;
-		}
-
-		FVector SpawnDirection = GetEnemyAimLocation(AssignedTarget) - SpawnLocation;
-		SpawnDirection.Z = 0.0f;
-		if (!SpawnDirection.Normalize())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Projectile %d spawn skipped: invalid projectile direction."), ProjectileIndex + 1);
-			continue;
-		}
-
+		const FVector& SpawnDirection = VolleyDirections[ProjectileIndex];
 		SpawnProjectileInstance(SpawnLocation, SpawnDirection, EffectiveAttackDamage, EffectiveProjectileSpeed, EffectiveProjectilePierceBonus);
 		++SpawnedProjectileCount;
 
@@ -494,14 +490,14 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 			UE_LOG(LogTemp, Log, TEXT("Ninja Attack Projectile %d/%d -> %s Direction=%s"),
 				ProjectileIndex + 1,
 				EffectiveProjectileCount,
-				*GetNameSafe(AssignedTarget),
+				*GetNameSafe(PrimaryTarget),
 				*SpawnDirection.ToString());
 		}
 
 		if (bDebugTargeting)
 		{
 			constexpr float DebugDuration = 1.5f;
-			DrawDebugLine(GetWorld(), SpawnLocation, GetEnemyAimLocation(AssignedTarget), FColor::Yellow, false, DebugDuration, 0, 3.0f);
+			DrawDebugLine(GetWorld(), SpawnLocation, SpawnLocation + SpawnDirection * GetEffectiveTargetingRange(), FColor::Yellow, false, DebugDuration, 0, 3.0f);
 		}
 	}
 
@@ -568,7 +564,7 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 	}
 }
 
-bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange)
+bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight)
 {
 	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass || !GetWorld() || IsOwningPlayerDead())
 	{
@@ -579,29 +575,49 @@ bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, 
 	FindEnemyTargetsSortedFromLocation(SpawnLocation, FMath::Max(0.0f, SearchRange), Targets);
 	if (Targets.Num() == 0) return false;
 
+	AEnemyBase* PrimaryTarget = Targets[0];
+	if (!PrimaryTarget || PrimaryTarget->IsDead()) return false;
+	FVector BaseDirection = GetEnemyAimLocation(PrimaryTarget) - SpawnLocation;
+	BaseDirection.Z = 0.0f;
+	if (!BaseDirection.Normalize()) return false;
 	const int32 ProjectileCount = FMath::Max(1, GetEffectiveProjectileCount());
 	const float Damage = GetEffectiveAttackDamage();
 	const float Speed = GetEffectiveProjectileSpeed();
 	const int32 Pierce = GetEffectiveProjectilePierceBonus();
+	TArray<FVector> VolleyDirections;
+	BuildCenteredProjectileSpreadDirections(BaseDirection, ProjectileCount, KunaiSpreadAngle, bExtraProjectileOnRight, VolleyDirections);
+	if (ProjectileCount % 2 == 0) bExtraProjectileOnRight = !bExtraProjectileOnRight;
 	int32 Spawned = 0;
-	for (int32 Index = 0; Index < ProjectileCount; ++Index)
+	for (const FVector& Direction : VolleyDirections)
 	{
-		AEnemyBase* Target = Targets[Index % Targets.Num()];
-		if (!Target || Target->IsDead()) continue;
-		FVector Direction = GetEnemyAimLocation(Target) - SpawnLocation;
-		Direction.Z = 0.0f;
-		if (!Direction.Normalize()) continue;
 		SpawnProjectileInstance(SpawnLocation, Direction, Damage, Speed, Pierce, false);
 		++Spawned;
 	}
 	return Spawned > 0;
 }
 
+void UAutoAttackComponent::BuildCenteredProjectileSpreadDirections(const FVector& BaseDirection, int32 ProjectileCount, float SpreadAngleDegrees, bool bExtraProjectileOnRight, TArray<FVector>& OutDirections)
+{
+	OutDirections.Reset();
+	const int32 Count = FMath::Max(0, ProjectileCount);
+	if (Count == 0) return;
+	const float Spacing = FMath::Max(0.0f, SpreadAngleDegrees);
+	const int32 Half = Count / 2;
+	const int32 MinimumStep = Count % 2 == 1 ? -Half : (bExtraProjectileOnRight ? -(Half - 1) : -Half);
+	const int32 MaximumStep = Count % 2 == 1 ? Half : (bExtraProjectileOnRight ? Half : Half - 1);
+	OutDirections.Reserve(Count);
+	for (int32 Step = MinimumStep; Step <= MaximumStep; ++Step)
+	{
+		FVector Direction = BaseDirection.RotateAngleAxis(static_cast<float>(Step) * Spacing, FVector::UpVector);
+		Direction.Z = 0.0f;
+		if (Direction.Normalize()) OutDirections.Add(Direction);
+	}
+}
+
 void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
 {
 	ASamuraiCharacter* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
-	ASurvivorPlayerController* Controller = Samurai ? Cast<ASurvivorPlayerController>(Samurai->GetOwner()) : nullptr;
-	UPlayerUpgradeComponent* Upgrades = Controller ? Controller->GetPlayerUpgrades() : nullptr;
+	UPlayerUpgradeComponent* Upgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, Samurai);
 	if (!Samurai || !Upgrades || !Upgrades->HasUpgradeId(TEXT("BladeWave")) || !BladeWaveClass || !GetWorld()) return;
 
 	FVector Forward = Samurai->GetVisualForwardVector();
@@ -1269,13 +1285,94 @@ void UAutoAttackComponent::RegisterNinjaAttackForFanOfBlades(const FVector& Spaw
 
 void UAutoAttackComponent::SpawnFanOfBladesVolley(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount)
 {
+	TArray<AEnemyBase*> TargetCandidates;
+	FindEnemyTargetsSorted(TargetCandidates);
 	const int32 SafeProjectileCount = FMath::Max(1, FanOfBladesProjectileCount);
+	if (TargetCandidates.IsEmpty())
+	{
+		for (int32 ProjectileIndex = 0; ProjectileIndex < SafeProjectileCount; ++ProjectileIndex)
+		{
+			const float AngleDegrees = (360.0f * static_cast<float>(ProjectileIndex)) / static_cast<float>(SafeProjectileCount);
+			const FVector ProjectileDirection = FRotator(0.0f, AngleDegrees, 0.0f).Vector();
+			SpawnProjectileInstance(SpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
+		}
+		return;
+	}
+
+	const int32 AssignedTargetCount = FMath::Min(TargetCandidates.Num(), SafeProjectileCount);
+	TArray<int32> ProjectilesPerTarget;
+	ProjectilesPerTarget.Init(0, AssignedTargetCount);
 	for (int32 ProjectileIndex = 0; ProjectileIndex < SafeProjectileCount; ++ProjectileIndex)
 	{
-		const float AngleDegrees = (360.0f * static_cast<float>(ProjectileIndex)) / static_cast<float>(SafeProjectileCount);
-		const FRotator DirectionRotation(0.0f, AngleDegrees, 0.0f);
-		const FVector ProjectileDirection = DirectionRotation.Vector();
+		++ProjectilesPerTarget[ProjectileIndex % AssignedTargetCount];
+	}
+
+	for (int32 TargetIndex = 0; TargetIndex < AssignedTargetCount; ++TargetIndex)
+	{
+		AEnemyBase* AssignedTarget = TargetCandidates[TargetIndex];
+		if (!AssignedTarget || AssignedTarget->IsDead())
+		{
+			continue;
+		}
+
+		const int32 AssignedProjectileCount = ProjectilesPerTarget[TargetIndex];
+		if (AssignedProjectileCount > 1)
+		{
+			SpawnFanOfBladesConvergenceGroup(AssignedTarget, AssignedProjectileCount, SpawnLocation, Damage, Speed, AdditionalPierceCount);
+			continue;
+		}
+
+		FVector ProjectileDirection = GetEnemyAimLocation(AssignedTarget) - SpawnLocation;
+		ProjectileDirection.Z = 0.0f;
+		if (!ProjectileDirection.Normalize())
+		{
+			ProjectileDirection = OwnerCharacter ? OwnerCharacter->GetVisualForwardVector() : FVector::ForwardVector;
+			ProjectileDirection.Z = 0.0f;
+			ProjectileDirection.Normalize();
+		}
 		SpawnProjectileInstance(SpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
+	}
+}
+
+void UAutoAttackComponent::SpawnFanOfBladesConvergenceGroup(AEnemyBase* Target, int32 AssignedProjectileCount, const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount)
+{
+	if (!Target || Target->IsDead() || AssignedProjectileCount <= 0)
+	{
+		return;
+	}
+
+	const FVector TargetLocation = GetEnemyAimLocation(Target);
+	FVector BaseDirection = TargetLocation - SpawnLocation;
+	BaseDirection.Z = 0.0f;
+	if (!BaseDirection.Normalize())
+	{
+		BaseDirection = OwnerCharacter ? OwnerCharacter->GetVisualForwardVector() : FVector::ForwardVector;
+		BaseDirection.Z = 0.0f;
+		if (!BaseDirection.Normalize())
+		{
+			BaseDirection = FVector::ForwardVector;
+		}
+	}
+
+	const FVector RightVector = FVector::CrossProduct(FVector::UpVector, BaseDirection).GetSafeNormal();
+	const float TargetDistance = FVector::Dist2D(SpawnLocation, TargetLocation);
+	const float LargestOffsetStep = 0.5f * static_cast<float>(AssignedProjectileCount - 1);
+	const float DistanceLimitedSpacing = LargestOffsetStep > KINDA_SMALL_NUMBER
+		? (TargetDistance * 0.25f) / LargestOffsetStep
+		: FanSingleTargetSpreadSpacing;
+	const float EffectiveSpacing = FMath::Min(FMath::Max(0.0f, FanSingleTargetSpreadSpacing), DistanceLimitedSpacing);
+
+	for (int32 ProjectileIndex = 0; ProjectileIndex < AssignedProjectileCount; ++ProjectileIndex)
+	{
+		const float OffsetStep = static_cast<float>(ProjectileIndex) - LargestOffsetStep;
+		const FVector ProjectileSpawnLocation = SpawnLocation + RightVector * (OffsetStep * EffectiveSpacing);
+		FVector ProjectileDirection = TargetLocation - ProjectileSpawnLocation;
+		ProjectileDirection.Z = 0.0f;
+		if (!ProjectileDirection.Normalize())
+		{
+			ProjectileDirection = BaseDirection;
+		}
+		SpawnProjectileInstance(ProjectileSpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
 	}
 }
 

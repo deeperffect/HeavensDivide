@@ -73,6 +73,7 @@ private:
 	bool bFinished = false;
 	bool bAttackInProgress = false;
 	bool bAttackQuotaFinished = false;
+	bool bExtraProjectileOnRight = true;
 	float ActiveMontagePlayRate = 1.0f;
 	FTimerHandle AttackTimer;
 	FTimerHandle LingerTimer;

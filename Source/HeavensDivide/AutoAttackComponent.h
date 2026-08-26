@@ -118,7 +118,7 @@ public:
 
 	// Fires one Ninja projectile volley from an external origin without advancing
 	// normal attack-cycle systems (Fan of Blades, Blade Cascade, assists, or swap synergies).
-	bool SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange);
+	bool SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight);
 
 	UAnimMontage* GetAttackMontageForShadowClone() const { return AttackMontage; }
 
@@ -224,6 +224,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float ProjectileSpeed = 1800.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "deg", ToolTip = "Angular spacing between neighboring kunai in a normal centered volley."))
+	float KunaiSpreadAngle = 10.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Projectile")
 	FName ProjectileSpawnSocket = TEXT("ProjectileSocket");
 
@@ -251,8 +254,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of Ninja attacks required before Fan of Blades triggers."))
 	int32 FanOfBladesAttackInterval = 4;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of radial kunai spawned when Fan of Blades triggers."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of multi-target kunai spawned when Fan of Blades triggers."))
 	int32 FanOfBladesProjectileCount = 8;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm", ToolTip = "Lateral spacing between Fan of Blades kunai when all projectiles converge on one target."))
+	float FanSingleTargetSpreadSpacing = 16.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Blade Wave")
 	TSubclassOf<ASamuraiBladeWave> BladeWaveClass;
@@ -306,6 +312,7 @@ private:
 	bool WillNextNinjaAttackTriggerFanOfBlades() const;
 	void RegisterNinjaAttackForFanOfBlades(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
 	void SpawnFanOfBladesVolley(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
+	void SpawnFanOfBladesConvergenceGroup(AEnemyBase* Target, int32 AssignedProjectileCount, const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
 	void SpawnBladeWavesForAttack(float ResolvedPrimaryDamage);
 	const UUpgradeDefinition* GetBladeCascadeUpgrade() const;
 	int32 ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount);
@@ -320,6 +327,7 @@ private:
 	float ScoreMeleeTarget(AEnemyBase* Candidate, const TArray<AEnemyBase*>& Candidates, const FVector& SearchLocation, float SearchRadius, int32& OutClusterCount, float& OutDistancePenalty, float& OutImmediateThreatBonus) const;
 	void FindEnemyTargetsSorted(TArray<AEnemyBase*>& OutTargets) const;
 	void FindEnemyTargetsSortedFromLocation(const FVector& SearchLocation, float SearchRadius, TArray<AEnemyBase*>& OutTargets) const;
+	static void BuildCenteredProjectileSpreadDirections(const FVector& BaseDirection, int32 ProjectileCount, float SpreadAngleDegrees, bool bExtraProjectileOnRight, TArray<FVector>& OutDirections);
 	FVector GetProjectileSpawnLocation() const;
 	FVector GetEnemyAimLocation(const AEnemyBase* Enemy) const;
 	bool CanAutoAttack() const;
@@ -349,6 +357,7 @@ private:
 	bool bBladeCascadeReady = false;
 	bool bDoubleCutFollowUpActive = false;
 	bool bDoubleCutFollowUpPending = false;
+	bool bNormalVolleyExtraProjectileOnRight = true;
 
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> ActiveAttackMontage;

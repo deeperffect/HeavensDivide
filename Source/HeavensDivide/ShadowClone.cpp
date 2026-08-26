@@ -99,7 +99,7 @@ void AShadowClone::HandleAttackProjectileNotify()
 	if (bFinished || bAttackQuotaFinished || !bAttackInProgress || !SourceAttack.IsValid()) return;
 	bAttackInProgress = false;
 	const FVector Origin = GetActorTransform().TransformPosition(ProjectileOriginOffset);
-	if (!SourceAttack->SpawnShadowCloneVolley(Origin, AttackRange))
+	if (!SourceAttack->SpawnShadowCloneVolley(Origin, AttackRange, bExtraProjectileOnRight))
 	{
 		GetWorldTimerManager().SetTimer(AttackTimer, this, &AShadowClone::BeginAttack, FMath::Max(0.01f, TargetRetryInterval), false);
 		return;
