@@ -246,6 +246,26 @@ void UAutoAttackComponent::PerformAttackTrace()
 	}
 }
 
+void UAutoAttackComponent::CaptureRunState(FAutoAttackRunState& OutState) const
+{
+	OutState.DoubleCutCounter = DoubleCutPrimaryAttackCounter;
+	OutState.FanOfBladesCounter = FanOfBladesAttackCounter;
+	OutState.BladeCascadeProgress = BladeCascadeKunaiProgress;
+	OutState.CrossingBladesCounter = CrossingBladesAttackCounter;
+	OutState.bBladeCascadeReady = bBladeCascadeReady;
+	OutState.bExtraProjectileOnRight = bNormalVolleyExtraProjectileOnRight;
+}
+
+void UAutoAttackComponent::RestoreRunState(const FAutoAttackRunState& State)
+{
+	DoubleCutPrimaryAttackCounter = FMath::Max(0, State.DoubleCutCounter);
+	FanOfBladesAttackCounter = FMath::Max(0, State.FanOfBladesCounter);
+	BladeCascadeKunaiProgress = FMath::Max(0, State.BladeCascadeProgress);
+	CrossingBladesAttackCounter = FMath::Max(0, State.CrossingBladesCounter);
+	bBladeCascadeReady = State.bBladeCascadeReady;
+	bNormalVolleyExtraProjectileOnRight = State.bExtraProjectileOnRight;
+}
+
 bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 {
 	if (!OwnerCharacter || !GetWorld())

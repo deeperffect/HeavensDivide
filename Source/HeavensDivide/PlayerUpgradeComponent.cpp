@@ -32,6 +32,26 @@ UPlayerUpgradeComponent::UPlayerUpgradeComponent()
 	};
 }
 
+void UPlayerUpgradeComponent::CaptureRunState(FPlayerUpgradeRunState& OutState) const
+{
+	OutState.Levels = UpgradeLevels;
+	OutState.AccumulatedMagnitudes = AccumulatedUpgradeMagnitudes;
+	OutState.Definitions = AcquiredUpgradeDefinitions;
+	OutState.SamuraiMastery = SamuraiMasteryPoints;
+	OutState.NinjaMastery = NinjaMasteryPoints;
+}
+
+void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& State)
+{
+	UpgradeLevels = State.Levels;
+	AccumulatedUpgradeMagnitudes = State.AccumulatedMagnitudes;
+	AcquiredUpgradeDefinitions = State.Definitions;
+	SamuraiMasteryPoints = FMath::Max(0, State.SamuraiMastery);
+	NinjaMasteryPoints = FMath::Max(0, State.NinjaMastery);
+	ClearCurrentOffer();
+	RebuildAllUpgradeModifiers();
+}
+
 int32 UPlayerUpgradeComponent::GetUpgradeLevel(UUpgradeDefinition* Upgrade) const
 {
 	if (!IsValidUpgradeDefinition(Upgrade))

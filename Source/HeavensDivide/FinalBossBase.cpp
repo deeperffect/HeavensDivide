@@ -11,6 +11,7 @@
 #include "EnemyLightweightMovementComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "SurvivorPlayerController.h"
+#include "RunTravelSubsystem.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Kismet/GameplayStatics.h"
@@ -70,7 +71,14 @@ void AFinalBossBase::BeginPlay()
 		CircleMaterialInstance->SetScalarParameterValue(TEXT("FillAmount"), 1.0f);
 	}
 	HideAttackTelegraphs();
-	if (bAutoStartCombat) StartBossCombat();
+	const bool bArrivedThroughBossGate = GetGameInstance() && GetGameInstance()->GetSubsystem<URunTravelSubsystem>()->ConsumeBossEntryArrival();
+	const UCapsuleComponent* StartupCapsule = GetCapsuleComponent();
+	UE_LOG(LogTemp, Warning, TEXT("[BossStartup] BeginPlay Map=%s AutoStart=%d CombatActive=%d State=%s Collision=%s Profile=%s Hidden=%d Health=%.1f/%.1f PlayerController=%s GateArrival=%d"),
+		GetWorld() ? *GetWorld()->GetMapName() : TEXT("None"), bAutoStartCombat, bCombatEnabled, *UEnum::GetValueAsString(BossState),
+		StartupCapsule ? *UEnum::GetValueAsString(StartupCapsule->GetCollisionEnabled()) : TEXT("NoCapsule"), StartupCapsule ? *StartupCapsule->GetCollisionProfileName().ToString() : TEXT("None"),
+		IsHidden(), HealthComponent ? HealthComponent->GetCurrentHealth() : 0.0f, HealthComponent ? HealthComponent->GetMaxHealth() : 0.0f, *GetNameSafe(PlayerController), bArrivedThroughBossGate);
+	if (bAutoStartCombat && !bArrivedThroughBossGate) StartBossCombat();
+	else if (bArrivedThroughBossGate) UE_LOG(LogTemp, Log, TEXT("[BossGate] Boss auto-start suppressed for entry flow handoff."));
 }
 
 void AFinalBossBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -81,7 +89,12 @@ void AFinalBossBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AFinalBossBase::StartBossCombat()
 {
-	if (IsDead()) return;
+	UCapsuleComponent* Capsule = GetCapsuleComponent();
+	UE_LOG(LogTemp, Warning, TEXT("[BossStartup] StartBossCombat AlreadyActive=%d PlayerValid=%d Collision=%s Profile=%s Health=%.1f/%.1f State=%s"),
+		bCombatEnabled, IsValid(ResolvePlayerController()), Capsule ? *UEnum::GetValueAsString(Capsule->GetCollisionEnabled()) : TEXT("NoCapsule"),
+		Capsule ? *Capsule->GetCollisionProfileName().ToString() : TEXT("None"), HealthComponent ? HealthComponent->GetCurrentHealth() : 0.0f,
+		HealthComponent ? HealthComponent->GetMaxHealth() : 0.0f, *UEnum::GetValueAsString(BossState));
+	if (IsDead() || bCombatEnabled) return;
 	bCombatEnabled = true;
 	BossState = EFinalBossState::Cooldown;
 	StateElapsed = 0.0f;
@@ -91,6 +104,8 @@ void AFinalBossBase::StartBossCombat()
 
 void AFinalBossBase::StopBossCombat()
 {
+	UE_LOG(LogTemp, Warning, TEXT("[BossStartup] StopBossCombat Active=%d State=%s Player=%s PlayerDead=%d"), bCombatEnabled,
+		*UEnum::GetValueAsString(BossState), *GetNameSafe(PlayerController), PlayerController && PlayerController->IsPlayerDead());
 	bCombatEnabled = false;
 	if (PlayerController) PlayerController->HideBossHealthBar(this);
 	CleanupCurrentAttack(true);

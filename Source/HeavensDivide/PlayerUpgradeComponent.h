@@ -48,6 +48,18 @@ struct FUpgradeRarityTimeBracket
 	float EpicWeight = 2.0f;
 };
 
+USTRUCT()
+struct FPlayerUpgradeRunState
+{
+	GENERATED_BODY()
+
+	UPROPERTY() TMap<FName, int32> Levels;
+	UPROPERTY() TMap<FName, float> AccumulatedMagnitudes;
+	UPROPERTY() TMap<FName, TObjectPtr<UUpgradeDefinition>> Definitions;
+	UPROPERTY() int32 SamuraiMastery = 0;
+	UPROPERTY() int32 NinjaMastery = 0;
+};
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UPlayerUpgradeComponent : public UActorComponent
 {
@@ -55,6 +67,8 @@ class HEAVENSDIVIDE_API UPlayerUpgradeComponent : public UActorComponent
 
 public:
 	UPlayerUpgradeComponent();
+	void CaptureRunState(FPlayerUpgradeRunState& OutState) const;
+	void RestoreRunState(const FPlayerUpgradeRunState& State);
 
 	UFUNCTION(BlueprintPure, Category = "Upgrades")
 	int32 GetUpgradeLevel(UUpgradeDefinition* Upgrade) const;

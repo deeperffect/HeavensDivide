@@ -34,6 +34,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Experience")
 	float GetXPPercent() const;
 
+	void RestoreRunState(int32 Level, int32 XP);
+
 	UPROPERTY(BlueprintAssignable, Category = "Experience")
 	FOnXPChanged OnXPChanged;
 

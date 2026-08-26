@@ -52,6 +52,13 @@ void UBloodShrineWidget::ShowInteractionPrompt(const FText& ShrineName)
 	SetLines(ShrineName, FText::FromString(TEXT("Press E to activate")), FText::GetEmpty());
 }
 
+void UBloodShrineWidget::ShowUnavailablePrompt(const FText& Name, const FText& Status)
+{
+	if (KeyText) KeyText->SetVisibility(EVisibility::Collapsed);
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+	SetLines(Name, Status, FText::GetEmpty());
+}
+
 void UBloodShrineWidget::ConfigureForWorldSpace()
 {
 	if (RootBox) RootBox->SetPadding(FMargin(0.0f));

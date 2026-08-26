@@ -17,6 +17,7 @@ class HEAVENSDIVIDE_API UBloodShrineWidget : public UUserWidget
 public:
 	void ShowInteractionPrompt();
 	void ShowInteractionPrompt(const FText& ShrineName);
+	void ShowUnavailablePrompt(const FText& Name, const FText& Status);
 	void ConfigureForWorldSpace();
 	void ShowChallenge(int32 CurrentBlood, int32 RequiredBlood, float TimeRemaining);
 	void ShowResult(bool bSuccess);

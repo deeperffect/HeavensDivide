@@ -119,6 +119,13 @@ void UHealthComponent::SetMaxHealthPreservePercent(float NewMaxHealth)
 	BroadcastHealthChanged();
 }
 
+void UHealthComponent::RestoreCurrentHealth(float NewCurrentHealth)
+{
+	CurrentHealth = FMath::Clamp(NewCurrentHealth, 0.0f, MaxHealth);
+	bDeathBroadcast = CurrentHealth <= 0.0f;
+	BroadcastHealthChanged();
+}
+
 bool UHealthComponent::IsDead() const
 {
 	return CurrentHealth <= 0.0f;

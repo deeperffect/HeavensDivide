@@ -29,6 +29,7 @@
 #include "SharedPlayerStatsComponent.h"
 #include "ShadowClone.h"
 #include "SynergyMetaProgressionSubsystem.h"
+#include "RunTravelSubsystem.h"
 #include "AutoAttackComponent.h"
 #include "CharacterStatsComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -149,6 +150,13 @@ void ASurvivorPlayerController::BeginPlay()
 		ApplySharedPlayerStats();
 	}
 	ApplyDashChargeStats();
+	if (URunTravelSubsystem* TravelState = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunTravelSubsystem>() : nullptr)
+	{
+		if (TravelState->RestoreToController(this) && GetWorld())
+		{
+			GetWorldTimerManager().SetTimerForNextTick(this, &ASurvivorPlayerController::StartRestoredBossArenaCombat);
+		}
+	}
 
 	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
 	if (!LocalPlayer)
@@ -275,7 +283,22 @@ AActor* ASurvivorPlayerController::GetActiveObjective() const
 
 float ASurvivorPlayerController::GetRunTimeSeconds() const
 {
-	return RunTimeSource ? RunTimeSource->GetRunTimeSeconds() : 0.0f;
+	if (RunTimeSource) return RunTimeSource->GetRunTimeSeconds();
+	if (const URunTravelSubsystem* Travel = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunTravelSubsystem>() : nullptr) return Travel->GetCapturedRunTimeSeconds();
+	return 0.0f;
+}
+
+void ASurvivorPlayerController::StartRestoredBossArenaCombat()
+{
+	AFinalBossBase* BossToStart = nullptr;
+	int32 BossCount = 0;
+	for (TActorIterator<AFinalBossBase> It(GetWorld()); It; ++It)
+	{
+		++BossCount;
+		if (!BossToStart) BossToStart = *It;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("[BossStartup] RunStateRestored BossCount=%d Boss=%s Player=%s"), BossCount, *GetNameSafe(BossToStart), *GetNameSafe(GetPawn()));
+	if (BossToStart) BossToStart->StartBossCombat();
 }
 
 bool ASurvivorPlayerController::CanSwap() const
@@ -526,6 +549,18 @@ void ASurvivorPlayerController::SetupInputComponent()
 	}
 
 	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &ASurvivorPlayerController::Interact);
+}
+
+void ASurvivorPlayerController::RestoreRunTravelDashCharges(int32 Charges)
+{
+	CurrentDashCharges = FMath::Clamp(Charges, 0, MaxDashCharges);
+	BroadcastDashChargesChanged();
+	if (CurrentDashCharges < MaxDashCharges) StartDashRechargeIfNeeded(); else StopDashRecharge();
+}
+
+void ASurvivorPlayerController::RefreshRunTravelDerivedStats()
+{
+	ApplySharedPlayerStats();
 }
 
 void ASurvivorPlayerController::ShowBossHealthBar(AFinalBossBase* Boss)

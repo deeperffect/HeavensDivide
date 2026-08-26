@@ -35,6 +35,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void SetMaxHealthPreservePercent(float NewMaxHealth);
 
+	void RestoreCurrentHealth(float NewCurrentHealth);
+
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const;
 

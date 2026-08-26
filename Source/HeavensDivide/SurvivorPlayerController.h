@@ -136,6 +136,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player|Dash")
 	bool HasDashCharge() const;
+	void RestoreRunTravelDashCharges(int32 Charges);
+	void RefreshRunTravelDerivedStats();
 
 	UFUNCTION(BlueprintPure, Category = "Player|Dash")
 	float GetDashRechargeRemaining() const;
@@ -348,6 +350,7 @@ protected:
 	void InitializePlayerCameraRig();
 	void InitializePlayerHUD();
 	void ResolveRunTimeSource();
+	void StartRestoredBossArenaCombat();
 	UFUNCTION()
 	void HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
 	void TryTriggerHemotoxicReaction(ACharacterBase* NewCharacter);

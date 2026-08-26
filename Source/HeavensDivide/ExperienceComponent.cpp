@@ -62,6 +62,13 @@ float UExperienceComponent::GetXPPercent() const
 	return XPToNextLevel > 0 ? static_cast<float>(CurrentXP) / static_cast<float>(XPToNextLevel) : 0.0f;
 }
 
+void UExperienceComponent::RestoreRunState(int32 Level, int32 XP)
+{
+	CurrentLevel = FMath::Max(1, Level);
+	CurrentXP = FMath::Clamp(XP, 0, FMath::Max(0, CalculateXPToNextLevel() - 1));
+	BroadcastXPChanged();
+}
+
 int32 UExperienceComponent::CalculateXPToNextLevel() const
 {
 	struct FLevelXPRequirement

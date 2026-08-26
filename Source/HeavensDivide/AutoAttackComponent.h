@@ -41,6 +41,18 @@ enum class ESamuraiTechnique : uint8
 	Deathblow
 };
 
+USTRUCT()
+struct FAutoAttackRunState
+{
+	GENERATED_BODY()
+	UPROPERTY() int32 DoubleCutCounter = 0;
+	UPROPERTY() int32 FanOfBladesCounter = 0;
+	UPROPERTY() int32 BladeCascadeProgress = 0;
+	UPROPERTY() int32 CrossingBladesCounter = 0;
+	UPROPERTY() bool bBladeCascadeReady = false;
+	UPROPERTY() bool bExtraProjectileOnRight = true;
+};
+
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 {
@@ -48,6 +60,8 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 
 public:
 	UAutoAttackComponent();
+	void CaptureRunState(FAutoAttackRunState& OutState) const;
+	void RestoreRunState(const FAutoAttackRunState& State);
 
 	UFUNCTION(BlueprintCallable, Category = "Auto Attack")
 	void StartAutoAttack();
