@@ -17,6 +17,7 @@ class UTextBlock;
 class UBorder;
 class UProgressBar;
 class AFinalBossBase;
+class UMinimapWidget;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDHealthUpdated, float, CurrentHealth, float, MaxHealth, float, HealthPercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDActiveCharacterChanged, ACharacterBase*, NewActiveCharacter);
@@ -312,6 +313,7 @@ private:
 	void BroadcastSwapCooldownFinished();
 	void InitializeRunTimerDisplay();
 	void UpdateRunTimerDisplay();
+	void EnsureMinimapPresentation();
 
 	FTimerHandle HealthChipDelayTimerHandle;
 	float TargetHealthPercent = 1.0f;
@@ -324,4 +326,5 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> BossNameText;
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> BossHealthValueText;
 	UPROPERTY(Transient) TObjectPtr<UProgressBar> BossHealthProgressBar;
+	UPROPERTY(Transient) TObjectPtr<UMinimapWidget> MinimapWidget;
 };

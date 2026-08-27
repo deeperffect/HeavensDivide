@@ -14,6 +14,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
+#include "MinimapMarkerComponent.h"
 #include "TimerManager.h"
 
 ABloodShrine::ABloodShrine()
@@ -22,6 +23,8 @@ ABloodShrine::ABloodShrine()
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+	MinimapMarker = CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("MinimapMarker"));
+	MinimapMarker->DisplayName = FText::FromString(TEXT("Blood Shrine"));
 
 	ShrineMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShrineMesh"));
 	ShrineMesh->SetupAttachment(SceneRoot);
@@ -122,6 +125,7 @@ bool ABloodShrine::ActivateShrine(APawn* InteractingPawn)
 	bRewardRequested = false;
 	CurrentBlood = 0;
 	ShrineState = EBloodShrineState::Active;
+	MinimapMarker->SetMarkerState(EMinimapMarkerState::Active);
 	if (InteractionPromptComponent) InteractionPromptComponent->SetVisibility(false);
 	ChallengeEndTime = GetWorld()->GetTimeSeconds() + FMath::Max(0.1f, ChallengeDuration);
 
@@ -241,6 +245,7 @@ void ABloodShrine::SucceedChallenge()
 
 	EndChallenge();
 	ShrineState = EBloodShrineState::Success;
+	MinimapMarker->SetMarkerState(bAllowReactivation ? EMinimapMarkerState::Available : EMinimapMarkerState::Completed);
 	if (StatusWidget) StatusWidget->ShowResult(true);
 	OnShrineSucceeded.Broadcast();
 	ReceiveShrineSucceeded();
@@ -264,6 +269,7 @@ void ABloodShrine::FailChallenge(bool bShowFailure)
 
 	EndChallenge();
 	ShrineState = EBloodShrineState::Failed;
+	MinimapMarker->SetMarkerState(bAllowReactivation ? EMinimapMarkerState::Available : EMinimapMarkerState::Failed);
 	if (StatusWidget)
 	{
 		if (bShowFailure) StatusWidget->ShowResult(false);

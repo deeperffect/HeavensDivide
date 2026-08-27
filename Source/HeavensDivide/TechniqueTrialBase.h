@@ -15,6 +15,7 @@ class USceneComponent;
 class USphereComponent;
 class UStaticMeshComponent;
 class UWidgetComponent;
+class UMinimapMarkerComponent;
 
 UENUM(BlueprintType)
 enum class ETechniqueTrialState : uint8 { Inactive, Active, Result, Completed, Failed };
@@ -52,6 +53,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<USphereComponent> InteractionSphere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<UWidgetComponent> InteractionPrompt;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<UStaticMeshComponent> TrialFloor;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TArray<TObjectPtr<UStaticMeshComponent>> TrialWalls;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Technique Trial|Arena") FVector TrialArenaOffset = FVector(0, 50000, 0);
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Technique Trial|Arena") FVector TrialPlayerOffset = FVector(0, -900, 150);

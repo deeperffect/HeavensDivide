@@ -10,6 +10,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "RunTravelSubsystem.h"
 #include "SurvivorPlayerController.h"
+#include "MinimapMarkerComponent.h"
 #include "TimerManager.h"
 
 ABossToriiGate::ABossToriiGate()
@@ -17,6 +18,10 @@ ABossToriiGate::ABossToriiGate()
 	PrimaryActorTick.bCanEverTick = true;
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+	MinimapMarker = CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("MinimapMarker"));
+	MinimapMarker->MarkerType = EMinimapMarkerType::BossGate;
+	MinimapMarker->MarkerState = EMinimapMarkerState::Locked;
+	MinimapMarker->DisplayName = FText::FromString(TEXT("Boss Torii Gate"));
 	GateVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GateVisual"));
 	GateVisual->SetupAttachment(SceneRoot);
 	GateVisual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -79,6 +84,7 @@ void ABossToriiGate::Interact_Implementation(APawn* InteractingPawn)
 		return;
 	}
 	GateState = EBossToriiGateState::TravelCommitted;
+	MinimapMarker->SetMarkerVisible(false);
 	InteractionPromptComponent->SetVisibility(false);
 	EnemySpawner->FreezeRunTime();
 	EnemySpawner->SetSpawningEnabled(false);
@@ -151,6 +157,7 @@ void ABossToriiGate::UnlockGate()
 {
 	if (GateState != EBossToriiGateState::Locked) return;
 	GateState = EBossToriiGateState::Unlocked;
+	MinimapMarker->SetMarkerState(EMinimapMarkerState::Available);
 	GetWorldTimerManager().ClearTimer(UnlockPollTimer);
 	OnBossGateUnlocked.Broadcast();
 	UpdateInactivePrompt();

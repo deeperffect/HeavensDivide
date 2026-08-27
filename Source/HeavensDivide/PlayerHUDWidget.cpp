@@ -15,9 +15,11 @@
 #include "ExperienceComponent.h"
 #include "FinalBossBase.h"
 #include "HealthComponent.h"
+#include "MinimapWidget.h"
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
 #include "SurvivorPlayerController.h"
+#include "RunTravelSubsystem.h"
 #include "TimerManager.h"
 
 void UPlayerHUDWidget::NativeConstruct()
@@ -71,11 +73,14 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 	BindPlayerExperience();
 	BindDashState();
 	BindSwapCooldownState();
+	EnsureMinimapPresentation();
 	BroadcastInitialState();
 }
 
 void UPlayerHUDWidget::NativeDestruct()
 {
+	if (MinimapWidget) MinimapWidget->RemoveFromParent();
+	MinimapWidget = nullptr;
 	HideBossHealthBar();
 	StopHealthChipChase();
 	UnbindCharacterHealth();
@@ -89,6 +94,35 @@ void UPlayerHUDWidget::NativeDestruct()
 	}
 
 	Super::NativeDestruct();
+}
+
+void UPlayerHUDWidget::EnsureMinimapPresentation()
+{
+	if (MinimapWidget || !SurvivorPlayerController || !WidgetTree || !GetWorld()) return;
+	if (URunTravelSubsystem* Travel = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunTravelSubsystem>() : nullptr)
+	{
+		if (Travel->HasPendingRestore()) return;
+	}
+	UCanvasPanel* Canvas = Cast<UCanvasPanel>(WidgetTree->RootWidget);
+	if (!Canvas)
+	{
+		TArray<UWidget*> Widgets;
+		WidgetTree->GetAllWidgets(Widgets);
+		for (UWidget* Widget : Widgets) if ((Canvas = Cast<UCanvasPanel>(Widget))) break;
+	}
+	if (!Canvas)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Minimap] HUD has no CanvasPanel; minimap was not attached."));
+		return;
+	}
+	MinimapWidget = WidgetTree->ConstructWidget<UMinimapWidget>(UMinimapWidget::StaticClass(), TEXT("RuntimeMinimap"));
+	MinimapWidget->InitializeMinimap(SurvivorPlayerController);
+	UCanvasPanelSlot* MinimapCanvasSlot = Canvas->AddChildToCanvas(MinimapWidget);
+	MinimapCanvasSlot->SetAnchors(FAnchors(1.0f, 0.0f));
+	MinimapCanvasSlot->SetAlignment(FVector2D(1.0f, 0.0f));
+	MinimapCanvasSlot->SetPosition(FVector2D(-24.0f, 24.0f));
+	MinimapCanvasSlot->SetSize(FVector2D(250.0f, 250.0f));
+	MinimapCanvasSlot->SetZOrder(100);
 }
 
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -292,6 +326,7 @@ bool UPlayerHUDWidget::IsNinjaActive() const
 
 void UPlayerHUDWidget::ShowBossHealthBar(AFinalBossBase* Boss)
 {
+	if (MinimapWidget) MinimapWidget->SetVisibility(ESlateVisibility::Collapsed);
 	if (!Boss || !Boss->GetHealthComponent()) return;
 	HideBossHealthBar();
 	EnsureBossHealthPresentation();

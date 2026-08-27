@@ -7,6 +7,7 @@
 
 class AEnemySpawner;
 class ASurvivorPlayerController;
+class UMinimapMarkerComponent;
 class USceneComponent;
 class USphereComponent;
 class UStaticMeshComponent;
@@ -36,6 +37,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<UStaticMeshComponent> GateVisual;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<USphereComponent> InteractionSphere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<UWidgetComponent> InteractionPromptComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Interaction|Prompt") float PromptVerticalOffset = 240.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Interaction|Prompt") FVector2D PromptDrawSize = FVector2D(360.0f, 160.0f);
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Interaction|Prompt", meta=(ClampMin="0.01")) float PromptWorldScale = 0.5f;

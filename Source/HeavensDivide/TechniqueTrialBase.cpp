@@ -13,6 +13,7 @@
 #include "EngineUtils.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "MinimapMarkerComponent.h"
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
 #include "SurvivorPlayerController.h"
@@ -23,6 +24,8 @@ ATechniqueTrialBase::ATechniqueTrialBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot")); SetRootComponent(SceneRoot);
+	MinimapMarker = CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("MinimapMarker"));
+	MinimapMarker->DisplayName = FText::FromString(TEXT("Technique Trial"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	StatueMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StatueMesh")); StatueMesh->SetupAttachment(SceneRoot); StatueMesh->SetRelativeScale3D(FVector(1.5,1.5,3));
 	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere")); InteractionSphere->SetupAttachment(SceneRoot); InteractionSphere->InitSphereRadius(InteractionRange); InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore); InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn,ECR_Overlap);
@@ -47,15 +50,15 @@ bool ATechniqueTrialBase::EnterTrial(APawn* P)
 	UAutoAttackComponent* SA=M->GetSamurai()?M->GetSamurai()->FindComponentByClass<UAutoAttackComponent>():nullptr; UAutoAttackComponent* NA=M->GetNinja()?M->GetNinja()->FindComponentByClass<UAutoAttackComponent>():nullptr;
 	bSamuraiAutoAttackWasEnabled=SA&&SA->IsAutoAttackEnabled();bNinjaAutoAttackWasEnabled=NA&&NA->IsAutoAttackEnabled();if(bSuspendAutoAttacksDuringTrial){if(SA)SA->SetAutoAttackEnabled(false);if(NA)NA->SetAutoAttackEnabled(false);}
 	if(!PrepareActiveCharacter()){CleanupRuntime(false);return false;}
-	bRuntimeOwned=true; MainSpawner->SetTrialSuspended(true); GetActiveCharacter()->SetActorLocation(GetGroundedTrialPlayerLocation(GetActiveCharacter()),false,nullptr,ETeleportType::TeleportPhysics); TrialState=ETechniqueTrialState::Active; InteractionPrompt->SetVisibility(false);
+	bRuntimeOwned=true; MainSpawner->SetTrialSuspended(true); GetActiveCharacter()->SetActorLocation(GetGroundedTrialPlayerLocation(GetActiveCharacter()),false,nullptr,ETeleportType::TeleportPhysics); TrialState=ETechniqueTrialState::Active; MinimapMarker->SetMarkerState(EMinimapMarkerState::Active); InteractionPrompt->SetVisibility(false);
 	if(auto* H=PlayerController->GetPlayerHealthComponent())H->OnDeath.AddUniqueDynamic(this,&ATechniqueTrialBase::HandlePlayerDeath);
 	if(!BeginChallenge()){AbortTrial();return false;} OnTrialEntered.Broadcast(); return true;
 }
 
-void ATechniqueTrialBase::FinishChallenge(){if(TrialState!=ETechniqueTrialState::Active||!PlayerController||PlayerController->IsPlayerDead())return;TrialState=ETechniqueTrialState::Result;StopChallenge();OnTechniqueTrialCompleted.Broadcast();GetWorldTimerManager().SetTimer(ResultTimer,this,&ATechniqueTrialBase::ReturnToArena,ResultDisplayDuration,false);}
-void ATechniqueTrialBase::AbortTrial(){if(TrialState==ETechniqueTrialState::Completed||TrialState==ETechniqueTrialState::Failed)return;TrialState=ETechniqueTrialState::Failed;StopChallenge();CleanupRuntime(true);}
+void ATechniqueTrialBase::FinishChallenge(){if(TrialState!=ETechniqueTrialState::Active||!PlayerController||PlayerController->IsPlayerDead())return;TrialState=ETechniqueTrialState::Result;MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);StopChallenge();OnTechniqueTrialCompleted.Broadcast();GetWorldTimerManager().SetTimer(ResultTimer,this,&ATechniqueTrialBase::ReturnToArena,ResultDisplayDuration,false);}
+void ATechniqueTrialBase::AbortTrial(){if(TrialState==ETechniqueTrialState::Completed||TrialState==ETechniqueTrialState::Failed)return;TrialState=ETechniqueTrialState::Failed;MinimapMarker->SetMarkerState(EMinimapMarkerState::Failed);StopChallenge();CleanupRuntime(true);}
 void ATechniqueTrialBase::HandlePlayerDeath(){AbortTrial();}
-void ATechniqueTrialBase::ReturnToArena(){TrialState=bAllowReactivation?ETechniqueTrialState::Inactive:ETechniqueTrialState::Completed;StopChallenge();CleanupRuntime(true);OnPlayerReturned.Broadcast();}
+void ATechniqueTrialBase::ReturnToArena(){TrialState=bAllowReactivation?ETechniqueTrialState::Inactive:ETechniqueTrialState::Completed;MinimapMarker->SetMarkerState(bAllowReactivation?EMinimapMarkerState::Available:EMinimapMarkerState::Completed);StopChallenge();CleanupRuntime(true);OnPlayerReturned.Broadcast();}
 void ATechniqueTrialBase::CleanupRuntime(bool bReturnPlayer)
 {
 	GetWorldTimerManager().ClearTimer(ResultTimer); if(PlayerController){if(auto* H=PlayerController->GetPlayerHealthComponent())H->OnDeath.RemoveDynamic(this,&ATechniqueTrialBase::HandlePlayerDeath);}

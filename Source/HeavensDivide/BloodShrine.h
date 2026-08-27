@@ -10,6 +10,7 @@
 class AEnemyBase;
 class AEnemySpawner;
 class ASurvivorPlayerController;
+class UMinimapMarkerComponent;
 class UBloodShrineWidget;
 class USphereComponent;
 class UStaticMeshComponent;
@@ -85,6 +86,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Components")
 	TObjectPtr<UWidgetComponent> InteractionPromptComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
 	float PromptVerticalOffset = 240.0f;

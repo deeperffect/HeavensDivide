@@ -10,6 +10,7 @@
 class AEnemyBase;
 class AEnemySpawner;
 class ASurvivorPlayerController;
+class UMinimapMarkerComponent;
 class UBloodShrineWidget;
 class UBoxComponent;
 class USceneComponent;
@@ -78,6 +79,7 @@ protected:
 	TObjectPtr<USphereComponent> InteractionSphere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
 	TObjectPtr<UWidgetComponent> InteractionPromptComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
 	float PromptVerticalOffset = 240.0f;

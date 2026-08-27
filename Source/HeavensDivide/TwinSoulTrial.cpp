@@ -16,6 +16,7 @@
 #include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
+#include "MinimapMarkerComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 ATwinSoulTrial::ATwinSoulTrial()
@@ -23,6 +24,8 @@ ATwinSoulTrial::ATwinSoulTrial()
 	PrimaryActorTick.bCanEverTick = true;
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+	MinimapMarker = CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("MinimapMarker"));
+	MinimapMarker->DisplayName = FText::FromString(TEXT("Twin Soul Trial"));
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	PortalMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PortalMesh"));
@@ -124,6 +127,7 @@ bool ATwinSoulTrial::EnterTrial(APawn* InteractingPawn)
 	ReturnTransform = ActiveCharacter->GetActorTransform();
 	ReturnTransform.AddToTranslation(ReturnOffset);
 	TrialState = ETwinSoulTrialState::TrialActive;
+	MinimapMarker->SetMarkerState(EMinimapMarkerState::Active);
 	bCrimsonDead = false;
 	bVioletDead = false;
 	MainSpawner->SetTrialSuspended(true);
@@ -208,6 +212,7 @@ void ATwinSoulTrial::ReturnPlayerToArena()
 	}
 	if (MainSpawner) MainSpawner->SetTrialSuspended(false);
 	TrialState = ETwinSoulTrialState::Completed;
+	MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);
 	if (PlayerController) PlayerController->EndObjective(this);
 	OnPlayerReturned.Broadcast();
 }
@@ -217,6 +222,7 @@ void ATwinSoulTrial::HandlePlayerDeath()
 	if (TrialState == ETwinSoulTrialState::TrialActive || TrialState == ETwinSoulTrialState::AwaitingReward)
 	{
 		TrialState = ETwinSoulTrialState::Failed;
+		MinimapMarker->SetMarkerState(EMinimapMarkerState::Failed);
 		CleanupTargetBindings();
 		if (MainSpawner) MainSpawner->SetTrialSuspended(false);
 		if (PlayerController) PlayerController->EndObjective(this);
