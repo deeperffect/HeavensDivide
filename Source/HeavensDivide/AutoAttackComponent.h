@@ -46,6 +46,7 @@ struct FAutoAttackRunState
 {
 	GENERATED_BODY()
 	UPROPERTY() int32 DoubleCutCounter = 0;
+	UPROPERTY() bool bDoubleCutReady = false;
 	UPROPERTY() int32 FanOfBladesCounter = 0;
 	UPROPERTY() int32 BladeCascadeProgress = 0;
 	UPROPERTY() int32 CrossingBladesCounter = 0;
@@ -265,6 +266,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Double Cut", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of normal Samurai melee attacks required before Double Cut triggers."))
 	int32 DoubleCutPrimaryAttackCount = 3;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Double Cut", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Animation-only multiplier applied to the normal Samurai primary montage when that primary is expected to earn or use a stored Double Cut proc."))
+	float DoubleCutPrimarySpeedMultiplier = 2.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of Ninja attacks required before Fan of Blades triggers."))
 	int32 FanOfBladesAttackInterval = 4;
 
@@ -334,8 +338,8 @@ private:
 	int32 ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount);
 	bool WillNextSamuraiAttackTriggerDoubleCut() const;
 	bool AcquireDoubleCutFollowUpTarget();
-	void StartDoubleCutFollowUp();
-	void ConsumePendingDoubleCutFollowUp();
+	bool StartDoubleCutFollowUp();
+	bool ConsumePendingDoubleCutFollowUp();
 	void HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount, bool bRegisterAttackCycle = true);
 	AEnemyBase* FindNearestEnemyTarget() const;
@@ -372,6 +376,7 @@ private:
 	bool bActiveAttackIsAssist = false;
 	bool bActiveAttackTriggersFanOfBlades = false;
 	bool bBladeCascadeReady = false;
+	bool bDoubleCutReady = false;
 	bool bDoubleCutFollowUpActive = false;
 	bool bDoubleCutFollowUpPending = false;
 	bool bNormalVolleyExtraProjectileOnRight = true;

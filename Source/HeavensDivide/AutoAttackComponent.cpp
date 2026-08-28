@@ -218,6 +218,10 @@ bool UAutoAttackComponent::ReduceRemainingAttackCooldown(float Percent)
 
 void UAutoAttackComponent::PerformAttackTrace()
 {
+	if (!CanExecuteAttackInCurrentMode())
+	{
+		return;
+	}
 	if (!TryConsumeAttackNotify())
 	{
 		return;
@@ -228,27 +232,35 @@ void UAutoAttackComponent::PerformAttackTrace()
 	// primary swing and Double Cut's actual follow-up swing.
 	LastResolvedPrimaryAttackDamage = GetEffectiveAttackDamage();
 	const bool bMeleeTraceResolved = ExecuteMeleeAttackTrace();
-	SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
+	if (bMeleeTraceResolved)
+	{
+		SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
+	}
 
 	if (bDoubleCutFollowUpActive)
 	{
 		if (bMeleeTraceResolved)
 		{
+			// The earned proc is consumed only here: the follow-up montage has
+			// reached its authoritative committed-damage notify.
+			bDoubleCutReady = false;
 			OnAutoAttack.Broadcast(this, EAutoAttackSource::DoubleCut);
 		}
 		return;
 	}
 
-	const bool bCountsForDoubleCut = !ProjectileClass && HasDoubleCutUpgrade();
+	const bool bCountsForDoubleCut = !ProjectileClass && !bActiveAttackIsAssist && HasDoubleCutUpgrade();
 	if (bMeleeTraceResolved && bCountsForDoubleCut)
 	{
 		RegisterDoubleCutPrimaryAttack();
+		bDoubleCutFollowUpPending = bDoubleCutReady;
 	}
 }
 
 void UAutoAttackComponent::CaptureRunState(FAutoAttackRunState& OutState) const
 {
 	OutState.DoubleCutCounter = DoubleCutPrimaryAttackCounter;
+	OutState.bDoubleCutReady = bDoubleCutReady;
 	OutState.FanOfBladesCounter = FanOfBladesAttackCounter;
 	OutState.BladeCascadeProgress = BladeCascadeKunaiProgress;
 	OutState.CrossingBladesCounter = CrossingBladesAttackCounter;
@@ -258,7 +270,11 @@ void UAutoAttackComponent::CaptureRunState(FAutoAttackRunState& OutState) const
 
 void UAutoAttackComponent::RestoreRunState(const FAutoAttackRunState& State)
 {
-	DoubleCutPrimaryAttackCounter = FMath::Max(0, State.DoubleCutCounter);
+	const int32 DoubleCutThreshold = FMath::Max(1, DoubleCutPrimaryAttackCount);
+	bDoubleCutReady = State.bDoubleCutReady || State.DoubleCutCounter == DoubleCutThreshold;
+	DoubleCutPrimaryAttackCounter = State.DoubleCutCounter > DoubleCutThreshold
+		? DoubleCutThreshold - 1
+		: FMath::Clamp(State.DoubleCutCounter, 0, DoubleCutThreshold - 1);
 	FanOfBladesAttackCounter = FMath::Max(0, State.FanOfBladesCounter);
 	BladeCascadeKunaiProgress = FMath::Max(0, State.BladeCascadeProgress);
 	CrossingBladesAttackCounter = FMath::Max(0, State.CrossingBladesCounter);
@@ -1002,7 +1018,14 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 		return false;
 	}
 
-	const float ActualPlayRate = CalculateAttackMontagePlayRate(MontageToPlay);
+	const float NormalCalculatedPlayRate = CalculateAttackMontagePlayRate(MontageToPlay);
+	const bool bProspectiveDoubleCutPrimary = bUpdateNormalCooldown
+		&& !ProjectileClass
+		&& OwnerCharacter
+		&& OwnerCharacter->IsA<ASamuraiCharacter>()
+		&& WillNextSamuraiAttackTriggerDoubleCut();
+	const float ActualPlayRate = NormalCalculatedPlayRate
+		* (bProspectiveDoubleCutPrimary ? FMath::Max(0.01f, DoubleCutPrimarySpeedMultiplier) : 1.0f);
 	const float PlayResult = AnimInstance->Montage_Play(MontageToPlay, ActualPlayRate);
 	if (PlayResult <= 0.0f)
 	{
@@ -1083,7 +1106,9 @@ float UAutoAttackComponent::GetExpectedAttackMontageDuration() const
 
 float UAutoAttackComponent::GetExpectedDoubleCutFollowUpDuration() const
 {
-	return DoubleCutMontage ? DoubleCutMontage->GetPlayLength() : 0.0f;
+	const UAnimMontage* FollowUpMontage = DoubleCutMontage ? DoubleCutMontage.Get() : AttackMontage.Get();
+	if (!FollowUpMontage) return 0.0f;
+	return FollowUpMontage->GetPlayLength() / FMath::Max(0.01f, CalculateAttackMontagePlayRate(FollowUpMontage));
 }
 
 void UAutoAttackComponent::HandleAttackMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
@@ -1092,8 +1117,6 @@ void UAutoAttackComponent::HandleAttackMontageBlendingOut(UAnimMontage* Montage,
 	{
 		return;
 	}
-
-	ConsumePendingDoubleCutFollowUp();
 }
 
 void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -1104,6 +1127,12 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 	}
 
 	if (bDoubleCutFollowUpActive)
+	{
+		return;
+	}
+	// A Double Cut is a chained attack after the normal primary has fully ended,
+	// never an alternate montage selected during the primary's blend-out.
+	if (ConsumePendingDoubleCutFollowUp())
 	{
 		return;
 	}
@@ -1263,14 +1292,21 @@ void UAutoAttackComponent::RegisterDoubleCutPrimaryAttack()
 		return;
 	}
 
+	// Progress and ownership are independent. A stored proc remains owned while
+	// later legitimate primaries begin progress toward the following proc.
 	++DoubleCutPrimaryAttackCounter;
 	if (DoubleCutPrimaryAttackCounter < DoubleCutPrimaryAttackCount)
 	{
 		return;
 	}
 
+	if (bDoubleCutReady)
+	{
+		DoubleCutPrimaryAttackCounter = DoubleCutPrimaryAttackCount - 1;
+		return;
+	}
 	DoubleCutPrimaryAttackCounter = 0;
-	bDoubleCutFollowUpPending = true;
+	bDoubleCutReady = true;
 }
 
 void UAutoAttackComponent::HandleSamuraiMomentum(int32 KilledEnemyCount)
@@ -1525,9 +1561,9 @@ void UAutoAttackComponent::RegisterKunaiFired()
 
 bool UAutoAttackComponent::WillNextSamuraiAttackTriggerDoubleCut() const
 {
-	return HasDoubleCutUpgrade()
-		&& DoubleCutPrimaryAttackCount > 0
-		&& DoubleCutPrimaryAttackCounter + 1 >= DoubleCutPrimaryAttackCount;
+	return HasDoubleCutUpgrade() && (bDoubleCutReady
+		|| (DoubleCutPrimaryAttackCount > 0
+		&& DoubleCutPrimaryAttackCounter + 1 >= DoubleCutPrimaryAttackCount));
 }
 
 bool UAutoAttackComponent::AcquireDoubleCutFollowUpTarget()
@@ -1580,25 +1616,21 @@ bool UAutoAttackComponent::AcquireDoubleCutFollowUpTarget()
 	return true;
 }
 
-void UAutoAttackComponent::StartDoubleCutFollowUp()
+bool UAutoAttackComponent::StartDoubleCutFollowUp()
 {
-	if (IsOwningPlayerDead() || !OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>() || ProjectileClass)
+	if (!bDoubleCutReady || !CanExecuteAttackInCurrentMode() || !OwnerCharacter || OwnerCharacter->IsDashing()
+		|| !OwnerCharacter->IsA<ASamuraiCharacter>() || ProjectileClass)
 	{
-		return;
+		return false;
 	}
 
 	if (!AcquireDoubleCutFollowUpTarget())
 	{
-		return;
+		return false;
 	}
 
-	if (!DoubleCutMontage)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Double Cut triggered on %s, but DoubleCutMontage is not assigned. Falling back to immediate bonus slash."),
-			*GetNameSafe(OwnerCharacter));
-		ExecuteMeleeAttackTrace();
-		return;
-	}
+	UAnimMontage* FollowUpMontage = DoubleCutMontage ? DoubleCutMontage.Get() : AttackMontage.Get();
+	if (!FollowUpMontage) return false;
 
 	ACharacter* OwnerAsCharacter = Cast<ACharacter>(GetOwner());
 	USkeletalMeshComponent* MeshComponent = OwnerAsCharacter ? OwnerAsCharacter->GetMesh() : nullptr;
@@ -1606,44 +1638,45 @@ void UAutoAttackComponent::StartDoubleCutFollowUp()
 	if (!AnimInstance)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Double Cut skipped: AnimInstance invalid on %s."), *GetNameSafe(OwnerCharacter));
-		return;
+		return false;
 	}
 
-	const float PlayResult = AnimInstance->Montage_Play(DoubleCutMontage, 1.0f);
+	const float PlayResult = AnimInstance->Montage_Play(FollowUpMontage, CalculateAttackMontagePlayRate(FollowUpMontage));
 	if (PlayResult <= 0.0f)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Double Cut montage failed to play on %s."), *GetNameSafe(OwnerCharacter));
-		return;
+		return false;
 	}
 
 	FOnMontageEnded MontageEndedDelegate;
 	MontageEndedDelegate.BindUObject(this, &UAutoAttackComponent::HandleDoubleCutMontageEnded);
-	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, DoubleCutMontage);
+	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, FollowUpMontage);
 
 	bIsAttacking = true;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
 	bDoubleCutFollowUpActive = true;
+	ActiveAttackMontage = FollowUpMontage;
+	return true;
 }
 
-void UAutoAttackComponent::ConsumePendingDoubleCutFollowUp()
+bool UAutoAttackComponent::ConsumePendingDoubleCutFollowUp()
 {
 	if (!bDoubleCutFollowUpPending)
 	{
-		return;
+		return false;
 	}
 
 	bDoubleCutFollowUpPending = false;
-	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
 	ActiveAttackSequence = 0;
-	StartDoubleCutFollowUp();
+	return StartDoubleCutFollowUp();
 }
 
 void UAutoAttackComponent::HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	if (Montage != DoubleCutMontage)
+	if (!bDoubleCutFollowUpActive || Montage != ActiveAttackMontage)
 	{
 		return;
 	}
@@ -1652,6 +1685,7 @@ void UAutoAttackComponent::HandleDoubleCutMontageEnded(UAnimMontage* Montage, bo
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
 	bDoubleCutFollowUpActive = false;
+	ActiveAttackMontage = nullptr;
 	CurrentAttackTarget.Reset();
 	if (OwnerCharacter)
 	{
