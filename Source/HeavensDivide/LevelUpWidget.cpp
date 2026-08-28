@@ -10,6 +10,7 @@
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
+#include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
@@ -310,8 +311,10 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 	UpgradeArtworkImages.Reset();
 	UpgradeBorderImages.Reset();
-	constexpr float CardWidth = 320.0f;
+	constexpr float CardWidth = 400.0f;
 	constexpr float CardHeight = CardWidth * 1.5f;
+	constexpr float ArtworkInset = 22.0f;
+	constexpr float TextInset = 26.0f;
 
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
@@ -331,6 +334,17 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 			continue;
 		}
 
+		// Preserve the button as the mouse/controller interaction target while removing
+		// the old Blueprint-authored colored background from every visual state.
+		FSlateBrush TransparentButtonBrush;
+		TransparentButtonBrush.DrawAs = ESlateBrushDrawType::NoDrawType;
+		FButtonStyle TransparentButtonStyle = UpgradeButton->GetStyle();
+		TransparentButtonStyle.SetNormal(TransparentButtonBrush);
+		TransparentButtonStyle.SetHovered(TransparentButtonBrush);
+		TransparentButtonStyle.SetPressed(TransparentButtonBrush);
+		TransparentButtonStyle.SetDisabled(TransparentButtonBrush);
+		UpgradeButton->SetStyle(TransparentButtonStyle);
+
 		UWidget* ExistingTextContent = UpgradeButton->GetContent();
 		UpgradeButton->ClearChildren();
 
@@ -344,12 +358,21 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		CardSize->SetContent(CardLayers);
 		UpgradeButton->SetContent(CardSize);
 
+		UScaleBox* ArtworkContainer = WidgetTree->ConstructWidget<UScaleBox>(
+			UScaleBox::StaticClass(), *FString::Printf(TEXT("UpgradeArtworkContainer_%d"), Index));
+		ArtworkContainer->SetStretch(EStretch::ScaleToFill);
+		ArtworkContainer->SetStretchDirection(EStretchDirection::Both);
+		ArtworkContainer->SetClipping(EWidgetClipping::ClipToBounds);
+		ArtworkContainer->SetVisibility(ESlateVisibility::HitTestInvisible);
+		UOverlaySlot* ArtworkContainerSlot = CardLayers->AddChildToOverlay(ArtworkContainer);
+		ArtworkContainerSlot->SetHorizontalAlignment(HAlign_Fill);
+		ArtworkContainerSlot->SetVerticalAlignment(VAlign_Fill);
+		ArtworkContainerSlot->SetPadding(FMargin(ArtworkInset));
+
 		UImage* Artwork = WidgetTree->ConstructWidget<UImage>(
 			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeArtwork_%d"), Index));
 		Artwork->SetVisibility(ESlateVisibility::HitTestInvisible);
-		UOverlaySlot* ArtworkSlot = CardLayers->AddChildToOverlay(Artwork);
-		ArtworkSlot->SetHorizontalAlignment(HAlign_Fill);
-		ArtworkSlot->SetVerticalAlignment(VAlign_Fill);
+		ArtworkContainer->SetContent(Artwork);
 
 		UBorder* TextReadabilityLayer = WidgetTree->ConstructWidget<UBorder>(
 			UBorder::StaticClass(), *FString::Printf(TEXT("UpgradeTextLayer_%d"), Index));
@@ -363,6 +386,7 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		UOverlaySlot* TextSlot = CardLayers->AddChildToOverlay(TextReadabilityLayer);
 		TextSlot->SetHorizontalAlignment(HAlign_Fill);
 		TextSlot->SetVerticalAlignment(VAlign_Fill);
+		TextSlot->SetPadding(FMargin(TextInset));
 
 		UImage* CategoryBorder = WidgetTree->ConstructWidget<UImage>(
 			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeBorder_%d"), Index));
