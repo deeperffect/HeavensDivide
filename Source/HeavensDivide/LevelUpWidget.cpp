@@ -7,8 +7,10 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
@@ -23,6 +25,7 @@ void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayer
 	bUpgradeChoiceCommitted = false;
 	bSynergyDiscoveryMode = false;
 	SetSynergyDiscoveryPresentation(false);
+	EnsureUpgradeCardVisualStructure();
 	RefreshCategoryChoices();
 	InitializeControllerNavigation();
 }
@@ -35,8 +38,10 @@ void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* In
 	bUpgradeChoiceCommitted = false;
 	bSynergyDiscoveryMode = false;
 	SetSynergyDiscoveryPresentation(false);
+	EnsureUpgradeCardVisualStructure();
 	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
 	ShowUpgradeOffers(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeOffers() : TArray<FUpgradeOffer>());
+	RefreshUpgradeCardVisuals();
 	InitializeControllerNavigation();
 }
 
@@ -48,8 +53,10 @@ void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController*
 	bUpgradeChoiceCommitted = false;
 	bSynergyDiscoveryMode = true;
 	SetSynergyDiscoveryPresentation(true);
+	EnsureUpgradeCardVisualStructure();
 	ShowUpgradeChoices(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeChoices() : TArray<UUpgradeDefinition*>());
 	ShowUpgradeOffers(PlayerUpgrades ? PlayerUpgrades->GetCurrentUpgradeOffers() : TArray<FUpgradeOffer>());
+	RefreshUpgradeCardVisuals();
 	InitializeControllerNavigation();
 }
 
@@ -102,6 +109,7 @@ bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
 
 	ShowUpgradeChoices(UpgradeChoices);
 	ShowUpgradeOffers(PlayerUpgrades->GetCurrentUpgradeOffers());
+	RefreshUpgradeCardVisuals();
 	ControllerFocusedChoiceIndex = 0;
 	RefreshControllerFocus();
 	return UpgradeChoices.Num() > 0;
@@ -291,6 +299,117 @@ int32 ULevelUpWidget::GetUpgradeLevel(UUpgradeDefinition* Upgrade) const
 UPlayerUpgradeComponent* ULevelUpWidget::GetPlayerUpgrades() const
 {
 	return PlayerUpgrades;
+}
+
+void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
+{
+	if (!WidgetTree || UpgradeArtworkImages.Num() == 3)
+	{
+		return;
+	}
+
+	UpgradeArtworkImages.Reset();
+	UpgradeBorderImages.Reset();
+	constexpr float CardWidth = 320.0f;
+	constexpr float CardHeight = CardWidth * 1.5f;
+
+	for (int32 Index = 0; Index < 3; ++Index)
+	{
+		UButton* UpgradeButton = Cast<UButton>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeButton_%d"), Index)));
+		if (!UpgradeButton)
+		{
+			UpgradeArtworkImages.Add(nullptr);
+			UpgradeBorderImages.Add(nullptr);
+			continue;
+		}
+
+		// Do not rebuild a slot if this widget instance is initialized more than once.
+		if (UImage* ExistingArtwork = Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeArtwork_%d"), Index))))
+		{
+			UpgradeArtworkImages.Add(ExistingArtwork);
+			UpgradeBorderImages.Add(Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeBorder_%d"), Index))));
+			continue;
+		}
+
+		UWidget* ExistingTextContent = UpgradeButton->GetContent();
+		UpgradeButton->ClearChildren();
+
+		USizeBox* CardSize = WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), *FString::Printf(TEXT("UpgradeCardSize_%d"), Index));
+		CardSize->SetWidthOverride(CardWidth);
+		CardSize->SetHeightOverride(CardHeight);
+
+		UOverlay* CardLayers = WidgetTree->ConstructWidget<UOverlay>(
+			UOverlay::StaticClass(), *FString::Printf(TEXT("UpgradeCardLayers_%d"), Index));
+		CardSize->SetContent(CardLayers);
+		UpgradeButton->SetContent(CardSize);
+
+		UImage* Artwork = WidgetTree->ConstructWidget<UImage>(
+			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeArtwork_%d"), Index));
+		Artwork->SetVisibility(ESlateVisibility::HitTestInvisible);
+		UOverlaySlot* ArtworkSlot = CardLayers->AddChildToOverlay(Artwork);
+		ArtworkSlot->SetHorizontalAlignment(HAlign_Fill);
+		ArtworkSlot->SetVerticalAlignment(VAlign_Fill);
+
+		UBorder* TextReadabilityLayer = WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), *FString::Printf(TEXT("UpgradeTextLayer_%d"), Index));
+		TextReadabilityLayer->SetBrushColor(FLinearColor(0.015f, 0.015f, 0.02f, 0.42f));
+		TextReadabilityLayer->SetPadding(FMargin(18.0f, 20.0f));
+		TextReadabilityLayer->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		if (ExistingTextContent)
+		{
+			TextReadabilityLayer->SetContent(ExistingTextContent);
+		}
+		UOverlaySlot* TextSlot = CardLayers->AddChildToOverlay(TextReadabilityLayer);
+		TextSlot->SetHorizontalAlignment(HAlign_Fill);
+		TextSlot->SetVerticalAlignment(VAlign_Fill);
+
+		UImage* CategoryBorder = WidgetTree->ConstructWidget<UImage>(
+			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeBorder_%d"), Index));
+		CategoryBorder->SetVisibility(ESlateVisibility::HitTestInvisible);
+		UOverlaySlot* BorderSlot = CardLayers->AddChildToOverlay(CategoryBorder);
+		BorderSlot->SetHorizontalAlignment(HAlign_Fill);
+		BorderSlot->SetVerticalAlignment(VAlign_Fill);
+
+		UpgradeArtworkImages.Add(Artwork);
+		UpgradeBorderImages.Add(CategoryBorder);
+	}
+}
+
+void ULevelUpWidget::RefreshUpgradeCardVisuals()
+{
+	EnsureUpgradeCardVisualStructure();
+	const TArray<UUpgradeDefinition*> Choices = PlayerUpgrades
+		? PlayerUpgrades->GetCurrentUpgradeChoices()
+		: TArray<UUpgradeDefinition*>();
+
+	for (int32 Index = 0; Index < 3; ++Index)
+	{
+		UUpgradeDefinition* Upgrade = Choices.IsValidIndex(Index) ? Choices[Index] : nullptr;
+		if (UpgradeArtworkImages.IsValidIndex(Index) && UpgradeArtworkImages[Index])
+		{
+			UpgradeArtworkImages[Index]->SetBrushFromTexture(Upgrade ? Upgrade->CardArtwork : nullptr, true);
+			UpgradeArtworkImages[Index]->SetOpacity(Upgrade && Upgrade->CardArtwork ? 1.0f : 0.0f);
+		}
+		if (UpgradeBorderImages.IsValidIndex(Index) && UpgradeBorderImages[Index])
+		{
+			UTexture2D* BorderTexture = Upgrade ? GetCardBorderForCategory(Upgrade->Category) : nullptr;
+			UpgradeBorderImages[Index]->SetBrushFromTexture(BorderTexture, true);
+			UpgradeBorderImages[Index]->SetOpacity(BorderTexture ? 1.0f : 0.0f);
+		}
+	}
+}
+
+UTexture2D* ULevelUpWidget::GetCardBorderForCategory(EUpgradeCategory Category) const
+{
+	switch (Category)
+	{
+	case EUpgradeCategory::Samurai: return SamuraiCardBorder;
+	case EUpgradeCategory::Ninja: return NinjaCardBorder;
+	case EUpgradeCategory::Synergy: return SynergyCardBorder;
+	case EUpgradeCategory::Global: return GlobalCardBorder;
+	default: return GlobalCardBorder;
+	}
 }
 
 void ULevelUpWidget::SetSynergyDiscoveryPresentation_Implementation(bool bIsDiscovery)

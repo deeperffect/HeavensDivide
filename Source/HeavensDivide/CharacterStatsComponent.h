@@ -15,13 +15,9 @@ enum class ECharacterStatType : uint8
 	ProjectileCountBonus UMETA(ToolTip = "Adds extra projectiles to this character's projectile attack."),
 	ProjectileSpeedMultiplier UMETA(ToolTip = "Multiplies this character's projectile speed. Add Flat 0.10 means +10% speed."),
 	HomingStrengthMultiplier UMETA(ToolTip = "Obsolete reserved stat from the removed homing projectile behavior. Do not use for current straight-line kunai."),
-	HPRegenPerSecond UMETA(ToolTip = "Adds passive healing per second for this character while alive. Add Flat 0.5 means heal 0.5 HP per second."),
-	DamageReduction UMETA(ToolTip = "Reduces incoming damage for this character. Add Flat 0.10 means 10% less damage taken."),
-	HealthOnKill UMETA(ToolTip = "Heals this character when their attack kills enemies. Add Flat 1.0 means heal 1 HP per kill."),
-	DodgeChance UMETA(ToolTip = "Chance for this character to avoid incoming damage. Add Flat 0.10 means 10% dodge chance."),
-	ProjectilePierceBonus UMETA(ToolTip = "Adds extra enemies this character's projectiles can pierce before ending."),
-	ProjectileBounceBonus UMETA(ToolTip = "Adds projectile retargets after a projectile would otherwise end."),
-	ProjectileSplitBonus UMETA(ToolTip = "Enables one projectile split per original projectile.")
+	ProjectilePierceBonus = 10 UMETA(ToolTip = "Adds extra enemies this character's projectiles can pierce before ending."),
+	ProjectileBounceBonus = 11 UMETA(ToolTip = "Adds projectile retargets after a projectile would otherwise end."),
+	ProjectileSplitBonus = 12 UMETA(ToolTip = "Enables one projectile split per original projectile.")
 };
 
 UENUM(BlueprintType)
@@ -103,18 +99,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	float GetFinalHomingStrengthMultiplier() const;
-
-	UFUNCTION(BlueprintPure, Category = "Stats")
-	float GetFinalHPRegenPerSecond() const;
-
-	UFUNCTION(BlueprintPure, Category = "Stats")
-	float GetFinalDamageReduction() const;
-
-	UFUNCTION(BlueprintPure, Category = "Stats")
-	float GetFinalHealthOnKill() const;
-
-	UFUNCTION(BlueprintPure, Category = "Stats")
-	float GetFinalDodgeChance() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Stats", meta = (ToolTip = "Broadcast whenever this character's runtime stat modifiers change."))
 	FOnCharacterStatsChanged OnStatsChanged;

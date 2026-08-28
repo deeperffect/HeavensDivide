@@ -143,6 +143,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	TObjectPtr<UTexture2D> Icon;
 
+	/** Full 2:3 illustration used by the level-up upgrade-card presentation. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Presentation")
+	TObjectPtr<UTexture2D> CardArtwork;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	EUpgradeCategory Category = EUpgradeCategory::Global;
 

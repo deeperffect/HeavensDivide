@@ -30,7 +30,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnPlayerDash);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDashChargesChanged, int32, CurrentCharges, int32, MaxCharges);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnSwapCooldownStarted, float, CooldownDuration);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSwapCooldownFinished);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerDamageDodged, float, IncomingDamage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTwinSoulRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSamuraiTrialRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNinjaTrialRewardCompleted);
@@ -155,15 +154,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player|Health")
 	void ApplyDamageToPlayer(float DamageAmount);
 
-	UFUNCTION(BlueprintPure, Category = "Player|Health")
-	float GetActiveDamageReduction() const;
-
-	UFUNCTION(BlueprintPure, Category = "Player|Health")
-	float GetActiveHPRegenPerSecond() const;
-
-	UFUNCTION(BlueprintPure, Category = "Player|Health")
-	float GetActiveDodgeChance() const;
-
 	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
 	void RequestBloodShrineUpgradeReward(int32 UpgradeChoiceCount = 3);
 
@@ -209,9 +199,6 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Swap", meta = (ToolTip = "Broadcast when the shared swap cooldown finishes or is reset."))
 	FOnSwapCooldownFinished OnSwapCooldownFinished;
-
-	UPROPERTY(BlueprintAssignable, Category = "Player|Health", meta = (ToolTip = "Broadcast when incoming player damage is avoided by dodge chance."))
-	FOnPlayerDamageDodged OnDamageDodged;
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Shadow Clone")
 	FOnPlayerShadowCloneSpawned OnShadowCloneSpawned;
@@ -262,9 +249,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Swap", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Seconds after a successful character swap before another swap is allowed. 0 disables the cooldown."))
 	float SwapCooldown = 3.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Health", meta = (ClampMin = "0.05", UIMin = "0.05", ToolTip = "Seconds between passive HP regeneration ticks. Regen amount still comes from character stats."))
-	float HPRegenTickInterval = 0.5f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Characters", meta = (ToolTip = "Component that owns Samurai/Ninja instances and handles active character swaps."))
 	TObjectPtr<UCharacterManagerComponent> CharacterManager;
@@ -397,16 +381,12 @@ protected:
 	void StopDashRecharge();
 	void HandleDashRechargeTimerElapsed();
 	void BroadcastDashChargesChanged();
-	void StartHPRegeneration();
-	void StopHPRegeneration();
-	void HandleHPRegenerationTimerElapsed();
 
 	float BasePlayerMaxHealth = 0.0f;
 	FTimerHandle SwapCooldownTimerHandle;
 	FTimerHandle SamuraiHandoffTimerHandle;
 	FTimerHandle NinjaHandoffTimerHandle;
 	FTimerHandle DashRechargeTimerHandle;
-	FTimerHandle HPRegenTimerHandle;
 	FVector2D LastMovementInput = FVector2D::ZeroVector;
 	FVector LastValidControllerAimDirection = FVector::ForwardVector;
 	bool bControllerIsActiveTargetingDevice = false;

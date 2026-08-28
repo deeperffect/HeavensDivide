@@ -8,13 +8,11 @@
 #include "Components/CapsuleComponent.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
-#include "CharacterStatsComponent.h"
 #include "EnemyBase.h"
 #include "EnemyStatusEffectComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "NinjaCharacter.h"
 #include "NiagaraComponent.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
@@ -210,22 +208,6 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
 		{
 			HitEnemy->ApplyStatus(EEnemyStatusEffect::Poison, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
-		}
-		if (bKilledEnemy)
-		{
-			const ANinjaCharacter* NinjaOwner = Cast<ANinjaCharacter>(GameplayOwner);
-			const UCharacterStatsComponent* NinjaStats = NinjaOwner ? NinjaOwner->GetCharacterStats() : nullptr;
-			const float HealthOnKill = NinjaStats ? NinjaStats->GetFinalHealthOnKill() : 0.0f;
-			if (HealthOnKill > 0.0f)
-			{
-				if (const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(NinjaOwner->GetOwner()))
-				{
-					if (UHealthComponent* PlayerHealth = SurvivorController->GetPlayerHealthComponent())
-					{
-						PlayerHealth->Heal(HealthOnKill);
-					}
-				}
-			}
 		}
 		const bool bExecutionKill = bHasChainExecution && bConsumedMark && bKilledEnemy;
 

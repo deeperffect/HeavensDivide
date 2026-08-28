@@ -106,5 +106,4 @@ private:
 	void TickPoison();
 	void TickStatus(EEnemyStatusEffect Status);
 	void ClearStatus(EEnemyStatusEffect Status);
-	void GrantPoisonKillHealing(const UPlayerUpgradeComponent* Upgrades) const;
 };

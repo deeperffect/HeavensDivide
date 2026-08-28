@@ -2,14 +2,10 @@
 
 #include "EnemyStatusEffectComponent.h"
 
-#include "CharacterManagerComponent.h"
-#include "CharacterStatsComponent.h"
 #include "EnemyBase.h"
 #include "Engine/OverlapResult.h"
 #include "HealthComponent.h"
-#include "NinjaCharacter.h"
 #include "PlayerUpgradeComponent.h"
-#include "SurvivorPlayerController.h"
 #include "TimerManager.h"
 #include "UpgradeDefinition.h"
 
@@ -170,7 +166,6 @@ void UEnemyStatusEffectComponent::TickStatus(EEnemyStatusEffect Status)
 	const float Damage = CalculateStatusDamagePerTick(Status, State);
 	const int32 StacksAtTick = State.Stacks;
 	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, Source);
-	if (bApplied && Enemy->IsDead() && Status == EEnemyStatusEffect::Poison) GrantPoisonKillHealing(Upgrades);
 	if (bApplied && !Enemy->IsDead() && Status == EEnemyStatusEffect::Poison)
 	{
 		TryTriggerVirulentStrain(Enemy, Upgrades, StacksAtTick, Damage);
@@ -221,14 +216,4 @@ void UEnemyStatusEffectComponent::TryTriggerVirulentStrain(AEnemyBase* SourceEne
 		Target->ApplyPlayerDamage(PulseDamage, EPlayerAttackSource::Ninja);
 	}
 	OnVirulentStrainPulse.Broadcast(SourceEnemy, SourceEnemy->GetActorLocation(), Radius, PulseDamage, PoisonStacks);
-}
-
-void UEnemyStatusEffectComponent::GrantPoisonKillHealing(const UPlayerUpgradeComponent* Upgrades) const
-{
-	const ASurvivorPlayerController* Controller = Upgrades ? Cast<ASurvivorPlayerController>(Upgrades->GetOwner()) : nullptr;
-	const UCharacterManagerComponent* Manager = Controller ? Controller->GetCharacterManager() : nullptr;
-	const ANinjaCharacter* Ninja = Manager ? Manager->GetNinja() : nullptr;
-	const UCharacterStatsComponent* Stats = Ninja ? Ninja->GetCharacterStats() : nullptr;
-	const float Healing = Stats ? Stats->GetFinalHealthOnKill() : 0.0f;
-	if (Healing > 0.0f && Controller && Controller->GetPlayerHealthComponent()) Controller->GetPlayerHealthComponent()->Heal(Healing);
 }

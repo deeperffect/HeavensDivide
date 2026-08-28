@@ -9,7 +9,9 @@
 
 class ASurvivorPlayerController;
 class UBorder;
+class UImage;
 class UTextBlock;
+class UTexture2D;
 class UPlayerUpgradeComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelUpWidgetSelectionCompleted);
@@ -77,7 +79,23 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Level Up")
 	TObjectPtr<UPlayerUpgradeComponent> PlayerUpgrades;
 
+	/** Centralized category-frame artwork. Assign these once on WBP_LevelUp Class Defaults. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Card Presentation")
+	TObjectPtr<UTexture2D> SamuraiCardBorder;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Card Presentation")
+	TObjectPtr<UTexture2D> NinjaCardBorder;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Card Presentation")
+	TObjectPtr<UTexture2D> SynergyCardBorder;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Card Presentation")
+	TObjectPtr<UTexture2D> GlobalCardBorder;
+
 private:
+	void EnsureUpgradeCardVisualStructure();
+	void RefreshUpgradeCardVisuals();
+	UTexture2D* GetCardBorderForCategory(EUpgradeCategory Category) const;
 	void EnsureSynergyDiscoveryPresentation();
 	void InitializeControllerNavigation();
 	void MoveControllerFocus(int32 Direction);
@@ -103,4 +121,10 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<class UButton>> FocusableChoiceButtons;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> UpgradeArtworkImages;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> UpgradeBorderImages;
 };

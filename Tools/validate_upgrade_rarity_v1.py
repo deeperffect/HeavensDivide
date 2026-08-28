@@ -3,11 +3,7 @@ import unreal
 
 EXPECTED = {
     "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiArea": [0.15, 0.25, 0.40],
-    "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiDamageReduction": [0.05, 0.08, 0.12],
-    "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiHPRegen": [0.3, 0.5, 0.8],
     "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiDeepCuts": [0.20, 0.30, 0.45],
-    "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaDodgeChance": [0.05, 0.08, 0.12],
-    "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaHPonKill": [0.15, 0.25, 0.40],
     "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaPotentVenom": [0.20, 0.30, 0.45],
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalAttackSpeed": [0.05, 0.08, 0.12],
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalDamage": [0.10, 0.15, 0.25],
