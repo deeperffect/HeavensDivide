@@ -96,7 +96,7 @@ void UGameOverWidget::HandleRestartRun()
 	if (bTravelRequested) return;
 	bTravelRequested = true;
 	NormalizeTimeForTravel();
-	UGameplayStatics::OpenLevel(this, TEXT("Lvl_B1_Arena"));
+	UGameplayStatics::OpenLevel(this, TEXT("Lvl_B1_Lvl1"));
 }
 
 void UGameOverWidget::HandleMainMenu()

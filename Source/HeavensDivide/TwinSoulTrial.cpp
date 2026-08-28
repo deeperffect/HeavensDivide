@@ -2,26 +2,25 @@
 
 #include "TwinSoulTrial.h"
 
-#include "BloodShrineWidget.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
-#include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Components/WidgetComponent.h"
 #include "EnemyBase.h"
 #include "EnemySpawner.h"
 #include "EngineUtils.h"
 #include "HealthComponent.h"
-#include "Camera/PlayerCameraManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
 #include "MinimapMarkerComponent.h"
+#include "ObjectiveInteractionComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "TrialArenaAnchor.h"
+#include "TrialArenaSubsystem.h"
 
 ATwinSoulTrial::ATwinSoulTrial()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
 	MinimapMarker = CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("MinimapMarker"));
@@ -33,23 +32,16 @@ ATwinSoulTrial::ATwinSoulTrial()
 	PortalMesh->SetRelativeScale3D(FVector(1.5f, 1.5f, 3.0f));
 	if (CubeMesh.Succeeded()) PortalMesh->SetStaticMesh(CubeMesh.Object);
 
-	InteractionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("InteractionSphere"));
-	InteractionSphere->SetupAttachment(SceneRoot);
-	InteractionSphere->InitSphereRadius(300.0f);
-	InteractionSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	InteractionSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
-	InteractionSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-
-	InteractionPromptComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("InteractionPromptComponent"));
-	InteractionPromptComponent->SetupAttachment(SceneRoot);
-	InteractionPromptComponent->SetWidgetSpace(EWidgetSpace::World);
-	InteractionPromptComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	InteractionPromptComponent->SetVisibility(false);
+	ObjectiveInteraction = CreateDefaultSubobject<UObjectiveInteractionComponent>(TEXT("ObjectiveInteraction"));
+	ObjectiveInteraction->SetupAttachment(SceneRoot);
+	ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Twin Soul Trial")),300.0f,1.0f,240.0f);
 
 	TrialFloor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TrialFloor"));
 	TrialFloor->SetupAttachment(SceneRoot);
 	TrialFloor->SetRelativeLocation(TrialArenaOffset);
 	TrialFloor->SetRelativeScale3D(FVector(30.0f, 30.0f, 0.5f));
+	TrialFloor->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	TrialFloor->SetCollisionResponseToAllChannels(ECR_Block);
 	if (CubeMesh.Succeeded()) TrialFloor->SetStaticMesh(CubeMesh.Object);
 
 	const FVector WallLocations[] = {
@@ -64,6 +56,8 @@ ATwinSoulTrial::ATwinSoulTrial()
 		Wall->SetRelativeScale3D(WallScales[Index]);
 		if (CubeMesh.Succeeded()) Wall->SetStaticMesh(CubeMesh.Object);
 		TrialWalls.Add(Wall);
+		Wall->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Wall->SetCollisionResponseToAllChannels(ECR_Block);
 	}
 }
 
@@ -71,22 +65,15 @@ void ATwinSoulTrial::BeginPlay()
 {
 	Super::BeginPlay();
 	FindReferences();
-	CreateInteractionPrompt();
-}
-
-void ATwinSoulTrial::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-	if (TrialState == ETwinSoulTrialState::Inactive)
-	{
-		UpdateInactivePrompt();
-	}
-	FaceInteractionPromptToCamera();
+	InitializeTrialArena();
 }
 
 void ATwinSoulTrial::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	CleanupTargetBindings();
+	if(IsValid(CrimsonTarget))CrimsonTarget->Destroy();
+	if(IsValid(VioletTarget))VioletTarget->Destroy();
+	if(GetWorld())GetWorld()->GetSubsystem<UTrialArenaSubsystem>()->ReleaseAnchor(this);
 	if (PlayerController)
 	{
 		PlayerController->EndObjective(this);
@@ -106,7 +93,7 @@ bool ATwinSoulTrial::CanInteract_Implementation(APawn* InteractingPawn) const
 {
 	return TrialState == ETwinSoulTrialState::Inactive && InteractingPawn
 		&& (!PlayerController || !PlayerController->IsAnyObjectiveActive())
-		&& FVector::DistSquared2D(InteractingPawn->GetActorLocation(), GetActorLocation()) <= FMath::Square(300.0f);
+		&& ObjectiveInteraction && ObjectiveInteraction->IsInRange(InteractingPawn);
 }
 
 void ATwinSoulTrial::Interact_Implementation(APawn* InteractingPawn)
@@ -122,6 +109,8 @@ bool ATwinSoulTrial::EnterTrial(APawn* InteractingPawn)
 	UCharacterManagerComponent* Manager = PlayerController->GetCharacterManager();
 	ACharacterBase* ActiveCharacter = Manager ? Manager->GetActiveCharacter() : nullptr;
 	if (!ActiveCharacter) return false;
+	FVector TrialLocation;
+	if(!IsTrialArenaValid(ActiveCharacter,TrialLocation)){UE_LOG(LogTemp,Error,TEXT("[TrialRuntime] ERROR Trial arena/start invalid; refusing teleport Trial=%s Anchor=%s Floor=%s"),*GetName(),*GetNameSafe(ArenaAnchor),*GetNameSafe(TrialFloor));return false;}
 	if (!PlayerController->TryBeginObjective(this)) return false;
 
 	ReturnTransform = ActiveCharacter->GetActorTransform();
@@ -131,13 +120,7 @@ bool ATwinSoulTrial::EnterTrial(APawn* InteractingPawn)
 	bCrimsonDead = false;
 	bVioletDead = false;
 	MainSpawner->SetTrialSuspended(true);
-	FVector TrialLocation=GetActorLocation()+TrialArenaOffset+TrialPlayerOffset;
-	if(TrialFloor)
-	{
-		const float FloorTop=TrialFloor->Bounds.Origin.Z+TrialFloor->Bounds.BoxExtent.Z;
-		const UCapsuleComponent* Capsule=ActiveCharacter->GetCapsuleComponent();
-		TrialLocation.Z=FloorTop+(Capsule?Capsule->GetScaledCapsuleHalfHeight():0.0f)+2.0f;
-	}
+	UE_LOG(LogTemp,Log,TEXT("[TrialRuntime] Enter Trial=%s Return=%s Arrival=%s FloorTop=%.1f"),*GetName(),*ReturnTransform.GetLocation().ToCompactString(),*TrialLocation.ToCompactString(),TrialFloor->Bounds.Origin.Z+TrialFloor->Bounds.BoxExtent.Z);
 	ActiveCharacter->SetActorLocation(TrialLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	if (!SpawnTargets())
 	{
@@ -150,7 +133,7 @@ bool ATwinSoulTrial::EnterTrial(APawn* InteractingPawn)
 
 	if (UHealthComponent* Health = PlayerController->GetPlayerHealthComponent()) Health->OnDeath.AddUniqueDynamic(this, &ATwinSoulTrial::HandlePlayerDeath);
 	PlayerController->OnTwinSoulRewardCompleted.AddUniqueDynamic(this, &ATwinSoulTrial::HandleRewardCompleted);
-	if (InteractionPromptComponent) InteractionPromptComponent->SetVisibility(false);
+	if (ObjectiveInteraction) ObjectiveInteraction->HidePrompt();
 	OnTrialEntered.Broadcast();
 	return true;
 }
@@ -161,8 +144,9 @@ bool ATwinSoulTrial::SpawnTargets()
 	FActorSpawnParameters Params;
 	Params.Owner = this;
 	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	CrimsonTarget = GetWorld()->SpawnActor<AEnemyBase>(CrimsonEnemyClass, GetActorLocation() + TrialArenaOffset + CrimsonSpawnOffset, FRotator::ZeroRotator, Params);
-	VioletTarget = GetWorld()->SpawnActor<AEnemyBase>(VioletEnemyClass, GetActorLocation() + TrialArenaOffset + VioletSpawnOffset, FRotator::ZeroRotator, Params);
+	const FTransform ArenaTransform(TrialFloor ? TrialFloor->GetComponentQuat() : FQuat::Identity, ArenaOrigin);
+	CrimsonTarget = GetWorld()->SpawnActor<AEnemyBase>(CrimsonEnemyClass, ArenaTransform.TransformPositionNoScale(CrimsonSpawnOffset), ArenaTransform.Rotator(), Params);
+	VioletTarget = GetWorld()->SpawnActor<AEnemyBase>(VioletEnemyClass, ArenaTransform.TransformPositionNoScale(VioletSpawnOffset), ArenaTransform.Rotator(), Params);
 	if (!CrimsonTarget || !VioletTarget) return false;
 
 	CrimsonTarget->ConfigureObjectiveEnemy(CrimsonMaxHealth, EPlayerAttackSource::Samurai, CrimsonOverlayMaterial, FLinearColor(0.6f, 0.01f, 0.015f));
@@ -172,6 +156,28 @@ bool ATwinSoulTrial::SpawnTargets()
 	OnCrimsonSpawned.Broadcast(CrimsonTarget);
 	OnVioletSpawned.Broadcast(VioletTarget);
 	return true;
+}
+
+bool ATwinSoulTrial::InitializeTrialArena()
+{
+	ArenaAnchor=GetWorld()->GetSubsystem<UTrialArenaSubsystem>()->ReserveAnchor(this);
+	const FVector LegacyOrigin=TrialFloor?TrialFloor->GetComponentLocation():GetActorTransform().TransformPosition(TrialArenaOffset);
+	ArenaOrigin=ArenaAnchor?ArenaAnchor->GetActorLocation():LegacyOrigin;
+	if(ArenaAnchor){const FVector Delta=ArenaOrigin-LegacyOrigin;if(TrialFloor)TrialFloor->AddWorldOffset(Delta);for(UStaticMeshComponent* Wall:TrialWalls)if(Wall)Wall->AddWorldOffset(Delta);}
+	bArenaReady=TrialFloor&&TrialFloor->IsRegistered()&&TrialFloor->GetCollisionEnabled()!=ECollisionEnabled::NoCollision;
+	UE_LOG(LogTemp,Log,TEXT("[TrialRuntime] Setup Trial=%s Entrance=%s Anchor=%s ArenaOrigin=%s Floor=%s Ready=%s"),*GetName(),*GetActorLocation().ToCompactString(),*GetNameSafe(ArenaAnchor),*ArenaOrigin.ToCompactString(),*GetNameSafe(TrialFloor),bArenaReady?TEXT("true"):TEXT("false"));
+	return bArenaReady;
+}
+
+bool ATwinSoulTrial::IsTrialArenaValid(const ACharacterBase* Character,FVector& OutArrivalLocation) const
+{
+	const FTransform ArenaTransform(TrialFloor?TrialFloor->GetComponentQuat():FQuat::Identity,ArenaOrigin);
+	OutArrivalLocation=ArenaTransform.TransformPositionNoScale(TrialPlayerOffset);
+	if(!bArenaReady||!TrialFloor||!TrialFloor->IsRegistered()||TrialFloor->GetCollisionEnabled()==ECollisionEnabled::NoCollision)return false;
+	const FBox FloorBox=TrialFloor->Bounds.GetBox();
+	const UCapsuleComponent* Capsule=Character?Character->GetCapsuleComponent():nullptr;
+	OutArrivalLocation.Z=FloorBox.Max.Z+(Capsule?Capsule->GetScaledCapsuleHalfHeight():0.0f)+2.0f;
+	return FloorBox.IsInsideXY(FVector(OutArrivalLocation.X,OutArrivalLocation.Y,FloorBox.GetCenter().Z));
 }
 
 void ATwinSoulTrial::HandleCrimsonDied(AEnemyBase* Enemy)
@@ -224,6 +230,8 @@ void ATwinSoulTrial::HandlePlayerDeath()
 		TrialState = ETwinSoulTrialState::Failed;
 		MinimapMarker->SetMarkerState(EMinimapMarkerState::Failed);
 		CleanupTargetBindings();
+		if(IsValid(CrimsonTarget))CrimsonTarget->Destroy();
+		if(IsValid(VioletTarget))VioletTarget->Destroy();
 		if (MainSpawner) MainSpawner->SetTrialSuspended(false);
 		if (PlayerController) PlayerController->EndObjective(this);
 	}
@@ -235,42 +243,6 @@ void ATwinSoulTrial::FindReferences()
 	if (!MainSpawner && GetWorld())
 	{
 		for (TActorIterator<AEnemySpawner> It(GetWorld()); It; ++It) { MainSpawner = *It; break; }
-	}
-}
-
-void ATwinSoulTrial::CreateInteractionPrompt()
-{
-	if (!InteractionPromptComponent) return;
-	InteractionPromptComponent->SetRelativeLocation(FVector(0.0f, 0.0f, PromptVerticalOffset));
-	InteractionPromptComponent->SetDrawSize(FVector2D(FMath::Max(1.0f, PromptDrawSize.X), FMath::Max(1.0f, PromptDrawSize.Y)));
-	InteractionPromptComponent->SetRelativeScale3D(FVector(FMath::Max(0.01f, PromptWorldScale)));
-	InteractionPromptComponent->SetWidgetClass(UBloodShrineWidget::StaticClass());
-	InteractionPromptComponent->InitWidget();
-	if (UBloodShrineWidget* Prompt = Cast<UBloodShrineWidget>(InteractionPromptComponent->GetUserWidgetObject()))
-	{
-		Prompt->ConfigureForWorldSpace();
-		Prompt->ShowInteractionPrompt(FText::FromString(TEXT("TWIN SOUL TRIAL")));
-	}
-	InteractionPromptComponent->SetVisibility(false);
-}
-
-void ATwinSoulTrial::UpdateInactivePrompt()
-{
-	if (!InteractionPromptComponent || !PlayerController)
-	{
-		return;
-	}
-
-	APawn* Pawn = PlayerController->GetPawn();
-	InteractionPromptComponent->SetVisibility(CanInteract_Implementation(Pawn));
-}
-
-void ATwinSoulTrial::FaceInteractionPromptToCamera()
-{
-	if (!InteractionPromptComponent || !InteractionPromptComponent->IsVisible() || !PlayerController) return;
-	if (APlayerCameraManager* Camera = PlayerController->PlayerCameraManager)
-	{
-		InteractionPromptComponent->SetWorldRotation((Camera->GetCameraLocation() - InteractionPromptComponent->GetComponentLocation()).Rotation());
 	}
 }
 

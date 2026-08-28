@@ -82,6 +82,12 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 	}
 }
 
+void ASamuraiTechniqueTrial::RelocateAdditionalArenaComponents(const FVector& WorldDelta)
+{
+	for(UStaticMeshComponent* Lane:Lanes)if(Lane)Lane->AddWorldOffset(WorldDelta);
+	for(UNiagaraComponent* Effect:StrikeVFXComponents)if(Effect)Effect->AddWorldOffset(WorldDelta);
+}
+
 void ASamuraiTechniqueTrial::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

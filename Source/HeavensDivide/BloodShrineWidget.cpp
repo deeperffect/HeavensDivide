@@ -61,7 +61,12 @@ void UBloodShrineWidget::ShowUnavailablePrompt(const FText& Name, const FText& S
 
 void UBloodShrineWidget::ConfigureForWorldSpace()
 {
-	if (RootBox) RootBox->SetPadding(FMargin(0.0f));
+	if (RootBox)
+	{
+		RootBox->SetPadding(FMargin(0.0f));
+		RootBox->SetHAlign(HAlign_Center);
+		RootBox->SetVAlign(VAlign_Bottom);
+	}
 }
 
 void UBloodShrineWidget::ShowChallenge(int32 CurrentBlood, int32 RequiredBlood, float TimeRemaining)

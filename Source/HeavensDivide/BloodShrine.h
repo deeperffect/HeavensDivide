@@ -15,6 +15,7 @@ class UBloodShrineWidget;
 class USphereComponent;
 class UStaticMeshComponent;
 class UWidgetComponent;
+class UObjectiveInteractionComponent;
 
 UENUM(BlueprintType)
 enum class EBloodShrineState : uint8
@@ -37,7 +38,6 @@ class HEAVENSDIVIDE_API ABloodShrine : public AActor, public IInteractable
 public:
 	ABloodShrine();
 
-	virtual void Tick(float DeltaSeconds) override;
 	virtual bool CanInteract_Implementation(APawn* InteractingPawn) const override;
 	virtual void Interact_Implementation(APawn* InteractingPawn) override;
 
@@ -82,20 +82,8 @@ protected:
 	TObjectPtr<UStaticMeshComponent> ShrineMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Components")
-	TObjectPtr<USphereComponent> InteractionSphere;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Components")
-	TObjectPtr<UWidgetComponent> InteractionPromptComponent;
+	TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
-	float PromptVerticalOffset = 240.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
-	FVector2D PromptDrawSize = FVector2D(360.0f, 160.0f);
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt", meta = (ClampMin = "0.01"))
-	float PromptWorldScale = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Challenge", meta = (ClampMin = "0.1", UIMin = "0.1"))
 	float ChallengeDuration = 25.0f;
@@ -120,9 +108,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Bloodbound", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float InitialBloodboundConversionPercent = 0.5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Interaction", meta = (ClampMin = "1.0", UIMin = "1.0"))
-	float InteractionRadius = 300.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Reward", meta = (ClampMin = "1", UIMin = "1"))
 	int32 RewardUpgradeChoices = 3;
@@ -166,9 +151,6 @@ private:
 	void RequestReward();
 	void FindRequiredReferences();
 	void CreateStatusWidget();
-	void CreateInteractionPrompt();
-	void UpdateInactivePrompt();
-	void FaceInteractionPromptToCamera();
 	FName GetPressureModifierId() const;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Blood Shrine", meta = (AllowPrivateAccess = "true"))

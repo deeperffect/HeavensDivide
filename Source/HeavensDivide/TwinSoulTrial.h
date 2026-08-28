@@ -8,6 +8,7 @@
 #include "TwinSoulTrial.generated.h"
 
 class AEnemyBase;
+class ACharacterBase;
 class AEnemySpawner;
 class ASurvivorPlayerController;
 class UMinimapMarkerComponent;
@@ -18,6 +19,8 @@ class USphereComponent;
 class UStaticMeshComponent;
 class UWidgetComponent;
 class UMaterialInterface;
+class ATrialArenaAnchor;
+class UObjectiveInteractionComponent;
 
 UENUM(BlueprintType)
 enum class ETwinSoulTrialState : uint8
@@ -39,7 +42,6 @@ class HEAVENSDIVIDE_API ATwinSoulTrial : public AActor, public IInteractable
 
 public:
 	ATwinSoulTrial();
-	virtual void Tick(float DeltaSeconds) override;
 
 	virtual bool CanInteract_Implementation(APawn* InteractingPawn) const override;
 	virtual void Interact_Implementation(APawn* InteractingPawn) override;
@@ -76,17 +78,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
 	TObjectPtr<UStaticMeshComponent> PortalMesh;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
-	TObjectPtr<USphereComponent> InteractionSphere;
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
-	TObjectPtr<UWidgetComponent> InteractionPromptComponent;
+	TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
-	float PromptVerticalOffset = 240.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt")
-	FVector2D PromptDrawSize = FVector2D(360.0f, 160.0f);
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interaction|Prompt", meta = (ClampMin = "0.01"))
-	float PromptWorldScale = 0.5f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
 	TObjectPtr<UStaticMeshComponent> TrialFloor;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Twin Soul Trial|Components")
@@ -128,10 +121,9 @@ private:
 	void HandleRewardCompleted();
 
 	void FindReferences();
-	void CreateInteractionPrompt();
-	void UpdateInactivePrompt();
-	void FaceInteractionPromptToCamera();
 	bool SpawnTargets();
+	bool InitializeTrialArena();
+	bool IsTrialArenaValid(const ACharacterBase* Character, FVector& OutArrivalLocation) const;
 	void CompleteTrial();
 	void ReturnPlayerToArena();
 	void CleanupTargetBindings();
@@ -149,4 +141,7 @@ private:
 	FTransform ReturnTransform;
 	bool bCrimsonDead = false;
 	bool bVioletDead = false;
+	bool bArenaReady = false;
+	FVector ArenaOrigin = FVector::ZeroVector;
+	UPROPERTY() TObjectPtr<ATrialArenaAnchor> ArenaAnchor;
 };

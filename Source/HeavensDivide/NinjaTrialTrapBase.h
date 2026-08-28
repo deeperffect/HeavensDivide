@@ -18,6 +18,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Ninja Trap") virtual void SetTrapActive(bool bActive);
 	UFUNCTION(BlueprintPure, Category="Ninja Trap") bool IsTrapActive() const { return bTrapActive; }
 	UFUNCTION(BlueprintPure, Category="Ninja Trap") ANinjaTechniqueTrial* GetOwningTrial() const { return OwningTrial; }
+	void InitializeForTrial(ANinjaTechniqueTrial* Trial);
 	UPROPERTY(BlueprintAssignable, Category="Ninja Trap|Events") FNinjaTrapEvent OnTrapActivated;
 	UPROPERTY(BlueprintAssignable, Category="Ninja Trap|Events") FNinjaTrapEvent OnTrapDeactivated;
 	UPROPERTY(BlueprintAssignable, Category="Ninja Trap|Events") FNinjaTrapEvent OnTrapDamagedPlayer;

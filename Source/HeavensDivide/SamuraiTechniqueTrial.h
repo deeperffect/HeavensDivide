@@ -47,6 +47,8 @@ public:
 protected:
 	virtual bool BeginChallenge() override;
 	virtual void StopChallenge() override;
+	virtual bool ShouldSuspendAutoAttacksDuringTrial() const override { return true; }
+	virtual void RelocateAdditionalArenaComponents(const FVector& WorldDelta) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Samurai Trial|Memory", meta=(ClampMin="1")) int32 NumberOfRounds=3;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Samurai Trial|Memory", meta=(ClampMin="1")) int32 Round1SequenceLength=3;

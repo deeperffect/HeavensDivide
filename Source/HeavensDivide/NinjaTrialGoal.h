@@ -12,6 +12,7 @@ class HEAVENSDIVIDE_API ANinjaTrialGoal : public AActor
 	GENERATED_BODY()
 public:
 	ANinjaTrialGoal();
+	void InitializeForTrial(ANinjaTechniqueTrial* Trial) { OwningTrial=Trial; }
 	UPROPERTY(BlueprintAssignable,Category="Ninja Trial|Events") FNinjaGoalEvent OnGoalReached;
 protected:
 	UFUNCTION() void HandleOverlap(UPrimitiveComponent* OverlappedComponent,AActor* OtherActor,UPrimitiveComponent* OtherComponent,int32 OtherBodyIndex,bool bFromSweep,const FHitResult& SweepResult);

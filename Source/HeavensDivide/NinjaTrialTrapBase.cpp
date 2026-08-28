@@ -16,6 +16,12 @@ void ANinjaTrialTrapBase::BeginPlay()
 	SetTrapActive(false);
 }
 
+void ANinjaTrialTrapBase::InitializeForTrial(ANinjaTechniqueTrial* Trial)
+{
+	OwningTrial=Trial;
+	if(OwningTrial)OwningTrial->RegisterTrap(this);
+}
+
 void ANinjaTrialTrapBase::SetTrapActive(bool bActive)
 {
 	if(bTrapActive==bActive&&bActive)return;

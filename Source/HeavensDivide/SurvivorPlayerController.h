@@ -148,6 +148,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Player|Debug")
 	void DebugGrantXP(int32 Amount);
 
+#if !UE_BUILD_SHIPPING
+	void DebugTriggerInteract() { Interact(); }
+#endif
+
 	UFUNCTION(BlueprintCallable, Category = "Player|Health")
 	void ApplyDamageToPlayer(float DamageAmount);
 

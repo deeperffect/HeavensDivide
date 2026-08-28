@@ -350,7 +350,7 @@ void UMainMenuWidget::SetResetConfirmationVisible(bool bVisible)
 
 void UMainMenuWidget::HandleNewRun()
 {
-	UGameplayStatics::OpenLevel(this, TEXT("Lvl_B1_Arena"));
+	UGameplayStatics::OpenLevel(this, TEXT("Lvl_B1_Lvl1"));
 }
 
 void UMainMenuWidget::HandleCollection() { ShowCollectionPanel(); }
