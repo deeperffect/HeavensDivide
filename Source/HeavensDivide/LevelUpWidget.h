@@ -10,6 +10,7 @@
 class ASurvivorPlayerController;
 class UBorder;
 class UImage;
+class UMaterialInterface;
 class UTextBlock;
 class UTexture2D;
 class UPlayerUpgradeComponent;
@@ -94,10 +95,48 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Card Presentation")
 	TObjectPtr<UTexture2D> GlobalCardBorder;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Rarity Presentation")
+	TObjectPtr<UMaterialInterface> RareRarityMaterial;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Rarity Presentation")
+	TObjectPtr<UMaterialInterface> EpicRarityMaterial;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Rarity Presentation")
+	TObjectPtr<UMaterialInterface> LegendaryRarityMaterial;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> SamuraiCategoryArtwork;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> NinjaCategoryArtwork;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> SynergyCategoryArtwork;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> GlobalCategoryArtwork;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> SamuraiCategoryBorder;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> NinjaCategoryBorder;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> SynergyCategoryBorder;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Level Up|Category Presentation")
+	TObjectPtr<UTexture2D> GlobalCategoryBorder;
+
 private:
+	void EnsureCategoryCardVisualStructure();
+	void RefreshCategoryCardVisuals();
+	UTexture2D* GetCategoryArtwork(EUpgradeCategory Category) const;
+	UTexture2D* GetCategoryBorder(EUpgradeCategory Category) const;
 	void EnsureUpgradeCardVisualStructure();
 	void RefreshUpgradeCardVisuals();
 	UTexture2D* GetCardBorderForCategory(EUpgradeCategory Category) const;
+	UMaterialInterface* GetRarityMaterial(EUpgradeRarity Rarity) const;
 	void EnsureSynergyDiscoveryPresentation();
 	void InitializeControllerNavigation();
 	void MoveControllerFocus(int32 Direction);
@@ -135,4 +174,13 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UImage>> UpgradeBorderImages;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> UpgradeRarityGlowImages;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> CategoryArtworkImages;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> CategoryBorderImages;
 };

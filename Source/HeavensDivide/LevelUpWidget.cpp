@@ -15,6 +15,7 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Materials/MaterialInterface.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
 
@@ -63,13 +64,16 @@ void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController*
 
 void ULevelUpWidget::RefreshCategoryChoices()
 {
+	EnsureCategoryCardVisualStructure();
 	if (!PlayerUpgrades)
 	{
 		ShowCategoryChoices(TArray<EUpgradeCategory>());
+		RefreshCategoryCardVisuals();
 		return;
 	}
 
 	ShowCategoryChoices(PlayerUpgrades->GetCurrentCategoryChoices());
+	RefreshCategoryCardVisuals();
 }
 
 bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
@@ -362,6 +366,152 @@ UPlayerUpgradeComponent* ULevelUpWidget::GetPlayerUpgrades() const
 	return PlayerUpgrades;
 }
 
+void ULevelUpWidget::EnsureCategoryCardVisualStructure()
+{
+	if (!WidgetTree || CategoryArtworkImages.Num() == 2)
+	{
+		return;
+	}
+
+	CategoryArtworkImages.Reset();
+	CategoryBorderImages.Reset();
+	constexpr float CardWidth = 400.0f;
+	constexpr float CardHeight = CardWidth * 1.5f;
+	constexpr float ArtworkInset = 22.0f;
+
+	for (int32 Index = 0; Index < 2; ++Index)
+	{
+		UButton* CategoryButton = Cast<UButton>(WidgetTree->FindWidget(*FString::Printf(TEXT("CategoryButton_%d"), Index)));
+		if (!CategoryButton)
+		{
+			CategoryArtworkImages.Add(nullptr);
+			CategoryBorderImages.Add(nullptr);
+			continue;
+		}
+
+		if (UImage* ExistingArtwork = Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("CategoryArtwork_%d"), Index))))
+		{
+			CategoryArtworkImages.Add(ExistingArtwork);
+			CategoryBorderImages.Add(Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("CategoryBorder_%d"), Index))));
+			continue;
+		}
+
+		FSlateBrush TransparentButtonBrush;
+		TransparentButtonBrush.DrawAs = ESlateBrushDrawType::NoDrawType;
+		FButtonStyle TransparentButtonStyle = CategoryButton->GetStyle();
+		TransparentButtonStyle.SetNormal(TransparentButtonBrush);
+		TransparentButtonStyle.SetHovered(TransparentButtonBrush);
+		TransparentButtonStyle.SetPressed(TransparentButtonBrush);
+		TransparentButtonStyle.SetDisabled(TransparentButtonBrush);
+		CategoryButton->SetStyle(TransparentButtonStyle);
+
+		UWidget* ExistingCategoryText = CategoryButton->GetContent();
+		CategoryButton->ClearChildren();
+
+		USizeBox* CardSize = WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), *FString::Printf(TEXT("CategoryCardSize_%d"), Index));
+		CardSize->SetWidthOverride(CardWidth);
+		CardSize->SetHeightOverride(CardHeight);
+
+		UOverlay* CardLayers = WidgetTree->ConstructWidget<UOverlay>(
+			UOverlay::StaticClass(), *FString::Printf(TEXT("CategoryCardLayers_%d"), Index));
+		CardSize->SetContent(CardLayers);
+		CategoryButton->SetContent(CardSize);
+
+		UScaleBox* ArtworkContainer = WidgetTree->ConstructWidget<UScaleBox>(
+			UScaleBox::StaticClass(), *FString::Printf(TEXT("CategoryArtworkContainer_%d"), Index));
+		ArtworkContainer->SetStretch(EStretch::ScaleToFill);
+		ArtworkContainer->SetStretchDirection(EStretchDirection::Both);
+		ArtworkContainer->SetClipping(EWidgetClipping::ClipToBounds);
+		ArtworkContainer->SetVisibility(ESlateVisibility::HitTestInvisible);
+		UOverlaySlot* ArtworkContainerSlot = CardLayers->AddChildToOverlay(ArtworkContainer);
+		ArtworkContainerSlot->SetHorizontalAlignment(HAlign_Fill);
+		ArtworkContainerSlot->SetVerticalAlignment(VAlign_Fill);
+		ArtworkContainerSlot->SetPadding(FMargin(ArtworkInset));
+
+		UImage* Artwork = WidgetTree->ConstructWidget<UImage>(
+			UImage::StaticClass(), *FString::Printf(TEXT("CategoryArtwork_%d"), Index));
+		Artwork->SetVisibility(ESlateVisibility::HitTestInvisible);
+		ArtworkContainer->SetContent(Artwork);
+
+		UBorder* TextLayer = WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), *FString::Printf(TEXT("CategoryTextLayer_%d"), Index));
+		TextLayer->SetBrushColor(FLinearColor(0.015f, 0.015f, 0.02f, 0.68f));
+		TextLayer->SetPadding(FMargin(24.0f, 12.0f));
+		TextLayer->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		if (ExistingCategoryText)
+		{
+			TextLayer->SetContent(ExistingCategoryText);
+		}
+		UOverlaySlot* TextSlot = CardLayers->AddChildToOverlay(TextLayer);
+		TextSlot->SetHorizontalAlignment(HAlign_Center);
+		TextSlot->SetVerticalAlignment(VAlign_Bottom);
+		TextSlot->SetPadding(FMargin(36.0f, 36.0f, 36.0f, 52.0f));
+
+		UImage* CategoryBorder = WidgetTree->ConstructWidget<UImage>(
+			UImage::StaticClass(), *FString::Printf(TEXT("CategoryBorder_%d"), Index));
+		CategoryBorder->SetVisibility(ESlateVisibility::HitTestInvisible);
+		CategoryBorder->SetRenderTransformPivot(FVector2D(0.5f, 0.5f));
+		CategoryBorder->SetRenderScale(FVector2D(1.04f, 1.04f));
+		UOverlaySlot* BorderSlot = CardLayers->AddChildToOverlay(CategoryBorder);
+		BorderSlot->SetHorizontalAlignment(HAlign_Fill);
+		BorderSlot->SetVerticalAlignment(VAlign_Fill);
+
+		CategoryArtworkImages.Add(Artwork);
+		CategoryBorderImages.Add(CategoryBorder);
+	}
+}
+
+void ULevelUpWidget::RefreshCategoryCardVisuals()
+{
+	EnsureCategoryCardVisualStructure();
+	const TArray<EUpgradeCategory> Choices = PlayerUpgrades
+		? PlayerUpgrades->GetCurrentCategoryChoices()
+		: TArray<EUpgradeCategory>();
+
+	for (int32 Index = 0; Index < 2; ++Index)
+	{
+		const bool bHasChoice = Choices.IsValidIndex(Index);
+		const EUpgradeCategory Category = bHasChoice ? Choices[Index] : EUpgradeCategory::Global;
+		UTexture2D* ArtworkTexture = bHasChoice ? GetCategoryArtwork(Category) : nullptr;
+		UTexture2D* BorderTexture = bHasChoice ? GetCategoryBorder(Category) : nullptr;
+		if (CategoryArtworkImages.IsValidIndex(Index) && CategoryArtworkImages[Index])
+		{
+			CategoryArtworkImages[Index]->SetBrushFromTexture(ArtworkTexture, true);
+			CategoryArtworkImages[Index]->SetOpacity(ArtworkTexture ? 1.0f : 0.0f);
+		}
+		if (CategoryBorderImages.IsValidIndex(Index) && CategoryBorderImages[Index])
+		{
+			CategoryBorderImages[Index]->SetBrushFromTexture(BorderTexture, true);
+			CategoryBorderImages[Index]->SetOpacity(BorderTexture ? 1.0f : 0.0f);
+		}
+	}
+}
+
+UTexture2D* ULevelUpWidget::GetCategoryArtwork(EUpgradeCategory Category) const
+{
+	switch (Category)
+	{
+	case EUpgradeCategory::Samurai: return SamuraiCategoryArtwork;
+	case EUpgradeCategory::Ninja: return NinjaCategoryArtwork;
+	case EUpgradeCategory::Synergy: return SynergyCategoryArtwork;
+	case EUpgradeCategory::Global: return GlobalCategoryArtwork;
+	default: return GlobalCategoryArtwork;
+	}
+}
+
+UTexture2D* ULevelUpWidget::GetCategoryBorder(EUpgradeCategory Category) const
+{
+	switch (Category)
+	{
+	case EUpgradeCategory::Samurai: return SamuraiCategoryBorder;
+	case EUpgradeCategory::Ninja: return NinjaCategoryBorder;
+	case EUpgradeCategory::Synergy: return SynergyCategoryBorder;
+	case EUpgradeCategory::Global: return GlobalCategoryBorder;
+	default: return GlobalCategoryBorder;
+	}
+}
+
 void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 {
 	if (!WidgetTree || UpgradeArtworkImages.Num() == 3)
@@ -371,6 +521,25 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 	UpgradeArtworkImages.Reset();
 	UpgradeBorderImages.Reset();
+	UpgradeRarityGlowImages.Reset();
+	if (!RareRarityMaterial)
+	{
+		RareRarityMaterial = LoadObject<UMaterialInterface>(
+			nullptr,
+			TEXT("/Game/HeavensDivide/Blueprints/UI/UpgradeUI/Materials/MI_UI_UpgradeRare.MI_UI_UpgradeRare"));
+	}
+	if (!EpicRarityMaterial)
+	{
+		EpicRarityMaterial = LoadObject<UMaterialInterface>(
+			nullptr,
+			TEXT("/Game/HeavensDivide/Blueprints/UI/UpgradeUI/Materials/MI_UI_UpgradeEpic.MI_UI_UpgradeEpic"));
+	}
+	if (!LegendaryRarityMaterial)
+	{
+		LegendaryRarityMaterial = LoadObject<UMaterialInterface>(
+			nullptr,
+			TEXT("/Game/HeavensDivide/Blueprints/UI/UpgradeUI/Materials/MI_UI_UpgradeLegendary.MI_UI_UpgradeLegendary"));
+	}
 	constexpr float CardWidth = 400.0f;
 	constexpr float CardHeight = CardWidth * 1.5f;
 	constexpr float ArtworkInset = 22.0f;
@@ -383,6 +552,7 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		{
 			UpgradeArtworkImages.Add(nullptr);
 			UpgradeBorderImages.Add(nullptr);
+			UpgradeRarityGlowImages.Add(nullptr);
 			continue;
 		}
 
@@ -391,6 +561,8 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		{
 			UpgradeArtworkImages.Add(ExistingArtwork);
 			UpgradeBorderImages.Add(Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeBorder_%d"), Index))));
+			UImage* ExistingGlow = Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeRarityGlow_%d"), Index)));
+			UpgradeRarityGlowImages.Add(ExistingGlow);
 			continue;
 		}
 
@@ -434,6 +606,14 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		Artwork->SetVisibility(ESlateVisibility::HitTestInvisible);
 		ArtworkContainer->SetContent(Artwork);
 
+		UImage* RarityGlow = WidgetTree->ConstructWidget<UImage>(
+			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeRarityGlow_%d"), Index));
+		RarityGlow->SetVisibility(ESlateVisibility::Collapsed);
+		UOverlaySlot* RarityGlowSlot = CardLayers->AddChildToOverlay(RarityGlow);
+		RarityGlowSlot->SetHorizontalAlignment(HAlign_Fill);
+		RarityGlowSlot->SetVerticalAlignment(VAlign_Fill);
+		RarityGlowSlot->SetPadding(FMargin(8.0f));
+
 		UBorder* TextReadabilityLayer = WidgetTree->ConstructWidget<UBorder>(
 			UBorder::StaticClass(), *FString::Printf(TEXT("UpgradeTextLayer_%d"), Index));
 		TextReadabilityLayer->SetBrushColor(FLinearColor(0.015f, 0.015f, 0.02f, 0.42f));
@@ -457,6 +637,7 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 		UpgradeArtworkImages.Add(Artwork);
 		UpgradeBorderImages.Add(CategoryBorder);
+		UpgradeRarityGlowImages.Add(RarityGlow);
 	}
 }
 
@@ -466,6 +647,9 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 	const TArray<UUpgradeDefinition*> Choices = PlayerUpgrades
 		? PlayerUpgrades->GetCurrentUpgradeChoices()
 		: TArray<UUpgradeDefinition*>();
+	const TArray<FUpgradeOffer> Offers = PlayerUpgrades
+		? PlayerUpgrades->GetCurrentUpgradeOffers()
+		: TArray<FUpgradeOffer>();
 
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
@@ -481,6 +665,22 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 			UpgradeBorderImages[Index]->SetBrushFromTexture(BorderTexture, true);
 			UpgradeBorderImages[Index]->SetOpacity(BorderTexture ? 1.0f : 0.0f);
 		}
+		if (UpgradeRarityGlowImages.IsValidIndex(Index) && UpgradeRarityGlowImages[Index])
+		{
+			const EUpgradeRarity DisplayRarity = Offers.IsValidIndex(Index) && Offers[Index].bDisplaysRarity
+				? Offers[Index].RolledRarity
+				: EUpgradeRarity::Common;
+			UMaterialInterface* RarityMaterial = GetRarityMaterial(DisplayRarity);
+			if (Upgrade && RarityMaterial)
+			{
+				UpgradeRarityGlowImages[Index]->SetBrushFromMaterial(RarityMaterial);
+				UpgradeRarityGlowImages[Index]->SetVisibility(ESlateVisibility::HitTestInvisible);
+			}
+			else
+			{
+				UpgradeRarityGlowImages[Index]->SetVisibility(ESlateVisibility::Collapsed);
+			}
+		}
 	}
 }
 
@@ -493,6 +693,17 @@ UTexture2D* ULevelUpWidget::GetCardBorderForCategory(EUpgradeCategory Category) 
 	case EUpgradeCategory::Synergy: return SynergyCardBorder;
 	case EUpgradeCategory::Global: return GlobalCardBorder;
 	default: return GlobalCardBorder;
+	}
+}
+
+UMaterialInterface* ULevelUpWidget::GetRarityMaterial(EUpgradeRarity Rarity) const
+{
+	switch (Rarity)
+	{
+	case EUpgradeRarity::Rare: return RareRarityMaterial;
+	case EUpgradeRarity::Epic: return EpicRarityMaterial;
+	case EUpgradeRarity::Legendary: return LegendaryRarityMaterial;
+	default: return nullptr;
 	}
 }
 

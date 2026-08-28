@@ -813,9 +813,12 @@ FUpgradeOffer UPlayerUpgradeComponent::MakeUpgradeOffer(UUpgradeDefinition* Upgr
 {
 	FUpgradeOffer Offer;
 	Offer.UpgradeDefinition = Upgrade;
-	Offer.bDisplaysRarity = IsNormalScalableUpgrade(Upgrade);
-	Offer.RolledRarity = Offer.bDisplaysRarity ? RollRarity() : EUpgradeRarity::Common;
-	Offer.ResolvedMagnitude = Offer.bDisplaysRarity ? ResolveMagnitude(Upgrade, Offer.RolledRarity) : 0.0f;
+	const bool bUsesNormalRarityRoll = IsNormalScalableUpgrade(Upgrade);
+	const bool bIsFixedLegendary = Upgrade && !Upgrade->bUsesRolledRarity && Upgrade->Rarity == EUpgradeRarity::Legendary;
+	Offer.bDisplaysRarity = bUsesNormalRarityRoll || bIsFixedLegendary;
+	Offer.RolledRarity = bUsesNormalRarityRoll ? RollRarity()
+		: (bIsFixedLegendary ? EUpgradeRarity::Legendary : EUpgradeRarity::Common);
+	Offer.ResolvedMagnitude = bUsesNormalRarityRoll ? ResolveMagnitude(Upgrade, Offer.RolledRarity) : 0.0f;
 	Offer.ResolvedDescription = ResolveOfferDescription(Upgrade, Offer.ResolvedMagnitude);
 	return Offer;
 }
@@ -872,19 +875,29 @@ void UPlayerUpgradeComponent::ApplyMilestoneGuarantee()
 	const bool bRareRequired = Level == 5;
 	if (!bEpicRequired && !bRareRequired) return;
 
-	auto Satisfies = [bEpicRequired](const FUpgradeOffer& Offer)
+	auto Satisfies = [this, bEpicRequired](const FUpgradeOffer& Offer)
 	{
-		return Offer.bDisplaysRarity && (bEpicRequired ? Offer.RolledRarity == EUpgradeRarity::Epic : Offer.RolledRarity != EUpgradeRarity::Common);
+		return IsNormalScalableUpgrade(Offer.UpgradeDefinition)
+			&& (bEpicRequired ? Offer.RolledRarity == EUpgradeRarity::Epic : Offer.RolledRarity != EUpgradeRarity::Common);
 	};
 	if (CurrentUpgradeOffers.ContainsByPredicate(Satisfies)) return;
 
-	int32 PromoteIndex = CurrentUpgradeOffers.IndexOfByPredicate([](const FUpgradeOffer& Offer) { return Offer.bDisplaysRarity; });
+	int32 PromoteIndex = CurrentUpgradeOffers.IndexOfByPredicate([this](const FUpgradeOffer& Offer)
+	{
+		return IsNormalScalableUpgrade(Offer.UpgradeDefinition);
+	});
 	if (PromoteIndex == INDEX_NONE)
 	{
 		TArray<UUpgradeDefinition*> Candidates;
 		for (UUpgradeDefinition* Upgrade : UpgradePool)
 		{
-			if (IsNormalScalableUpgrade(Upgrade) && CanAcquireUpgrade(Upgrade) && !CurrentUpgradeChoices.Contains(Upgrade)) Candidates.Add(Upgrade);
+			if (Upgrade && Upgrade->Category == SelectedCategory
+				&& IsNormalScalableUpgrade(Upgrade)
+				&& CanAcquireUpgrade(Upgrade)
+				&& !CurrentUpgradeChoices.Contains(Upgrade))
+			{
+				Candidates.Add(Upgrade);
+			}
 		}
 		if (Candidates.Num() == 0 || CurrentUpgradeOffers.Num() == 0) return;
 		const int32 Pick = FMath::RandRange(0, Candidates.Num() - 1);
@@ -907,6 +920,7 @@ FText UPlayerUpgradeComponent::GetRarityDisplayName(EUpgradeRarity Rarity) const
 	{
 	case EUpgradeRarity::Rare: return FText::FromString(TEXT("RARE"));
 	case EUpgradeRarity::Epic: return FText::FromString(TEXT("EPIC"));
+	case EUpgradeRarity::Legendary: return FText::FromString(TEXT("LEGENDARY"));
 	default: return FText::FromString(TEXT("COMMON"));
 	}
 }

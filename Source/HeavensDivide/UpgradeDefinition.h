@@ -25,7 +25,8 @@ enum class EUpgradeRarity : uint8
 {
 	Common,
 	Rare,
-	Epic
+	Epic,
+	Legendary
 };
 
 USTRUCT(BlueprintType)
