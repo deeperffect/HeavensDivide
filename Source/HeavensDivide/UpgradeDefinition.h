@@ -79,7 +79,7 @@ enum class EUpgradeSpecialEffect : uint8
 	QuickHandoff,
 	Handoff,
 	DoubleCut,
-	Momentum,
+	Momentum UMETA(Hidden, Deprecated, DeprecationMessage = "Retired; retained only to preserve serialized enum values"),
 	FanOfBlades,
 	BladeCascade,
 	SamuraiCleaver,
@@ -193,12 +193,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Exclusivity", meta = (ToolTip = "Optional run-local exclusivity group. Once one upgrade in this group is acquired, other upgrades in the same group become ineligible."))
 	FName ExclusivityGroup = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Kills required from a Samurai melee attack before the Momentum upgrade reduces the next attack cooldown."))
-	int32 MomentumRequiredKills = 5;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Momentum", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", ToolTip = "Fraction of remaining attack cooldown removed when Momentum triggers. 0.4 means reduce remaining cooldown by 40%."))
-	float MomentumRemainingCooldownReduction = 0.4f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of fired kunai required before Blade Cascade grants its bonus kunai."))
 	int32 BladeCascadeKunaiThreshold = 10;

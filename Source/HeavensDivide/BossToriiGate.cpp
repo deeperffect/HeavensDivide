@@ -25,6 +25,7 @@ ABossToriiGate::ABossToriiGate()
 	ObjectiveInteraction = CreateDefaultSubobject<UObjectiveInteractionComponent>(TEXT("ObjectiveInteraction"));
 	ObjectiveInteraction->SetupAttachment(SceneRoot);
 	ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Enter Boss Arena")),300.0f,1.0f,240.0f);
+	ObjectiveInteraction->SetPresentationVisual(GateVisual);
 }
 
 void ABossToriiGate::BeginPlay()

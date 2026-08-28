@@ -151,9 +151,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Auto Attack|Stats")
 	float GetBaseProjectileSpeed() const;
 
-	UFUNCTION(BlueprintCallable, Category = "Auto Attack|Cooldown")
-	bool ReduceRemainingAttackCooldown(float Percent);
-
 	UPROPERTY(BlueprintAssignable, Category = "Auto Attack")
 	FOnAutoAttack OnAutoAttack;
 
@@ -318,7 +315,6 @@ private:
 	bool ResolveCursorAttackDirection(FVector& OutDirection) const;
 	bool TryConsumeAttackNotify();
 	bool ExecuteMeleeAttackTrace();
-	void HandleSamuraiMomentum(int32 KilledEnemyCount);
 	ESamuraiTechnique GetActiveSamuraiTechnique() const;
 	float ResolveDuelistPrimaryDamage(AEnemyBase* PrimaryTarget, float BasePrimaryDamage);
 	void ResetDuelistState();
@@ -327,7 +323,6 @@ private:
 	void ExecuteDeathblow(AEnemyBase* DeadPrimaryTarget, const FVector& OriginLocation, float ResolvedPrimaryDamage, EPlayerAttackSource AttackSource, bool bApplyMarkedBlade);
 	void RegisterDoubleCutPrimaryAttack();
 	bool HasDoubleCutUpgrade() const;
-	const UUpgradeDefinition* GetMomentumUpgrade() const;
 	bool HasFanOfBladesUpgrade() const;
 	bool WillNextNinjaAttackTriggerFanOfBlades() const;
 	void RegisterNinjaAttackForFanOfBlades(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);

@@ -21,6 +21,13 @@ static TAutoConsoleVariable<int32> CVarHDLogPlayerUpgradeStats(
 	0,
 	TEXT("Logs player upgrade/stat summary after upgrade stat rebuilds when enabled."));
 
+static const FName RetiredMomentumUpgradeId(TEXT("Momentum"));
+
+static bool IsRetiredUpgrade(const UUpgradeDefinition* Upgrade)
+{
+	return Upgrade && Upgrade->UpgradeId == RetiredMomentumUpgradeId;
+}
+
 
 UPlayerUpgradeComponent::UPlayerUpgradeComponent()
 {
@@ -32,11 +39,23 @@ UPlayerUpgradeComponent::UPlayerUpgradeComponent()
 	};
 }
 
+void UPlayerUpgradeComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	UpgradePool.RemoveAll([](const TObjectPtr<UUpgradeDefinition>& Upgrade)
+	{
+		return IsRetiredUpgrade(Upgrade);
+	});
+}
+
 void UPlayerUpgradeComponent::CaptureRunState(FPlayerUpgradeRunState& OutState) const
 {
 	OutState.Levels = UpgradeLevels;
 	OutState.AccumulatedMagnitudes = AccumulatedUpgradeMagnitudes;
 	OutState.Definitions = AcquiredUpgradeDefinitions;
+	OutState.Levels.Remove(RetiredMomentumUpgradeId);
+	OutState.AccumulatedMagnitudes.Remove(RetiredMomentumUpgradeId);
+	OutState.Definitions.Remove(RetiredMomentumUpgradeId);
 	OutState.SamuraiMastery = SamuraiMasteryPoints;
 	OutState.NinjaMastery = NinjaMasteryPoints;
 }
@@ -46,7 +65,12 @@ void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& Stat
 	UpgradeLevels = State.Levels;
 	AccumulatedUpgradeMagnitudes = State.AccumulatedMagnitudes;
 	AcquiredUpgradeDefinitions = State.Definitions;
+	const int32 RetiredMomentumLevels = FMath::Max(0, UpgradeLevels.FindRef(RetiredMomentumUpgradeId));
+	UpgradeLevels.Remove(RetiredMomentumUpgradeId);
+	AccumulatedUpgradeMagnitudes.Remove(RetiredMomentumUpgradeId);
+	AcquiredUpgradeDefinitions.Remove(RetiredMomentumUpgradeId);
 	SamuraiMasteryPoints = FMath::Max(0, State.SamuraiMastery);
+	SamuraiMasteryPoints = FMath::Max(0, SamuraiMasteryPoints - RetiredMomentumLevels);
 	NinjaMasteryPoints = FMath::Max(0, State.NinjaMastery);
 	ClearCurrentOffer();
 	RebuildAllUpgradeModifiers();
@@ -89,6 +113,8 @@ bool UPlayerUpgradeComponent::HasUpgradeId(FName UpgradeId) const
 
 bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) const
 {
+	if (IsRetiredUpgrade(Upgrade)) return false;
+
 	bool bMetaEligible = true;
 	if (Upgrade && Upgrade->Category == EUpgradeCategory::Synergy)
 	{
@@ -664,7 +690,7 @@ UUpgradeDefinition* UPlayerUpgradeComponent::GetAcquiredUpgradeWithSpecialEffect
 
 bool UPlayerUpgradeComponent::IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const
 {
-	return Upgrade && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0;
+	return Upgrade && !IsRetiredUpgrade(Upgrade) && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0;
 }
 
 bool UPlayerUpgradeComponent::MeetsPrerequisites(const UUpgradeDefinition* Upgrade) const

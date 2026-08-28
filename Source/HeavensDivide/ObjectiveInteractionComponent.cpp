@@ -3,6 +3,7 @@
 #include "BloodShrineWidget.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/PrimitiveComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Pawn.h"
 #include "Camera/PlayerCameraManager.h"
@@ -27,6 +28,7 @@ void UObjectiveInteractionComponent::BeginPlay()
 	Super::BeginPlay();
 	PlayerController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
 	InitializePrompt();
+	StartSpawnEmergence();
 	RefreshPrompt();
 }
 
@@ -34,6 +36,7 @@ void UObjectiveInteractionComponent::TickComponent(float DeltaTime, ELevelTick T
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (!PlayerController) PlayerController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+	UpdateSpawnEmergence(DeltaTime);
 	ApplyPresentationSettings();
 	UpdateViewportPosition();
 	RefreshPrompt();
@@ -41,9 +44,55 @@ void UObjectiveInteractionComponent::TickComponent(float DeltaTime, ELevelTick T
 
 bool UObjectiveInteractionComponent::IsInRange(const APawn* Pawn) const
 {
+	if (bSpawnEmergenceActive) return false;
 	const AActor* Owner = GetOwner();
 	const FVector Origin = PresentationAnchor ? PresentationAnchor->GetComponentLocation() : (Owner ? Owner->GetActorLocation() : GetComponentLocation());
 	return Pawn && FVector::DistSquared2D(Pawn->GetActorLocation(), Origin) <= FMath::Square(FMath::Max(1.0f, InteractionRange));
+}
+
+void UObjectiveInteractionComponent::StartSpawnEmergence()
+{
+	if (!bEnableSpawnEmergence || !PresentationVisual || SpawnRiseDistance <= 0.0f || SpawnRiseDuration <= 0.0f) return;
+	SpawnVisualFinalRelativeLocation = PresentationVisual->GetRelativeLocation();
+	SpawnVisualFinalRelativeRotation = PresentationVisual->GetRelativeRotation();
+	SpawnEmergenceElapsed = 0.0f;
+	bSpawnEmergenceActive = true;
+	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(PresentationVisual))
+	{
+		SpawnVisualOriginalCollision = Primitive->GetCollisionEnabled();
+		Primitive->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+	const FVector FinalWorldLocation = PresentationVisual->GetComponentLocation();
+	PresentationVisual->SetWorldLocation(FinalWorldLocation - FVector::UpVector * SpawnRiseDistance);
+	PresentationVisual->SetRelativeRotation(SpawnVisualFinalRelativeRotation);
+	SetPromptVisible(false);
+	if (SpawnSound) UGameplayStatics::PlaySoundAtLocation(this, SpawnSound, GetOwner() ? GetOwner()->GetActorLocation() : FinalWorldLocation);
+}
+
+void UObjectiveInteractionComponent::UpdateSpawnEmergence(float DeltaTime)
+{
+	if (!bSpawnEmergenceActive || !PresentationVisual) return;
+	SpawnEmergenceElapsed += FMath::Max(0.0f, DeltaTime);
+	const float Alpha = FMath::Clamp(SpawnEmergenceElapsed / FMath::Max(0.01f, SpawnRiseDuration), 0.0f, 1.0f);
+	const float EasedAlpha = FMath::SmoothStep(0.0f, 1.0f, Alpha);
+	const USceneComponent* Parent = PresentationVisual->GetAttachParent();
+	const FVector FinalWorldLocation = Parent
+		? Parent->GetComponentTransform().TransformPosition(SpawnVisualFinalRelativeLocation)
+		: SpawnVisualFinalRelativeLocation;
+	PresentationVisual->SetWorldLocation(FinalWorldLocation - FVector::UpVector * SpawnRiseDistance * (1.0f - EasedAlpha));
+	const float Wobble = FMath::Sin(Alpha * UE_TWO_PI * 2.5f) * SpawnWobbleDegrees * (1.0f - EasedAlpha);
+	PresentationVisual->SetRelativeRotation(SpawnVisualFinalRelativeRotation + FRotator(0.0f, 0.0f, Wobble));
+	if (Alpha >= 1.0f) FinishSpawnEmergence();
+}
+
+void UObjectiveInteractionComponent::FinishSpawnEmergence()
+{
+	if (!PresentationVisual) { bSpawnEmergenceActive = false; return; }
+	PresentationVisual->SetRelativeLocation(SpawnVisualFinalRelativeLocation);
+	PresentationVisual->SetRelativeRotation(SpawnVisualFinalRelativeRotation);
+	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(PresentationVisual)) Primitive->SetCollisionEnabled(SpawnVisualOriginalCollision);
+	bSpawnEmergenceActive = false;
+	RefreshPrompt();
 }
 
 void UObjectiveInteractionComponent::RefreshPrompt()

@@ -35,6 +35,7 @@ ATwinSoulTrial::ATwinSoulTrial()
 	ObjectiveInteraction = CreateDefaultSubobject<UObjectiveInteractionComponent>(TEXT("ObjectiveInteraction"));
 	ObjectiveInteraction->SetupAttachment(SceneRoot);
 	ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Twin Soul Trial")),300.0f,1.0f,240.0f);
+	ObjectiveInteraction->SetPresentationVisual(PortalMesh);
 
 	TrialFloor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TrialFloor"));
 	TrialFloor->SetupAttachment(SceneRoot);

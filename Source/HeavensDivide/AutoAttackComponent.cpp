@@ -38,11 +38,6 @@ static TAutoConsoleVariable<int32> CVarHDDebugSamuraiTargeting(
 	0,
 	TEXT("Logs Samurai melee cluster target scoring when enabled."));
 
-static TAutoConsoleVariable<int32> CVarHDLogSamuraiMomentum(
-	TEXT("hd.LogSamuraiMomentum"),
-	0,
-	TEXT("Logs Samurai Momentum per-attack kill counts and cooldown reductions when enabled."));
-
 static TAutoConsoleVariable<int32> CVarHDLogBladeCascade(
 	TEXT("hd.LogBladeCascade"),
 	0,
@@ -175,45 +170,6 @@ void UAutoAttackComponent::SetAutoAttackEnabled(bool bEnabled)
 bool UAutoAttackComponent::IsAutoAttackEnabled() const
 {
 	return bAutoAttackEnabled;
-}
-
-bool UAutoAttackComponent::ReduceRemainingAttackCooldown(float Percent)
-{
-	if (!GetWorld() || Percent <= 0.0f)
-	{
-		return false;
-	}
-
-	const double CurrentTime = GetWorld()->GetTimeSeconds();
-	const double OldRemainingCooldown = FMath::Max(0.0, NextAttackReadyTime - CurrentTime);
-	if (OldRemainingCooldown <= KINDA_SMALL_NUMBER)
-	{
-		return false;
-	}
-
-	const float ClampedPercent = FMath::Clamp(Percent, 0.0f, 1.0f);
-	const double NewRemainingCooldown = OldRemainingCooldown * static_cast<double>(1.0f - ClampedPercent);
-	NextAttackReadyTime = CurrentTime + NewRemainingCooldown;
-
-	if (LastAttackStartTime > -DBL_MAX / 2.0)
-	{
-		const double EffectiveElapsed = FMath::Max(0.0, static_cast<double>(AttackIntervalAtLastAttackStart) - NewRemainingCooldown);
-		LastAttackStartTime = CurrentTime - EffectiveElapsed;
-	}
-
-	if (CanAutoAttack() && GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
-	{
-		ScheduleNextAttackTimerFromCooldown();
-	}
-
-	if (CVarHDLogSamuraiMomentum.GetValueOnGameThread() != 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Momentum triggered: remaining cooldown %.3f -> %.3f"),
-			OldRemainingCooldown,
-			NewRemainingCooldown);
-	}
-
-	return true;
 }
 
 void UAutoAttackComponent::PerformAttackTrace()
@@ -395,7 +351,6 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		}
 	}
 
-	int32 KilledEnemyCount = 0;
 	const ESamuraiTechnique ActiveTechnique = GetActiveSamuraiTechnique();
 	const float ResolvedPrimaryDamage = ActiveTechnique == ESamuraiTechnique::Duelist
 		? ResolveDuelistPrimaryDamage(PrimaryTarget, EffectiveAttackDamage)
@@ -414,7 +369,6 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 			PrimaryDeathLocation = PrimaryTarget->GetActorLocation();
 			const bool bDamageApplied = PrimaryTarget->ApplyPlayerDamage(ResolvedPrimaryDamage, AttackSource);
 			bPrimaryKilled = PrimaryHealth->IsDead();
-			if (bPrimaryKilled) ++KilledEnemyCount;
 			if (bDamageApplied && !bPrimaryKilled && bCanApplyBleed) PrimaryTarget->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
 			if (bCanApplyMarkedBlade) PrimaryTarget->ApplyMark();
 		}
@@ -445,7 +399,6 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
 		if (!EnemyHealth || EnemyHealth->IsDead()) continue;
 		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(SecondaryDamage, AttackSource);
-		if (EnemyHealth->IsDead()) ++KilledEnemyCount;
 		if (bDamageApplied && !EnemyHealth->IsDead() && bCanApplyBleed) HitEnemy->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
 		if (bCanApplyMarkedBlade) HitEnemy->ApplyMark();
 	}
@@ -462,8 +415,6 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		DrawDebugLine(GetWorld(), AttackOrigin, HitboxCenter, DebugColor, false, DebugDuration, 0, 4.0f);
 		DrawDebugSphere(GetWorld(), HitboxCenter, EffectiveAttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
 	}
-
-	HandleSamuraiMomentum(KilledEnemyCount);
 
 	return true;
 }
@@ -1309,28 +1260,6 @@ void UAutoAttackComponent::RegisterDoubleCutPrimaryAttack()
 	bDoubleCutReady = true;
 }
 
-void UAutoAttackComponent::HandleSamuraiMomentum(int32 KilledEnemyCount)
-{
-	const UUpgradeDefinition* MomentumUpgrade = GetMomentumUpgrade();
-	if (!MomentumUpgrade)
-	{
-		return;
-	}
-
-	const int32 RequiredKills = FMath::Max(1, MomentumUpgrade->MomentumRequiredKills);
-	if (CVarHDLogSamuraiMomentum.GetValueOnGameThread() != 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Momentum: Attack killed %d enemies"), KilledEnemyCount);
-	}
-
-	if (KilledEnemyCount < RequiredKills)
-	{
-		return;
-	}
-
-	ReduceRemainingAttackCooldown(MomentumUpgrade->MomentumRemainingCooldownReduction);
-}
-
 bool UAutoAttackComponent::HasDoubleCutUpgrade() const
 {
 	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
@@ -1340,22 +1269,6 @@ bool UAutoAttackComponent::HasDoubleCutUpgrade() const
 
 	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
 	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::DoubleCut) > 0;
-}
-
-const UUpgradeDefinition* UAutoAttackComponent::GetMomentumUpgrade() const
-{
-	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
-	{
-		return nullptr;
-	}
-
-	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
-	if (!PlayerUpgrades || PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::Momentum) <= 0)
-	{
-		return nullptr;
-	}
-
-	return PlayerUpgrades->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::Momentum);
 }
 
 bool UAutoAttackComponent::HasFanOfBladesUpgrade() const

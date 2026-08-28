@@ -28,6 +28,7 @@ ATechniqueTrialBase::ATechniqueTrialBase()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	StatueMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("StatueMesh")); StatueMesh->SetupAttachment(SceneRoot); StatueMesh->SetRelativeScale3D(FVector(1.5,1.5,3));
 	ObjectiveInteraction = CreateDefaultSubobject<UObjectiveInteractionComponent>(TEXT("ObjectiveInteraction")); ObjectiveInteraction->SetupAttachment(SceneRoot); ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Samurai Trial")),300.0f,1.0f,240.0f);
+	ObjectiveInteraction->SetPresentationVisual(StatueMesh);
 	TrialFloor = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TrialFloor")); TrialFloor->SetupAttachment(SceneRoot); TrialFloor->SetRelativeLocation(TrialArenaOffset); TrialFloor->SetRelativeScale3D(FVector(30,30,.5));
 	TrialPlayerStart = CreateDefaultSubobject<USceneComponent>(TEXT("TrialPlayerStart")); TrialPlayerStart->SetupAttachment(SceneRoot); TrialPlayerStart->SetRelativeLocation(TrialArenaOffset+TrialPlayerOffset);
 	if (Cube.Succeeded()) { StatueMesh->SetStaticMesh(Cube.Object); TrialFloor->SetStaticMesh(Cube.Object); }
