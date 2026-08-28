@@ -112,6 +112,8 @@ bool ULevelUpWidget::SelectCategoryChoice(int32 ChoiceIndex)
 	ShowUpgradeOffers(PlayerUpgrades->GetCurrentUpgradeOffers());
 	RefreshUpgradeCardVisuals();
 	ControllerFocusedChoiceIndex = 0;
+	bHasControllerSelection = false;
+	MouseHoveredButton = nullptr;
 	RefreshControllerFocus();
 	return UpgradeChoices.Num() > 0;
 }
@@ -120,7 +122,9 @@ void ULevelUpWidget::InitializeControllerNavigation()
 {
 	SetIsFocusable(true);
 	ControllerFocusedChoiceIndex = 0;
+	bHasControllerSelection = false;
 	bControllerAnalogNavigationHeld = false;
+	MouseHoveredButton = nullptr;
 	RefreshControllerFocus();
 }
 
@@ -136,7 +140,16 @@ void ULevelUpWidget::MoveControllerFocus(int32 Direction)
 {
 	const int32 ChoiceCount = GetVisibleChoiceCount();
 	if (ChoiceCount <= 0 || Direction == 0) return;
-	ControllerFocusedChoiceIndex = (ControllerFocusedChoiceIndex + Direction + ChoiceCount) % ChoiceCount;
+	MouseHoveredButton = nullptr;
+	if (!bHasControllerSelection)
+	{
+		ControllerFocusedChoiceIndex = Direction > 0 ? 0 : ChoiceCount - 1;
+		bHasControllerSelection = true;
+	}
+	else
+	{
+		ControllerFocusedChoiceIndex = (ControllerFocusedChoiceIndex + Direction + ChoiceCount) % ChoiceCount;
+	}
 	RefreshControllerFocus();
 }
 
@@ -145,19 +158,46 @@ void ULevelUpWidget::RefreshControllerFocus()
 	const int32 ChoiceCount = GetVisibleChoiceCount();
 	ControllerFocusedChoiceIndex = ChoiceCount > 0 ? FMath::Clamp(ControllerFocusedChoiceIndex, 0, ChoiceCount - 1) : 0;
 	RebuildFocusableChoices();
-	SetControllerFocusPresentation(ControllerFocusedChoiceIndex, !bCategoryChoiceCommitted);
-
-	for (int32 Index = 0; Index < FocusableChoiceButtons.Num(); ++Index)
+	if (bHasControllerSelection)
 	{
-		if (UButton* Button = FocusableChoiceButtons[Index])
-		{
-			Button->SetRenderScale(Index == ControllerFocusedChoiceIndex ? FVector2D(1.045f) : FVector2D(1.0f));
-		}
+		SetControllerFocusPresentation(ControllerFocusedChoiceIndex, !bCategoryChoiceCommitted);
 	}
+	RefreshChoiceScales();
 
 	// The Blueprint buttons are mouse click targets with focus disabled. The focusable
 	// native widget owns controller input and the indexed buttons provide presentation.
 	SetUserFocus(SurvivorPlayerController);
+}
+
+void ULevelUpWidget::RefreshChoiceScales()
+{
+	for (int32 Index = 0; Index < FocusableChoiceButtons.Num(); ++Index)
+	{
+		if (UButton* Button = FocusableChoiceButtons[Index])
+		{
+			const bool bMouseHovered = Button == MouseHoveredButton;
+			const bool bControllerSelected = !MouseHoveredButton && bHasControllerSelection && Index == ControllerFocusedChoiceIndex;
+			Button->SetRenderScale(bMouseHovered || bControllerSelected ? FVector2D(1.045f) : FVector2D(1.0f));
+		}
+	}
+}
+
+void ULevelUpWidget::RefreshMouseHoveredButton()
+{
+	UButton* NewHoveredButton = nullptr;
+	for (UButton* Button : FocusableChoiceButtons)
+	{
+		if (Button && Button->IsHovered())
+		{
+			NewHoveredButton = Button;
+			break;
+		}
+	}
+	if (MouseHoveredButton != NewHoveredButton)
+	{
+		MouseHoveredButton = NewHoveredButton;
+		RefreshChoiceScales();
+	}
 }
 
 void ULevelUpWidget::RebuildFocusableChoices()
@@ -197,6 +237,13 @@ FReply ULevelUpWidget::HandleControllerKey(const FKeyEvent& InKeyEvent)
 	}
 	if (Key == EKeys::Gamepad_FaceButton_Bottom || Key == EKeys::Enter || Key == EKeys::SpaceBar)
 	{
+		if (!bHasControllerSelection)
+		{
+			ControllerFocusedChoiceIndex = 0;
+			bHasControllerSelection = GetVisibleChoiceCount() > 0;
+			MouseHoveredButton = nullptr;
+			RefreshControllerFocus();
+		}
 		const bool bSelected = bCategoryChoiceCommitted
 			? SelectUpgradeChoice(ControllerFocusedChoiceIndex)
 			: SelectCategoryChoice(ControllerFocusedChoiceIndex);
@@ -239,6 +286,19 @@ FReply ULevelUpWidget::NativeOnAnalogValueChanged(const FGeometry& InGeometry, c
 		return FReply::Handled();
 	}
 	return Super::NativeOnAnalogValueChanged(InGeometry, InAnalogInputEvent);
+}
+
+FReply ULevelUpWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	RefreshMouseHoveredButton();
+	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+void ULevelUpWidget::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+{
+	MouseHoveredButton = nullptr;
+	RefreshChoiceScales();
+	Super::NativeOnMouseLeave(InMouseEvent);
 }
 
 bool ULevelUpWidget::GetOfferForUpgrade(UUpgradeDefinition* Upgrade, FUpgradeOffer& OutOffer) const

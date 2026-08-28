@@ -72,6 +72,8 @@ protected:
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnAnalogValueChanged(const FGeometry& InGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
+	virtual FReply NativeOnMouseMove(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Level Up")
 	TObjectPtr<ASurvivorPlayerController> SurvivorPlayerController;
@@ -101,6 +103,8 @@ private:
 	void MoveControllerFocus(int32 Direction);
 	void RefreshControllerFocus();
 	void RebuildFocusableChoices();
+	void RefreshChoiceScales();
+	void RefreshMouseHoveredButton();
 	FReply HandleControllerKey(const FKeyEvent& InKeyEvent);
 	int32 GetVisibleChoiceCount() const;
 
@@ -117,7 +121,11 @@ private:
 	bool bUpgradeChoiceCommitted = false;
 	bool bSynergyDiscoveryMode = false;
 	int32 ControllerFocusedChoiceIndex = 0;
+	bool bHasControllerSelection = false;
 	bool bControllerAnalogNavigationHeld = false;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UButton> MouseHoveredButton;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<class UButton>> FocusableChoiceButtons;
