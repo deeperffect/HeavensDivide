@@ -2,53 +2,89 @@
 
 #include "AnimNotify_SpawnSamuraiSlashNiagara.h"
 
-#include "CharacterBase.h"
-#include "CharacterStatsComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 
 UAnimNotify_SpawnSamuraiSlashNiagara::UAnimNotify_SpawnSamuraiSlashNiagara()
 {
 	Scale = FVector::OneVector;
+	AttachSocketName = TEXT("SwordTip");
 }
 
 void UAnimNotify_SpawnSamuraiSlashNiagara::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	if (!MeshComp || !NiagaraSystem)
+	if (!MeshComp)
 	{
 		return;
 	}
 
-	float AreaScale = 1.0f;
-	if (const ACharacterBase* OwnerCharacter = Cast<ACharacterBase>(MeshComp->GetOwner()))
+	AActor* OwnerActor = MeshComp->GetOwner();
+	if (!NiagaraSystem)
 	{
-		if (const UCharacterStatsComponent* CharacterStats = OwnerCharacter->GetCharacterStats())
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("Samurai slash Niagara notify on %s has no Niagara System assigned."), *GetNameSafe(OwnerActor));
+#endif
+		return;
+	}
+
+	UStaticMeshComponent* WeaponComponent = nullptr;
+	if (OwnerActor)
+	{
+		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		OwnerActor->GetComponents<UStaticMeshComponent>(StaticMeshComponents);
+		for (UStaticMeshComponent* Candidate : StaticMeshComponents)
 		{
-			AreaScale = CharacterStats->GetFinalAttackAreaMultiplier();
+			if (IsValid(Candidate) && Candidate->GetFName() == WeaponComponentName)
+			{
+				WeaponComponent = Candidate;
+				break;
+			}
 		}
+	}
+
+	if (!WeaponComponent)
+	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("Samurai slash Niagara notify could not find StaticMeshComponent '%s' on %s."),
+			*WeaponComponentName.ToString(), *GetNameSafe(OwnerActor));
+#endif
+		return;
+	}
+
+	if (AttachSocketName.IsNone() || !WeaponComponent->DoesSocketExist(AttachSocketName))
+	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("Samurai slash Niagara notify could not find socket '%s' on weapon component %s."),
+			*AttachSocketName.ToString(), *GetNameSafe(WeaponComponent));
+#endif
+		return;
 	}
 
 	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
 		NiagaraSystem,
-		MeshComp,
+		WeaponComponent,
 		AttachSocketName,
 		LocationOffset,
 		RotationOffset,
+		Scale,
 		EAttachLocation::KeepRelativeOffset,
 		true,
-		false,
 		ENCPoolMethod::None,
+		false,
 		true);
 
 	if (!NiagaraComponent)
 	{
+#if !UE_BUILD_SHIPPING
+		UE_LOG(LogTemp, Warning, TEXT("Samurai slash Niagara notify failed to spawn '%s' on %s.%s."),
+			*GetNameSafe(NiagaraSystem), *GetNameSafe(WeaponComponent), *AttachSocketName.ToString());
+#endif
 		return;
 	}
 
-	NiagaraComponent->SetVariableFloat(TEXT("User.AreaScale"), AreaScale);
-	NiagaraComponent->SetRelativeScale3D(Scale);
 	NiagaraComponent->Activate(true);
 }

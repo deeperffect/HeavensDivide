@@ -7,6 +7,7 @@
 #include "AttackProjectileBase.h"
 #include "CharacterStatsComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SceneComponent.h"
 #include "DrawDebugHelpers.h"
 #include "EnemyBase.h"
 #include "EnemyStatusEffectComponent.h"
@@ -137,6 +138,7 @@ void UAutoAttackComponent::StopAutoAttack()
 	{
 		OwnerCharacter->ClearFacingOverride();
 	}
+	RestoreAttackWeaponVisualScale();
 }
 
 void UAutoAttackComponent::SetAttackInterval(float NewInterval)
@@ -996,6 +998,7 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 	bActiveAttackIsAssist = !bUpdateNormalCooldown;
 	bActiveAttackTriggersFanOfBlades = WillNextNinjaAttackTriggerFanOfBlades();
 	ActiveAttackMontage = MontageToPlay;
+	ApplyAttackWeaponVisualScale();
 	if (bUpdateNormalCooldown)
 	{
 		LastAttackStartTime = GetWorld() ? GetWorld()->GetTimeSeconds() : LastAttackStartTime;
@@ -1068,6 +1071,11 @@ void UAutoAttackComponent::HandleAttackMontageBlendingOut(UAnimMontage* Montage,
 	{
 		return;
 	}
+
+	if (bInterrupted)
+	{
+		RestoreAttackWeaponVisualScale();
+	}
 }
 
 void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
@@ -1099,6 +1107,7 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 		OwnerCharacter->ClearFacingOverride();
 	}
 	ActiveAttackSequence = 0;
+	RestoreAttackWeaponVisualScale();
 }
 
 bool UAutoAttackComponent::StartTargetedAttack()
@@ -1570,6 +1579,7 @@ bool UAutoAttackComponent::StartDoubleCutFollowUp()
 	bActiveAttackIsAssist = false;
 	bDoubleCutFollowUpActive = true;
 	ActiveAttackMontage = FollowUpMontage;
+	ApplyAttackWeaponVisualScale();
 	return true;
 }
 
@@ -1604,6 +1614,72 @@ void UAutoAttackComponent::HandleDoubleCutMontageEnded(UAnimMontage* Montage, bo
 	{
 		OwnerCharacter->ClearFacingOverride();
 	}
+	RestoreAttackWeaponVisualScale();
+}
+
+USceneComponent* UAutoAttackComponent::ResolveWeaponVisualScaleRoot()
+{
+	if (IsValid(WeaponVisualScaleRoot))
+	{
+		return WeaponVisualScaleRoot;
+	}
+
+	ASamuraiCharacter* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
+	if (!Samurai || WeaponVisualScaleRootComponentName.IsNone())
+	{
+		return nullptr;
+	}
+
+	TArray<USceneComponent*> SceneComponents;
+	Samurai->GetComponents<USceneComponent>(SceneComponents);
+	for (USceneComponent* SceneComponent : SceneComponents)
+	{
+		if (IsValid(SceneComponent) && SceneComponent->GetFName() == WeaponVisualScaleRootComponentName)
+		{
+			WeaponVisualScaleRoot = SceneComponent;
+			return WeaponVisualScaleRoot;
+		}
+	}
+
+	return nullptr;
+}
+
+void UAutoAttackComponent::ApplyAttackWeaponVisualScale()
+{
+	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>() || ProjectileClass)
+	{
+		return;
+	}
+
+	USceneComponent* ScaleRoot = ResolveWeaponVisualScaleRoot();
+	const UCharacterStatsComponent* CharacterStats = OwnerCharacter->GetCharacterStats();
+	if (!ScaleRoot || !CharacterStats)
+	{
+		return;
+	}
+
+	if (!bAttackWeaponVisualScaleApplied)
+	{
+		OriginalWeaponVisualScaleRootRelativeScale = ScaleRoot->GetRelativeScale3D();
+		bAttackWeaponVisualScaleApplied = true;
+	}
+
+	const float AreaMultiplier = CharacterStats->GetFinalAttackAreaMultiplier();
+	ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualScaleRootRelativeScale * AreaMultiplier);
+}
+
+void UAutoAttackComponent::RestoreAttackWeaponVisualScale()
+{
+	if (!bAttackWeaponVisualScaleApplied)
+	{
+		return;
+	}
+
+	if (USceneComponent* ScaleRoot = ResolveWeaponVisualScaleRoot())
+	{
+		ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualScaleRootRelativeScale);
+	}
+	bAttackWeaponVisualScaleApplied = false;
 }
 
 float UAutoAttackComponent::GetEffectiveAttackInterval() const
