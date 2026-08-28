@@ -15,7 +15,6 @@ EVOLUTIONS = {
 
 MECHANICS = {
     "DA_Upgrade_SamuraiDoubleCut",
-    "DA_Upgrade_SamuraiMomentum",
     "DA_Upgrade_NinjaFanOfBlades",
 }
 

@@ -79,17 +79,17 @@ enum class EUpgradeSpecialEffect : uint8
 	QuickHandoff,
 	Handoff,
 	DoubleCut,
-	Momentum UMETA(Hidden, Deprecated, DeprecationMessage = "Retired; retained only to preserve serialized enum values"),
-	FanOfBlades,
-	BladeCascade,
-	SamuraiCleaver,
-	SamuraiDuelist,
-	SamuraiDeathblow,
-	HemotoxicReaction,
-	VirulentStrain,
-	AcceleratedVenom,
-	ShadowStep,
-	AfterimageFrenzy
+	// Value 6 was retired. Explicit values preserve existing serialized upgrade assets.
+	FanOfBlades = 7,
+	BladeCascade = 8,
+	SamuraiCleaver = 9,
+	SamuraiDuelist = 10,
+	SamuraiDeathblow = 11,
+	HemotoxicReaction = 12,
+	VirulentStrain = 13,
+	AcceleratedVenom = 14,
+	ShadowStep = 15,
+	AfterimageFrenzy = 16
 };
 
 USTRUCT(BlueprintType)

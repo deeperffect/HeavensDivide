@@ -194,8 +194,6 @@ public:
 	FOnUpgradeLevelChanged OnUpgradeLevelChanged;
 
 protected:
-	virtual void BeginPlay() override;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades")
 	TArray<TObjectPtr<UUpgradeDefinition>> UpgradePool;
 
