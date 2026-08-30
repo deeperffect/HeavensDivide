@@ -1,13 +1,10 @@
 #include "ObjectiveDirectorRunStateSubsystem.h"
 #include "ObjectiveSpawnPoint.h"
 
-void UObjectiveDirectorRunStateSubsystem::InitializeRunDecisions(float OptionalChance)
+void UObjectiveDirectorRunStateSubsystem::InitializeRunDecisions()
 {
 	if (bInitialized) return;
 	RandomStream.Initialize(FMath::Rand());
-	GuaranteedTrial = RandomStream.RandRange(0, 1) == 0 ? ERunCharacterTrialChoice::Samurai : ERunCharacterTrialChoice::Ninja;
-	OptionalTrialRoll = RandomStream.FRand();
-	bOptionalTrialWillSpawn = OptionalTrialRoll < FMath::Clamp(OptionalChance, 0.0f, 1.0f);
 	bInitialized = true;
 }
 

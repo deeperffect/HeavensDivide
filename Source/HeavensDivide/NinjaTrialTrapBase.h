@@ -12,21 +12,44 @@ UCLASS(Abstract, Blueprintable)
 class HEAVENSDIVIDE_API ANinjaTrialTrapBase : public AActor
 {
 	GENERATED_BODY()
+
 public:
 	ANinjaTrialTrapBase();
-	virtual void BeginPlay() override;
-	UFUNCTION(BlueprintCallable, Category="Ninja Trap") virtual void SetTrapActive(bool bActive);
-	UFUNCTION(BlueprintPure, Category="Ninja Trap") bool IsTrapActive() const { return bTrapActive; }
-	UFUNCTION(BlueprintPure, Category="Ninja Trap") ANinjaTechniqueTrial* GetOwningTrial() const { return OwningTrial; }
-	void InitializeForTrial(ANinjaTechniqueTrial* Trial);
-	UPROPERTY(BlueprintAssignable, Category="Ninja Trap|Events") FNinjaTrapEvent OnTrapActivated;
-	UPROPERTY(BlueprintAssignable, Category="Ninja Trap|Events") FNinjaTrapEvent OnTrapDeactivated;
-	UPROPERTY(BlueprintAssignable, Category="Ninja Trap|Events") FNinjaTrapEvent OnTrapDamagedPlayer;
+
+	UFUNCTION(BlueprintCallable, Category="Ninja Trial|Trap")
+	void InitializeForTrial(ANinjaTechniqueTrial* InOwningTrial);
+
+	UFUNCTION(BlueprintCallable, Category="Ninja Trial|Trap")
+	void ActivateTrap();
+
+	UFUNCTION(BlueprintCallable, Category="Ninja Trial|Trap")
+	void DeactivateTrap();
+
+	UFUNCTION(BlueprintPure, Category="Ninja Trial|Trap")
+	ANinjaTechniqueTrial* GetOwningTrial() const { return OwningTrial; }
+
+	UFUNCTION(BlueprintPure, Category="Ninja Trial|Trap")
+	bool IsTrapActive() const { return bTrapActive; }
+
+	UPROPERTY(BlueprintAssignable, Category="Ninja Trial|Trap") FNinjaTrapEvent OnTrapActivated;
+	UPROPERTY(BlueprintAssignable, Category="Ninja Trial|Trap") FNinjaTrapEvent OnTrapDeactivated;
+	UPROPERTY(BlueprintAssignable, Category="Ninja Trial|Trap") FNinjaTrapEvent OnTrapDamagedPlayer;
+
 protected:
-	virtual void ResetTrap() {}
-	bool DamageTrialPlayer();
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ninja Trap") TObjectPtr<USceneComponent> SceneRoot;
-	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category="Ninja Trap") TObjectPtr<ANinjaTechniqueTrial> OwningTrial;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ninja Trap", meta=(ClampMin="0")) float Damage=25.0f;
-	bool bTrapActive=false;
+	virtual void HandleActivationChanged(bool bActive) {}
+	bool DamageTrialPlayer(AActor* DamageTarget);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Ninja Trial|Trap", meta=(ClampMin="0")) float Damage = 25.0f;
+	UPROPERTY(Transient) TObjectPtr<ANinjaTechniqueTrial> OwningTrial;
+	UPROPERTY(Transient) bool bTrapActive = false;
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Ninja Trial|Trap", meta=(DisplayName="On Initialized For Trial"))
+	void ReceiveInitializedForTrial();
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Ninja Trial|Trap", meta=(DisplayName="On Trap Activated"))
+	void ReceiveTrapActivated();
+
+	UFUNCTION(BlueprintImplementableEvent, Category="Ninja Trial|Trap", meta=(DisplayName="On Trap Deactivated"))
+	void ReceiveTrapDeactivated();
+
 };

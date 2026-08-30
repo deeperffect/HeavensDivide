@@ -1,80 +1,27 @@
 #include "NinjaSweepingTrap.h"
-#include "CharacterBase.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
-
 ANinjaSweepingTrap::ANinjaSweepingTrap()
 {
-	PrimaryActorTick.bCanEverTick=true;
-	PrimaryActorTick.bStartWithTickEnabled=false;
-	HazardBox=CreateDefaultSubobject<UBoxComponent>(TEXT("HazardBox"));
-	HazardBox->SetupAttachment(SceneRoot);
-	HazardBox->SetBoxExtent(FVector(60,500,100));
-	HazardBox->SetCollisionResponseToAllChannels(ECR_Ignore);
-	HazardBox->SetCollisionResponseToChannel(ECC_Pawn,ECR_Overlap);
-	Visual=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));
-	Visual->SetupAttachment(HazardBox);
-	Visual->SetRelativeScale3D(FVector(1.2f,10.0f,2.0f));
-	Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> Red(TEXT("/Game/HeavensDivide/Materials/M_SamuraiLaneIndicator.M_SamuraiLaneIndicator"));
-	if(Cube.Succeeded())Visual->SetStaticMesh(Cube.Object);
-	if(Red.Succeeded())Visual->SetMaterial(0,Red.Object);
+	PrimaryActorTick.bCanEverTick=true;PrimaryActorTick.bStartWithTickEnabled=false;
+	USceneComponent* Root=CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));SetRootComponent(Root);
+	HazardBox=CreateDefaultSubobject<UBoxComponent>(TEXT("HazardBox"));HazardBox->SetupAttachment(Root);HazardBox->SetBoxExtent(FVector(60,500,100));HazardBox->SetGenerateOverlapEvents(true);HazardBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);HazardBox->SetCollisionResponseToAllChannels(ECR_Ignore);HazardBox->SetCollisionResponseToChannel(ECC_Pawn,ECR_Overlap);
+	Visual=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Visual"));Visual->SetupAttachment(HazardBox);Visual->SetRelativeScale3D(FVector(1.2f,10,2));Visual->SetCollisionEnabled(ECollisionEnabled::NoCollision);Visual->SetVisibility(false);
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));if(Cube.Succeeded())Visual->SetStaticMesh(Cube.Object);
 	HazardBox->OnComponentBeginOverlap.AddDynamic(this,&ANinjaSweepingTrap::HandleHazardOverlap);
 }
-
-void ANinjaSweepingTrap::BeginPlay()
+void ANinjaSweepingTrap::BeginPlay(){Super::BeginPlay();StartHazardRelativeLocation=HazardBox->GetRelativeLocation();}
+void ANinjaSweepingTrap::HandleActivationChanged(bool bActive)
 {
-	Super::BeginPlay();
-	if(UMaterialInstanceDynamic* Material=Visual->CreateAndSetMaterialInstanceDynamic(0))
-	{
-		Material->SetScalarParameterValue(TEXT("FillAmount"),1.0f);
-		Material->SetVectorParameterValue(TEXT("FillColor"),FLinearColor::Red);
-	}
+	HazardBox->SetRelativeLocation(StartHazardRelativeLocation);PhaseElapsed=0;bSweeping=false;bHitThisSweep=false;bWaitingForFirstSweep=true;
+	SetActorTickEnabled(bActive);HazardBox->SetCollisionEnabled(bActive?ECollisionEnabled::QueryOnly:ECollisionEnabled::NoCollision);Visual->SetVisibility(bActive);
 }
-
-void ANinjaSweepingTrap::SetTrapActive(bool bActive)
+void ANinjaSweepingTrap::Tick(float D)
 {
-	Super::SetTrapActive(bActive);
-	SetActorTickEnabled(bActive);
-	HazardBox->SetCollisionEnabled(bActive?ECollisionEnabled::QueryOnly:ECollisionEnabled::NoCollision);
-	Visual->SetVisibility(bActive);
+	Super::Tick(D);if(!bTrapActive)return;PhaseElapsed+=D;
+	if(!bSweeping){const float Wait=bWaitingForFirstSweep?InitialDelay:DelayBetweenSweeps;if(PhaseElapsed<Wait)return;PhaseElapsed=0;bSweeping=true;bHitThisSweep=false;bWaitingForFirstSweep=false;OnSweepStarted.Broadcast();}
+	const float A=FMath::Clamp(PhaseElapsed/FMath::Max(.01f,SweepDuration),0.f,1.f);HazardBox->SetRelativeLocation(StartHazardRelativeLocation+MovementDirection.GetSafeNormal()*MovementDistance*A);
+	if(A>=1){bSweeping=false;PhaseElapsed=0;HazardBox->SetRelativeLocation(StartHazardRelativeLocation);OnSweepReset.Broadcast();if(!bLooping)DeactivateTrap();}
 }
-
-void ANinjaSweepingTrap::ResetTrap()
-{
-	if(StartLocation.IsNearlyZero())StartLocation=GetActorLocation();
-	SetActorLocation(StartLocation);
-	PhaseElapsed=0.0f;
-	bSweeping=false;
-	bHitThisSweep=false;
-	bWaitingForFirstSweep=true;
-}
-
-void ANinjaSweepingTrap::Tick(float DeltaSeconds)
-{
-	Super::Tick(DeltaSeconds);
-	if(!bTrapActive)return;
-	PhaseElapsed+=DeltaSeconds;
-	if(!bSweeping)
-	{
-		const float WaitDuration=bWaitingForFirstSweep?InitialDelay:DelayBetweenSweeps;
-		if(PhaseElapsed<WaitDuration)return;
-		PhaseElapsed=0.0f;bSweeping=true;bHitThisSweep=false;bWaitingForFirstSweep=false;OnSweepStarted.Broadcast();
-	}
-	const float Alpha=FMath::Clamp(PhaseElapsed/FMath::Max(0.01f,SweepDuration),0.0f,1.0f);
-	SetActorLocation(StartLocation+MovementDirection.GetSafeNormal()*MovementDistance*Alpha);
-	if(Alpha>=1.0f)
-	{
-		bSweeping=false;PhaseElapsed=0.0f;SetActorLocation(StartLocation);OnSweepReset.Broadcast();
-		if(!bLooping)SetTrapActive(false);
-	}
-}
-
-void ANinjaSweepingTrap::HandleHazardOverlap(UPrimitiveComponent*,AActor* OtherActor,UPrimitiveComponent*,int32,bool,const FHitResult&)
-{
-	if(!bSweeping||bHitThisSweep||!Cast<ACharacterBase>(OtherActor))return;
-	bHitThisSweep=DamageTrialPlayer();
-}
+void ANinjaSweepingTrap::HandleHazardOverlap(UPrimitiveComponent*,AActor* Other,UPrimitiveComponent*,int32,bool,const FHitResult&){if(bSweeping&&!bHitThisSweep)bHitThisSweep=DamageTrialPlayer(Other);}

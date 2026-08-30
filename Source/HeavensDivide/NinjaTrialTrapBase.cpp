@@ -1,38 +1,43 @@
 #include "NinjaTrialTrapBase.h"
+
 #include "NinjaTechniqueTrial.h"
-#include "Components/SceneComponent.h"
 
 ANinjaTrialTrapBase::ANinjaTrialTrapBase()
 {
-	PrimaryActorTick.bCanEverTick=false;
-	SceneRoot=CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-	SetRootComponent(SceneRoot);
+	PrimaryActorTick.bCanEverTick = false;
 }
 
-void ANinjaTrialTrapBase::BeginPlay()
+void ANinjaTrialTrapBase::InitializeForTrial(ANinjaTechniqueTrial* InOwningTrial)
 {
-	Super::BeginPlay();
-	if(OwningTrial)OwningTrial->RegisterTrap(this);
-	SetTrapActive(false);
+	if (!IsValid(InOwningTrial) || OwningTrial == InOwningTrial) return;
+	if (bTrapActive) DeactivateTrap();
+	OwningTrial = InOwningTrial;
+	ReceiveInitializedForTrial();
+	UE_LOG(LogTemp, Log, TEXT("[NinjaTrialTraps] Initialized trap=%s OwningTrial=%s Valid=%s"), *GetName(), *GetNameSafe(OwningTrial), IsValid(OwningTrial) ? TEXT("true") : TEXT("false"));
 }
 
-void ANinjaTrialTrapBase::InitializeForTrial(ANinjaTechniqueTrial* Trial)
+void ANinjaTrialTrapBase::ActivateTrap()
 {
-	OwningTrial=Trial;
-	if(OwningTrial)OwningTrial->RegisterTrap(this);
+	if (!IsValid(OwningTrial) || bTrapActive) return;
+	bTrapActive = true;
+	HandleActivationChanged(true);
+	ReceiveTrapActivated();
+	OnTrapActivated.Broadcast();
 }
 
-void ANinjaTrialTrapBase::SetTrapActive(bool bActive)
+void ANinjaTrialTrapBase::DeactivateTrap()
 {
-	if(bTrapActive==bActive&&bActive)return;
-	bTrapActive=bActive;
-	ResetTrap();
-	if(bActive)OnTrapActivated.Broadcast();else OnTrapDeactivated.Broadcast();
+	if (!bTrapActive) return;
+	bTrapActive = false;
+	HandleActivationChanged(false);
+	ReceiveTrapDeactivated();
+	OnTrapDeactivated.Broadcast();
 }
 
-bool ANinjaTrialTrapBase::DamageTrialPlayer()
+bool ANinjaTrialTrapBase::DamageTrialPlayer(AActor* DamageTarget)
 {
-	if(!bTrapActive||!OwningTrial||!OwningTrial->ApplyTrialHazardDamage(Damage))return false;
+	if (!bTrapActive || !IsValid(OwningTrial) || !OwningTrial->IsTrialRunning() || !OwningTrial->IsActivePlayerCharacter(DamageTarget)) return false;
+	if (!OwningTrial->ApplyTrialHazardDamage(Damage)) return false;
 	OnTrapDamagedPlayer.Broadcast();
 	return true;
 }

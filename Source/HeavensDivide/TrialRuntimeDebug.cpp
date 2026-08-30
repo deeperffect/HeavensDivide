@@ -1,7 +1,6 @@
 #include "TechniqueTrialBase.h"
 #include "TwinSoulTrial.h"
 #include "SamuraiTechniqueTrial.h"
-#include "NinjaTechniqueTrial.h"
 #include "BloodShrine.h"
 #include "BossToriiGate.h"
 
@@ -32,20 +31,16 @@ static void DebugEnterSpawnedTrial(const TArray<FString>& Args)
 	ASurvivorPlayerController* PC=World?Cast<ASurvivorPlayerController>(World->GetFirstPlayerController()):nullptr;
 	ACharacterBase* Character=PC&&PC->GetCharacterManager()?PC->GetCharacterManager()->GetActiveCharacter():nullptr;
 	if(!World||!Character){UE_LOG(LogTemp,Error,TEXT("[TrialRuntime] DEBUG no game world/active character"));return;}
-	const FString Requested=Args.IsEmpty()?TEXT("Technique"):Args[0];
+	const FString Requested=Args.IsEmpty()?TEXT("Samurai"):Args[0];
 	for(TActorIterator<ATechniqueTrialBase> It(World);It;++It)
 	{
-		if(Requested.Equals(TEXT("Samurai"),ESearchCase::IgnoreCase)&&!It->IsA<ASamuraiTechniqueTrial>())continue;
-		if(Requested.Equals(TEXT("Ninja"),ESearchCase::IgnoreCase)&&!It->IsA<ANinjaTechniqueTrial>())continue;
+		if(!Requested.Equals(TEXT("Samurai"),ESearchCase::IgnoreCase)||!It->IsA<ASamuraiTechniqueTrial>())continue;
 		Character->SetActorLocation(It->GetActorLocation()+FVector(100,0,100),false,nullptr,ETeleportType::TeleportPhysics);
 		UE_LOG(LogTemp,Log,TEXT("[TrialRuntime] DEBUG controller interaction request Trial=%s Type=%s"),*It->GetName(),*Requested);
 		PC->DebugTriggerInteract();
-		if(Requested.Equals(TEXT("Samurai"),ESearchCase::IgnoreCase))
-		{
-			ACharacterBase* Samurai=PC->GetCharacterManager()?PC->GetCharacterManager()->GetSamurai():nullptr;
-			UAutoAttackComponent* Attack=Samurai?Samurai->FindComponentByClass<UAutoAttackComponent>():nullptr;
-			UE_LOG(LogTemp,Log,TEXT("[TrialRuntime] DEBUG SamuraiTrial State=%d AutoAttackEnabled=%s"),static_cast<int32>(It->GetTrialState()),Attack&&Attack->IsAutoAttackEnabled()?TEXT("true"):TEXT("false"));
-		}
+		ACharacterBase* Samurai=PC->GetCharacterManager()?PC->GetCharacterManager()->GetSamurai():nullptr;
+		UAutoAttackComponent* Attack=Samurai?Samurai->FindComponentByClass<UAutoAttackComponent>():nullptr;
+		UE_LOG(LogTemp,Log,TEXT("[TrialRuntime] DEBUG SamuraiTrial State=%d AutoAttackEnabled=%s"),static_cast<int32>(It->GetTrialState()),Attack&&Attack->IsAutoAttackEnabled()?TEXT("true"):TEXT("false"));
 		return;
 	}
 	for(TActorIterator<ATwinSoulTrial> It(World);It;++It)
@@ -82,6 +77,6 @@ static void DebugEnterSpawnedTrial(const TArray<FString>& Args)
 
 static FAutoConsoleCommand DebugEnterTrialCommand(
 	TEXT("hd.DebugEnterSpawnedTrial"),
-	TEXT("Invokes the real interaction path for a spawned trial: Samurai, Ninja, or TwinSoul."),
+	TEXT("Invokes the real interaction path for a spawned Samurai or TwinSoul trial."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&DebugEnterSpawnedTrial));
 #endif

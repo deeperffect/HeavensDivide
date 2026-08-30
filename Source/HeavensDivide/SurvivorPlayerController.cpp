@@ -791,11 +791,13 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	PendingTwinSoulRewards = 0;
 	PendingTwinSoulDiscoveries = 0;
 	PendingSamuraiTrialRewards = 0;
+	PendingNinjaTrialRewards = 0;
 	bLevelUpSelectionActive = false;
 	bCurrentSelectionIsBloodShrineReward = false;
 	bCurrentSelectionIsTwinSoulReward = false;
 	bCurrentSelectionIsTwinSoulDiscovery = false;
 	bCurrentSelectionIsSamuraiTrialReward = false;
+	bCurrentSelectionIsNinjaTrialReward = false;
 	bLevelUpTimeDilationApplied = false;
 	StopDashRecharge();
 	SetIgnoreMoveInput(true);
@@ -963,10 +965,10 @@ void ASurvivorPlayerController::RequestSamuraiTrialUpgradeReward(int32 UpgradeCh
 
 void ASurvivorPlayerController::RequestNinjaTrialUpgradeReward(int32 UpgradeChoiceCount)
 {
-	if(bIsPlayerDead)return;
-	NinjaTrialRewardChoiceCount=FMath::Max(1,UpgradeChoiceCount);
+	if (bIsPlayerDead) return;
+	NinjaTrialRewardChoiceCount = FMath::Max(1, UpgradeChoiceCount);
 	++PendingNinjaTrialRewards;
-	if(!bLevelUpSelectionActive)StartNextUpgradeSelection();
+	if (!bLevelUpSelectionActive) StartNextUpgradeSelection();
 }
 
 void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
@@ -988,9 +990,9 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 	{
 		PendingSamuraiTrialRewards = FMath::Max(0, PendingSamuraiTrialRewards - 1);
 	}
-	else if(bCurrentSelectionIsNinjaTrialReward)
+	else if (bCurrentSelectionIsNinjaTrialReward)
 	{
-		PendingNinjaTrialRewards=FMath::Max(0,PendingNinjaTrialRewards-1);
+		PendingNinjaTrialRewards = FMath::Max(0, PendingNinjaTrialRewards - 1);
 	}
 	else if (bCurrentSelectionIsTwinSoulReward)
 	{
@@ -1010,7 +1012,7 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 	bCurrentSelectionIsSamuraiTrialReward = false;
 	bCurrentSelectionIsNinjaTrialReward = false;
 	if (bCompletedSamuraiTrialReward && PendingSamuraiTrialRewards == 0) OnSamuraiTrialRewardCompleted.Broadcast();
-	if(bCompletedNinjaTrialReward&&PendingNinjaTrialRewards==0)OnNinjaTrialRewardCompleted.Broadcast();
+	if (bCompletedNinjaTrialReward && PendingNinjaTrialRewards == 0) OnNinjaTrialRewardCompleted.Broadcast();
 	if ((bCompletedTwinSoulReward || bCompletedTwinSoulDiscovery)
 		&& PendingTwinSoulRewards == 0 && PendingTwinSoulDiscoveries == 0)
 	{
@@ -1095,17 +1097,17 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 		return;
 	}
 
-	if(PendingNinjaTrialRewards>0)
+	if (PendingNinjaTrialRewards > 0)
 	{
-		bCurrentSelectionIsBloodShrineReward=false;
-		bCurrentSelectionIsTwinSoulReward=false;
-		bCurrentSelectionIsTwinSoulDiscovery=false;
-		bCurrentSelectionIsSamuraiTrialReward=false;
-		bCurrentSelectionIsNinjaTrialReward=true;
-		bLevelUpSelectionActive=true;
-		if(!PlayerUpgradeComponent
-			||!PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::NinjaTrial,NinjaTrialRewardChoiceCount)
-			||!EnsureLevelUpWidget())
+		bCurrentSelectionIsBloodShrineReward = false;
+		bCurrentSelectionIsTwinSoulReward = false;
+		bCurrentSelectionIsTwinSoulDiscovery = false;
+		bCurrentSelectionIsSamuraiTrialReward = false;
+		bCurrentSelectionIsNinjaTrialReward = true;
+		bLevelUpSelectionActive = true;
+		if (!PlayerUpgradeComponent
+			|| !PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::NinjaTrial, NinjaTrialRewardChoiceCount)
+			|| !EnsureLevelUpWidget())
 		{
 			HandleLevelUpSelectionCompleted();
 			return;

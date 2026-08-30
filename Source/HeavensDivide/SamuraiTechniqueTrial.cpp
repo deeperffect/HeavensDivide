@@ -91,6 +91,11 @@ void ASamuraiTechniqueTrial::RelocateAdditionalArenaComponents(const FVector& Wo
 void ASamuraiTechniqueTrial::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if(MemoryState!=ESamuraiMemoryTrialState::Previewing)
+	{
+		bAnimateDangerFill=false;
+		return;
+	}
 	if(!bAnimateDangerFill)return;
 
 	DangerFillElapsed+=DeltaSeconds;
@@ -201,10 +206,16 @@ void ASamuraiTechniqueTrial::ShowPreviewStep()
 
 void ASamuraiTechniqueTrial::HidePreviewStep()
 {
+	if(MemoryState!=ESamuraiMemoryTrialState::Previewing)
+	{
+		HideAllLanes();
+		return;
+	}
 	if (!CurrentSequence.IsValidIndex(CurrentStep)) return;
 	const ESamuraiTrialLane Lane = CurrentSequence[CurrentStep];
 	HideAllLanes();
 	OnPreviewLaneHidden.Broadcast(Lane);
+	HideAllLanes();
 	++CurrentStep;
 	if (CurrentStep < CurrentSequence.Num())
 	{
@@ -217,6 +228,11 @@ void ASamuraiTechniqueTrial::HidePreviewStep()
 
 void ASamuraiTechniqueTrial::BeginExecution()
 {
+	// Preview indicators are memory-only. Cancel any pending preview callback and
+	// establish the hidden state before execution can broadcast any events.
+	GetWorldTimerManager().ClearTimer(PhaseTimer);
+	bAnimateDangerFill=false;
+	HideAllLanes();
 	MemoryState = ESamuraiMemoryTrialState::Executing;
 	CurrentStep = 0;
 	if (TrialWidget) TrialWidget->ShowMemoryStatus(CurrentRound + 1, NumberOfRounds, FText::FromString(TEXT("MOVE")), 1, CurrentSequence.Num());
@@ -232,6 +248,9 @@ void ASamuraiTechniqueTrial::TelegraphStrike()
 #endif
 	HideAllLanes();
 	OnStrikeTelegraph.Broadcast(SafeLane);
+	// A bound listener must not be able to restore the memory indicators during
+	// execution. The lane components remain active as gameplay footprints.
+	HideAllLanes();
 	if (TrialWidget) TrialWidget->ShowMemoryStatus(CurrentRound + 1, NumberOfRounds, FText::FromString(TEXT("MOVE")), CurrentStep + 1, CurrentSequence.Num());
 	GetWorldTimerManager().SetTimer(PhaseTimer, this, &ASamuraiTechniqueTrial::ResolveStrike, FMath::Max(0.01f, StrikeTelegraphDuration), false);
 }
@@ -264,12 +283,14 @@ void ASamuraiTechniqueTrial::ApplyPendingStrikeDamage()
 	UE_LOG(LogTemp, Display, TEXT("[SamuraiMemoryTrial] Strike Round=%d Step=%d SafeLane=%d PlayerSafe=%d Damage=%.1f"), CurrentRound + 1, CurrentStep + 1, static_cast<int32>(SafeLane), bSafe, bSafe ? 0.0f : TrialStrikeDamage);
 #endif
 	OnStrikeExecuted.Broadcast(SafeLane, bSafe);
+	HideAllLanes();
 	++CurrentStep;
 	GetWorldTimerManager().SetTimer(PhaseTimer, this, &ASamuraiTechniqueTrial::AdvanceExecution, FMath::Max(0.01f, TimeBetweenStrikes), false);
 }
 
 void ASamuraiTechniqueTrial::AdvanceExecution()
 {
+	HideAllLanes();
 	if (PlayerController && PlayerController->IsPlayerDead()) return;
 	if (CurrentStep < CurrentSequence.Num())
 	{
@@ -323,6 +344,11 @@ void ASamuraiTechniqueTrial::HideAllLanes()
 
 void ASamuraiTechniqueTrial::ShowDangerLanesExcept(ESamuraiTrialLane SafeLane,float FillAmount)
 {
+	if(MemoryState!=ESamuraiMemoryTrialState::Previewing)
+	{
+		HideAllLanes();
+		return;
+	}
 	DangerFillElapsed=0.0f;
 	DangerFillTarget=FMath::Clamp(FillAmount,0.0f,1.0f);
 	bAnimateDangerFill=DangerFillTarget>0.0f;
