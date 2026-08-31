@@ -20,14 +20,16 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 	bSuspendAutoAttacksDuringTrial = false;
 	constexpr float ArenaYaw=45.0f;
 	const FRotator ArenaRotation(0.0f,ArenaYaw,0.0f);
-	TrialPlayerOffset=ArenaRotation.RotateVector(FVector(0.0f,-440.0f,150.0f));
+	TrialPlayerOffset=FVector(0.0f,-440.0f,150.0f);
+	TrialArena->SetRelativeRotation(ArenaRotation);
+	TrialPlayerStart->SetRelativeLocation(TrialPlayerOffset);
 	TrialWidgetClass = UTechniqueTrialWidget::StaticClass();
 
 	// Compact dojo: one fifth of the original prototype footprint. The thicker
 	// blocking floor has its top at the arena origin so pawns settle predictably.
-	TrialFloor->SetupAttachment(SceneRoot);
-	TrialFloor->SetRelativeLocation(TrialArenaOffset+ArenaRotation.RotateVector(FVector(0.0f,0.0f,-50.0f)));
-	TrialFloor->SetRelativeRotation(ArenaRotation);
+	TrialFloor->SetupAttachment(TrialArena);
+	TrialFloor->SetRelativeLocation(FVector(0.0f,0.0f,-50.0f));
+	TrialFloor->SetRelativeRotation(FRotator::ZeroRotator);
 	TrialFloor->SetRelativeScale3D(FVector(6.0f, 6.0f, 1.0f));
 	TrialFloor->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	TrialFloor->SetCollisionResponseToAllChannels(ECR_Block);
@@ -39,9 +41,9 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 		FVector(0.2f, 6.0f, 0.6f), FVector(0.2f, 6.0f, 0.6f)};
 	for (int32 WallIndex = 0; WallIndex < TrialWalls.Num(); ++WallIndex)
 	{
-		TrialWalls[WallIndex]->SetupAttachment(SceneRoot);
-		TrialWalls[WallIndex]->SetRelativeLocation(TrialArenaOffset+ArenaRotation.RotateVector(CompactWallLocations[WallIndex]));
-		TrialWalls[WallIndex]->SetRelativeRotation(ArenaRotation);
+		TrialWalls[WallIndex]->SetupAttachment(TrialArena);
+		TrialWalls[WallIndex]->SetRelativeLocation(CompactWallLocations[WallIndex]);
+		TrialWalls[WallIndex]->SetRelativeRotation(FRotator::ZeroRotator);
 		TrialWalls[WallIndex]->SetRelativeScale3D(CompactWallScales[WallIndex]);
 		TrialWalls[WallIndex]->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		TrialWalls[WallIndex]->SetCollisionResponseToAllChannels(ECR_Block);
@@ -55,9 +57,9 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 		const float LaneX = (Index - 1) * 400.0f;
 		const FName LaneName=Index==0?TEXT("LeftLane"):Index==1?TEXT("CenterLane"):TEXT("RightLane");
 		UStaticMeshComponent* Lane=CreateDefaultSubobject<UStaticMeshComponent>(LaneName);
-		Lane->SetupAttachment(SceneRoot);
-		Lane->SetRelativeLocation(TrialArenaOffset+ArenaRotation.RotateVector(FVector(LaneX,0.0f,2.0f)));
-		Lane->SetRelativeRotation(ArenaRotation);
+		Lane->SetupAttachment(TrialArena);
+		Lane->SetRelativeLocation(FVector(LaneX,0.0f,2.0f));
+		Lane->SetRelativeRotation(FRotator::ZeroRotator);
 		Lane->SetRelativeScale3D(FVector(LaneWidth/100.0f,LaneDepth/100.0f,0.03f));
 		Lane->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Lane->SetHiddenInGame(true);
@@ -71,9 +73,9 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 
 		const FName VFXName=Index==0?TEXT("LeftStrikeVFX"):Index==1?TEXT("CenterStrikeVFX"):TEXT("RightStrikeVFX");
 		UNiagaraComponent* StrikeVFX=CreateDefaultSubobject<UNiagaraComponent>(VFXName);
-		StrikeVFX->SetupAttachment(SceneRoot);
-		StrikeVFX->SetRelativeLocation(TrialArenaOffset+ArenaRotation.RotateVector(FVector(LaneX,0.0f,7.0f)));
-		StrikeVFX->SetRelativeRotation(ArenaRotation);
+		StrikeVFX->SetupAttachment(TrialArena);
+		StrikeVFX->SetRelativeLocation(FVector(LaneX,0.0f,7.0f));
+		StrikeVFX->SetRelativeRotation(FRotator::ZeroRotator);
 		StrikeVFX->SetAutoActivate(false);
 		StrikeVFXComponents.Add(StrikeVFX);
 		if(Index==0)LeftStrikeVFX=StrikeVFX;
@@ -84,8 +86,7 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 
 void ASamuraiTechniqueTrial::RelocateAdditionalArenaComponents(const FVector& WorldDelta)
 {
-	for(UStaticMeshComponent* Lane:Lanes)if(Lane)Lane->AddWorldOffset(WorldDelta);
-	for(UNiagaraComponent* Effect:StrikeVFXComponents)if(Effect)Effect->AddWorldOffset(WorldDelta);
+	// All Samurai arena components now move together through the native TrialArena root.
 }
 
 void ASamuraiTechniqueTrial::Tick(float DeltaSeconds)

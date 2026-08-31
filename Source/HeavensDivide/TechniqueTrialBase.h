@@ -57,6 +57,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<USceneComponent> SceneRoot;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<UStaticMeshComponent> StatueMesh;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<USceneComponent> TrialArena;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<UStaticMeshComponent> TrialFloor;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Technique Trial|Components") TObjectPtr<USceneComponent> TrialPlayerStart;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
