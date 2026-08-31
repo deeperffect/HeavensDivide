@@ -1,4 +1,5 @@
 #include "MinimapMarkerComponent.h"
+#include "Components/SceneComponent.h"
 #include "MinimapRegistrySubsystem.h"
 
 UMinimapMarkerComponent::UMinimapMarkerComponent()
@@ -34,6 +35,7 @@ void UMinimapMarkerComponent::SetMarkerVisible(bool bNewVisible)
 
 FVector UMinimapMarkerComponent::GetMarkerWorldLocation() const
 {
+	if (LocationAnchor) return LocationAnchor->GetComponentLocation();
 	return GetOwner() ? GetOwner()->GetActorLocation() : FVector::ZeroVector;
 }
 
@@ -41,4 +43,3 @@ void UMinimapMarkerComponent::NotifyChanged()
 {
 	if (UWorld* World = GetWorld()) World->GetSubsystem<UMinimapRegistrySubsystem>()->NotifyMarkerChanged(this);
 }
-

@@ -6,6 +6,8 @@
 #include "MinimapTypes.h"
 #include "MinimapMarkerComponent.generated.h"
 
+class USceneComponent;
+
 UCLASS(ClassGroup=(Minimap), meta=(BlueprintSpawnableComponent), BlueprintType)
 class HEAVENSDIVIDE_API UMinimapMarkerComponent : public UActorComponent
 {
@@ -29,7 +31,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Minimap") int32 Priority = 0;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Minimap") FSlateBrush Icon;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Minimap", meta=(ClampMin="4.0")) FVector2D MarkerSize = FVector2D(14.0f, 14.0f);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Minimap", meta=(ToolTip="Optional component whose world location is used instead of the owning actor origin.")) TObjectPtr<USceneComponent> LocationAnchor;
 private:
 	void NotifyChanged();
 };
-

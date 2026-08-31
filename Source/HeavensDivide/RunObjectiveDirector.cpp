@@ -7,6 +7,7 @@
 #include "EnemySpawner.h"
 #include "EngineUtils.h"
 #include "HealthComponent.h"
+#include "NinjaTechniqueTrial.h"
 #include "ObjectiveDirectorRunStateSubsystem.h"
 #include "ObjectiveSpawnPoint.h"
 #include "SamuraiTechniqueTrial.h"
@@ -20,9 +21,11 @@ ARunObjectiveDirector::ARunObjectiveDirector()
 	PrimaryActorTick.bCanEverTick = false;
 	static ConstructorHelpers::FClassFinder<ABloodShrine> BloodBP(TEXT("/Game/HeavensDivide/Blueprints/Objectives/BP_BloodShrine"));
 	static ConstructorHelpers::FClassFinder<ASamuraiTechniqueTrial> SamuraiBP(TEXT("/Game/HeavensDivide/Blueprints/Objectives/BP_SamuraiTechniqueTrial"));
+	static ConstructorHelpers::FClassFinder<ANinjaTechniqueTrial> NinjaBP(TEXT("/Game/HeavensDivide/Blueprints/Objectives/BP_NinjaTechniqueTrial"));
 	static ConstructorHelpers::FClassFinder<ATwinSoulTrial> TwinBP(TEXT("/Game/HeavensDivide/Blueprints/Objectives/BP_TwinSoulTrial"));
 	BloodShrineClass = BloodBP.Succeeded() ? BloodBP.Class : TSubclassOf<ABloodShrine>(ABloodShrine::StaticClass());
 	SamuraiTrialClass = SamuraiBP.Succeeded() ? SamuraiBP.Class : TSubclassOf<ASamuraiTechniqueTrial>(ASamuraiTechniqueTrial::StaticClass());
+	NinjaTrialClass = NinjaBP.Succeeded() ? NinjaBP.Class : TSubclassOf<ANinjaTechniqueTrial>(ANinjaTechniqueTrial::StaticClass());
 	TwinSoulTrialClass = TwinBP.Succeeded() ? TwinBP.Class : TSubclassOf<ATwinSoulTrial>(ATwinSoulTrial::StaticClass());
 }
 
@@ -72,11 +75,10 @@ void ARunObjectiveDirector::InitializeDirector()
 
 	UObjectiveDirectorRunStateSubsystem* State = GetWorld()->GetSubsystem<UObjectiveDirectorRunStateSubsystem>();
 	State->InitializeRunDecisions();
-	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] GuaranteedTrial=Samurai"));
 	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] State ExecutedMask=0x%02x UsedPoints=%d"), State->GetExecutedMilestoneMask(), State->GetUsedPointCount());
-	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] Classes BloodShrine=%s SamuraiTrial=%s TwinSoulTrial=%s"), *GetNameSafe(BloodShrineClass), *GetNameSafe(SamuraiTrialClass), *GetNameSafe(TwinSoulTrialClass));
+	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] Classes BloodShrine=%s SamuraiTrial=%s NinjaTrial=%s TwinSoulTrial=%s"), *GetNameSafe(BloodShrineClass), *GetNameSafe(SamuraiTrialClass), *GetNameSafe(NinjaTrialClass), *GetNameSafe(TwinSoulTrialClass));
 	for (AObjectiveSpawnPoint* Point : SpawnPoints) UE_LOG(LogTemp, Verbose, TEXT("[ObjectiveDirector] SpawnPoint Name=%s Location=%s"), *GetNameSafe(Point), *Point->GetActorLocation().ToCompactString());
-	const bool bClassesValid = BloodShrineClass && SamuraiTrialClass && TwinSoulTrialClass;
+	const bool bClassesValid = BloodShrineClass && SamuraiTrialClass && NinjaTrialClass && TwinSoulTrialClass;
 	if (SpawnPoints.IsEmpty())
 	{
 		bStopped = true;
@@ -165,6 +167,10 @@ AActor* ARunObjectiveDirector::SpawnObjective(TSubclassOf<AActor> ObjectiveClass
 			UE_LOG(LogTemp, Warning, TEXT("[ObjectiveDirector] Spawn blocked for %s at Point=%s; trying another point."), ObjectiveName, *GetNameSafe(Point));
 			continue;
 		}
+		if (ANinjaTechniqueTrial* NinjaTrial = Cast<ANinjaTechniqueTrial>(Spawned))
+		{
+			NinjaTrial->AlignEntranceToSpawnTransform(Point->GetActorTransform());
+		}
 		if (!bReuseObjectiveSpawnPoints) State->MarkPointUsed(Point);
 		State->TrackSpawnedObjective(Spawned);
 		UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] Spawned %s Point=%s Time=%.1f"), ObjectiveName, *GetNameSafe(Point), GetAuthoritativeRunTime());
@@ -237,7 +243,15 @@ void ARunObjectiveDirector::LogRunTimeStatus()
 	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] RunTime=%.1f Spawner=%s ExecutedMask=0x%02x UsedPoints=%d/%d"), GetAuthoritativeRunTime(), *GetNameSafe(RunTimeSource), State->GetExecutedMilestoneMask(), State->GetUsedPointCount(), SpawnPoints.Num());
 }
 float ARunObjectiveDirector::GetAuthoritativeRunTime() const { return RunTimeSource ? RunTimeSource->GetRunTimeSeconds() : 0.0f; }
-TSubclassOf<AActor> ARunObjectiveDirector::GetGuaranteedTrialClass() const { return SamuraiTrialClass; }
+TSubclassOf<AActor> ARunObjectiveDirector::GetGuaranteedTrialClass() const
+{
+	if (!SamuraiTrialClass) return NinjaTrialClass;
+	if (!NinjaTrialClass) return SamuraiTrialClass;
+	UObjectiveDirectorRunStateSubsystem* State = GetWorld()->GetSubsystem<UObjectiveDirectorRunStateSubsystem>();
+	const bool bChooseSamurai = !State || State->RollFraction() < 0.5f;
+	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] GuaranteedCharacterTrial selected %s"), bChooseSamurai ? TEXT("Samurai") : TEXT("Ninja"));
+	return bChooseSamurai ? TSubclassOf<AActor>(SamuraiTrialClass) : TSubclassOf<AActor>(NinjaTrialClass);
+}
 
 void ARunObjectiveDirector::DebugSpawnBloodShrine() { ExecuteMilestoneInternal(0, true); }
 void ARunObjectiveDirector::DebugSpawnGuaranteedCharacterTrial() { ExecuteMilestoneInternal(1, true); }

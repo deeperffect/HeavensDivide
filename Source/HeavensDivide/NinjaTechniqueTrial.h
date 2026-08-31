@@ -11,6 +11,7 @@ class AEnemySpawner;
 class ANinjaTrialTrapBase;
 class ANinjaTrialGoal;
 class ASurvivorPlayerController;
+class UMinimapMarkerComponent;
 class UObjectiveInteractionComponent;
 class USceneComponent;
 class UStaticMeshComponent;
@@ -40,6 +41,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Ninja Trial")
 	bool EnterTrial(APawn* InteractingPawn);
 
+	/** Aligns the Blueprint-authored entrance statue to an objective spawn transform without changing its authored relative transform. */
+	void AlignEntranceToSpawnTransform(const FTransform& SpawnTransform);
+
 	UFUNCTION(BlueprintCallable, Category="Ninja Trial")
 	void NotifyGoalReached(AActor* ReachingActor);
 
@@ -64,6 +68,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ninja Trial|Entrance")
 	TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap")
+	TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Ninja Trial|Arena")
 	TObjectPtr<USceneComponent> ArenaRoot;

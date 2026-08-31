@@ -19,6 +19,7 @@
 
 AFinalBossBase::AFinalBossBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+	DropCategory = EEnemyDropCategory::Boss;
 	PrimaryActorTick.bCanEverTick = true;
 	MoveSpeed = BossMoveSpeed;
 	StopDistance = 350.0f;

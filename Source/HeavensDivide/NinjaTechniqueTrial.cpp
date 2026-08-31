@@ -9,6 +9,7 @@
 #include "EnemySpawner.h"
 #include "EngineUtils.h"
 #include "HealthComponent.h"
+#include "MinimapMarkerComponent.h"
 #include "NinjaFloorTrap.h"
 #include "NinjaCharacter.h"
 #include "NinjaSweepingTrap.h"
@@ -38,6 +39,10 @@ ANinjaTechniqueTrial::ANinjaTechniqueTrial()
 	ObjectiveInteraction->SetupAttachment(SceneRoot);
 	ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Ninja Trial")), 300.0f, 1.0f, 240.0f);
 	ObjectiveInteraction->SetPresentationVisual(NinjaStatue);
+
+	MinimapMarker = CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("MinimapMarker"));
+	MinimapMarker->DisplayName = FText::FromString(TEXT("Ninja Trial"));
+	MinimapMarker->LocationAnchor = NinjaStatue;
 
 	ArenaRoot = CreateDefaultSubobject<USceneComponent>(TEXT("ArenaRoot"));
 	ArenaRoot->SetupAttachment(SceneRoot);
@@ -91,6 +96,21 @@ void ANinjaTechniqueTrial::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	RestoreGameplayState(TrialState != ENinjaTrialState::Failed);
 	Super::EndPlay(EndPlayReason);
+}
+
+void ANinjaTechniqueTrial::AlignEntranceToSpawnTransform(const FTransform& SpawnTransform)
+{
+	if (!NinjaStatue) return;
+
+	// Keep the statue's Blueprint-authored local offset/rotation. Rotate the trial as
+	// requested, then translate the complete actor until the visible entrance mesh,
+	// rather than SceneRoot, is centered on the objective spawn point.
+	SetActorRotation(SpawnTransform.GetRotation(), ETeleportType::TeleportPhysics);
+	AddActorWorldOffset(SpawnTransform.GetLocation() - NinjaStatue->GetComponentLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+	if (ObjectiveInteraction)
+	{
+		ObjectiveInteraction->RefreshPrompt();
+	}
 }
 
 bool ANinjaTechniqueTrial::CanInteract_Implementation(APawn* InteractingPawn) const
@@ -156,6 +176,7 @@ bool ANinjaTechniqueTrial::EnterTrial(APawn* InteractingPawn)
 
 	ActiveNinja->SetActorTransform(PlayerStartTransform, false, nullptr, ETeleportType::TeleportPhysics);
 	TrialState = ENinjaTrialState::Running;
+	MinimapMarker->SetMarkerState(EMinimapMarkerState::Active);
 	ObjectiveInteraction->HidePrompt();
 	DiscoverAndInitializeTraps();
 	ActivateRegisteredTraps();
@@ -223,12 +244,14 @@ void ANinjaTechniqueTrial::HandleRewardCompleted()
 	TrialState = ENinjaTrialState::Returning;
 	RestoreGameplayState(true);
 	TrialState = ENinjaTrialState::Completed;
+	MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);
 }
 
 void ANinjaTechniqueTrial::HandlePlayerDeath()
 {
 	if (TrialState != ENinjaTrialState::Running && TrialState != ENinjaTrialState::AwaitingReward) return;
 	TrialState = ENinjaTrialState::Failed;
+	MinimapMarker->SetMarkerState(EMinimapMarkerState::Failed);
 	RestoreGameplayState(false);
 }
 

@@ -36,6 +36,14 @@ enum class EPlayerAttackSource : uint8
 	Ninja
 };
 
+UENUM(BlueprintType)
+enum class EEnemyDropCategory : uint8
+{
+	Normal,
+	Elite,
+	Boss
+};
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyMarkStateChanged, AEnemyBase*, Enemy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyDied, AEnemyBase*, Enemy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FEnemyBecameBloodbound, AEnemyBase*, Enemy);
@@ -134,6 +142,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Enemy|Rewards")
 	bool ShouldDropXP() const;
 
+	UFUNCTION(BlueprintPure, Category = "Enemy|Rewards")
+	EEnemyDropCategory GetDropCategory() const { return DropCategory; }
+
 	UFUNCTION(BlueprintPure, Category = "Enemy|Movement")
 	FVector GetEnemyMovementVelocity() const;
 
@@ -155,6 +166,9 @@ public:
 	void LogEnemyDebugState(const TCHAR* Context) const;
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Rewards", meta = (ToolTip = "Category used by centralized enemy-death drop systems. Set elite enemy Blueprint defaults to Elite; final bosses set this automatically."))
+	EEnemyDropCategory DropCategory = EEnemyDropCategory::Normal;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Health component that stores this enemy's current/max health and broadcasts death."))
 	TObjectPtr<UHealthComponent> HealthComponent;
 

@@ -2,6 +2,8 @@
 
 #include "EnemyBase.h"
 
+#include "HealingPickupDropSubsystem.h"
+
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "AnimationBudgetAllocatorParameters.h"
@@ -755,6 +757,13 @@ void AEnemyBase::HandleDeath()
 	bIsDead = true;
 	if (StatusEffectComponent) StatusEffectComponent->ClearAllStatuses();
 	OnEnemyDied.Broadcast(this);
+	if (UWorld* World = GetWorld())
+	{
+		if (UHealingPickupDropSubsystem* DropSubsystem = World->GetSubsystem<UHealingPickupDropSubsystem>())
+		{
+			DropSubsystem->NotifyEnemyDied(this);
+		}
+	}
 	ClearMark();
 	HideMarkIndicator();
 	HideHealthBar();

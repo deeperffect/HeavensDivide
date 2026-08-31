@@ -15,7 +15,7 @@
 
 ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 {
-	bForceSamuraiOnEntry = false;
+	bForceSamuraiOnEntry = true;
 	bLockSwappingDuringTrial = true;
 	bSuspendAutoAttacksDuringTrial = false;
 	constexpr float ArenaYaw=45.0f;

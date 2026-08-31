@@ -8,6 +8,7 @@ class ABloodShrine;
 class ABossToriiGate;
 class AEnemySpawner;
 class AObjectiveSpawnPoint;
+class ANinjaTechniqueTrial;
 class ASamuraiTechniqueTrial;
 class ASurvivorPlayerController;
 class ATwinSoulTrial;
@@ -52,6 +53,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Spawn Rules", meta=(ClampMin="0.0")) float ObjectiveMinSeparation = 800.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ABloodShrine> BloodShrineClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ASamuraiTechniqueTrial> SamuraiTrialClass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ANinjaTechniqueTrial> NinjaTrialClass;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ATwinSoulTrial> TwinSoulTrialClass;
 private:
 	void InitializeDirector();
