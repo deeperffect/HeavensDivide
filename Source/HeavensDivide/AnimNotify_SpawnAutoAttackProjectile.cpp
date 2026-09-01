@@ -11,8 +11,6 @@ void UAnimNotify_SpawnAutoAttackProjectile::Notify(USkeletalMeshComponent* MeshC
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	UE_LOG(LogTemp, Log, TEXT("Spawn AutoAttack Projectile Notify Fired"));
-
 	if (!MeshComp)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Projectile notify skipped: MeshComp invalid."));

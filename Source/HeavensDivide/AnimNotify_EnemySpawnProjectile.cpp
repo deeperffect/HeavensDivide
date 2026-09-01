@@ -9,8 +9,6 @@ void UAnimNotify_EnemySpawnProjectile::Notify(USkeletalMeshComponent* MeshComp, 
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	UE_LOG(LogTemp, Log, TEXT("AnimNotify_EnemySpawnProjectile fired"));
-
 	if (!MeshComp)
 	{
 		return;

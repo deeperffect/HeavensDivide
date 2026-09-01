@@ -16,11 +16,6 @@ UCharacterManagerComponent::UCharacterManagerComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UCharacterManagerComponent::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void UCharacterManagerComponent::InitializeParty()
 {
 	if (SamuraiCharacter || NinjaCharacter)
@@ -47,10 +42,6 @@ void UCharacterManagerComponent::InitializeParty()
 			*GetNameSafe(NinjaClass.Get()));
 		return;
 	}
-
-	UE_LOG(LogTemp, Log, TEXT("CharacterManagerComponent: Spawning party with SamuraiClass=%s NinjaClass=%s"),
-		*GetNameSafe(SamuraiClass.Get()),
-		*GetNameSafe(NinjaClass.Get()));
 
 	const FTransform SpawnTransform = GetInitialSpawnTransform();
 	FActorSpawnParameters SpawnParameters;
@@ -131,13 +122,6 @@ void UCharacterManagerComponent::SwapCharacter()
 
 	bIsSwapInProgress = true;
 
-	UE_LOG(LogTemp, Log, TEXT("SWAP BEGIN"));
-	UE_LOG(LogTemp, Log, TEXT("OldCharacter: %s"), *GetNameSafe(OldCharacter));
-	UE_LOG(LogTemp, Log, TEXT("NewCharacter: %s"), *GetNameSafe(NewCharacter));
-	UE_LOG(LogTemp, Log, TEXT("New mode before activation: %d"), static_cast<int32>(NewCharacter->GetCharacterMode()));
-	UE_LOG(LogTemp, Log, TEXT("New hidden before activation: %s"), NewCharacter->IsHidden() ? TEXT("true") : TEXT("false"));
-	NewCharacter->LogVisibilityState(TEXT("Before activation"));
-
 	const FVector OldLocation = OldCharacter->GetActorLocation();
 	const FRotator OldVisualRotation = OldCharacter->GetVisualFacingRotation();
 	const FVector OldVelocity = OldCharacter->GetVelocity();
@@ -146,9 +130,6 @@ void UCharacterManagerComponent::SwapCharacter()
 	NewCharacter->SetVisualFacingRotation(OldVisualRotation);
 
 	NewCharacter->SetCharacterMode(ECharacterMode::Active);
-	UE_LOG(LogTemp, Log, TEXT("New hidden after activation: %s"), NewCharacter->IsHidden() ? TEXT("true") : TEXT("false"));
-	UE_LOG(LogTemp, Log, TEXT("New collision after activation: %s"), NewCharacter->GetActorEnableCollision() ? TEXT("true") : TEXT("false"));
-	NewCharacter->LogVisibilityState(TEXT("After activation"));
 
 	if (UCharacterMovementComponent* NewMovement = NewCharacter->GetCharacterMovement())
 	{
@@ -156,8 +137,6 @@ void UCharacterManagerComponent::SwapCharacter()
 	}
 
 	OwningController->Possess(NewCharacter);
-	UE_LOG(LogTemp, Log, TEXT("Controller GetPawn after Possess: %s"), *GetNameSafe(OwningController->GetPawn()));
-	NewCharacter->LogVisibilityState(TEXT("After possession"));
 
 	if (OwningController->GetPawn() != NewCharacter)
 	{
@@ -169,13 +148,10 @@ void UCharacterManagerComponent::SwapCharacter()
 
 	ActiveCharacter = NewCharacter;
 	OwningController->SetCameraFollowTarget(NewCharacter);
-	UE_LOG(LogTemp, Log, TEXT("ActiveCharacter: %s"), *GetNameSafe(ActiveCharacter));
-	UE_LOG(LogTemp, Log, TEXT("Camera FollowTarget: %s"), *GetNameSafe(OwningController->GetCameraFollowTarget()));
 
 	OldCharacter->SetCharacterMode(ECharacterMode::Inactive);
 
 	OnCharacterSwapped.Broadcast(OldCharacter, NewCharacter);
-	UE_LOG(LogTemp, Log, TEXT("SWAP END"));
 	bIsSwapInProgress = false;
 }
 

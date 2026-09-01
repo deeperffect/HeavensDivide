@@ -256,4 +256,4 @@ TSubclassOf<AActor> ARunObjectiveDirector::GetGuaranteedTrialClass() const
 void ARunObjectiveDirector::DebugSpawnBloodShrine() { ExecuteMilestoneInternal(0, true); }
 void ARunObjectiveDirector::DebugSpawnGuaranteedCharacterTrial() { ExecuteMilestoneInternal(1, true); }
 void ARunObjectiveDirector::DebugSpawnTwinSoulTrial() { ExecuteMilestoneInternal(2, true); }
-void ARunObjectiveDirector::DebugTriggerAllObjectiveMilestones() { for (int32 Index = 0; Index < 4; ++Index) ExecuteMilestoneInternal(Index, true); }
+void ARunObjectiveDirector::DebugTriggerAllObjectiveMilestones() { for (int32 Index = 0; Index < Milestones.Num(); ++Index) ExecuteMilestoneInternal(Index, true); }

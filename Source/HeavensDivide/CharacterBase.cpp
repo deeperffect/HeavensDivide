@@ -9,24 +9,6 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-namespace
-{
-const TCHAR* CharacterModeToString(ECharacterMode Mode)
-{
-	switch (Mode)
-	{
-	case ECharacterMode::Active:
-		return TEXT("Active");
-	case ECharacterMode::Inactive:
-		return TEXT("Inactive");
-	case ECharacterMode::Assisting:
-		return TEXT("Assisting");
-	default:
-		return TEXT("Unknown");
-	}
-}
-}
-
 ACharacterBase::ACharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -111,11 +93,6 @@ void ACharacterBase::ClearFacingOverride()
 void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 {
 	const ECharacterMode OldMode = CharacterMode;
-	UE_LOG(LogTemp, Log, TEXT("SetCharacterMode: %s %s -> %s"),
-		*GetNameSafe(this),
-		CharacterModeToString(OldMode),
-		CharacterModeToString(NewMode));
-
 	CharacterMode = NewMode;
 
 	switch (CharacterMode)
@@ -166,34 +143,6 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 	}
 
 	OnCharacterModeChanged.Broadcast(OldMode, CharacterMode);
-}
-
-void ACharacterBase::LogVisibilityState(const FString& Context) const
-{
-	const USceneComponent* CurrentVisualRoot = VisualRoot;
-	const USkeletalMeshComponent* MeshComponent = GetMesh();
-
-	UE_LOG(LogTemp, Log, TEXT("%s: %s Mode=%s ActorHidden=%s ActorLocation=%s ActorScale=%s"),
-		*Context,
-		*GetNameSafe(this),
-		CharacterModeToString(CharacterMode),
-		IsHidden() ? TEXT("true") : TEXT("false"),
-		*GetActorLocation().ToString(),
-		*GetActorScale3D().ToString());
-
-	UE_LOG(LogTemp, Log, TEXT("%s: %s VisualRoot Visible=%s HiddenInGame=%s"),
-		*Context,
-		*GetNameSafe(this),
-		(CurrentVisualRoot && CurrentVisualRoot->IsVisible()) ? TEXT("true") : TEXT("false"),
-		(CurrentVisualRoot && CurrentVisualRoot->bHiddenInGame) ? TEXT("true") : TEXT("false"));
-
-	UE_LOG(LogTemp, Log, TEXT("%s: %s Mesh Visible=%s HiddenInGame=%s WorldLocation=%s RelativeScale=%s"),
-		*Context,
-		*GetNameSafe(this),
-		(MeshComponent && MeshComponent->IsVisible()) ? TEXT("true") : TEXT("false"),
-		(MeshComponent && MeshComponent->bHiddenInGame) ? TEXT("true") : TEXT("false"),
-		MeshComponent ? *MeshComponent->GetComponentLocation().ToString() : TEXT("None"),
-		MeshComponent ? *MeshComponent->GetRelativeScale3D().ToString() : TEXT("None"));
 }
 
 UCharacterStatsComponent* ACharacterBase::GetCharacterStats() const

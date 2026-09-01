@@ -9,8 +9,6 @@ void UAnimNotify_EnemyAttackHit::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
-	UE_LOG(LogTemp, Log, TEXT("AnimNotify_EnemyAttackHit fired"));
-
 	if (!MeshComp)
 	{
 		return;

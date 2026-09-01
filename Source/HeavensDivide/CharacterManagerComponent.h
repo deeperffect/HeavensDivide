@@ -20,8 +20,6 @@ class HEAVENSDIVIDE_API UCharacterManagerComponent : public UActorComponent
 public:
 	UCharacterManagerComponent();
 
-	virtual void BeginPlay() override;
-
 	void InitializeParty();
 	void SwapCharacter();
 

@@ -44,7 +44,6 @@ public:
 	void StartDashVisual(float GameplayDashDuration, FVector DashDirection);
 	void EndDashVisual();
 	bool IsDashing() const;
-	void LogVisibilityState(const FString& Context) const;
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	UCharacterStatsComponent* GetCharacterStats() const;
 	void ApplySharedMoveSpeedMultiplier(float MoveSpeedMultiplier);
