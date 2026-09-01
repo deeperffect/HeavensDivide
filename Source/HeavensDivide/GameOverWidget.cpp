@@ -96,7 +96,7 @@ void UGameOverWidget::HandleRestartRun()
 	if (bTravelRequested) return;
 	bTravelRequested = true;
 	NormalizeTimeForTravel();
-	UGameplayStatics::OpenLevel(this, TEXT("Lvl_B1_Lvl1"));
+	UGameplayStatics::OpenLevel(this, TEXT("/Game/Maps/Lvl_B1_Lvl1"));
 }
 
 void UGameOverWidget::HandleMainMenu()

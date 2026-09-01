@@ -349,6 +349,33 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Seconds after death before the enemy actor is destroyed. Allows the death montage to remain visible."))
 	float DeathDestroyDelay = 3.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ToolTip = "Use per-enemy dynamic material parameters to collapse the visible mesh after gameplay death processing."))
+	bool bUseCollapseDeathEffect = false;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.01", UIMin = "0.01", Units = "s"))
+	float CollapseDuration = 1.25f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse")
+	float CollapseStartRadius = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse")
+	float CollapseEndRadius = 250.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float CollapseHardness = 20.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse")
+	FLinearColor CollapseEmColor = FLinearColor(0.35f, 0.02f, 0.65f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float CollapseEmIntensity = 8.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float CollapseIntensity = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ToolTip = "World-space offset from the skeletal mesh bounds center used for CollapsePos."))
+	FVector CollapsePositionOffset = FVector::ZeroVector;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0", UIMin = "0", ToolTip = "XP value awarded through the spawned experience pickup when this enemy dies."))
 	int32 XPReward = 1;
 
@@ -415,6 +442,10 @@ protected:
 	bool EnsureTargetFromCharacterManager();
 	void CachePlayerExperienceComponent();
 	void SpawnExperiencePickup();
+	bool StartCollapseDeathEffect();
+	void UpdateCollapseDeathEffect();
+	void FinishCollapseDeathEffect();
+	void ApplyCollapseMaterialParameters(float Radius);
 	virtual void CapturePreBloodboundState();
 	virtual void RestorePreBloodboundState();
 	void ActivateBloodboundVisuals();
@@ -502,4 +533,11 @@ protected:
 	bool bCachedAnimationProfilingDisabled = false;
 	bool bAnimationBudgetInitialized = false;
 	bool bExperiencePickupSpawned = false;
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UMaterialInstanceDynamic>> CollapseDeathMaterialInstances;
+	FTimerHandle CollapseDeathTimerHandle;
+	double CollapseDeathStartTime = 0.0;
+	double CollapseDeathDestroyTime = 0.0;
+	FVector ActiveCollapsePosition = FVector::ZeroVector;
+	bool bCollapseDeathActive = false;
 };
