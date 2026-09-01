@@ -7,6 +7,7 @@
 #include "TankMeleeEnemyBase.generated.h"
 
 class UDecalComponent;
+class USphereComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 
@@ -26,6 +27,8 @@ public:
 	ATankMeleeEnemyBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier) override;
+	virtual void ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier) override;
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Attack|Slam")
 	void CommitSlamFacing();
@@ -34,14 +37,29 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void HandleDeath() override;
+	virtual void CapturePreBloodboundState() override;
+	virtual void RestorePreBloodboundState() override;
 	virtual void UpdateEnemyBehavior(float DeltaSeconds) override;
 	virtual void StopEnemyBehavior() override;
+	virtual void HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter) override;
 	virtual void HandleAttackCommitted() override;
 	virtual void HandleAttackFinished() override;
 	virtual void ExecuteAttackHit() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UDecalComponent> AttackTelegraphDecal;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	TObjectPtr<USphereComponent> ContactDamageSphere;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Contact", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Radius used by montage-less tank enemies to detect contact with the active player."))
+	float ContactDamageRadius = 125.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Contact", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float ContactDamage = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Contact", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float ContactDamageInterval = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Slam", meta = (ToolTip = "Deferred decal material used for the slam telegraph. The material can use FillAmount, BackgroundColor, FillColor, and TelegraphOpacity parameters."))
 	TObjectPtr<UMaterialInterface> AttackTelegraphMaterial;
@@ -74,6 +92,15 @@ protected:
 	float TelegraphFillUpdateInterval = 0.025f;
 
 private:
+	UFUNCTION() void HandleContactBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	UFUNCTION() void HandleContactEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex);
+	void RefreshContactDamageTarget();
+	void ApplyContactDamage();
+	void StopContactDamage();
+	bool UsesContactDamage() const;
+
 	void ShowAttackTelegraph();
 	void HideAttackTelegraph();
 	void InitializeTelegraphMaterialInstance();
@@ -101,6 +128,9 @@ private:
 	TObjectPtr<UMaterialInstanceDynamic> TelegraphMaterialInstance;
 
 	FTimerHandle TelegraphFillTimerHandle;
+	FTimerHandle ContactDamageTimerHandle;
+	TWeakObjectPtr<ACharacterBase> ContactDamageTarget;
+	float PreBloodboundContactDamage = 0.0f;
 	double TelegraphFillStartTime = 0.0;
 	float ActiveTelegraphFillDuration = 1.0f;
 };

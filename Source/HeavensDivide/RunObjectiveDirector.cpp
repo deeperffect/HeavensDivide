@@ -158,22 +158,37 @@ AActor* ARunObjectiveDirector::SpawnObjective(TSubclassOf<AActor> ObjectiveClass
 	for (AObjectiveSpawnPoint* Point : Candidates)
 	{
 		if (!IsValid(Point)) continue;
+		// ObjectiveSpawnPoint uses a scaled editor billboard as its root component.
+		// Preserve the marker's placement, but never propagate that visualization
+		// scale into runtime objective actors.
+		const FTransform ObjectiveSpawnTransform(
+			Point->GetActorQuat(),
+			Point->GetActorLocation(),
+			FVector::OneVector);
 		FActorSpawnParameters Params;
 		Params.Owner = this;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		AActor* Spawned = GetWorld()->SpawnActor<AActor>(ObjectiveClass, Point->GetActorTransform(), Params);
+		AActor* Spawned = GetWorld()->SpawnActor<AActor>(ObjectiveClass, ObjectiveSpawnTransform, Params);
 		if (!Spawned)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[ObjectiveDirector] Spawn blocked for %s at Point=%s; trying another point."), ObjectiveName, *GetNameSafe(Point));
 			continue;
 		}
+		const FVector InitialSpawnedLocation = Spawned->GetActorLocation();
 		if (ANinjaTechniqueTrial* NinjaTrial = Cast<ANinjaTechniqueTrial>(Spawned))
 		{
-			NinjaTrial->AlignEntranceToSpawnTransform(Point->GetActorTransform());
+			NinjaTrial->AlignEntranceToSpawnTransform(ObjectiveSpawnTransform);
 		}
 		if (!bReuseObjectiveSpawnPoints) State->MarkPointUsed(Point);
 		State->TrackSpawnedObjective(Spawned);
-		UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] Spawned %s Point=%s Time=%.1f"), ObjectiveName, *GetNameSafe(Point), GetAuthoritativeRunTime());
+		UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] Spawned %s Point=%s Time=%.1f Marker=%s Initial=%s Final=%s Scale=%s"),
+			ObjectiveName,
+			*GetNameSafe(Point),
+			GetAuthoritativeRunTime(),
+			*Point->GetActorLocation().ToCompactString(),
+			*InitialSpawnedLocation.ToCompactString(),
+			*Spawned->GetActorLocation().ToCompactString(),
+			*Spawned->GetActorScale3D().ToCompactString());
 		return Spawned;
 	}
 	UE_LOG(LogTemp, Error, TEXT("[ObjectiveDirector] ERROR FailedToSpawn %s after %d candidates."), ObjectiveName, Candidates.Num());

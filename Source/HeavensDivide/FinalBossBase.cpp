@@ -852,5 +852,6 @@ void AFinalBossBase::HandleDeath()
 	BossState = EFinalBossState::Dead;
 	CleanupCurrentAttack(true);
 	OnBossDefeated.Broadcast(this);
+	if (ASurvivorPlayerController* SurvivorController = ResolvePlayerController()) SurvivorController->HandleFinalBossDefeated(this);
 	Super::HandleDeath();
 }

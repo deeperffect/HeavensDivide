@@ -396,6 +396,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Random horizontal scatter radius for the XP pickup spawned at this enemy's death location."))
 	float ExperiencePickupSpawnScatterRadius = 35.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "1", UIMin = "1", AdvancedDisplay, ToolTip = "Preferred XP value assigned to each pickup when a larger reward is split."))
+	int32 ExperiencePerPickup = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Random horizontal scatter radius used when an XP reward creates multiple pickups."))
+	float MultipleExperiencePickupScatterRadius = 125.0f;
+
 	UFUNCTION()
 	virtual void HandleDeath();
 

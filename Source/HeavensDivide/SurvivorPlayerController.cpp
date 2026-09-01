@@ -14,6 +14,7 @@
 #include "EnemyBase.h"
 #include "EnemyStatusEffectComponent.h"
 #include "GameOverWidget.h"
+#include "VictoryWidget.h"
 #include "HealthComponent.h"
 #include "HeavensDivideGameUserSettings.h"
 #include "Interactable.h"
@@ -102,6 +103,7 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	static ConstructorHelpers::FClassFinder<UGameOverWidget> GameOverWidgetBlueprint(
 		TEXT("/Game/HeavensDivide/Blueprints/UI/WBP_GameOver"));
 	if (GameOverWidgetBlueprint.Succeeded()) GameOverWidgetClass = GameOverWidgetBlueprint.Class;
+	VictoryWidgetClass = UVictoryWidget::StaticClass();
 }
 
 void ASurvivorPlayerController::BeginPlay()
@@ -253,7 +255,7 @@ bool ASurvivorPlayerController::IsPlayerDead() const
 
 bool ASurvivorPlayerController::TryBeginObjective(AActor* ObjectiveActor)
 {
-	if (!IsValid(ObjectiveActor) || ActiveObjective.IsValid())
+	if (RunEndState != ERunEndState::Playing || !IsValid(ObjectiveActor) || ActiveObjective.IsValid())
 	{
 		return false;
 	}
@@ -479,7 +481,7 @@ void ASurvivorPlayerController::DebugGrantXP(int32 Amount)
 
 void ASurvivorPlayerController::ApplyDamageToPlayer(float DamageAmount)
 {
-	if (!PlayerHealthComponent || PlayerHealthComponent->IsDead())
+	if (RunEndState != ERunEndState::Playing || !PlayerHealthComponent || PlayerHealthComponent->IsDead())
 	{
 		return;
 	}
@@ -772,14 +774,21 @@ void ASurvivorPlayerController::TryTriggerHemotoxicReaction(ACharacterBase* NewC
 
 void ASurvivorPlayerController::HandlePlayerDeath()
 {
-	if (bIsPlayerDead)
+	if (RunEndState != ERunEndState::Playing)
 	{
 		return;
 	}
 
+	RunEndState = ERunEndState::Defeat;
 	bIsPlayerDead = true;
+	StopRunGameplay(true);
+	UE_LOG(LogTemp, Log, TEXT("Player Death Triggered"));
+	PresentGameOver(GetRunTimeSeconds());
+}
+
+void ASurvivorPlayerController::StopRunGameplay(bool bPlayDeathPresentation)
+{
 	DestroyAllShadowClones();
-	const float FinalRunTimeSeconds = GetRunTimeSeconds();
 	if (RunTimeSource)
 	{
 		RunTimeSource->FreezeRunTime();
@@ -800,43 +809,47 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	bCurrentSelectionIsNinjaTrialReward = false;
 	bLevelUpTimeDilationApplied = false;
 	StopDashRecharge();
+	if (!bPlayDeathPresentation) ActiveObjective.Reset();
 	SetIgnoreMoveInput(true);
 	SetIgnoreLookInput(true);
-	UE_LOG(LogTemp, Log, TEXT("Player Death Triggered"));
 
 	if (InactiveCharacterAssistComponent)
 	{
 		InactiveCharacterAssistComponent->DeactivateAssistEffect(true);
 	}
 
-	ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
-	UE_LOG(LogTemp, Log, TEXT("Active Character = %s"), *GetNameSafe(ActiveCharacter));
-
-	if (ActiveCharacter)
+	if (CharacterManager)
 	{
-		ActiveCharacter->StopPlayerGameplay();
-		UE_LOG(LogTemp, Log, TEXT("Player Input Disabled"));
-
-		if (UAutoAttackComponent* AutoAttackComponent = ActiveCharacter->FindComponentByClass<UAutoAttackComponent>())
+		if (bPlayDeathPresentation)
 		{
-			AutoAttackComponent->StopAutoAttack();
-			UE_LOG(LogTemp, Log, TEXT("Auto Attack Disabled"));
+			if (ACharacterBase* ActiveCharacter = CharacterManager->GetActiveCharacter())
+			{
+				ActiveCharacter->StopPlayerGameplay();
+				if (UAutoAttackComponent* AutoAttack = ActiveCharacter->FindComponentByClass<UAutoAttackComponent>()) AutoAttack->StopAutoAttack();
+				ActiveCharacter->PlayDeathMontage();
+			}
 		}
 		else
 		{
-			UE_LOG(LogTemp, Log, TEXT("Auto Attack Disabled"));
+			ACharacterBase* PartyCharacters[] = { CharacterManager->GetSamurai(), CharacterManager->GetNinja() };
+			for (ACharacterBase* PartyCharacter : PartyCharacters)
+			{
+				if (!PartyCharacter) continue;
+				PartyCharacter->StopPlayerGameplay();
+				if (UAutoAttackComponent* AutoAttack = PartyCharacter->FindComponentByClass<UAutoAttackComponent>()) AutoAttack->StopAutoAttack();
+			}
 		}
-
-		ActiveCharacter->PlayDeathMontage();
 	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("Player Input Disabled"));
-		UE_LOG(LogTemp, Log, TEXT("Auto Attack Disabled"));
-	}
+}
 
-	UE_LOG(LogTemp, Log, TEXT("Swapping Disabled"));
-	PresentGameOver(FinalRunTimeSeconds);
+void ASurvivorPlayerController::HandleFinalBossDefeated(AFinalBossBase* Boss)
+{
+	if (RunEndState != ERunEndState::Playing || !IsValid(Boss) || Boss->GetBossState() != EFinalBossState::Dead) return;
+	RunEndState = ERunEndState::Victory;
+	HideBossHealthBar(Boss);
+	StopRunGameplay(false);
+	UE_LOG(LogTemp, Log, TEXT("[RunEnd] Victory confirmed by final boss %s"), *GetNameSafe(Boss));
+	PresentVictory();
 }
 
 void ASurvivorPlayerController::SetSwapLocked(bool bLocked)
@@ -887,8 +900,26 @@ void ASurvivorPlayerController::PresentGameOver(float FinalRunTimeSeconds)
 	GameOverWidget->SetKeyboardFocus();
 }
 
+void ASurvivorPlayerController::PresentVictory()
+{
+	if (VictoryWidget || RunEndState != ERunEndState::Victory) return;
+	if (UWorld* World = GetWorld()) UGameplayStatics::SetGlobalTimeDilation(World, 0.0f);
+	VictoryWidget = VictoryWidgetClass ? CreateWidget<UVictoryWidget>(this, VictoryWidgetClass) : nullptr;
+	if (!VictoryWidget) return;
+	VictoryWidget->AddToViewport(1000);
+	bShowMouseCursor = true;
+	bEnableClickEvents = true;
+	bEnableMouseOverEvents = true;
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(VictoryWidget->TakeWidget());
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+	VictoryWidget->FocusInitialButton();
+}
+
 void ASurvivorPlayerController::HandlePlayerLevelUp(int32 NewLevel)
 {
+	if (RunEndState != ERunEndState::Playing) return;
 	++PendingLevelUpChoices;
 	UE_LOG(LogTemp, Log, TEXT("LEVEL UP RECEIVED: NewLevel=%d"), NewLevel);
 	UE_LOG(LogTemp, Log, TEXT("Pending selections = %d"), PendingLevelUpChoices);
@@ -1032,6 +1063,7 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 
 void ASurvivorPlayerController::StartNextUpgradeSelection()
 {
+	if (RunEndState != ERunEndState::Playing) return;
 	if (PendingLevelUpChoices > 0)
 	{
 		StartNextLevelUpSelection();

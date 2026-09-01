@@ -13,6 +13,7 @@ class UExperienceComponent;
 class UHealthComponent;
 class UInactiveCharacterAssistComponent;
 class UGameOverWidget;
+class UVictoryWidget;
 class ULevelUpWidget;
 class UPlayerUpgradeComponent;
 class UPlayerHUDWidget;
@@ -35,6 +36,14 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSamuraiTrialRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNinjaTrialRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnHemotoxicReactionTriggered, AEnemyBase*, Enemy, FVector, Location, float, Damage, int32, ConsumedBleedStacks, int32, ConsumedPoisonStacks);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerShadowCloneSpawned, AShadowClone*, ShadowClone);
+
+UENUM(BlueprintType)
+enum class ERunEndState : uint8
+{
+	Playing,
+	Victory,
+	Defeat
+};
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
@@ -120,6 +129,7 @@ public:
 
 	void ShowBossHealthBar(AFinalBossBase* Boss);
 	void HideBossHealthBar(AFinalBossBase* Boss);
+	void HandleFinalBossDefeated(AFinalBossBase* Boss);
 
 	UFUNCTION(BlueprintPure, Category = "Player|Dash")
 	bool CanDash() const;
@@ -282,6 +292,8 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Run-over screen shown once after shared player death."))
 	TSubclassOf<UGameOverWidget> GameOverWidgetClass;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Victory screen shown once after the final boss is defeated."))
+	TSubclassOf<UVictoryWidget> VictoryWidgetClass;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Runtime instance of the player HUD widget."))
 	TObjectPtr<UPlayerHUDWidget> PlayerHUDWidget;
@@ -291,6 +303,8 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI")
 	TObjectPtr<UGameOverWidget> GameOverWidget;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "UI")
+	TObjectPtr<UVictoryWidget> VictoryWidget;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Run", meta = (ToolTip = "Authoritative elapsed gameplay-time source shared by enemy scaling and the HUD."))
 	TObjectPtr<AEnemySpawner> RunTimeSource;
@@ -298,6 +312,8 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "True after the shared player health reaches zero and death flow has started."))
 	bool bIsPlayerDead = false;
 	bool bGameOverPresented = false;
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Run")
+	ERunEndState RunEndState = ERunEndState::Playing;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "Number of queued upgrade selections waiting to be resolved. Can be more than one if multiple levels are gained at once."))
 	int32 PendingLevelUpChoices = 0;
@@ -357,6 +373,8 @@ protected:
 	void ResumeAfterLevelUpSelection();
 	void CloseLevelUpWidget();
 	void PresentGameOver(float FinalRunTimeSeconds);
+	void PresentVictory();
+	void StopRunGameplay(bool bPlayDeathPresentation);
 	void StartSwapCooldown();
 	void HandleSwapCooldownFinished();
 	void ApplyHandoffBuff(ACharacterBase* NewActiveCharacter);

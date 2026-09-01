@@ -9,6 +9,7 @@
 #include "CharacterManagerComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/DecalComponent.h"
+#include "Components/SphereComponent.h"
 #include "DrawDebugHelpers.h"
 #include "HealthComponent.h"
 #include "HAL/IConsoleManager.h"
@@ -41,6 +42,15 @@ ATankMeleeEnemyBase::ATankMeleeEnemyBase(const FObjectInitializer& ObjectInitial
 	AttackTelegraphDecal->SetComponentTickEnabled(false);
 	AttackTelegraphDecal->SetHiddenInGame(true);
 	AttackTelegraphDecal->SetVisibility(false);
+
+	ContactDamageSphere = CreateDefaultSubobject<USphereComponent>(TEXT("ContactDamageSphere"));
+	ContactDamageSphere->SetupAttachment(RootComponent);
+	ContactDamageSphere->InitSphereRadius(ContactDamageRadius);
+	ContactDamageSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	ContactDamageSphere->SetCollisionObjectType(ECC_WorldDynamic);
+	ContactDamageSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ContactDamageSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	ContactDamageSphere->SetGenerateOverlapEvents(true);
 }
 
 void ATankMeleeEnemyBase::BeginPlay()
@@ -50,6 +60,35 @@ void ATankMeleeEnemyBase::BeginPlay()
 	InitializeTelegraphMaterialInstance();
 	UpdateAttackTelegraphSizeAndPlacement();
 	HideAttackTelegraph();
+	ContactDamageSphere->SetSphereRadius(FMath::Max(0.0f, ContactDamageRadius));
+	ContactDamageSphere->SetCollisionEnabled(UsesContactDamage() ? ECollisionEnabled::QueryOnly : ECollisionEnabled::NoCollision);
+	ContactDamageSphere->OnComponentBeginOverlap.AddUniqueDynamic(this, &ATankMeleeEnemyBase::HandleContactBeginOverlap);
+	ContactDamageSphere->OnComponentEndOverlap.AddUniqueDynamic(this, &ATankMeleeEnemyBase::HandleContactEndOverlap);
+	RefreshContactDamageTarget();
+}
+
+void ATankMeleeEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier)
+{
+	Super::ApplySpawnDifficultyScaling(HealthMultiplier, DamageMultiplier);
+	ContactDamage *= FMath::Max(0.0f, DamageMultiplier);
+}
+
+void ATankMeleeEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier)
+{
+	Super::ApplySpawnInstanceModifiers(HealthMultiplier, DamageMultiplier, MovementSpeedMultiplier);
+	ContactDamage *= FMath::Max(0.0f, DamageMultiplier);
+}
+
+void ATankMeleeEnemyBase::CapturePreBloodboundState()
+{
+	Super::CapturePreBloodboundState();
+	PreBloodboundContactDamage = ContactDamage;
+}
+
+void ATankMeleeEnemyBase::RestorePreBloodboundState()
+{
+	Super::RestorePreBloodboundState();
+	ContactDamage = PreBloodboundContactDamage;
 }
 
 void ATankMeleeEnemyBase::Tick(float DeltaSeconds)
@@ -69,6 +108,7 @@ void ATankMeleeEnemyBase::CommitSlamFacing()
 
 void ATankMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	StopContactDamage();
 	ClearAttackFacingState();
 	StopTelegraphFill();
 	HideAttackTelegraph();
@@ -78,11 +118,82 @@ void ATankMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ATankMeleeEnemyBase::HandleDeath()
 {
+	StopContactDamage();
 	ClearAttackFacingState();
 	StopTelegraphFill();
 	HideAttackTelegraph();
 
 	Super::HandleDeath();
+}
+
+void ATankMeleeEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)
+{
+	Super::HandlePlayerCharacterSwapped(OldCharacter, NewCharacter);
+	RefreshContactDamageTarget();
+}
+
+bool ATankMeleeEnemyBase::UsesContactDamage() const
+{
+	return AttackMontage == nullptr && ContactDamageRadius > 0.0f && ContactDamageInterval > 0.0f;
+}
+
+void ATankMeleeEnemyBase::HandleContactBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!UsesContactDamage() || bIsDead || !ObservedCharacterManager || OtherActor != ObservedCharacterManager->GetActiveCharacter()) return;
+	RefreshContactDamageTarget();
+}
+
+void ATankMeleeEnemyBase::HandleContactEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex)
+{
+	if (OtherActor == ContactDamageTarget.Get()) StopContactDamage();
+}
+
+void ATankMeleeEnemyBase::RefreshContactDamageTarget()
+{
+	StopContactDamage();
+	if (!UsesContactDamage() || bIsDead || IsStressTestCombatDisabled() || IsPlayerTargetDead()
+		|| !ObservedCharacterManager || !ContactDamageSphere || !GetWorld()) return;
+
+	ACharacterBase* ActiveCharacter = ObservedCharacterManager->GetActiveCharacter();
+	if (!IsValid(ActiveCharacter) || !ContactDamageSphere->IsOverlappingActor(ActiveCharacter)) return;
+
+	ContactDamageTarget = ActiveCharacter;
+	ApplyContactDamage();
+	if (ContactDamageTarget.IsValid() && !bIsDead)
+	{
+		GetWorldTimerManager().SetTimer(ContactDamageTimerHandle, this,
+			&ATankMeleeEnemyBase::ApplyContactDamage, FMath::Max(0.01f, ContactDamageInterval), true);
+	}
+}
+
+void ATankMeleeEnemyBase::ApplyContactDamage()
+{
+	ACharacterBase* ActiveCharacter = ObservedCharacterManager ? ObservedCharacterManager->GetActiveCharacter() : nullptr;
+	if (bIsDead || IsStressTestCombatDisabled() || IsPlayerTargetDead() || !IsValid(ActiveCharacter)
+		|| ActiveCharacter != ContactDamageTarget.Get() || !ContactDamageSphere
+		|| !ContactDamageSphere->IsOverlappingActor(ActiveCharacter))
+	{
+		StopContactDamage();
+		return;
+	}
+
+	ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(ActiveCharacter->GetController());
+	if (!SurvivorController) SurvivorController = Cast<ASurvivorPlayerController>(ActiveCharacter->GetOwner());
+	UHealthComponent* TargetHealth = SurvivorController ? SurvivorController->GetPlayerHealthComponent() : nullptr;
+	if (!TargetHealth || TargetHealth->IsDead())
+	{
+		StopContactDamage();
+		return;
+	}
+	if (ContactDamage > 0.0f) SurvivorController->ApplyDamageToPlayer(ContactDamage);
+}
+
+void ATankMeleeEnemyBase::StopContactDamage()
+{
+	GetWorldTimerManager().ClearTimer(ContactDamageTimerHandle);
+	ContactDamageTarget.Reset();
 }
 
 void ATankMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)

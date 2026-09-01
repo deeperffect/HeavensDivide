@@ -103,10 +103,18 @@ void ANinjaTechniqueTrial::AlignEntranceToSpawnTransform(const FTransform& Spawn
 	if (!NinjaStatue) return;
 
 	// Keep the statue's Blueprint-authored local offset/rotation. Rotate the trial as
-	// requested, then translate the complete actor until the visible entrance mesh,
-	// rather than SceneRoot, is centered on the objective spawn point.
+	// requested, then center the visible entrance mesh horizontally on the objective
+	// spawn point. The actor's spawned Z must remain authoritative so the Blueprint's
+	// component offsets continue to control how the entrance sits on the floor.
+	const FVector InitialActorLocation = GetActorLocation();
 	SetActorRotation(SpawnTransform.GetRotation(), ETeleportType::TeleportPhysics);
-	AddActorWorldOffset(SpawnTransform.GetLocation() - NinjaStatue->GetComponentLocation(), false, nullptr, ETeleportType::TeleportPhysics);
+	const FVector EntranceDelta = SpawnTransform.GetLocation() - NinjaStatue->GetComponentLocation();
+	AddActorWorldOffset(FVector(EntranceDelta.X, EntranceDelta.Y, 0.0f), false, nullptr, ETeleportType::TeleportPhysics);
+	UE_LOG(LogTemp, Log, TEXT("[NinjaTrialPlacement] Marker=%s InitialActor=%s FinalActor=%s Entrance=%s"),
+		*SpawnTransform.GetLocation().ToCompactString(),
+		*InitialActorLocation.ToCompactString(),
+		*GetActorLocation().ToCompactString(),
+		*NinjaStatue->GetComponentLocation().ToCompactString());
 	if (ObjectiveInteraction)
 	{
 		ObjectiveInteraction->RefreshPrompt();

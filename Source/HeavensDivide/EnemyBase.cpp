@@ -931,31 +931,43 @@ void AEnemyBase::SpawnExperiencePickup()
 		return;
 	}
 
-	FVector SpawnLocation = GetActorLocation();
-	if (ExperiencePickupSpawnScatterRadius > 0.0f)
-	{
-		const FVector2D RandomOffset = FMath::RandPointInCircle(ExperiencePickupSpawnScatterRadius);
-		SpawnLocation.X += RandomOffset.X;
-		SpawnLocation.Y += RandomOffset.Y;
-	}
-
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.Owner = this;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	AExperiencePickup* Pickup = GetWorld()->SpawnActor<AExperiencePickup>(
-		ExperiencePickupClass,
-		SpawnLocation,
-		FRotator::ZeroRotator,
-		SpawnParameters);
-
-	if (!Pickup)
+	const int32 XPPerPickup = FMath::Max(1, ExperiencePerPickup);
+	const int32 PickupCount = FMath::DivideAndRoundUp(XPReward, XPPerPickup);
+	const float ScatterRadius = PickupCount > 1
+		? FMath::Max(0.0f, MultipleExperiencePickupScatterRadius)
+		: FMath::Max(0.0f, ExperiencePickupSpawnScatterRadius);
+	int32 RemainingXP = XPReward;
+	for (int32 PickupIndex = 0; PickupIndex < PickupCount; ++PickupIndex)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy %s failed to spawn XP pickup class %s."), *GetNameSafe(this), *GetNameSafe(ExperiencePickupClass.Get()));
-		return;
-	}
+		FVector SpawnLocation = GetActorLocation();
+		if (ScatterRadius > 0.0f)
+		{
+			const FVector2D RandomOffset = FMath::RandPointInCircle(ScatterRadius);
+			SpawnLocation.X += RandomOffset.X;
+			SpawnLocation.Y += RandomOffset.Y;
+		}
 
-	Pickup->InitializePickup(XPReward, CachedPlayerExperienceComponent, ObservedCharacterManager);
+		AExperiencePickup* Pickup = GetWorld()->SpawnActor<AExperiencePickup>(
+			ExperiencePickupClass,
+			SpawnLocation,
+			FRotator::ZeroRotator,
+			SpawnParameters);
+
+		if (!Pickup)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Enemy %s failed to spawn XP pickup %d/%d using class %s."),
+				*GetNameSafe(this), PickupIndex + 1, PickupCount, *GetNameSafe(ExperiencePickupClass.Get()));
+			continue;
+		}
+
+		const int32 PickupXP = FMath::Min(XPPerPickup, RemainingXP);
+		RemainingXP -= PickupXP;
+		Pickup->InitializePickup(PickupXP, CachedPlayerExperienceComponent, ObservedCharacterManager);
+	}
 }
 
 void AEnemyBase::InitializeHealthBar()
