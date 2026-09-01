@@ -12,6 +12,7 @@ class USphereComponent;
 class UCharacterManagerComponent;
 class UExperienceComponent;
 class USharedPlayerStatsComponent;
+class USoundBase;
 
 UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AExperiencePickup : public AActor
@@ -49,6 +50,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttractionSpeed = 900.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup|Audio", meta = (ToolTip = "Fire-and-forget sound played when this pickup reaches the player and is collected."))
+	TObjectPtr<USoundBase> PickupSound;
 
 private:
 	UFUNCTION()

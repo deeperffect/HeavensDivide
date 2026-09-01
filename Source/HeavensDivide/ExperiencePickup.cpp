@@ -169,6 +169,10 @@ void AExperiencePickup::Collect()
 			*GetNameSafe(ExperienceComponent),
 			XPValue);
 	}
+	if (PickupSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, PickupSound, GetActorLocation());
+	}
 
 	Destroy();
 }
