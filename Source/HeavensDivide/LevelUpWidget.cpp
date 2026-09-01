@@ -7,6 +7,7 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
@@ -374,9 +375,24 @@ void ULevelUpWidget::EnsureCategoryCardVisualStructure()
 	}
 
 	CategoryArtworkImages.Reset();
+	CategoryArtworkCoverImages.Reset();
 	CategoryBorderImages.Reset();
+	if (UWidget* CategoryPanel = WidgetTree->FindWidget(TEXT("CategoryPanel")))
+	{
+		if (UCanvasPanelSlot* PanelSlot = Cast<UCanvasPanelSlot>(CategoryPanel->Slot))
+		{
+			const FAnchors ExistingAnchors = PanelSlot->GetAnchors();
+			const FVector2D ExistingAlignment = PanelSlot->GetAlignment();
+			const FVector2D ExistingPosition = PanelSlot->GetPosition();
+			PanelSlot->SetAnchors(FAnchors(0.5f, ExistingAnchors.Minimum.Y, 0.5f, ExistingAnchors.Maximum.Y));
+			PanelSlot->SetAlignment(FVector2D(0.5f, ExistingAlignment.Y));
+			PanelSlot->SetPosition(FVector2D(0.0f, ExistingPosition.Y));
+			PanelSlot->SetAutoSize(true);
+		}
+	}
 	constexpr float CardWidth = 400.0f;
 	constexpr float CardHeight = CardWidth * 1.5f;
+	constexpr float CardVisualScale = 1.15f;
 	constexpr float ArtworkInset = 22.0f;
 
 	for (int32 Index = 0; Index < 2; ++Index)
@@ -385,13 +401,25 @@ void ULevelUpWidget::EnsureCategoryCardVisualStructure()
 		if (!CategoryButton)
 		{
 			CategoryArtworkImages.Add(nullptr);
+			CategoryArtworkCoverImages.Add(nullptr);
 			CategoryBorderImages.Add(nullptr);
 			continue;
+		}
+
+		// Keep the two larger cards centered as a compact pair instead of allowing
+		// their Horizontal Box slots to spread them across the available width.
+		if (UHorizontalBoxSlot* ButtonSlot = Cast<UHorizontalBoxSlot>(CategoryButton->Slot))
+		{
+			ButtonSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
+			ButtonSlot->SetHorizontalAlignment(HAlign_Center);
+			ButtonSlot->SetVerticalAlignment(VAlign_Center);
+			ButtonSlot->SetPadding(FMargin(12.0f, 0.0f));
 		}
 
 		if (UImage* ExistingArtwork = Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("CategoryArtwork_%d"), Index))))
 		{
 			CategoryArtworkImages.Add(ExistingArtwork);
+			CategoryArtworkCoverImages.Add(Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("CategoryArtworkCover_%d"), Index))));
 			CategoryBorderImages.Add(Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("CategoryBorder_%d"), Index))));
 			continue;
 		}
@@ -405,17 +433,37 @@ void ULevelUpWidget::EnsureCategoryCardVisualStructure()
 		TransparentButtonStyle.SetDisabled(TransparentButtonBrush);
 		CategoryButton->SetStyle(TransparentButtonStyle);
 
-		UWidget* ExistingCategoryText = CategoryButton->GetContent();
+		UTextBlock* ExistingCategoryText = Cast<UTextBlock>(WidgetTree->FindWidget(
+			*FString::Printf(TEXT("CategoryText_%d"), Index)));
+		if (ExistingCategoryText)
+		{
+			// The Blueprint button content contains additional presentation widgets.
+			// Detach only the label so the old backing plate is not carried into the
+			// rebuilt card hierarchy with it.
+			ExistingCategoryText->RemoveFromParent();
+		}
 		CategoryButton->ClearChildren();
 
 		USizeBox* CardSize = WidgetTree->ConstructWidget<USizeBox>(
 			USizeBox::StaticClass(), *FString::Printf(TEXT("CategoryCardSize_%d"), Index));
-		CardSize->SetWidthOverride(CardWidth);
-		CardSize->SetHeightOverride(CardHeight);
+		CardSize->SetWidthOverride(CardWidth * CardVisualScale);
+		CardSize->SetHeightOverride(CardHeight * CardVisualScale);
+
+		UScaleBox* CardScaler = WidgetTree->ConstructWidget<UScaleBox>(
+			UScaleBox::StaticClass(), *FString::Printf(TEXT("CategoryCardScaler_%d"), Index));
+		CardScaler->SetStretch(EStretch::ScaleToFit);
+		CardScaler->SetStretchDirection(EStretchDirection::Both);
+		CardSize->SetContent(CardScaler);
+
+		USizeBox* AuthoredCardSize = WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), *FString::Printf(TEXT("CategoryAuthoredCardSize_%d"), Index));
+		AuthoredCardSize->SetWidthOverride(CardWidth);
+		AuthoredCardSize->SetHeightOverride(CardHeight);
+		CardScaler->SetContent(AuthoredCardSize);
 
 		UOverlay* CardLayers = WidgetTree->ConstructWidget<UOverlay>(
 			UOverlay::StaticClass(), *FString::Printf(TEXT("CategoryCardLayers_%d"), Index));
-		CardSize->SetContent(CardLayers);
+		AuthoredCardSize->SetContent(CardLayers);
 		CategoryButton->SetContent(CardSize);
 
 		UScaleBox* ArtworkContainer = WidgetTree->ConstructWidget<UScaleBox>(
@@ -434,20 +482,6 @@ void ULevelUpWidget::EnsureCategoryCardVisualStructure()
 		Artwork->SetVisibility(ESlateVisibility::HitTestInvisible);
 		ArtworkContainer->SetContent(Artwork);
 
-		UBorder* TextLayer = WidgetTree->ConstructWidget<UBorder>(
-			UBorder::StaticClass(), *FString::Printf(TEXT("CategoryTextLayer_%d"), Index));
-		TextLayer->SetBrushColor(FLinearColor(0.015f, 0.015f, 0.02f, 0.68f));
-		TextLayer->SetPadding(FMargin(24.0f, 12.0f));
-		TextLayer->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-		if (ExistingCategoryText)
-		{
-			TextLayer->SetContent(ExistingCategoryText);
-		}
-		UOverlaySlot* TextSlot = CardLayers->AddChildToOverlay(TextLayer);
-		TextSlot->SetHorizontalAlignment(HAlign_Center);
-		TextSlot->SetVerticalAlignment(VAlign_Bottom);
-		TextSlot->SetPadding(FMargin(36.0f, 36.0f, 36.0f, 52.0f));
-
 		UImage* CategoryBorder = WidgetTree->ConstructWidget<UImage>(
 			UImage::StaticClass(), *FString::Printf(TEXT("CategoryBorder_%d"), Index));
 		CategoryBorder->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -457,7 +491,36 @@ void ULevelUpWidget::EnsureCategoryCardVisualStructure()
 		BorderSlot->SetHorizontalAlignment(HAlign_Fill);
 		BorderSlot->SetVerticalAlignment(VAlign_Fill);
 
+		// Redraw only the artwork interior above the border texture. This hides the
+		// border asset's interior backing plate while leaving its outer frame on top.
+		constexpr float BorderInteriorInset = 48.0f;
+		UImage* ArtworkCover = WidgetTree->ConstructWidget<UImage>(
+			UImage::StaticClass(), *FString::Printf(TEXT("CategoryArtworkCover_%d"), Index));
+		ArtworkCover->SetVisibility(ESlateVisibility::HitTestInvisible);
+		UOverlaySlot* ArtworkCoverSlot = CardLayers->AddChildToOverlay(ArtworkCover);
+		ArtworkCoverSlot->SetHorizontalAlignment(HAlign_Fill);
+		ArtworkCoverSlot->SetVerticalAlignment(VAlign_Fill);
+		ArtworkCoverSlot->SetPadding(FMargin(BorderInteriorInset));
+
+		UBorder* TextLayer = WidgetTree->ConstructWidget<UBorder>(
+			UBorder::StaticClass(), *FString::Printf(TEXT("CategoryTextLayer_%d"), Index));
+		FSlateBrush NoBackgroundBrush;
+		NoBackgroundBrush.DrawAs = ESlateBrushDrawType::NoDrawType;
+		TextLayer->SetBrush(NoBackgroundBrush);
+		TextLayer->SetPadding(FMargin(24.0f, 12.0f));
+		TextLayer->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		if (ExistingCategoryText)
+		{
+			ExistingCategoryText->SetVisibility(ESlateVisibility::HitTestInvisible);
+			TextLayer->SetContent(ExistingCategoryText);
+		}
+		UOverlaySlot* TextSlot = CardLayers->AddChildToOverlay(TextLayer);
+		TextSlot->SetHorizontalAlignment(HAlign_Center);
+		TextSlot->SetVerticalAlignment(VAlign_Bottom);
+		TextSlot->SetPadding(FMargin(36.0f, 36.0f, 36.0f, 52.0f));
+
 		CategoryArtworkImages.Add(Artwork);
+		CategoryArtworkCoverImages.Add(ArtworkCover);
 		CategoryBorderImages.Add(CategoryBorder);
 	}
 }
@@ -479,6 +542,21 @@ void ULevelUpWidget::RefreshCategoryCardVisuals()
 		{
 			CategoryArtworkImages[Index]->SetBrushFromTexture(ArtworkTexture, true);
 			CategoryArtworkImages[Index]->SetOpacity(ArtworkTexture ? 1.0f : 0.0f);
+		}
+		if (CategoryArtworkCoverImages.IsValidIndex(Index) && CategoryArtworkCoverImages[Index])
+		{
+			constexpr float CoverInset = 48.0f;
+			constexpr float ArtworkInset = 22.0f;
+			constexpr float CardWidth = 400.0f;
+			constexpr float CardHeight = CardWidth * 1.5f;
+			const FVector2D UVMin(
+				(CoverInset - ArtworkInset) / (CardWidth - 2.0f * ArtworkInset),
+				(CoverInset - ArtworkInset) / (CardHeight - 2.0f * ArtworkInset));
+			CategoryArtworkCoverImages[Index]->SetBrushFromTexture(ArtworkTexture, true);
+			FSlateBrush CoverBrush = CategoryArtworkCoverImages[Index]->GetBrush();
+			CoverBrush.SetUVRegion(FBox2d(FVector2d(UVMin), FVector2d(FVector2D(1.0f) - UVMin)));
+			CategoryArtworkCoverImages[Index]->SetBrush(CoverBrush);
+			CategoryArtworkCoverImages[Index]->SetOpacity(ArtworkTexture ? 1.0f : 0.0f);
 		}
 		if (CategoryBorderImages.IsValidIndex(Index) && CategoryBorderImages[Index])
 		{
@@ -542,6 +620,7 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 	}
 	constexpr float CardWidth = 400.0f;
 	constexpr float CardHeight = CardWidth * 1.5f;
+	constexpr float CardVisualScale = 1.15f;
 	constexpr float ArtworkInset = 22.0f;
 	constexpr float TextInset = 26.0f;
 
@@ -582,12 +661,27 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 		USizeBox* CardSize = WidgetTree->ConstructWidget<USizeBox>(
 			USizeBox::StaticClass(), *FString::Printf(TEXT("UpgradeCardSize_%d"), Index));
-		CardSize->SetWidthOverride(CardWidth);
-		CardSize->SetHeightOverride(CardHeight);
+		CardSize->SetWidthOverride(CardWidth * CardVisualScale);
+		CardSize->SetHeightOverride(CardHeight * CardVisualScale);
+
+		// Scale the complete existing card composition as one unit. Keeping its authored
+		// 2:3 canvas intact scales artwork, text, rarity effects, and frame uniformly,
+		// while the outer size participates in layout so adjacent cards cannot overlap.
+		UScaleBox* CardScaler = WidgetTree->ConstructWidget<UScaleBox>(
+			UScaleBox::StaticClass(), *FString::Printf(TEXT("UpgradeCardScaler_%d"), Index));
+		CardScaler->SetStretch(EStretch::ScaleToFit);
+		CardScaler->SetStretchDirection(EStretchDirection::Both);
+		CardSize->SetContent(CardScaler);
+
+		USizeBox* AuthoredCardSize = WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), *FString::Printf(TEXT("UpgradeAuthoredCardSize_%d"), Index));
+		AuthoredCardSize->SetWidthOverride(CardWidth);
+		AuthoredCardSize->SetHeightOverride(CardHeight);
+		CardScaler->SetContent(AuthoredCardSize);
 
 		UOverlay* CardLayers = WidgetTree->ConstructWidget<UOverlay>(
 			UOverlay::StaticClass(), *FString::Printf(TEXT("UpgradeCardLayers_%d"), Index));
-		CardSize->SetContent(CardLayers);
+		AuthoredCardSize->SetContent(CardLayers);
 		UpgradeButton->SetContent(CardSize);
 
 		UScaleBox* ArtworkContainer = WidgetTree->ConstructWidget<UScaleBox>(

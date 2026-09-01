@@ -182,5 +182,8 @@ private:
 	TArray<TObjectPtr<UImage>> CategoryArtworkImages;
 
 	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> CategoryArtworkCoverImages;
+
+	UPROPERTY(Transient)
 	TArray<TObjectPtr<UImage>> CategoryBorderImages;
 };
