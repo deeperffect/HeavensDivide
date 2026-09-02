@@ -10,6 +10,7 @@ class UDecalComponent;
 class USphereComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
+class UMeshComponent;
 
 UENUM(BlueprintType)
 enum class ETankSlamAttackShape : uint8
@@ -37,6 +38,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void HandleDeath() override;
+	virtual void GetAdditionalCollapseMeshComponents(TArray<UMeshComponent*>& OutMeshComponents) const override;
 	virtual void CapturePreBloodboundState() override;
 	virtual void RestorePreBloodboundState() override;
 	virtual void UpdateEnemyBehavior(float DeltaSeconds) override;

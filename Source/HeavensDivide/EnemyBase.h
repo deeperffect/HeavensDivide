@@ -9,6 +9,7 @@
 
 class UHealthComponent;
 class UAnimMontage;
+class UMeshComponent;
 class UWidgetComponent;
 class UEnemyHealthBarWidget;
 class UEnemyMarkIndicatorWidget;
@@ -404,10 +405,10 @@ protected:
 	bool bGameplaySuspended = false;
 
 	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMaterialInstanceDynamic>> BloodboundDynamicMaterialInstances;
+	TObjectPtr<UMaterialInstanceDynamic> BloodboundOverlayDynamicMaterial;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UMaterialInstanceDynamic> BloodboundOverlayDynamicMaterial;
+	TObjectPtr<UMaterialInstanceDynamic> NormalOverlayDynamicMaterial;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInterface> PreBloodboundOverlayMaterial;
@@ -446,6 +447,9 @@ protected:
 	void UpdateCollapseDeathEffect();
 	void FinishCollapseDeathEffect();
 	void ApplyCollapseMaterialParameters(float Radius);
+	virtual void GetAdditionalCollapseMeshComponents(TArray<UMeshComponent*>& OutMeshComponents) const;
+	void RefreshEnemyVisualState();
+	void ClearEnemyOverlayMaterials();
 	virtual void CapturePreBloodboundState();
 	virtual void RestorePreBloodboundState();
 	void ActivateBloodboundVisuals();

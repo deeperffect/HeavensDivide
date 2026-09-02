@@ -10,6 +10,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "HealthComponent.h"
 #include "HAL/IConsoleManager.h"
@@ -124,6 +125,19 @@ void ATankMeleeEnemyBase::HandleDeath()
 	HideAttackTelegraph();
 
 	Super::HandleDeath();
+}
+
+void ATankMeleeEnemyBase::GetAdditionalCollapseMeshComponents(TArray<UMeshComponent*>& OutMeshComponents) const
+{
+	TArray<UStaticMeshComponent*> StaticMeshComponents;
+	GetComponents(StaticMeshComponents);
+	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
+	{
+		if (StaticMeshComponent && StaticMeshComponent->GetAttachParent() == GetMesh())
+		{
+			OutMeshComponents.Add(StaticMeshComponent);
+		}
+	}
 }
 
 void ATankMeleeEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)

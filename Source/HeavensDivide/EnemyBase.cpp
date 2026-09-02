@@ -245,7 +245,7 @@ void AEnemyBase::BeginPlay()
 
 	if (bIsBloodbound)
 	{
-		ActivateBloodboundVisuals();
+		RefreshEnemyVisualState();
 	}
 }
 
@@ -452,11 +452,17 @@ void AEnemyBase::ConfigureObjectiveEnemy(float MaxHealth, EPlayerAttackSource Re
 		HealthComponent->SetMaxHealthPreservePercent(FMath::Max(1.0f, MaxHealth));
 	}
 
-	BloodboundOverlayMaterial = OverlayMaterial;
-	BloodboundTint = OverlayTint;
-	BloodboundMaterialAmount = 1.0f;
-	BloodboundEmissiveStrength = 0.75f;
-	ActivateBloodboundVisuals();
+	NormalOverlayDynamicMaterial = OverlayMaterial ? UMaterialInstanceDynamic::Create(OverlayMaterial, this) : nullptr;
+	if (NormalOverlayDynamicMaterial)
+	{
+		NormalOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialScalarParameterName, 1.0f);
+		NormalOverlayDynamicMaterial->SetVectorParameterValue(BloodboundMaterialTintParameterName, OverlayTint);
+		NormalOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, 0.75f);
+	}
+	if (!bIsDead && !bCollapseDeathActive && GetMesh())
+	{
+		GetMesh()->SetOverlayMaterial(NormalOverlayDynamicMaterial);
+	}
 }
 
 void AEnemyBase::SetGameplaySuspended(bool bSuspended)
@@ -494,7 +500,7 @@ void AEnemyBase::MakeBloodbound(float HealthMultiplier, float DamageMultiplier, 
 	BloodboundDamageMultiplier = FMath::IsFinite(DamageMultiplier) ? FMath::Max(0.0f, DamageMultiplier) : 1.0f;
 	BloodboundMovementSpeedMultiplier = FMath::IsFinite(MovementSpeedMultiplier) ? FMath::Max(0.0f, MovementSpeedMultiplier) : 1.0f;
 	ApplySpawnInstanceModifiers(BloodboundHealthMultiplier, BloodboundDamageMultiplier, BloodboundMovementSpeedMultiplier);
-	ActivateBloodboundVisuals();
+	RefreshEnemyVisualState();
 	OnBecameBloodbound.Broadcast(this);
 }
 
@@ -575,7 +581,7 @@ bool AEnemyBase::RemoveBloodbound()
 	BloodboundDamageMultiplier = 1.0f;
 	BloodboundMovementSpeedMultiplier = 1.0f;
 	bHasPreBloodboundState = false;
-	DeactivateBloodboundVisuals();
+	RefreshEnemyVisualState();
 	return true;
 }
 
@@ -604,6 +610,11 @@ void AEnemyBase::RestorePreBloodboundState()
 
 void AEnemyBase::ActivateBloodboundVisuals()
 {
+	if (!bIsBloodbound || bIsDead || bCollapseDeathActive)
+	{
+		return;
+	}
+
 	if (BloodboundNiagaraComponent)
 	{
 		if (BloodboundNiagaraSystem)
@@ -623,31 +634,6 @@ void AEnemyBase::ActivateBloodboundVisuals()
 		return;
 	}
 
-	if (BloodboundDynamicMaterialInstances.IsEmpty())
-	{
-		const int32 MaterialCount = EnemyMesh->GetNumMaterials();
-		BloodboundDynamicMaterialInstances.Reserve(MaterialCount);
-		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
-		{
-			if (UMaterialInstanceDynamic* DynamicMaterial = EnemyMesh->CreateDynamicMaterialInstance(MaterialIndex))
-			{
-				BloodboundDynamicMaterialInstances.Add(DynamicMaterial);
-			}
-		}
-	}
-
-	for (UMaterialInstanceDynamic* DynamicMaterial : BloodboundDynamicMaterialInstances)
-	{
-		if (!DynamicMaterial)
-		{
-			continue;
-		}
-
-		DynamicMaterial->SetScalarParameterValue(BloodboundMaterialScalarParameterName, BloodboundMaterialAmount);
-		DynamicMaterial->SetVectorParameterValue(BloodboundMaterialTintParameterName, BloodboundTint);
-		DynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, BloodboundEmissiveStrength);
-	}
-
 	if (BloodboundOverlayMaterial && !BloodboundOverlayDynamicMaterial)
 	{
 		BloodboundOverlayDynamicMaterial = UMaterialInstanceDynamic::Create(BloodboundOverlayMaterial, this);
@@ -656,8 +642,12 @@ void AEnemyBase::ActivateBloodboundVisuals()
 			BloodboundOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialScalarParameterName, BloodboundMaterialAmount);
 			BloodboundOverlayDynamicMaterial->SetVectorParameterValue(BloodboundMaterialTintParameterName, BloodboundTint);
 			BloodboundOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, BloodboundEmissiveStrength);
-			EnemyMesh->SetOverlayMaterial(BloodboundOverlayDynamicMaterial);
 		}
+	}
+
+	if (BloodboundOverlayDynamicMaterial)
+	{
+		EnemyMesh->SetOverlayMaterial(BloodboundOverlayDynamicMaterial);
 	}
 }
 
@@ -668,18 +658,44 @@ void AEnemyBase::DeactivateBloodboundVisuals()
 		BloodboundNiagaraComponent->DeactivateImmediate();
 	}
 
-	for (UMaterialInstanceDynamic* DynamicMaterial : BloodboundDynamicMaterialInstances)
-	{
-		if (DynamicMaterial)
-		{
-			DynamicMaterial->SetScalarParameterValue(BloodboundMaterialScalarParameterName, 0.0f);
-			DynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, 0.0f);
-		}
-	}
-
 	if (USkeletalMeshComponent* EnemyMesh = GetMesh())
 	{
-		EnemyMesh->SetOverlayMaterial(PreBloodboundOverlayMaterial);
+		if (EnemyMesh->GetOverlayMaterial() == BloodboundOverlayDynamicMaterial)
+		{
+			EnemyMesh->SetOverlayMaterial(PreBloodboundOverlayMaterial);
+		}
+	}
+}
+
+void AEnemyBase::RefreshEnemyVisualState()
+{
+	if (bIsDead || bCollapseDeathActive)
+	{
+		DeactivateBloodboundVisuals();
+		ClearEnemyOverlayMaterials();
+		return;
+	}
+
+	if (bIsBloodbound)
+	{
+		ActivateBloodboundVisuals();
+	}
+	else
+	{
+		DeactivateBloodboundVisuals();
+	}
+}
+
+void AEnemyBase::ClearEnemyOverlayMaterials()
+{
+	TArray<UMeshComponent*> MeshComponents;
+	GetComponents(MeshComponents);
+	for (UMeshComponent* MeshComponent : MeshComponents)
+	{
+		if (MeshComponent)
+		{
+			MeshComponent->SetOverlayMaterial(nullptr);
+		}
 	}
 }
 
@@ -759,6 +775,11 @@ void AEnemyBase::HandleDeath()
 	bIsDead = true;
 	if (StatusEffectComponent) StatusEffectComponent->ClearAllStatuses();
 	OnEnemyDied.Broadcast(this);
+	if (bIsBloodbound)
+	{
+		bIsBloodbound = false;
+	}
+	RefreshEnemyVisualState();
 	if (UWorld* World = GetWorld())
 	{
 		if (UHealingPickupDropSubsystem* DropSubsystem = World->GetSubsystem<UHealingPickupDropSubsystem>())
@@ -803,14 +824,18 @@ void AEnemyBase::HandleDeath()
 		}
 	}
 
-	if (bUseCollapseDeathEffect && StartCollapseDeathEffect())
+	if (bUseCollapseDeathEffect)
 	{
-		const float ExistingVisualDuration = bDeathMontagePlaying
-			? DeathMontageDuration
-			: FMath::Max(0.0f, DeathDestroyDelay);
-		CollapseDeathDestroyTime = CollapseDeathStartTime
-			+ FMath::Max(FMath::Max(0.01f, CollapseDuration), ExistingVisualDuration);
-		return;
+		RefreshEnemyVisualState();
+		if (StartCollapseDeathEffect())
+		{
+			const float ExistingVisualDuration = bDeathMontagePlaying
+				? DeathMontageDuration
+				: FMath::Max(0.0f, DeathDestroyDelay);
+			CollapseDeathDestroyTime = CollapseDeathStartTime
+				+ FMath::Max(FMath::Max(0.01f, CollapseDuration), ExistingVisualDuration);
+			return;
+		}
 	}
 
 	if (!bDeathMontagePlaying)
@@ -994,8 +1019,9 @@ bool AEnemyBase::StartCollapseDeathEffect()
 	UWorld* World = GetWorld();
 	if (!MeshComponent || !World) return false;
 
-	const int32 MaterialCount = MeshComponent->GetNumMaterials();
-	if (MaterialCount <= 0) return false;
+	TArray<UMeshComponent*> CollapseMeshComponents;
+	CollapseMeshComponents.Add(MeshComponent);
+	GetAdditionalCollapseMeshComponents(CollapseMeshComponents);
 
 	const FMaterialParameterInfo CollapsePosParameter(TEXT("CollapsePos"));
 	const FMaterialParameterInfo CollapseRadiusParameter(TEXT("CollapseRadius"));
@@ -1004,37 +1030,47 @@ bool AEnemyBase::StartCollapseDeathEffect()
 	const FMaterialParameterInfo CollapseEmIntensityParameter(TEXT("CollapseEmIntensity"));
 	const FMaterialParameterInfo CollapseIntensityParameter(TEXT("CollapseIntensity"));
 	TArray<TObjectPtr<UMaterialInstanceDynamic>> NewMaterialInstances;
-	NewMaterialInstances.Reserve(MaterialCount);
 
-	for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
+	for (UMeshComponent* CollapseMeshComponent : CollapseMeshComponents)
 	{
-		UMaterialInterface* SourceMaterial = MeshComponent->GetMaterial(MaterialIndex);
-		float ScalarValue = 0.0f;
-		FLinearColor VectorValue = FLinearColor::Black;
-		const bool bHasRequiredParameters = SourceMaterial
-			&& SourceMaterial->GetVectorParameterValue(CollapsePosParameter, VectorValue)
-			&& SourceMaterial->GetScalarParameterValue(CollapseRadiusParameter, ScalarValue)
-			&& SourceMaterial->GetScalarParameterValue(CollapseHardnessParameter, ScalarValue)
-			&& SourceMaterial->GetVectorParameterValue(CollapseEmColorParameter, VectorValue)
-			&& SourceMaterial->GetScalarParameterValue(CollapseEmIntensityParameter, ScalarValue)
-			&& SourceMaterial->GetScalarParameterValue(CollapseIntensityParameter, ScalarValue);
-		if (!bHasRequiredParameters)
+		if (!CollapseMeshComponent) continue;
+		const int32 MaterialCount = CollapseMeshComponent->GetNumMaterials();
+		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Enemy %s collapse skipped: material slot %d (%s) does not expose all required local parameters."),
-				*GetNameSafe(this), MaterialIndex, *GetNameSafe(SourceMaterial));
-			return false;
+			UMaterialInterface* SourceMaterial = CollapseMeshComponent->GetMaterial(MaterialIndex);
+			float ScalarValue = 0.0f;
+			FLinearColor VectorValue = FLinearColor::Black;
+			const bool bHasRequiredParameters = SourceMaterial
+				&& SourceMaterial->GetVectorParameterValue(CollapsePosParameter, VectorValue)
+				&& SourceMaterial->GetScalarParameterValue(CollapseRadiusParameter, ScalarValue)
+				&& SourceMaterial->GetScalarParameterValue(CollapseHardnessParameter, ScalarValue)
+				&& SourceMaterial->GetVectorParameterValue(CollapseEmColorParameter, VectorValue)
+				&& SourceMaterial->GetScalarParameterValue(CollapseEmIntensityParameter, ScalarValue)
+				&& SourceMaterial->GetScalarParameterValue(CollapseIntensityParameter, ScalarValue);
+			if (!bHasRequiredParameters)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Enemy %s collapse skipped: material slot %d on %s (%s) does not expose all required local parameters."),
+					*GetNameSafe(this), MaterialIndex, *GetNameSafe(CollapseMeshComponent), *GetNameSafe(SourceMaterial));
+				return false;
+			}
+
+			UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(SourceMaterial, this);
+			if (!DynamicMaterial) return false;
+			NewMaterialInstances.Add(DynamicMaterial);
 		}
-
-		UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(SourceMaterial, this);
-		if (!DynamicMaterial) return false;
-		NewMaterialInstances.Add(DynamicMaterial);
 	}
+	if (NewMaterialInstances.IsEmpty()) return false;
 
-	CollapseDeathMaterialInstances = MoveTemp(NewMaterialInstances);
-	for (int32 MaterialIndex = 0; MaterialIndex < CollapseDeathMaterialInstances.Num(); ++MaterialIndex)
+	int32 DynamicMaterialIndex = 0;
+	for (UMeshComponent* CollapseMeshComponent : CollapseMeshComponents)
 	{
-		MeshComponent->SetMaterial(MaterialIndex, CollapseDeathMaterialInstances[MaterialIndex]);
+		if (!CollapseMeshComponent) continue;
+		for (int32 MaterialIndex = 0; MaterialIndex < CollapseMeshComponent->GetNumMaterials(); ++MaterialIndex)
+		{
+			CollapseMeshComponent->SetMaterial(MaterialIndex, NewMaterialInstances[DynamicMaterialIndex++]);
+		}
 	}
+	CollapseDeathMaterialInstances = MoveTemp(NewMaterialInstances);
 
 	ActiveCollapsePosition = MeshComponent->Bounds.Origin + CollapsePositionOffset;
 	CollapseDeathStartTime = World->GetTimeSeconds();
@@ -1044,6 +1080,10 @@ bool AEnemyBase::StartCollapseDeathEffect()
 	World->GetTimerManager().SetTimer(CollapseDeathTimerHandle, this,
 		&AEnemyBase::UpdateCollapseDeathEffect, 1.0f / 30.0f, true);
 	return true;
+}
+
+void AEnemyBase::GetAdditionalCollapseMeshComponents(TArray<UMeshComponent*>& OutMeshComponents) const
+{
 }
 
 void AEnemyBase::UpdateCollapseDeathEffect()
