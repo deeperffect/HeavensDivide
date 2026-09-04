@@ -1535,6 +1535,23 @@ void ASurvivorPlayerController::UpdateMouseFacingTarget()
 	}
 }
 
+void ASurvivorPlayerController::BeginObjectiveChoiceInput(UWidget* FocusWidget)
+{
+	PauseForLevelUpSelection();
+	FInputModeUIOnly InputMode;
+	if (FocusWidget)
+	{
+		InputMode.SetWidgetToFocus(FocusWidget->TakeWidget());
+	}
+	InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	SetInputMode(InputMode);
+}
+
+void ASurvivorPlayerController::EndObjectiveChoiceInput()
+{
+	ResumeAfterLevelUpSelection();
+}
+
 bool ASurvivorPlayerController::IsAutoTargetingEnabled() const
 {
 	const UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();

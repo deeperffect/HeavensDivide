@@ -77,9 +77,9 @@ enum class EUpgradeSpecialEffect : uint8
 	None,
 	SwapRestoresDashCharge,
 	InactiveCharacterAssist,
-	QuickHandoff,
-	Handoff,
-	DoubleCut,
+	// Value 3 was retired. Explicit values preserve existing serialized upgrade assets.
+	Handoff = 4,
+	DoubleCut = 5,
 	// Value 6 was retired. Explicit values preserve existing serialized upgrade assets.
 	FanOfBlades = 7,
 	BladeCascade = 8,

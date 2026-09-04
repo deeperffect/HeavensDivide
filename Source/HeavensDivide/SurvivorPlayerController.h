@@ -18,6 +18,7 @@ class ULevelUpWidget;
 class UPlayerUpgradeComponent;
 class UPlayerHUDWidget;
 class USharedPlayerStatsComponent;
+class UWidget;
 class ACharacterBase;
 class APlayerCameraRig;
 class ABloodShrine;
@@ -73,6 +74,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
+	void BeginObjectiveChoiceInput(UWidget* FocusWidget);
+	void EndObjectiveChoiceInput();
 
 	UFUNCTION(BlueprintPure, Category = "Player|Targeting")
 	bool IsAutoTargetingEnabled() const;

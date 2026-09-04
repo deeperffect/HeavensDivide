@@ -79,7 +79,6 @@ private:
 	void FinishCurrentAssist();
 	void CancelCurrentAssist();
 	bool HasAssistUpgrade() const;
-	bool HasQuickHandoffUpgrade() const;
 	bool CanRunAssistEffect() const;
 	FString GetCharacterLabel(const ACharacterBase* Character) const;
 	FVector GetRangedAssistLocation(const ACharacterBase* ActiveCharacter, const ACharacterBase* AssistCharacter) const;

@@ -16,6 +16,13 @@ class UCurveFloat;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnerEnemyKilled, AEnemyBase*, Enemy);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSpawnerEnemyBecameBloodbound, AEnemyBase*, Enemy);
 
+UENUM(BlueprintType)
+enum class EEnemyPressureSpawnMode : uint8
+{
+	MaintainPopulation UMETA(DisplayName = "Maintain Population"),
+	TimedThreat UMETA(DisplayName = "Timed Threat")
+};
+
 USTRUCT(BlueprintType)
 struct FEnemySpawnModifierContext
 {
@@ -62,6 +69,108 @@ struct FEnemySpawnEntry
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Spawning", meta = (ToolTip = "Whether this spawn entry is allowed to be selected. Disable to temporarily remove this enemy type from spawning."))
 	bool bEnabled = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Scaling", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Continuous max-health growth per elapsed run minute for this enemy class. 0.05 means +5% base max health per minute."))
+	float HealthScalingPerMinute = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Pressure", meta = (ToolTip = "Maintained enemies refill population deficits. Timed threats use phase MaxPopulation and death-based replacement cooldowns."))
+	EEnemyPressureSpawnMode PressureSpawnMode = EEnemyPressureSpawnMode::MaintainPopulation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Pressure", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Minimum class-level replacement delay, measured from logical death using authoritative run time."))
+	float MinRespawnDelayAfterDeath = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Spawning|Pressure", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Maximum class-level replacement delay. Values below the minimum are handled safely."))
+	float MaxRespawnDelayAfterDeath = 0.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FEnemyPopulationPhaseEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure")
+	TSubclassOf<AEnemyBase> EnemyClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0", UIMin = "0"))
+	int32 DesiredPopulation = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0", UIMin = "0", ToolTip = "Hard living cap for this class in this phase. Zero disables routine spawning for the entry."))
+	int32 MaxPopulation = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Multiplied by the current population deficit when selecting what to refill."))
+	float RefillPriority = 1.0f;
+};
+
+USTRUCT(BlueprintType)
+struct FEnemyPressureEventEnemyEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event")
+	TSubclassOf<AEnemyBase> EnemyClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "1", UIMin = "1"))
+	int32 Count = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0", UIMin = "0", ToolTip = "How far this event may exceed the active phase's class MaxPopulation."))
+	int32 ClassOverflowAllowance = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FEnemyPressureEventDefinition
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event") FName EventName = NAME_None;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event") bool bEnabled = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0")) float MinimumRunTime = 120.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event") float MaximumRunTime = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0")) float Weight = 1.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0")) float EventCooldownMin = 30.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0")) float EventCooldownMax = 45.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0", ClampMax = "360.0")) float SpawnArcDegrees = 60.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0")) float SpawnDistanceMin = 1800.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0")) float SpawnDistanceMax = 2800.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.01")) float DelayBetweenMembers = 0.10f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0.0", ToolTip = "Optional delay after the first member before the rest of the event begins.")) float DelayAfterFirstMember = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event") bool bAllowTemporaryPopulationOverflow = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event", meta = (ClampMin = "0")) int32 EventPopulationOverflowAllowance = 10;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event") bool bIgnoreThreatDeathCooldown = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure Event") TArray<FEnemyPressureEventEnemyEntry> EnemyEntries;
+};
+
+USTRUCT(BlueprintType)
+struct FEnemyPressurePhase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure")
+	FName PhaseName = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float StartTimeSeconds = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ToolTip = "Exclusive end time. A value <= 0 makes this the open-ended final phase."))
+	float EndTimeSeconds = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0", UIMin = "0"))
+	int32 GlobalMaxAlive = 15;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float NormalSpawnInterval = 0.65f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float AcceleratedSpawnInterval = 0.35f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	float EmergencySpawnInterval = 0.20f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure")
+	TArray<FEnemyPopulationPhaseEntry> EnemyPopulationEntries;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Events") bool bEventsEnabled = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Events", meta = (ClampMin = "0.0")) float EventIntervalMin = 35.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Events", meta = (ClampMin = "0.0")) float EventIntervalMax = 45.0f;
 };
 
 UCLASS(Blueprintable)
@@ -86,6 +195,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy Spawning")
 	AEnemyBase* SpawnEnemy();
+
+	UFUNCTION(BlueprintCallable, Category = "Enemy Spawning|Debug")
+	void LogPressureDirectorStatus();
+
+#if !UE_BUILD_SHIPPING
+	void TriggerPressureEventByName(FName EventName);
+	void LogSpatialPressureStatus();
+	void ForceSpatialPressurePass();
+#endif
 
 #if !UE_BUILD_SHIPPING
 	void StressEnemies(int32 DesiredLivingEnemyCount);
@@ -138,28 +256,71 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy Pool", meta = (ToolTip = "List of enemy types this spawner can create. Each entry has its own weight, runtime window, cost, and optional per-type alive cap."))
 	TArray<FEnemySpawnEntry> EnemySpawnEntries;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Base seconds between spawn batches before Spawn Pressure scaling is applied. Higher values spawn less often."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ToolTip = "Authored population phases. Exactly one valid phase should contain the authoritative run time."))
+	TArray<FEnemyPressurePhase> PressurePhases;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Final safety cap applied after the active phase cap."))
+	int32 AbsoluteHardAliveCap = 65;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Batch", meta = (ClampMin = "1", UIMin = "1"))
+	int32 NormalMaxBatchSize = 2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Batch", meta = (ClampMin = "1", UIMin = "1"))
+	int32 AcceleratedMaxBatchSize = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Batch", meta = (ClampMin = "1", UIMin = "1"))
+	int32 EmergencyMaxBatchSize = 4;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Threats", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", ToolTip = "Chance that an eligible timed threat takes a spawn slot while maintained population deficits also exist."))
+	float TimedThreatSpawnSlotChance = 0.20f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Events")
+	TArray<FEnemyPressureEventDefinition> PressureEvents;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Directional Bias") bool bDirectionalBiasEnabled = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Directional Bias", meta = (ClampMin = "0.0", ClampMax = "1.0")) float DirectionalBiasChance = 0.55f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Directional Bias", meta = (ClampMin = "0.0", ClampMax = "360.0")) float DirectionalBiasArcDegrees = 120.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Directional Bias", meta = (ClampMin = "0.1")) float DirectionalBiasDurationMin = 8.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Directional Bias", meta = (ClampMin = "0.1")) float DirectionalBiasDurationMax = 12.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure") bool bEnableSpatialPressureRecycling = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ToolTip = "Only this maintained fodder class may be recycled.")) TSubclassOf<AEnemyBase> SpatialPressureGruntClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.1", Units = "s")) float SpatialPressureEvaluationInterval = 2.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm/s")) float MinimumPlayerSpeedForDirectionalRecycling = 150.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", ClampMax = "1.0")) float MinimumGruntPopulationRatioForRecycling = 0.85f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm")) float StaleGruntMinimumDistance = 2800.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "-1.0", ClampMax = "1.0")) float StaleGruntBehindDotThreshold = -0.50f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "1")) int32 MaxGruntsRecycledPerEvaluation = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "s")) float MinimumSecondsAliveBeforeRecyclable = 5.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm")) float ReplacementSpawnDistanceMin = 1200.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm")) float ReplacementSpawnDistanceMax = 2000.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "4", ClampMax = "16")) int32 SpatialSectorCount = 8;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure") bool bPreferUnderrepresentedSectors = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", ClampMax = "1.0", ToolTip = "Blends inverse-density sector weights toward uniform randomness.")) float ReplacementSectorRandomness = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Enemy Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "s")) float EventGruntRecycleProtectionSeconds = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal survival spawning uses PressurePhases.", ClampMin = "0.01", UIMin = "0.01"))
 	float BaseSpawnInterval = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Fastest allowed seconds between spawn batches after Spawn Pressure scaling. Prevents spawning from becoming too frequent."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal survival spawning uses PressurePhases.", ClampMin = "0.01", UIMin = "0.01"))
 	float MinSpawnInterval = 0.35f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Base number of enemies the spawner tries to create per spawn batch before Spawn Pressure scaling."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal survival spawning uses pressure-state batch sizes.", ClampMin = "1", UIMin = "1"))
 	int32 BaseEnemiesPerSpawn = 2;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Maximum enemies that can be spawned in a single batch after Spawn Pressure scaling."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal survival spawning uses pressure-state batch sizes.", ClampMin = "1", UIMin = "1"))
 	int32 MaxEnemiesPerSpawn = 8;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Base total living enemy cap before Spawn Pressure scaling. This is shared across all enemy types."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal survival spawning uses each phase's GlobalMaxAlive.", ClampMin = "1", UIMin = "1"))
 	int32 BaseMaxAliveEnemies = 60;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Hard maximum total living enemy cap. Per-type caps cannot push the total above this value."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Use AbsoluteHardAliveCap.", ClampMin = "1", UIMin = "1"))
 	int32 MaximumAliveEnemies = 200;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Base spawn budget available per batch. Enemy entries spend this through Spawn Cost."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "SpawnCost does not gate normal population maintenance.", ClampMin = "1", UIMin = "1"))
 	int32 BaseSpawnBudget = 2;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Maximum spawn budget available per batch after Spawn Pressure scaling."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "SpawnCost does not gate normal population maintenance.", ClampMin = "1", UIMin = "1"))
 	int32 MaxSpawnBudget = 10;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Minimum 2D distance from the active player where enemies are allowed to spawn."))
@@ -171,13 +332,13 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawning", meta = (ToolTip = "Master switch for normal enemy spawning. Disable to stop this spawner from scheduling new normal spawn batches."))
 	bool bSpawningEnabled = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run Scaling", meta = (ToolTip = "Optional curve evaluated by run time in seconds to scale enemy max health. If unset, the C++ default health scaling is used."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run Scaling|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal enemy health uses FEnemySpawnEntry.HealthScalingPerMinute."))
 	TObjectPtr<UCurveFloat> HealthMultiplierCurve;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run Scaling", meta = (ToolTip = "Optional curve evaluated by run time in seconds to scale enemy damage. If unset, the C++ default damage scaling is used."))
 	TObjectPtr<UCurveFloat> DamageMultiplierCurve;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run Scaling", meta = (ToolTip = "Optional curve evaluated by run time in seconds to scale spawn pressure. Spawn pressure affects interval, batch size, alive cap, and budget."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run Scaling|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal survival spawning uses authored PressurePhases."))
 	TObjectPtr<UCurveFloat> SpawnPressureCurve;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Run Scaling", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Seconds between internal run-time/scaling updates. Lower updates scaling more often; higher is cheaper."))
@@ -256,27 +417,52 @@ protected:
 
 	TMap<UClass*, int32> AliveEnemyCountByClass;
 	TMap<TObjectKey<AEnemyBase>, UClass*> CountedEnemyClassByEnemy;
+	TMap<TObjectKey<AEnemyBase>, float> EnemySpawnRunTimeByEnemy;
+	TMap<TObjectKey<AEnemyBase>, float> EventRecycleProtectionEndTimeByEnemy;
+	TMap<UClass*, float> NextEligibleSpawnTimeByClass;
+	TMap<FName, float> NextEligibleEventTimeByName;
 	TMap<FName, float> SpawnPressureModifiers;
 	TMap<FName, FEnemySpawnModifierContext> EnemySpawnModifierContexts;
 
 	FTimerHandle SpawnTimerHandle;
 	FTimerHandle RunTimeTimerHandle;
 	FTimerHandle DistantEnemyCheckTimerHandle;
+	FTimerHandle SpatialPressureTimerHandle;
+	FTimerHandle EventMemberTimerHandle;
 	float RunTimeSeconds = 0.0f;
 	bool bRunTimeFrozen = false;
 	bool bTrialSuspended = false;
+	mutable int32 LastInvalidPhaseWarningSecond = INDEX_NONE;
+	float NextGlobalEventTime = 0.0f;
+	float DirectionalBiasAngleDegrees = 0.0f;
+	float DirectionalBiasEndRunTime = 0.0f;
+	int32 ActiveEventIndex = INDEX_NONE;
+	int32 ActiveEventMemberIndex = 0;
+	int32 ActiveEventSpawnedCount = 0;
+	int32 ActiveEventFailedCount = 0;
+	float ActiveEventDirectionAngle = 0.0f;
+	float ActiveEventStartRunTime = 0.0f;
+	int32 ActiveEventOverflowCap = 0;
+	FName LastCompletedEventName = NAME_None;
+	TArray<TSubclassOf<AEnemyBase>> ActiveEventMembers;
 
 	ACharacterBase* GetActivePlayerCharacter() const;
-	const FEnemySpawnEntry* ChooseSpawnEntry(int32 RemainingBudget) const;
+	const FEnemyPressurePhase* ResolveActivePressurePhase(int32* OutPhaseIndex = nullptr, bool bLogWarnings = true) const;
+	const FEnemySpawnEntry* FindSpawnDefinition(TSubclassOf<AEnemyBase> EnemyClass) const;
+	const FEnemyPopulationPhaseEntry* ChoosePopulationDeficitEntry(const FEnemyPressurePhase& Phase) const;
+	const FEnemyPopulationPhaseEntry* ChooseTimedThreatEntry(const FEnemyPressurePhase& Phase) const;
+	const FEnemyPopulationPhaseEntry* ChooseDirectorEntry(const FEnemyPressurePhase& Phase) const;
 	AEnemyBase* SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntry);
-	bool FindSpawnLocation(const FVector& ActivePlayerLocation, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutSpawnLocation) const;
-	bool GenerateCandidateSpawnLocation(const FVector& ActivePlayerLocation, int32 AttemptIndex, int32 AttemptCount, FVector& OutCandidateLocation) const;
+	AEnemyBase* SpawnEventEnemy(TSubclassOf<AEnemyBase> EnemyClass, int32 ClassOverflowAllowance);
+	AEnemyBase* SpawnSpatialPressureReplacement(const TArray<int32>& SectorCounts, int32& OutSectorIndex);
+	bool FindSpawnLocation(const FVector& ActivePlayerLocation, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutSpawnLocation, bool bUseDirectionalArc = false, float DirectionAngleDegrees = 0.0f, float ArcDegrees = 360.0f, float DistanceMin = 0.0f, float DistanceMax = 0.0f) const;
+	bool GenerateCandidateSpawnLocation(const FVector& ActivePlayerLocation, int32 AttemptIndex, int32 AttemptCount, FVector& OutCandidateLocation, bool bUseDirectionalArc = false, float DirectionAngleDegrees = 0.0f, float ArcDegrees = 360.0f, float DistanceMin = 0.0f, float DistanceMax = 0.0f) const;
 	bool ProjectSpawnLocationToNavigation(const FVector& CandidateLocation, FVector& OutProjectedLocation) const;
 	bool IsSpawnLocationInsideArena(const FVector& Location) const;
 	bool IsSpawnLocationCollisionFree(const FVector& Location, TSubclassOf<AEnemyBase> EnemyClass) const;
 	void GetEnemyCapsuleDimensions(TSubclassOf<AEnemyBase> EnemyClass, float& OutRadius, float& OutHalfHeight) const;
 	int32 GetAliveEnemyCount();
-	float GetHealthMultiplier() const;
+	float GetHealthMultiplier(const FEnemySpawnEntry& SpawnEntry) const;
 	float GetDamageMultiplier() const;
 	float GetSpawnPressure() const;
 	float GetCurrentSpawnInterval() const;
@@ -286,15 +472,33 @@ protected:
 	float EvaluateDefaultHealthMultiplier() const;
 	float EvaluateDefaultDamageMultiplier() const;
 	float EvaluateDefaultSpawnPressure() const;
-	bool IsSpawnEntryEligible(const FEnemySpawnEntry& Entry, int32 RemainingBudget, bool bLogLimitFailures) const;
+	bool IsSpawnDefinitionUnlocked(const FEnemySpawnEntry& Entry) const;
+	bool IsClassCooldownActive(TSubclassOf<AEnemyBase> EnemyClass, float* OutRemainingSeconds = nullptr) const;
+	bool IsPopulationEntryEligible(const FEnemyPressurePhase& Phase, const FEnemyPopulationPhaseEntry& PopulationEntry) const;
+	bool IsTimedThreatEntryEligible(const FEnemyPressurePhase& Phase, const FEnemyPopulationPhaseEntry& PopulationEntry) const;
+	int32 GetTotalDesiredPopulation(const FEnemyPressurePhase& Phase) const;
+	float GetPopulationRatio(const FEnemyPressurePhase& Phase) const;
+	int32 GetCurrentPopulationBatchSize(const FEnemyPressurePhase& Phase) const;
 	int32 GetAliveCountForSpawnClass(TSubclassOf<AEnemyBase> EnemyClass) const;
 	void IncrementAliveCountForSpawnedEnemy(AEnemyBase* SpawnedEnemy, TSubclassOf<AEnemyBase> SpawnClass);
-	void DecrementAliveCountForDestroyedEnemy(AActor* DestroyedActor);
+	bool UnregisterLivingEnemy(AEnemyBase* Enemy);
 	void PruneTrackedEnemies();
+	void TrackEnemySpawnMetadata(AEnemyBase* Enemy, bool bEventMember);
+	bool RecycleLivingEnemy(AEnemyBase* Enemy);
+	void EvaluateSpatialPressure(bool bAllowRecycling, bool bForceLog);
+	int32 ChooseReplacementSector(const TArray<int32>& SectorCounts) const;
+	void DrawSpatialPressureDebug(const ACharacterBase* Player, const FVector& MovementDirection, const TArray<int32>& SectorCounts, const TArray<AEnemyBase*>& StaleEnemies) const;
 	void ApplyEnemySpawnModifierContexts(AEnemyBase* SpawnedEnemy);
+	void UpdateDirectionalBias();
+	void UpdateEventScheduler(const FEnemyPressurePhase* ActivePhase);
+	bool IsEventSelectable(const FEnemyPressureEventDefinition& Event, const FEnemyPressurePhase& Phase, FString* OutReason = nullptr, bool bIgnoreEventSchedule = false) const;
+	void StartPressureEvent(int32 EventIndex, const FEnemyPressurePhase& Phase);
+	void EmitNextEventMember();
+	void CompleteActiveEvent();
 	void HandleRunTimeTimerElapsed();
 	void HandleSpawnTimerElapsed();
 	void HandleDistantEnemyCheckTimerElapsed();
+	void HandleSpatialPressureTimerElapsed();
 	void RescheduleSpawnTimer();
 	void LogDirectorStatus() const;
 

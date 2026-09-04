@@ -27,6 +27,19 @@ static TAutoConsoleVariable<int32> CVarDebugEnemySpawnGround(
 	0,
 	TEXT("When set to 1, logs rejected enemy spawn ground hits and suspicious spawn Z changes."));
 
+static TAutoConsoleVariable<int32> CVarDebugPressureEvents(
+	TEXT("hd.DebugPressureEvents"), 0,
+	TEXT("Development only. Logs pressure-event starts/completions and draws their shared direction and arc."));
+
+#if !UE_BUILD_SHIPPING
+static TAutoConsoleVariable<int32> CVarDebugSpatialPressure(
+	TEXT("hd.DebugSpatialPressure"), 0,
+	TEXT("Draws movement, sectors, stale Grunts, and replacement choices for spatial pressure."));
+static TAutoConsoleVariable<int32> CVarLogSpatialPressure(
+	TEXT("hd.LogSpatialPressurePasses"), 0,
+	TEXT("Logs every automatic spatial-pressure evaluation when set to 1."));
+#endif
+
 static constexpr float EnemySpawnWalkableGroundNormalZ = 0.7f;
 static constexpr ECollisionChannel EnemySpawnGroundTraceChannel = ECC_GameTraceChannel2;
 
@@ -84,6 +97,40 @@ static void ClearStressEnemiesCommand(const TArray<FString>& Args, UWorld* World
 	UE_LOG(LogTemp, Warning, TEXT("hd.ClearStressEnemies failed: no AEnemySpawner found in world."));
 }
 
+static void LogSpawnDirectorCommand(const TArray<FString>& Args, UWorld* World)
+{
+	if (AEnemySpawner* Spawner = FindEnemySpawnerForDebugCommand(World))
+	{
+		Spawner->LogPressureDirectorStatus();
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("hd.LogPressureDirector failed: no AEnemySpawner found in world."));
+}
+
+static void TriggerPressureEventCommand(const TArray<FString>& Args, UWorld* World)
+{
+	AEnemySpawner* Spawner = FindEnemySpawnerForDebugCommand(World);
+	if (!Spawner || Args.Num() < 1)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Usage: hd.TriggerPressureEvent <EventName>"));
+		return;
+	}
+	Spawner->TriggerPressureEventByName(FName(*Args[0]));
+}
+
+static void LogSpatialPressureCommand(const TArray<FString>& Args, UWorld* World)
+{
+	if (AEnemySpawner* Spawner = FindEnemySpawnerForDebugCommand(World)) { Spawner->LogSpatialPressureStatus(); return; }
+	UE_LOG(LogTemp, Warning, TEXT("hd.LogSpatialPressure failed: no AEnemySpawner found in world."));
+}
+
+static void ForceSpatialPressureCommand(const TArray<FString>& Args, UWorld* World)
+{
+	if (AEnemySpawner* Spawner = FindEnemySpawnerForDebugCommand(World)) { Spawner->ForceSpatialPressurePass(); return; }
+	UE_LOG(LogTemp, Warning, TEXT("hd.ForceSpatialPressurePass failed: no AEnemySpawner found in world."));
+}
+
 static FAutoConsoleCommandWithWorldAndArgs GStressEnemiesCommand(
 	TEXT("hd.StressEnemies"),
 	TEXT("Development only. Sets the desired living stress-test enemy count. Usage: hd.StressEnemies 100"),
@@ -93,6 +140,23 @@ static FAutoConsoleCommandWithWorldAndArgs GClearStressEnemiesCommand(
 	TEXT("hd.ClearStressEnemies"),
 	TEXT("Development only. Destroys only enemies created by hd.StressEnemies."),
 	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&ClearStressEnemiesCommand));
+
+static FAutoConsoleCommandWithWorldAndArgs GLogSpawnDirectorCommand(
+	TEXT("hd.LogPressureDirector"),
+	TEXT("Development only. Logs the active authored phase and per-enemy population deficits."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&LogSpawnDirectorCommand));
+
+static FAutoConsoleCommandWithWorldAndArgs GTriggerPressureEventCommand(
+	TEXT("hd.TriggerPressureEvent"),
+	TEXT("Development only. Forces a configured event while preserving class cooldowns, caps, and spawn validation."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&TriggerPressureEventCommand));
+
+static FAutoConsoleCommandWithWorldAndArgs GLogSpatialPressureCommand(
+	TEXT("hd.LogSpatialPressure"), TEXT("Development only. Logs a dry-run spatial-pressure evaluation."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&LogSpatialPressureCommand));
+static FAutoConsoleCommandWithWorldAndArgs GForceSpatialPressureCommand(
+	TEXT("hd.ForceSpatialPressurePass"), TEXT("Development only. Immediately runs one spatial-pressure recycle evaluation."),
+	FConsoleCommandWithWorldAndArgsDelegate::CreateStatic(&ForceSpatialPressureCommand));
 #endif
 
 AEnemySpawner::AEnemySpawner()
@@ -103,6 +167,12 @@ AEnemySpawner::AEnemySpawner()
 void AEnemySpawner::BeginPlay()
 {
 	Super::BeginPlay();
+	NextEligibleSpawnTimeByClass.Empty();
+	NextEligibleEventTimeByName.Empty();
+	NextGlobalEventTime = 0.0f;
+	ActiveEventIndex = INDEX_NONE;
+	ActiveEventMembers.Empty();
+	DirectionalBiasEndRunTime = 0.0f;
 
 	if (RunTimeUpdateInterval > 0.0f)
 	{
@@ -112,6 +182,10 @@ void AEnemySpawner::BeginPlay()
 	if (DistantEnemyCheckInterval > 0.0f && MaxEnemyDistanceFromPlayer > 0.0f)
 	{
 		GetWorldTimerManager().SetTimer(DistantEnemyCheckTimerHandle, this, &AEnemySpawner::HandleDistantEnemyCheckTimerElapsed, DistantEnemyCheckInterval, true);
+	}
+	if (bEnableSpatialPressureRecycling && SpatialPressureEvaluationInterval > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(SpatialPressureTimerHandle, this, &AEnemySpawner::HandleSpatialPressureTimerElapsed, SpatialPressureEvaluationInterval, true);
 	}
 
 	if (bSpawningEnabled)
@@ -125,6 +199,8 @@ void AEnemySpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	StopSpawning();
 	GetWorldTimerManager().ClearTimer(RunTimeTimerHandle);
 	GetWorldTimerManager().ClearTimer(DistantEnemyCheckTimerHandle);
+	GetWorldTimerManager().ClearTimer(SpatialPressureTimerHandle);
+	GetWorldTimerManager().ClearTimer(EventMemberTimerHandle);
 #if !UE_BUILD_SHIPPING
 	GetWorldTimerManager().ClearTimer(StressSpawnTimerHandle);
 #endif
@@ -152,6 +228,11 @@ void AEnemySpawner::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	SpawnedEnemies.Empty();
 	AliveEnemyCountByClass.Empty();
 	CountedEnemyClassByEnemy.Empty();
+	EnemySpawnRunTimeByEnemy.Empty();
+	EventRecycleProtectionEndTimeByEnemy.Empty();
+	NextEligibleSpawnTimeByClass.Empty();
+	NextEligibleEventTimeByName.Empty();
+	ActiveEventMembers.Empty();
 	SpawnPressureModifiers.Empty();
 	EnemySpawnModifierContexts.Empty();
 
@@ -206,10 +287,12 @@ AEnemyBase* AEnemySpawner::SpawnEnemy()
 		return nullptr;
 	}
 
-	const FEnemySpawnEntry* SpawnEntry = ChooseSpawnEntry(GetCurrentSpawnBudget());
-	if (!SpawnEntry)
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase();
+	const FEnemyPopulationPhaseEntry* PopulationEntry = Phase ? ChooseDirectorEntry(*Phase) : nullptr;
+	const FEnemySpawnEntry* SpawnEntry = PopulationEntry ? FindSpawnDefinition(PopulationEntry->EnemyClass) : nullptr;
+	if (!Phase || !PopulationEntry || !SpawnEntry)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s has no valid enemy spawn entries."), *GetNameSafe(this));
+		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s has no positive population deficit to spawn."), *GetNameSafe(this));
 		return nullptr;
 	}
 
@@ -333,6 +416,10 @@ void AEnemySpawner::FreezeRunTime()
 
 	bRunTimeFrozen = true;
 	GetWorldTimerManager().ClearTimer(RunTimeTimerHandle);
+	GetWorldTimerManager().ClearTimer(SpatialPressureTimerHandle);
+	GetWorldTimerManager().ClearTimer(EventMemberTimerHandle);
+	ActiveEventIndex = INDEX_NONE;
+	ActiveEventMembers.Empty();
 }
 
 void AEnemySpawner::SetTrialSuspended(bool bSuspended)
@@ -348,6 +435,8 @@ void AEnemySpawner::SetTrialSuspended(bool bSuspended)
 		GetWorldTimerManager().PauseTimer(RunTimeTimerHandle);
 		GetWorldTimerManager().PauseTimer(SpawnTimerHandle);
 		GetWorldTimerManager().PauseTimer(DistantEnemyCheckTimerHandle);
+		GetWorldTimerManager().PauseTimer(SpatialPressureTimerHandle);
+		GetWorldTimerManager().PauseTimer(EventMemberTimerHandle);
 	}
 	else
 	{
@@ -357,6 +446,8 @@ void AEnemySpawner::SetTrialSuspended(bool bSuspended)
 		}
 		GetWorldTimerManager().UnPauseTimer(SpawnTimerHandle);
 		GetWorldTimerManager().UnPauseTimer(DistantEnemyCheckTimerHandle);
+		GetWorldTimerManager().UnPauseTimer(SpatialPressureTimerHandle);
+		GetWorldTimerManager().UnPauseTimer(EventMemberTimerHandle);
 	}
 
 	PruneTrackedEnemies();
@@ -484,7 +575,25 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 		return nullptr;
 	}
 
-	if (!IsSpawnEntryEligible(SpawnEntry, GetCurrentSpawnBudget(), true))
+	if (!IsSpawnDefinitionUnlocked(SpawnEntry))
+	{
+		return nullptr;
+	}
+
+	const FEnemyPressurePhase* ActivePhase = ResolveActivePressurePhase();
+	const FEnemyPopulationPhaseEntry* ActivePopulationEntry = nullptr;
+	if (ActivePhase)
+	{
+		ActivePopulationEntry = ActivePhase->EnemyPopulationEntries.FindByPredicate([&SpawnEntry](const FEnemyPopulationPhaseEntry& Entry)
+		{
+			return Entry.EnemyClass == SpawnEntry.EnemyClass;
+		});
+	}
+	const bool bActiveEntryEligible = ActivePhase && ActivePopulationEntry
+		&& (SpawnEntry.PressureSpawnMode == EEnemyPressureSpawnMode::TimedThreat
+			? IsTimedThreatEntryEligible(*ActivePhase, *ActivePopulationEntry)
+			: IsPopulationEntryEligible(*ActivePhase, *ActivePopulationEntry));
+	if (!bActiveEntryEligible)
 	{
 		return nullptr;
 	}
@@ -497,7 +606,11 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 	}
 
 	FVector SpawnLocation;
-	if (!FindSpawnLocation(ActivePlayer->GetActorLocation(), SpawnEntry.EnemyClass, SpawnLocation))
+	const bool bUseBias = SpawnEntry.PressureSpawnMode == EEnemyPressureSpawnMode::MaintainPopulation
+		&& bDirectionalBiasEnabled && RunTimeSeconds < DirectionalBiasEndRunTime
+		&& FMath::FRand() < FMath::Clamp(DirectionalBiasChance, 0.0f, 1.0f);
+	if (!FindSpawnLocation(ActivePlayer->GetActorLocation(), SpawnEntry.EnemyClass, SpawnLocation,
+		bUseBias, DirectionalBiasAngleDegrees, DirectionalBiasArcDegrees, MinSpawnDistance, MaxSpawnDistance))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s could not find a valid spawn location."), *GetNameSafe(this));
 		return nullptr;
@@ -525,7 +638,7 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 	}
 
 	SpawnedEnemy->SpawnDefaultController();
-	SpawnedEnemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(), GetDamageMultiplier());
+	SpawnedEnemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(SpawnEntry), GetDamageMultiplier());
 	ApplyEnemySpawnModifierContexts(SpawnedEnemy);
 	if (SpawnedEnemy->IsBloodbound())
 	{
@@ -535,6 +648,7 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 	SpawnedEnemy->OnEnemyDied.AddUniqueDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDied);
 	SpawnedEnemies.Add(SpawnedEnemy);
 	IncrementAliveCountForSpawnedEnemy(SpawnedEnemy, SpawnEntry.EnemyClass);
+	TrackEnemySpawnMetadata(SpawnedEnemy, false);
 
 	if (bDebugSpawning)
 	{
@@ -545,12 +659,71 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 			GetAliveEnemyCount(),
 			CurrentMaxAliveEnemies,
 			AliveOfType,
-			SpawnEntry.MaxAliveOfThisType);
+			0);
 
 		DrawDebugSphere(GetWorld(), SpawnLocation, 40.0f, 16, FColor::Red, false, 2.0f, 0, 2.0f);
 	}
 
 	return SpawnedEnemy;
+}
+
+AEnemyBase* AEnemySpawner::SpawnEventEnemy(TSubclassOf<AEnemyBase> EnemyClass, int32 ClassOverflowAllowance)
+{
+	if (!EnemyClass || !PressureEvents.IsValidIndex(ActiveEventIndex) || GetAliveEnemyCount() >= ActiveEventOverflowCap)
+	{
+		return nullptr;
+	}
+
+	const FEnemyPressureEventDefinition& Event = PressureEvents[ActiveEventIndex];
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase();
+	const FEnemySpawnEntry* Definition = FindSpawnDefinition(EnemyClass);
+	const FEnemyPopulationPhaseEntry* Population = Phase ? Phase->EnemyPopulationEntries.FindByPredicate([EnemyClass](const FEnemyPopulationPhaseEntry& Entry)
+	{
+		return Entry.EnemyClass == EnemyClass;
+	}) : nullptr;
+	if (!Phase || !Definition || !Population || !IsSpawnDefinitionUnlocked(*Definition))
+	{
+		return nullptr;
+	}
+	if (!Event.bIgnoreThreatDeathCooldown && IsClassCooldownActive(EnemyClass))
+	{
+		return nullptr;
+	}
+	const int32 AllowedClassMax = Population->MaxPopulation + (Event.bAllowTemporaryPopulationOverflow ? FMath::Max(0, ClassOverflowAllowance) : 0);
+	if (AllowedClassMax <= 0 || GetAliveCountForSpawnClass(EnemyClass) >= AllowedClassMax)
+	{
+		return nullptr;
+	}
+
+	ACharacterBase* ActivePlayer = GetActivePlayerCharacter();
+	FVector SpawnLocation;
+	if (!ActivePlayer || !FindSpawnLocation(ActivePlayer->GetActorLocation(), EnemyClass, SpawnLocation, true,
+		ActiveEventDirectionAngle, Event.SpawnArcDegrees, Event.SpawnDistanceMin, Event.SpawnDistanceMax))
+	{
+		return nullptr;
+	}
+
+	FActorSpawnParameters Parameters;
+	Parameters.Owner = this;
+	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	AEnemyBase* Enemy = GetWorld()->SpawnActor<AEnemyBase>(EnemyClass, SpawnLocation, FRotator::ZeroRotator, Parameters);
+	if (!Enemy)
+	{
+		return nullptr;
+	}
+	Enemy->SpawnDefaultController();
+	Enemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(*Definition), GetDamageMultiplier());
+	ApplyEnemySpawnModifierContexts(Enemy);
+	if (Enemy->IsBloodbound())
+	{
+		OnEnemyBecameBloodbound.Broadcast(Enemy);
+	}
+	Enemy->OnDestroyed.AddDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
+	Enemy->OnEnemyDied.AddUniqueDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDied);
+	SpawnedEnemies.Add(Enemy);
+	IncrementAliveCountForSpawnedEnemy(Enemy, EnemyClass);
+	TrackEnemySpawnMetadata(Enemy, true);
+	return Enemy;
 }
 
 ACharacterBase* AEnemySpawner::GetActivePlayerCharacter() const
@@ -570,41 +743,144 @@ ACharacterBase* AEnemySpawner::GetActivePlayerCharacter() const
 	return CharacterManager->GetActiveCharacter();
 }
 
-const FEnemySpawnEntry* AEnemySpawner::ChooseSpawnEntry(int32 RemainingBudget) const
+const FEnemyPressurePhase* AEnemySpawner::ResolveActivePressurePhase(int32* OutPhaseIndex, bool bLogWarnings) const
 {
-	float TotalWeight = 0.0f;
-	for (const FEnemySpawnEntry& Entry : EnemySpawnEntries)
+	if (OutPhaseIndex)
 	{
-		if (IsSpawnEntryEligible(Entry, RemainingBudget, true))
+		*OutPhaseIndex = INDEX_NONE;
+	}
+
+	const FEnemyPressurePhase* ResolvedPhase = nullptr;
+	int32 ResolvedIndex = INDEX_NONE;
+	int32 MatchCount = 0;
+	for (int32 Index = 0; Index < PressurePhases.Num(); ++Index)
+	{
+		const FEnemyPressurePhase& Phase = PressurePhases[Index];
+		const bool bValidRange = Phase.StartTimeSeconds >= 0.0f
+			&& (Phase.EndTimeSeconds <= 0.0f || Phase.EndTimeSeconds > Phase.StartTimeSeconds);
+		const bool bContainsTime = bValidRange
+			&& RunTimeSeconds >= Phase.StartTimeSeconds
+			&& (Phase.EndTimeSeconds <= 0.0f || RunTimeSeconds < Phase.EndTimeSeconds);
+		if (bContainsTime)
 		{
-			TotalWeight += Entry.SpawnWeight;
+			++MatchCount;
+			if (!ResolvedPhase)
+			{
+				ResolvedPhase = &Phase;
+				ResolvedIndex = Index;
+			}
 		}
 	}
 
-	if (TotalWeight <= 0.0f)
+	if (MatchCount == 1)
+	{
+		if (OutPhaseIndex)
+		{
+			*OutPhaseIndex = ResolvedIndex;
+		}
+		return ResolvedPhase;
+	}
+
+	const int32 CurrentSecond = FMath::FloorToInt(RunTimeSeconds);
+	if (bLogWarnings && LastInvalidPhaseWarningSecond != CurrentSecond)
+	{
+		LastInvalidPhaseWarningSecond = CurrentSecond;
+		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s found %d pressure phases at RunTime=%.2f. Expected exactly one; normal spawning is paused safely."),
+			*GetNameSafe(this), MatchCount, RunTimeSeconds);
+	}
+	return nullptr;
+}
+
+const FEnemySpawnEntry* AEnemySpawner::FindSpawnDefinition(TSubclassOf<AEnemyBase> EnemyClass) const
+{
+	for (const FEnemySpawnEntry& Entry : EnemySpawnEntries)
+	{
+		if (Entry.EnemyClass == EnemyClass)
+		{
+			return &Entry;
+		}
+	}
+	return nullptr;
+}
+
+const FEnemyPopulationPhaseEntry* AEnemySpawner::ChoosePopulationDeficitEntry(const FEnemyPressurePhase& Phase) const
+{
+	float TotalPriority = 0.0f;
+	for (const FEnemyPopulationPhaseEntry& Entry : Phase.EnemyPopulationEntries)
+	{
+		if (IsPopulationEntryEligible(Phase, Entry))
+		{
+			const int32 Deficit = Entry.DesiredPopulation - GetAliveCountForSpawnClass(Entry.EnemyClass);
+			TotalPriority += static_cast<float>(Deficit) * Entry.RefillPriority;
+		}
+	}
+
+	if (TotalPriority <= 0.0f)
 	{
 		return nullptr;
 	}
 
-	float Roll = FMath::FRandRange(0.0f, TotalWeight);
-	for (const FEnemySpawnEntry& Entry : EnemySpawnEntries)
+	float Roll = FMath::FRandRange(0.0f, TotalPriority);
+	for (const FEnemyPopulationPhaseEntry& Entry : Phase.EnemyPopulationEntries)
 	{
-		if (!IsSpawnEntryEligible(Entry, RemainingBudget, false))
+		if (!IsPopulationEntryEligible(Phase, Entry))
 		{
 			continue;
 		}
-
-		Roll -= Entry.SpawnWeight;
+		Roll -= static_cast<float>(Entry.DesiredPopulation - GetAliveCountForSpawnClass(Entry.EnemyClass)) * Entry.RefillPriority;
 		if (Roll <= 0.0f)
 		{
 			return &Entry;
 		}
 	}
-
 	return nullptr;
 }
 
-bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutSpawnLocation) const
+const FEnemyPopulationPhaseEntry* AEnemySpawner::ChooseTimedThreatEntry(const FEnemyPressurePhase& Phase) const
+{
+	float TotalPriority = 0.0f;
+	for (const FEnemyPopulationPhaseEntry& Entry : Phase.EnemyPopulationEntries)
+	{
+		if (IsTimedThreatEntryEligible(Phase, Entry))
+		{
+			TotalPriority += FMath::Max(0.0f, Entry.RefillPriority);
+		}
+	}
+
+	if (TotalPriority <= 0.0f)
+	{
+		return nullptr;
+	}
+
+	float Roll = FMath::FRandRange(0.0f, TotalPriority);
+	for (const FEnemyPopulationPhaseEntry& Entry : Phase.EnemyPopulationEntries)
+	{
+		if (!IsTimedThreatEntryEligible(Phase, Entry))
+		{
+			continue;
+		}
+		Roll -= FMath::Max(0.0f, Entry.RefillPriority);
+		if (Roll <= 0.0f)
+		{
+			return &Entry;
+		}
+	}
+	return nullptr;
+}
+
+const FEnemyPopulationPhaseEntry* AEnemySpawner::ChooseDirectorEntry(const FEnemyPressurePhase& Phase) const
+{
+	const FEnemyPopulationPhaseEntry* MaintainedEntry = ChoosePopulationDeficitEntry(Phase);
+	const FEnemyPopulationPhaseEntry* ThreatEntry = ChooseTimedThreatEntry(Phase);
+	if (ThreatEntry && (!MaintainedEntry || FMath::FRand() < FMath::Clamp(TimedThreatSpawnSlotChance, 0.0f, 1.0f)))
+	{
+		return ThreatEntry;
+	}
+	return MaintainedEntry;
+}
+
+bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutSpawnLocation,
+	bool bUseDirectionalArc, float DirectionAngleDegrees, float ArcDegrees, float DistanceMin, float DistanceMax) const
 {
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemySpawner_FindSpawnLocation);
 	const int32 AttemptCount = FMath::Max(1, MaxSpawnLocationAttempts);
@@ -619,7 +895,8 @@ bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubc
 	for (int32 Attempt = 0; Attempt < AttemptCount; ++Attempt)
 	{
 		FVector CandidateLocation;
-		if (!GenerateCandidateSpawnLocation(ActivePlayerLocation, Attempt, AttemptCount, CandidateLocation))
+		if (!GenerateCandidateSpawnLocation(ActivePlayerLocation, Attempt, AttemptCount, CandidateLocation,
+			bUseDirectionalArc, DirectionAngleDegrees, ArcDegrees, DistanceMin, DistanceMax))
 		{
 			++CandidateFailures;
 			continue;
@@ -686,8 +963,21 @@ bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubc
 	return false;
 }
 
-bool AEnemySpawner::GenerateCandidateSpawnLocation(const FVector& ActivePlayerLocation, int32 AttemptIndex, int32 AttemptCount, FVector& OutCandidateLocation) const
+bool AEnemySpawner::GenerateCandidateSpawnLocation(const FVector& ActivePlayerLocation, int32 AttemptIndex, int32 AttemptCount, FVector& OutCandidateLocation,
+	bool bUseDirectionalArc, float DirectionAngleDegrees, float ArcDegrees, float DistanceMin, float DistanceMax) const
 {
+	const int32 DirectionalAttemptCount = bUseDirectionalArc ? FMath::Max(1, FMath::CeilToInt(AttemptCount * 0.7f)) : 0;
+	if (bUseDirectionalArc && AttemptIndex < DirectionalAttemptCount)
+	{
+		const float SafeMinDistance = DistanceMin > 0.0f ? DistanceMin : MinSpawnDistance;
+		const float SafeMaxDistance = DistanceMax > 0.0f ? DistanceMax : MaxSpawnDistance;
+		const float AngleDegrees = DirectionAngleDegrees + FMath::FRandRange(-FMath::Abs(ArcDegrees) * 0.5f, FMath::Abs(ArcDegrees) * 0.5f);
+		const float AngleRadians = FMath::DegreesToRadians(AngleDegrees);
+		const float Distance = FMath::FRandRange(FMath::Min(SafeMinDistance, SafeMaxDistance), FMath::Max(SafeMinDistance, SafeMaxDistance));
+		OutCandidateLocation = ActivePlayerLocation + FVector(FMath::Cos(AngleRadians) * Distance, FMath::Sin(AngleRadians) * Distance, 0.0f);
+		return true;
+	}
+
 	const bool bUseAreaCandidate = ActiveSpawnArea
 		&& bUseSpawnAreaFallbackCandidates
 		&& AttemptIndex >= FMath::Max(1, AttemptCount / 2);
@@ -885,9 +1175,9 @@ int32 AEnemySpawner::GetAliveEnemyCount()
 	return AliveCount;
 }
 
-float AEnemySpawner::GetHealthMultiplier() const
+float AEnemySpawner::GetHealthMultiplier(const FEnemySpawnEntry& SpawnEntry) const
 {
-	return HealthMultiplierCurve ? FMath::Max(0.0f, HealthMultiplierCurve->GetFloatValue(RunTimeSeconds)) : EvaluateDefaultHealthMultiplier();
+	return 1.0f + FMath::Max(0.0f, SpawnEntry.HealthScalingPerMinute) * FMath::Max(0.0f, GetRunTimeMinutes());
 }
 
 float AEnemySpawner::GetDamageMultiplier() const
@@ -902,20 +1192,29 @@ float AEnemySpawner::GetSpawnPressure() const
 
 float AEnemySpawner::GetCurrentSpawnInterval() const
 {
-	const float Pressure = FMath::Max(0.1f, GetEffectiveSpawnPressure());
-	return FMath::Max(MinSpawnInterval, BaseSpawnInterval / Pressure);
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase(nullptr, false);
+	if (!Phase || GetTotalDesiredPopulation(*Phase) <= 0)
+	{
+		return 0.0f;
+	}
+
+	const float Ratio = GetPopulationRatio(*Phase);
+	const float PhaseInterval = Ratio < 0.5f
+		? Phase->EmergencySpawnInterval
+		: (Ratio < 0.8f ? Phase->AcceleratedSpawnInterval : Phase->NormalSpawnInterval);
+	return FMath::Max(0.01f, PhaseInterval / FMath::Max(0.01f, GetSpawnPressureModifierProduct()));
 }
 
 int32 AEnemySpawner::GetCurrentEnemiesPerSpawn() const
 {
-	const float Pressure = GetEffectiveSpawnPressure();
-	return FMath::Clamp(FMath::RoundToInt(BaseEnemiesPerSpawn * FMath::Sqrt(FMath::Max(1.0f, Pressure))), 1, MaxEnemiesPerSpawn);
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase(nullptr, false);
+	return Phase ? GetCurrentPopulationBatchSize(*Phase) : 0;
 }
 
 int32 AEnemySpawner::GetCurrentMaxAliveEnemies() const
 {
-	const float Pressure = GetEffectiveSpawnPressure();
-	return FMath::Clamp(FMath::RoundToInt(BaseMaxAliveEnemies * Pressure), 1, MaximumAliveEnemies);
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase(nullptr, false);
+	return Phase ? FMath::Clamp(Phase->GlobalMaxAlive, 0, FMath::Max(1, AbsoluteHardAliveCap)) : 0;
 }
 
 int32 AEnemySpawner::GetCurrentSpawnBudget() const
@@ -957,33 +1256,100 @@ float AEnemySpawner::EvaluateDefaultSpawnPressure() const
 	return FMath::Lerp(2.15f, 3.35f, FMath::Clamp((Minutes - 5.0f) / 5.0f, 0.0f, 1.0f));
 }
 
-bool AEnemySpawner::IsSpawnEntryEligible(const FEnemySpawnEntry& Entry, int32 RemainingBudget, bool bLogLimitFailures) const
+bool AEnemySpawner::IsSpawnDefinitionUnlocked(const FEnemySpawnEntry& Entry) const
 {
 	const bool bTimeAllowed = RunTimeSeconds >= Entry.MinimumRunTime
-		&& (Entry.MaximumRunTime <= 0.0f || RunTimeSeconds <= Entry.MaximumRunTime);
-	const bool bBudgetAllowed = Entry.SpawnCost <= FMath::Max(1, RemainingBudget);
-	if (!Entry.bEnabled || !Entry.EnemyClass || Entry.SpawnWeight <= 0.0f || !bTimeAllowed || !bBudgetAllowed)
+		&& (Entry.MaximumRunTime <= 0.0f || RunTimeSeconds < Entry.MaximumRunTime);
+	return Entry.bEnabled && Entry.EnemyClass && bTimeAllowed;
+}
+
+bool AEnemySpawner::IsClassCooldownActive(TSubclassOf<AEnemyBase> EnemyClass, float* OutRemainingSeconds) const
+{
+	const float* NextEligibleTime = EnemyClass ? NextEligibleSpawnTimeByClass.Find(EnemyClass.Get()) : nullptr;
+	const float Remaining = NextEligibleTime ? FMath::Max(0.0f, *NextEligibleTime - RunTimeSeconds) : 0.0f;
+	if (OutRemainingSeconds)
+	{
+		*OutRemainingSeconds = Remaining;
+	}
+	return Remaining > 0.0f;
+}
+
+bool AEnemySpawner::IsPopulationEntryEligible(const FEnemyPressurePhase& Phase, const FEnemyPopulationPhaseEntry& PopulationEntry) const
+{
+	if (!PopulationEntry.EnemyClass || PopulationEntry.DesiredPopulation <= 0
+		|| PopulationEntry.MaxPopulation <= 0 || PopulationEntry.RefillPriority <= 0.0f)
 	{
 		return false;
 	}
 
-	if (Entry.MaxAliveOfThisType > 0)
+	const FEnemySpawnEntry* SpawnDefinition = FindSpawnDefinition(PopulationEntry.EnemyClass);
+	if (!SpawnDefinition || SpawnDefinition->PressureSpawnMode != EEnemyPressureSpawnMode::MaintainPopulation
+		|| !IsSpawnDefinitionUnlocked(*SpawnDefinition) || IsClassCooldownActive(PopulationEntry.EnemyClass))
 	{
-		const int32 AliveOfType = GetAliveCountForSpawnClass(Entry.EnemyClass);
-		if (AliveOfType >= Entry.MaxAliveOfThisType)
-		{
-			if (bLogLimitFailures && bDebugSpawning)
-			{
-				UE_LOG(LogTemp, Log, TEXT("EnemySpawner skipped %s: alive of type %d / max %d"),
-					*GetNameSafe(Entry.EnemyClass.Get()),
-					AliveOfType,
-					Entry.MaxAliveOfThisType);
-			}
-			return false;
-		}
+		return false;
 	}
 
-	return true;
+	const int32 AliveOfType = GetAliveCountForSpawnClass(PopulationEntry.EnemyClass);
+	return AliveOfType < PopulationEntry.DesiredPopulation && AliveOfType < PopulationEntry.MaxPopulation;
+}
+
+bool AEnemySpawner::IsTimedThreatEntryEligible(const FEnemyPressurePhase& Phase, const FEnemyPopulationPhaseEntry& PopulationEntry) const
+{
+	if (!PopulationEntry.EnemyClass || PopulationEntry.MaxPopulation <= 0 || PopulationEntry.RefillPriority <= 0.0f)
+	{
+		return false;
+	}
+
+	const FEnemySpawnEntry* SpawnDefinition = FindSpawnDefinition(PopulationEntry.EnemyClass);
+	if (!SpawnDefinition || SpawnDefinition->PressureSpawnMode != EEnemyPressureSpawnMode::TimedThreat
+		|| !IsSpawnDefinitionUnlocked(*SpawnDefinition) || IsClassCooldownActive(PopulationEntry.EnemyClass))
+	{
+		return false;
+	}
+
+	return GetAliveCountForSpawnClass(PopulationEntry.EnemyClass) < PopulationEntry.MaxPopulation;
+}
+
+int32 AEnemySpawner::GetTotalDesiredPopulation(const FEnemyPressurePhase& Phase) const
+{
+	int32 TotalDesired = 0;
+	for (const FEnemyPopulationPhaseEntry& Entry : Phase.EnemyPopulationEntries)
+	{
+		const FEnemySpawnEntry* SpawnDefinition = FindSpawnDefinition(Entry.EnemyClass);
+		if (Entry.EnemyClass && Entry.DesiredPopulation > 0 && Entry.MaxPopulation > 0
+			&& SpawnDefinition && SpawnDefinition->PressureSpawnMode == EEnemyPressureSpawnMode::MaintainPopulation
+			&& IsSpawnDefinitionUnlocked(*SpawnDefinition))
+		{
+			TotalDesired += FMath::Min(Entry.DesiredPopulation, Entry.MaxPopulation);
+		}
+	}
+	return TotalDesired;
+}
+
+float AEnemySpawner::GetPopulationRatio(const FEnemyPressurePhase& Phase) const
+{
+	const int32 TotalDesired = GetTotalDesiredPopulation(Phase);
+	if (TotalDesired <= 0)
+	{
+		return 1.0f;
+	}
+	int32 LivingCount = 0;
+	for (const FEnemyPopulationPhaseEntry& Entry : Phase.EnemyPopulationEntries)
+	{
+		const FEnemySpawnEntry* SpawnDefinition = FindSpawnDefinition(Entry.EnemyClass);
+		if (SpawnDefinition && SpawnDefinition->PressureSpawnMode == EEnemyPressureSpawnMode::MaintainPopulation
+			&& IsSpawnDefinitionUnlocked(*SpawnDefinition))
+		{
+			LivingCount += GetAliveCountForSpawnClass(Entry.EnemyClass);
+		}
+	}
+	return static_cast<float>(LivingCount) / static_cast<float>(TotalDesired);
+}
+
+int32 AEnemySpawner::GetCurrentPopulationBatchSize(const FEnemyPressurePhase& Phase) const
+{
+	const float Ratio = GetPopulationRatio(Phase);
+	return FMath::Max(1, Ratio < 0.5f ? EmergencyMaxBatchSize : (Ratio < 0.8f ? AcceleratedMaxBatchSize : NormalMaxBatchSize));
 }
 
 int32 AEnemySpawner::GetAliveCountForSpawnClass(TSubclassOf<AEnemyBase> EnemyClass) const
@@ -1010,24 +1376,25 @@ void AEnemySpawner::IncrementAliveCountForSpawnedEnemy(AEnemyBase* SpawnedEnemy,
 	CountedEnemyClassByEnemy.FindOrAdd(TObjectKey<AEnemyBase>(SpawnedEnemy)) = CountedClass;
 }
 
-void AEnemySpawner::DecrementAliveCountForDestroyedEnemy(AActor* DestroyedActor)
+bool AEnemySpawner::UnregisterLivingEnemy(AEnemyBase* Enemy)
 {
-	AEnemyBase* DestroyedEnemy = Cast<AEnemyBase>(DestroyedActor);
-	if (!DestroyedEnemy)
+	if (!Enemy)
 	{
-		return;
+		return false;
 	}
 
 	UClass* CountedClass = nullptr;
-	if (!CountedEnemyClassByEnemy.RemoveAndCopyValue(TObjectKey<AEnemyBase>(DestroyedEnemy), CountedClass) || !CountedClass)
+	if (!CountedEnemyClassByEnemy.RemoveAndCopyValue(TObjectKey<AEnemyBase>(Enemy), CountedClass) || !CountedClass)
 	{
-		return;
+		return false;
 	}
+	EnemySpawnRunTimeByEnemy.Remove(TObjectKey<AEnemyBase>(Enemy));
+	EventRecycleProtectionEndTimeByEnemy.Remove(TObjectKey<AEnemyBase>(Enemy));
 
 	int32* AliveCount = AliveEnemyCountByClass.Find(CountedClass);
 	if (!AliveCount)
 	{
-		return;
+		return true;
 	}
 
 	*AliveCount = FMath::Max(0, *AliveCount - 1);
@@ -1035,14 +1402,267 @@ void AEnemySpawner::DecrementAliveCountForDestroyedEnemy(AActor* DestroyedActor)
 	{
 		AliveEnemyCountByClass.Remove(CountedClass);
 	}
+	return true;
 }
 
 void AEnemySpawner::PruneTrackedEnemies()
 {
+	for (auto It = CountedEnemyClassByEnemy.CreateIterator(); It; ++It)
+	{
+		AEnemyBase* Enemy = It.Key().ResolveObjectPtr();
+		if (!IsValid(Enemy) || Enemy->IsDead() || Enemy->IsActorBeingDestroyed())
+		{
+			UClass* CountedClass = It.Value();
+			It.RemoveCurrent();
+			if (int32* AliveCount = AliveEnemyCountByClass.Find(CountedClass))
+			{
+				*AliveCount = FMath::Max(0, *AliveCount - 1);
+				if (*AliveCount == 0)
+				{
+					AliveEnemyCountByClass.Remove(CountedClass);
+				}
+			}
+		}
+	}
 	SpawnedEnemies.RemoveAll([](const TWeakObjectPtr<AEnemyBase>& EnemyPtr)
 	{
 		return !EnemyPtr.IsValid();
 	});
+	for (auto It = EnemySpawnRunTimeByEnemy.CreateIterator(); It; ++It)
+	{
+		if (!IsValid(It.Key().ResolveObjectPtr())) { EventRecycleProtectionEndTimeByEnemy.Remove(It.Key()); It.RemoveCurrent(); }
+	}
+}
+
+void AEnemySpawner::TrackEnemySpawnMetadata(AEnemyBase* Enemy, bool bEventMember)
+{
+	if (!Enemy) return;
+	const TObjectKey<AEnemyBase> Key(Enemy);
+	EnemySpawnRunTimeByEnemy.FindOrAdd(Key) = RunTimeSeconds;
+	if (bEventMember)
+	{
+		EventRecycleProtectionEndTimeByEnemy.FindOrAdd(Key) = RunTimeSeconds + FMath::Max(0.0f, EventGruntRecycleProtectionSeconds);
+	}
+}
+
+bool AEnemySpawner::RecycleLivingEnemy(AEnemyBase* Enemy)
+{
+	if (!Enemy || Enemy->IsDead() || Enemy->IsActorBeingDestroyed() || !UnregisterLivingEnemy(Enemy)) return false;
+	Enemy->OnEnemyDied.RemoveDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDied);
+	Enemy->OnDestroyed.RemoveDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
+	SpawnedEnemies.RemoveAll([Enemy](const TWeakObjectPtr<AEnemyBase>& Ptr) { return !Ptr.IsValid() || Ptr.Get() == Enemy; });
+	Enemy->SetActorEnableCollision(false);
+	Enemy->SetActorHiddenInGame(true);
+	Enemy->Destroy();
+	return true;
+}
+
+void AEnemySpawner::UpdateDirectionalBias()
+{
+	if (!bDirectionalBiasEnabled)
+	{
+		return;
+	}
+	if (RunTimeSeconds >= DirectionalBiasEndRunTime)
+	{
+		DirectionalBiasAngleDegrees = FMath::FRandRange(0.0f, 360.0f);
+		const float MinDuration = FMath::Min(DirectionalBiasDurationMin, DirectionalBiasDurationMax);
+		const float MaxDuration = FMath::Max(DirectionalBiasDurationMin, DirectionalBiasDurationMax);
+		DirectionalBiasEndRunTime = RunTimeSeconds + FMath::FRandRange(FMath::Max(0.1f, MinDuration), FMath::Max(0.1f, MaxDuration));
+	}
+}
+
+bool AEnemySpawner::IsEventSelectable(const FEnemyPressureEventDefinition& Event, const FEnemyPressurePhase& Phase, FString* OutReason, bool bIgnoreEventSchedule) const
+{
+	auto Fail = [OutReason](const TCHAR* Reason) { if (OutReason) { *OutReason = Reason; } return false; };
+	if (!bIgnoreEventSchedule && !Phase.bEventsEnabled) return Fail(TEXT("phase events disabled"));
+	if (!Event.bEnabled || Event.EventName.IsNone() || Event.Weight <= 0.0f) return Fail(TEXT("disabled/invalid"));
+	if (!bIgnoreEventSchedule && (RunTimeSeconds < FMath::Max(120.0f, Event.MinimumRunTime)
+		|| (Event.MaximumRunTime > 0.0f && RunTimeSeconds >= Event.MaximumRunTime))) return Fail(TEXT("outside time window"));
+	if (!bIgnoreEventSchedule)
+	{
+		if (const float* EligibleTime = NextEligibleEventTimeByName.Find(Event.EventName); EligibleTime && RunTimeSeconds < *EligibleTime) return Fail(TEXT("event cooldown"));
+	}
+	if (Event.EnemyEntries.Num() == 0) return Fail(TEXT("no members"));
+
+	int32 RequestedMembers = 0;
+	for (const FEnemyPressureEventEnemyEntry& EventEntry : Event.EnemyEntries)
+	{
+		const FEnemySpawnEntry* Definition = FindSpawnDefinition(EventEntry.EnemyClass);
+		const FEnemyPopulationPhaseEntry* Population = Phase.EnemyPopulationEntries.FindByPredicate([&EventEntry](const FEnemyPopulationPhaseEntry& Entry)
+		{
+			return Entry.EnemyClass == EventEntry.EnemyClass;
+		});
+		if (!Definition || !Population || !IsSpawnDefinitionUnlocked(*Definition)) return Fail(TEXT("required class unavailable"));
+		if (!Event.bIgnoreThreatDeathCooldown && IsClassCooldownActive(EventEntry.EnemyClass)) return Fail(TEXT("required class cooldown"));
+		const int32 Allowance = Event.bAllowTemporaryPopulationOverflow ? FMath::Max(0, EventEntry.ClassOverflowAllowance) : 0;
+		if (Population->MaxPopulation <= 0 || GetAliveCountForSpawnClass(EventEntry.EnemyClass) + EventEntry.Count > Population->MaxPopulation + Allowance)
+			return Fail(TEXT("class capacity"));
+		RequestedMembers += FMath::Max(0, EventEntry.Count);
+	}
+	const int32 EventCap = FMath::Min(Phase.GlobalMaxAlive + (Event.bAllowTemporaryPopulationOverflow ? FMath::Max(0, Event.EventPopulationOverflowAllowance) : 0), AbsoluteHardAliveCap);
+	int32 CurrentLiving = 0;
+	for (const TPair<UClass*, int32>& Pair : AliveEnemyCountByClass) CurrentLiving += FMath::Max(0, Pair.Value);
+	if (CurrentLiving + RequestedMembers > EventCap) return Fail(TEXT("global/event capacity"));
+	if (OutReason) *OutReason = TEXT("selectable");
+	return true;
+}
+
+void AEnemySpawner::UpdateEventScheduler(const FEnemyPressurePhase* ActivePhase)
+{
+	if (!ActivePhase || ActiveEventIndex != INDEX_NONE || !ActivePhase->bEventsEnabled || RunTimeSeconds < 120.0f)
+	{
+		return;
+	}
+	if (NextGlobalEventTime <= 0.0f)
+	{
+		const float MinInterval = FMath::Min(ActivePhase->EventIntervalMin, ActivePhase->EventIntervalMax);
+		const float MaxInterval = FMath::Max(ActivePhase->EventIntervalMin, ActivePhase->EventIntervalMax);
+		NextGlobalEventTime = RunTimeSeconds + FMath::FRandRange(MinInterval, MaxInterval);
+		return;
+	}
+	if (RunTimeSeconds < NextGlobalEventTime)
+	{
+		return;
+	}
+
+	TArray<int32> EligibleIndices;
+	float TotalWeight = 0.0f;
+	for (int32 Index = 0; Index < PressureEvents.Num(); ++Index)
+	{
+		if (IsEventSelectable(PressureEvents[Index], *ActivePhase))
+		{
+			EligibleIndices.Add(Index);
+		}
+	}
+	const bool bHasAlternative = EligibleIndices.ContainsByPredicate([this](int32 Index) { return PressureEvents[Index].EventName != LastCompletedEventName; });
+	for (int32 Index : EligibleIndices)
+	{
+		if (!bHasAlternative || PressureEvents[Index].EventName != LastCompletedEventName) TotalWeight += PressureEvents[Index].Weight;
+	}
+	if (TotalWeight <= 0.0f)
+	{
+		NextGlobalEventTime = RunTimeSeconds + 1.0f;
+		return;
+	}
+	float Roll = FMath::FRandRange(0.0f, TotalWeight);
+	for (int32 Index : EligibleIndices)
+	{
+		if (bHasAlternative && PressureEvents[Index].EventName == LastCompletedEventName) continue;
+		Roll -= PressureEvents[Index].Weight;
+		if (Roll <= 0.0f) { StartPressureEvent(Index, *ActivePhase); return; }
+	}
+}
+
+#if !UE_BUILD_SHIPPING
+void AEnemySpawner::TriggerPressureEventByName(FName EventName)
+{
+	if (ActiveEventIndex != INDEX_NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PressureEvent] FORCE %s rejected: event %s is already active."),
+			*EventName.ToString(), *PressureEvents[ActiveEventIndex].EventName.ToString());
+		return;
+	}
+	const int32 EventIndex = PressureEvents.IndexOfByPredicate([EventName](const FEnemyPressureEventDefinition& Event) { return Event.EventName == EventName; });
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase();
+	if (!PressureEvents.IsValidIndex(EventIndex) || !Phase)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PressureEvent] FORCE %s rejected: unknown event or invalid phase."), *EventName.ToString());
+		return;
+	}
+	FString Reason;
+	if (!IsEventSelectable(PressureEvents[EventIndex], *Phase, &Reason, true))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PressureEvent] FORCE %s rejected: %s."), *EventName.ToString(), *Reason);
+		return;
+	}
+	UE_LOG(LogTemp, Log, TEXT("[PressureEvent] FORCE %s accepted; event/global schedule bypassed."), *EventName.ToString());
+	StartPressureEvent(EventIndex, *Phase);
+}
+#endif
+
+void AEnemySpawner::StartPressureEvent(int32 EventIndex, const FEnemyPressurePhase& Phase)
+{
+	if (!PressureEvents.IsValidIndex(EventIndex)) return;
+	const FEnemyPressureEventDefinition& Event = PressureEvents[EventIndex];
+	ActiveEventIndex = EventIndex;
+	ActiveEventMemberIndex = ActiveEventSpawnedCount = ActiveEventFailedCount = 0;
+	ActiveEventDirectionAngle = FMath::FRandRange(0.0f, 360.0f);
+	ActiveEventStartRunTime = RunTimeSeconds;
+	ActiveEventOverflowCap = FMath::Min(Phase.GlobalMaxAlive + (Event.bAllowTemporaryPopulationOverflow ? FMath::Max(0, Event.EventPopulationOverflowAllowance) : 0), AbsoluteHardAliveCap);
+	ActiveEventMembers.Empty();
+	for (const FEnemyPressureEventEnemyEntry& Entry : Event.EnemyEntries)
+	{
+		for (int32 Count = 0; Count < FMath::Max(0, Entry.Count); ++Count) ActiveEventMembers.Add(Entry.EnemyClass);
+	}
+	if (CVarDebugPressureEvents.GetValueOnGameThread() != 0 || CVarLogSpawnDirector.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[PressureEvent] START %s RunTime=%.1f Direction=%.1f RequestedMembers=%d CurrentAlive=%d EventCap=%d"),
+			*Event.EventName.ToString(), RunTimeSeconds, ActiveEventDirectionAngle, ActiveEventMembers.Num(), GetAliveEnemyCount(), ActiveEventOverflowCap);
+	}
+#if !UE_BUILD_SHIPPING
+	if (CVarDebugPressureEvents.GetValueOnGameThread() != 0)
+	{
+		if (ACharacterBase* Player = GetActivePlayerCharacter())
+		{
+			const FVector Origin = Player->GetActorLocation() + FVector(0.0f, 0.0f, 80.0f);
+			for (float Offset : { -Event.SpawnArcDegrees * 0.5f, 0.0f, Event.SpawnArcDegrees * 0.5f })
+			{
+				const float Radians = FMath::DegreesToRadians(ActiveEventDirectionAngle + Offset);
+				DrawDebugLine(GetWorld(), Origin, Origin + FVector(FMath::Cos(Radians), FMath::Sin(Radians), 0.0f) * 1400.0f,
+					Offset == 0.0f ? FColor::Red : FColor::Orange, false, 3.0f, 0, 5.0f);
+			}
+		}
+	}
+#endif
+	EmitNextEventMember();
+}
+
+void AEnemySpawner::EmitNextEventMember()
+{
+	if (!PressureEvents.IsValidIndex(ActiveEventIndex) || !ActiveEventMembers.IsValidIndex(ActiveEventMemberIndex))
+	{
+		CompleteActiveEvent();
+		return;
+	}
+	const FEnemyPressureEventDefinition& Event = PressureEvents[ActiveEventIndex];
+	const TSubclassOf<AEnemyBase> EnemyClass = ActiveEventMembers[ActiveEventMemberIndex++];
+	const FEnemyPressureEventEnemyEntry* EventEntry = Event.EnemyEntries.FindByPredicate([EnemyClass](const FEnemyPressureEventEnemyEntry& Entry) { return Entry.EnemyClass == EnemyClass; });
+	if (SpawnEventEnemy(EnemyClass, EventEntry ? EventEntry->ClassOverflowAllowance : 0)) ++ActiveEventSpawnedCount; else ++ActiveEventFailedCount;
+	if (ActiveEventMemberIndex >= ActiveEventMembers.Num())
+	{
+		CompleteActiveEvent();
+	}
+	else
+	{
+		const float NextDelay = ActiveEventMemberIndex == 1 && Event.DelayAfterFirstMember > 0.0f
+			? Event.DelayAfterFirstMember : Event.DelayBetweenMembers;
+		GetWorldTimerManager().SetTimer(EventMemberTimerHandle, this, &AEnemySpawner::EmitNextEventMember, FMath::Max(0.01f, NextDelay), false);
+	}
+}
+
+void AEnemySpawner::CompleteActiveEvent()
+{
+	GetWorldTimerManager().ClearTimer(EventMemberTimerHandle);
+	if (!PressureEvents.IsValidIndex(ActiveEventIndex)) { ActiveEventIndex = INDEX_NONE; ActiveEventMembers.Empty(); return; }
+	const FEnemyPressureEventDefinition& Event = PressureEvents[ActiveEventIndex];
+	const float MinCooldown = FMath::Min(Event.EventCooldownMin, Event.EventCooldownMax);
+	const float MaxCooldown = FMath::Max(Event.EventCooldownMin, Event.EventCooldownMax);
+	const float EventCooldown = FMath::FRandRange(MinCooldown, MaxCooldown);
+	NextEligibleEventTimeByName.FindOrAdd(Event.EventName) = RunTimeSeconds + EventCooldown;
+	LastCompletedEventName = Event.EventName;
+	if (const FEnemyPressurePhase* Phase = ResolveActivePressurePhase(nullptr, false))
+	{
+		NextGlobalEventTime = RunTimeSeconds + FMath::FRandRange(FMath::Min(Phase->EventIntervalMin, Phase->EventIntervalMax), FMath::Max(Phase->EventIntervalMin, Phase->EventIntervalMax));
+	}
+	if (CVarDebugPressureEvents.GetValueOnGameThread() != 0 || CVarLogSpawnDirector.GetValueOnGameThread() != 0)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[PressureEvent] COMPLETE %s Spawned=%d Failed=%d Duration=%.2f NextGlobalEventIn=%.2f EventCooldown=%.2f"),
+			*Event.EventName.ToString(), ActiveEventSpawnedCount, ActiveEventFailedCount, RunTimeSeconds - ActiveEventStartRunTime,
+			FMath::Max(0.0f, NextGlobalEventTime - RunTimeSeconds), EventCooldown);
+	}
+	ActiveEventIndex = INDEX_NONE;
+	ActiveEventMembers.Empty();
 }
 
 void AEnemySpawner::HandleRunTimeTimerElapsed()
@@ -1053,6 +1673,8 @@ void AEnemySpawner::HandleRunTimeTimerElapsed()
 	}
 
 	RunTimeSeconds += RunTimeUpdateInterval;
+	UpdateDirectionalBias();
+	UpdateEventScheduler(ResolveActivePressurePhase(nullptr, false));
 	RescheduleSpawnTimer();
 	LogDirectorStatus();
 }
@@ -1069,14 +1691,34 @@ void AEnemySpawner::HandleSpawnTimerElapsed()
 		return;
 	}
 
-	const int32 TargetSpawnCount = GetCurrentEnemiesPerSpawn();
-	int32 RemainingBudget = GetCurrentSpawnBudget();
+	PruneTrackedEnemies();
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase();
+	if (!Phase || GetTotalDesiredPopulation(*Phase) <= 0)
+	{
+		RescheduleSpawnTimer();
+		return;
+	}
+
+	// Event batches are short; pausing routine refill prevents event emission plus
+	// Emergency batches from producing an uncontrolled one-frame actor burst.
+	if (ActiveEventIndex != INDEX_NONE)
+	{
+		return;
+	}
+
+	const int32 TargetSpawnCount = GetCurrentPopulationBatchSize(*Phase);
 	int32 SpawnedCount = 0;
 
-	for (int32 Index = 0; Index < TargetSpawnCount && RemainingBudget > 0; ++Index)
+	for (int32 Index = 0; Index < TargetSpawnCount; ++Index)
 	{
-		const FEnemySpawnEntry* Entry = ChooseSpawnEntry(RemainingBudget);
-		if (!Entry)
+		if (GetAliveEnemyCount() >= GetCurrentMaxAliveEnemies())
+		{
+			break;
+		}
+
+		const FEnemyPopulationPhaseEntry* PopulationEntry = ChooseDirectorEntry(*Phase);
+		const FEnemySpawnEntry* Entry = PopulationEntry ? FindSpawnDefinition(PopulationEntry->EnemyClass) : nullptr;
+		if (!PopulationEntry || !Entry)
 		{
 			break;
 		}
@@ -1084,10 +1726,10 @@ void AEnemySpawner::HandleSpawnTimerElapsed()
 		AEnemyBase* SpawnedEnemy = SpawnEnemyFromEntry(*Entry);
 		if (!SpawnedEnemy)
 		{
-			break;
+			// Each batch slot is independent. A blocked location must not cancel later attempts.
+			continue;
 		}
 
-		RemainingBudget -= FMath::Max(1, Entry->SpawnCost);
 		++SpawnedCount;
 	}
 
@@ -1170,7 +1812,10 @@ void AEnemySpawner::RescheduleSpawnTimer()
 	}
 
 	const float RemainingTime = GetWorldTimerManager().GetTimerRemaining(SpawnTimerHandle);
-	if (!GetWorldTimerManager().IsTimerActive(SpawnTimerHandle) || RemainingTime > NewInterval)
+	const float CurrentRate = GetWorldTimerManager().GetTimerRate(SpawnTimerHandle);
+	if (!GetWorldTimerManager().IsTimerActive(SpawnTimerHandle)
+		|| RemainingTime > NewInterval
+		|| !FMath::IsNearlyEqual(CurrentRate, NewInterval, 0.001f))
 	{
 		GetWorldTimerManager().SetTimer(SpawnTimerHandle, this, &AEnemySpawner::HandleSpawnTimerElapsed, NewInterval, true, NewInterval);
 	}
@@ -1183,20 +1828,253 @@ void AEnemySpawner::LogDirectorStatus() const
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("=== SPAWN DIRECTOR ===\nRun Time: %.0f sec\nAlive: %d / %d\nSpawn Interval: %.2f\nEnemies Per Spawn: %d\nHealth Multiplier: %.2f\nDamage Multiplier: %.2f\nSpawn Pressure: %.2f\n======================"),
-		RunTimeSeconds,
-		const_cast<AEnemySpawner*>(this)->GetAliveEnemyCount(),
-		GetCurrentMaxAliveEnemies(),
-		GetCurrentSpawnInterval(),
-		GetCurrentEnemiesPerSpawn(),
-		GetHealthMultiplier(),
-		GetDamageMultiplier(),
-		GetSpawnPressure());
+	const_cast<AEnemySpawner*>(this)->LogPressureDirectorStatus();
+}
+
+int32 AEnemySpawner::ChooseReplacementSector(const TArray<int32>& SectorCounts) const
+{
+	if (SectorCounts.IsEmpty()) return INDEX_NONE;
+	if (!bPreferUnderrepresentedSectors) return FMath::RandRange(0, SectorCounts.Num() - 1);
+	const float Randomness = FMath::Clamp(ReplacementSectorRandomness, 0.0f, 1.0f);
+	float TotalWeight = 0.0f;
+	TArray<float> Weights;
+	Weights.Reserve(SectorCounts.Num());
+	for (const int32 Count : SectorCounts)
+	{
+		const float Weight = FMath::Lerp(1.0f / (1.0f + FMath::Max(0, Count)), 1.0f, Randomness);
+		Weights.Add(Weight);
+		TotalWeight += Weight;
+	}
+	float Roll = FMath::FRandRange(0.0f, TotalWeight);
+	for (int32 Index = 0; Index < Weights.Num(); ++Index)
+	{
+		Roll -= Weights[Index];
+		if (Roll <= 0.0f) return Index;
+	}
+	return Weights.Num() - 1;
+}
+
+AEnemyBase* AEnemySpawner::SpawnSpatialPressureReplacement(const TArray<int32>& SectorCounts, int32& OutSectorIndex)
+{
+	OutSectorIndex = INDEX_NONE;
+	if (!SpatialPressureGruntClass || GetAliveEnemyCount() >= GetCurrentMaxAliveEnemies()) return nullptr;
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase();
+	const FEnemySpawnEntry* Definition = FindSpawnDefinition(SpatialPressureGruntClass);
+	const FEnemyPopulationPhaseEntry* Population = Phase ? Phase->EnemyPopulationEntries.FindByPredicate([this](const FEnemyPopulationPhaseEntry& Entry)
+	{
+		return Entry.EnemyClass == SpatialPressureGruntClass;
+	}) : nullptr;
+	if (!Phase || !Definition || Definition->PressureSpawnMode != EEnemyPressureSpawnMode::MaintainPopulation || !Population
+		|| GetAliveCountForSpawnClass(SpatialPressureGruntClass) >= Population->MaxPopulation) return nullptr;
+
+	ACharacterBase* Player = GetActivePlayerCharacter();
+	OutSectorIndex = ChooseReplacementSector(SectorCounts);
+	if (!Player || OutSectorIndex == INDEX_NONE) return nullptr;
+	const int32 SectorCount = SectorCounts.Num();
+	const float SectorWidth = 360.0f / static_cast<float>(SectorCount);
+	const float SectorCenter = (static_cast<float>(OutSectorIndex) + 0.5f) * SectorWidth;
+	FVector SpawnLocation;
+	if (!FindSpawnLocation(Player->GetActorLocation(), SpatialPressureGruntClass, SpawnLocation, true, SectorCenter, SectorWidth,
+		ReplacementSpawnDistanceMin, ReplacementSpawnDistanceMax)
+		&& !FindSpawnLocation(Player->GetActorLocation(), SpatialPressureGruntClass, SpawnLocation, true, SectorCenter, SectorWidth,
+			MinSpawnDistance, MaxSpawnDistance)) return nullptr;
+
+	FActorSpawnParameters Parameters;
+	Parameters.Owner = this;
+	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+	AEnemyBase* Enemy = GetWorld()->SpawnActor<AEnemyBase>(SpatialPressureGruntClass, SpawnLocation, FRotator::ZeroRotator, Parameters);
+	if (!Enemy) return nullptr;
+	Enemy->SpawnDefaultController();
+	Enemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(*Definition), GetDamageMultiplier());
+	ApplyEnemySpawnModifierContexts(Enemy);
+	if (Enemy->IsBloodbound()) OnEnemyBecameBloodbound.Broadcast(Enemy);
+	Enemy->OnDestroyed.AddDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDestroyed);
+	Enemy->OnEnemyDied.AddUniqueDynamic(this, &AEnemySpawner::HandleSpawnedEnemyDied);
+	SpawnedEnemies.Add(Enemy);
+	IncrementAliveCountForSpawnedEnemy(Enemy, SpatialPressureGruntClass);
+	TrackEnemySpawnMetadata(Enemy, false);
+#if !UE_BUILD_SHIPPING
+	if (CVarDebugSpatialPressure.GetValueOnGameThread() != 0)
+	{
+		DrawDebugSphere(GetWorld(), SpawnLocation, 65.0f, 16, FColor::Cyan, false, SpatialPressureEvaluationInterval, 0, 3.0f);
+		DrawDebugLine(GetWorld(), Player->GetActorLocation() + FVector(0, 0, 60), SpawnLocation + FVector(0, 0, 60), FColor::Cyan, false, SpatialPressureEvaluationInterval, 0, 2.0f);
+	}
+#endif
+	return Enemy;
+}
+
+void AEnemySpawner::DrawSpatialPressureDebug(const ACharacterBase* Player, const FVector& MovementDirection, const TArray<int32>& SectorCounts, const TArray<AEnemyBase*>& StaleEnemies) const
+{
+#if !UE_BUILD_SHIPPING
+	if (!Player || CVarDebugSpatialPressure.GetValueOnGameThread() == 0) return;
+	const FVector Origin = Player->GetActorLocation() + FVector(0, 0, 80);
+	DrawDebugDirectionalArrow(GetWorld(), Origin, Origin + MovementDirection * 700.0f, 80.0f, FColor::Green, false, SpatialPressureEvaluationInterval, 0, 4.0f);
+	const float Width = 2.0f * PI / static_cast<float>(FMath::Max(1, SectorCounts.Num()));
+	for (int32 Index = 0; Index < SectorCounts.Num(); ++Index)
+	{
+		const float Angle = Index * Width;
+		const FVector Direction(FMath::Cos(Angle), FMath::Sin(Angle), 0);
+		DrawDebugLine(GetWorld(), Origin, Origin + Direction * 1000.0f, FColor::Silver, false, SpatialPressureEvaluationInterval, 0, 1.0f);
+		const float LabelAngle = Angle + Width * 0.5f;
+		DrawDebugString(GetWorld(), Origin + FVector(FMath::Cos(LabelAngle), FMath::Sin(LabelAngle), 0) * 850.0f,
+			FString::Printf(TEXT("%d: %d"), Index, SectorCounts[Index]), nullptr, FColor::White, SpatialPressureEvaluationInterval, false, 1.1f);
+	}
+	for (AEnemyBase* Enemy : StaleEnemies)
+	{
+		if (Enemy) DrawDebugSphere(GetWorld(), Enemy->GetActorLocation() + FVector(0, 0, 60), 75.0f, 12, FColor::Magenta, false, SpatialPressureEvaluationInterval, 0, 3.0f);
+	}
+#endif
+}
+
+void AEnemySpawner::EvaluateSpatialPressure(bool bAllowRecycling, bool bForceLog)
+{
+	if (bTrialSuspended || bRunTimeFrozen || !bSpawningEnabled || !bEnableSpatialPressureRecycling || !SpatialPressureGruntClass) return;
+	ACharacterBase* Player = GetActivePlayerCharacter();
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase();
+	if (!Player || !Phase) return;
+	const FEnemyPopulationPhaseEntry* GruntPopulation = Phase->EnemyPopulationEntries.FindByPredicate([this](const FEnemyPopulationPhaseEntry& Entry)
+	{
+		return Entry.EnemyClass == SpatialPressureGruntClass;
+	});
+	if (!GruntPopulation || GruntPopulation->DesiredPopulation <= 0) return;
+	PruneTrackedEnemies();
+	const int32 GruntAlive = GetAliveCountForSpawnClass(SpatialPressureGruntClass);
+	const bool bPopulationHealthy = static_cast<float>(GruntAlive) >= static_cast<float>(GruntPopulation->DesiredPopulation) * FMath::Clamp(MinimumGruntPopulationRatioForRecycling, 0.0f, 1.0f);
+	FVector Velocity = Player->GetVelocity(); Velocity.Z = 0.0f;
+	const float PlayerSpeed = Velocity.Size();
+	const bool bMovingEnough = PlayerSpeed >= MinimumPlayerSpeedForDirectionalRecycling;
+	const FVector MovementDirection = bMovingEnough ? Velocity / PlayerSpeed : FVector::ZeroVector;
+	const FVector PlayerLocation = Player->GetActorLocation();
+	const int32 SectorCount = FMath::Clamp(SpatialSectorCount, 4, 16);
+	TArray<int32> SectorCounts; SectorCounts.Init(0, SectorCount);
+	struct FStaleCandidate { AEnemyBase* Enemy; float Distance; float Dot; float Score; int32 Sector; };
+	TArray<FStaleCandidate> Candidates;
+	const float SectorWidth = 360.0f / static_cast<float>(SectorCount);
+	for (const TPair<TObjectKey<AEnemyBase>, UClass*>& Pair : CountedEnemyClassByEnemy)
+	{
+		AEnemyBase* Enemy = Pair.Key.ResolveObjectPtr();
+		if (!IsValid(Enemy) || Enemy->IsDead() || Pair.Value != SpatialPressureGruntClass.Get()) continue;
+		FVector Offset = Enemy->GetActorLocation() - PlayerLocation; Offset.Z = 0.0f;
+		const float Distance = Offset.Size();
+		int32 EnemySector = INDEX_NONE;
+		if (Distance > KINDA_SMALL_NUMBER)
+		{
+			const float Angle = FMath::Fmod(FMath::RadiansToDegrees(FMath::Atan2(Offset.Y, Offset.X)) + 360.0f, 360.0f);
+			EnemySector = FMath::Clamp(FMath::FloorToInt(Angle / SectorWidth), 0, SectorCount - 1);
+			SectorCounts[EnemySector]++;
+		}
+		const float* SpawnTime = EnemySpawnRunTimeByEnemy.Find(Pair.Key);
+		const float* ProtectedUntil = EventRecycleProtectionEndTimeByEnemy.Find(Pair.Key);
+		const float Dot = Distance > KINDA_SMALL_NUMBER && bMovingEnough ? FVector::DotProduct(Offset / Distance, MovementDirection) : 1.0f;
+		if (bMovingEnough && Distance >= StaleGruntMinimumDistance && Dot <= StaleGruntBehindDotThreshold
+			&& SpawnTime && RunTimeSeconds - *SpawnTime >= MinimumSecondsAliveBeforeRecyclable
+			&& (!ProtectedUntil || RunTimeSeconds >= *ProtectedUntil))
+		{
+			Candidates.Add({ Enemy, Distance, Dot, Distance / FMath::Max(1.0f, StaleGruntMinimumDistance) + (1.0f - Dot), EnemySector });
+		}
+	}
+	Candidates.Sort([](const FStaleCandidate& A, const FStaleCandidate& B) { return A.Score > B.Score; });
+	TArray<AEnemyBase*> DebugStale; for (const FStaleCandidate& Candidate : Candidates) DebugStale.Add(Candidate.Enemy);
+	DrawSpatialPressureDebug(Player, MovementDirection, SectorCounts, DebugStale);
+	const bool bRecycleAllowed = bAllowRecycling && bMovingEnough && bPopulationHealthy;
+	const int32 RecycleTarget = bRecycleAllowed ? FMath::Min(FMath::Max(0, MaxGruntsRecycledPerEvaluation), Candidates.Num()) : 0;
+	TArray<FString> RecycleLines;
+	TArray<int32> ReplacementSectors;
+	int32 Recycled = 0, Replaced = 0;
+	for (int32 Index = 0; Index < RecycleTarget; ++Index)
+	{
+		const FStaleCandidate& Candidate = Candidates[Index];
+		RecycleLines.Add(FString::Printf(TEXT("%s Distance=%.0f Dot=%.2f"), *GetNameSafe(Candidate.Enemy), Candidate.Distance, Candidate.Dot));
+		if (!RecycleLivingEnemy(Candidate.Enemy)) continue;
+		++Recycled;
+		if (SectorCounts.IsValidIndex(Candidate.Sector)) SectorCounts[Candidate.Sector] = FMath::Max(0, SectorCounts[Candidate.Sector] - 1);
+		int32 Sector = INDEX_NONE;
+		if (SpawnSpatialPressureReplacement(SectorCounts, Sector))
+		{
+			++Replaced; ReplacementSectors.Add(Sector); if (SectorCounts.IsValidIndex(Sector)) ++SectorCounts[Sector];
+		}
+	}
+#if !UE_BUILD_SHIPPING
+	if (bForceLog || CVarLogSpatialPressure.GetValueOnGameThread() != 0)
+	{
+		FString Counts, Replacements;
+		for (int32 Index = 0; Index < SectorCounts.Num(); ++Index) Counts += FString::Printf(TEXT("%s%d=%d"), Index ? TEXT(" ") : TEXT(""), Index, SectorCounts[Index]);
+		for (int32 Index = 0; Index < ReplacementSectors.Num(); ++Index) Replacements += FString::Printf(TEXT("%s%d"), Index ? TEXT(",") : TEXT(""), ReplacementSectors[Index]);
+		UE_LOG(LogTemp, Log, TEXT("SpatialPressure: Enabled=true PlayerSpeed=%.0f GruntAlive=%d GruntDesired=%d RecycleAllowed=%s SectorCounts=[%s] StaleCandidates=%d RecyclingThisPass=%d Replaced=%d ReplacementSectors=[%s]"),
+			PlayerSpeed, GruntAlive, GruntPopulation->DesiredPopulation, bRecycleAllowed ? TEXT("true") : TEXT("false"), *Counts, Candidates.Num(), Recycled, Replaced, *Replacements);
+		for (const FString& Line : RecycleLines) UE_LOG(LogTemp, Log, TEXT("  Recycle: %s"), *Line);
+	}
+#endif
+}
+
+void AEnemySpawner::HandleSpatialPressureTimerElapsed()
+{
+	EvaluateSpatialPressure(true, false);
+}
+
+#if !UE_BUILD_SHIPPING
+void AEnemySpawner::LogSpatialPressureStatus() { EvaluateSpatialPressure(false, true); }
+void AEnemySpawner::ForceSpatialPressurePass() { EvaluateSpatialPressure(true, true); }
+#endif
+
+void AEnemySpawner::LogPressureDirectorStatus()
+{
+	PruneTrackedEnemies();
+	int32 PhaseIndex = INDEX_NONE;
+	const FEnemyPressurePhase* Phase = ResolveActivePressurePhase(&PhaseIndex);
+	if (!Phase)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("=== PRESSURE DIRECTOR === RunTime=%.2f No uniquely valid phase."), RunTimeSeconds);
+		return;
+	}
+
+	const int32 Alive = GetAliveEnemyCount();
+	const int32 Desired = GetTotalDesiredPopulation(*Phase);
+	const float Ratio = Desired > 0 ? static_cast<float>(Alive) / static_cast<float>(Desired) : 1.0f;
+	const TCHAR* Mode = Ratio < 0.5f ? TEXT("Emergency") : (Ratio < 0.8f ? TEXT("Accelerated") : TEXT("Normal"));
+	FString Detail;
+	for (const FEnemyPopulationPhaseEntry& Entry : Phase->EnemyPopulationEntries)
+	{
+		const int32 ClassAlive = GetAliveCountForSpawnClass(Entry.EnemyClass);
+		const FEnemySpawnEntry* Definition = FindSpawnDefinition(Entry.EnemyClass);
+		const bool bTimedThreat = Definition && Definition->PressureSpawnMode == EEnemyPressureSpawnMode::TimedThreat;
+		float CooldownRemaining = 0.0f;
+		const bool bCooldownActive = IsClassCooldownActive(Entry.EnemyClass, &CooldownRemaining);
+		const bool bUnlocked = Definition && IsSpawnDefinitionUnlocked(*Definition);
+		const bool bEligible = bTimedThreat ? IsTimedThreatEntryEligible(*Phase, Entry) : IsPopulationEntryEligible(*Phase, Entry);
+		Detail += FString::Printf(TEXT("\n  %s Mode=%s Alive=%d Desired=%d Max=%d Deficit=%d Unlocked=%s Eligible=%s CooldownActive=%s CooldownRemaining=%.2f"),
+			*GetNameSafe(Entry.EnemyClass.Get()), bTimedThreat ? TEXT("TimedThreat") : TEXT("MaintainPopulation"),
+			ClassAlive, Entry.DesiredPopulation, Entry.MaxPopulation,
+			bTimedThreat ? 0 : FMath::Max(0, Entry.DesiredPopulation - ClassAlive),
+			bUnlocked ? TEXT("true") : TEXT("false"), bEligible ? TEXT("true") : TEXT("false"),
+			bCooldownActive ? TEXT("true") : TEXT("false"), CooldownRemaining);
+	}
+	Detail += FString::Printf(TEXT("\nEventsEnabled=%s ActiveEvent=%s NextGlobalEventIn=%.2f LastEvent=%s BiasAngle=%.1f BiasRemaining=%.2f"),
+		Phase->bEventsEnabled ? TEXT("true") : TEXT("false"),
+		PressureEvents.IsValidIndex(ActiveEventIndex) ? *PressureEvents[ActiveEventIndex].EventName.ToString() : TEXT("None"),
+		FMath::Max(0.0f, NextGlobalEventTime - RunTimeSeconds), *LastCompletedEventName.ToString(),
+		DirectionalBiasAngleDegrees, FMath::Max(0.0f, DirectionalBiasEndRunTime - RunTimeSeconds));
+	for (const FEnemyPressureEventDefinition& Event : PressureEvents)
+	{
+		FString Reason;
+		const bool bSelectable = ActiveEventIndex == INDEX_NONE && RunTimeSeconds >= NextGlobalEventTime && IsEventSelectable(Event, *Phase, &Reason);
+		const float* EventEligibleTime = NextEligibleEventTimeByName.Find(Event.EventName);
+		Detail += FString::Printf(TEXT("\n  Event=%s Enabled=%s TimeValid=%s ClassValid=%s CooldownRemaining=%.2f Weight=%.1f Selectable=%s Reason=%s"),
+			*Event.EventName.ToString(), Event.bEnabled ? TEXT("true") : TEXT("false"),
+			(RunTimeSeconds >= FMath::Max(120.0f, Event.MinimumRunTime) && (Event.MaximumRunTime <= 0.0f || RunTimeSeconds < Event.MaximumRunTime)) ? TEXT("true") : TEXT("false"),
+			Reason.Contains(TEXT("class")) ? TEXT("false") : TEXT("true"),
+			EventEligibleTime ? FMath::Max(0.0f, *EventEligibleTime - RunTimeSeconds) : 0.0f,
+			Event.Weight, bSelectable ? TEXT("true") : TEXT("false"), *Reason);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("=== PRESSURE DIRECTOR ===\nRunTime=%.2f Phase[%d]=%s\nTotalAlive=%d MaintainedDesired=%d GlobalMax=%d MaintainedRatio=%.3f RefillMode=%s Interval=%.2f BatchMax=%d DamageMultiplier=%.2f%s\n========================="),
+		RunTimeSeconds, PhaseIndex, *Phase->PhaseName.ToString(), Alive, Desired, GetCurrentMaxAliveEnemies(), Ratio, Mode,
+		GetCurrentSpawnInterval(), GetCurrentPopulationBatchSize(*Phase), GetDamageMultiplier(), *Detail);
 }
 
 void AEnemySpawner::HandleSpawnedEnemyDestroyed(AActor* DestroyedActor)
 {
-	DecrementAliveCountForDestroyedEnemy(DestroyedActor);
+	UnregisterLivingEnemy(Cast<AEnemyBase>(DestroyedActor));
 
 	SpawnedEnemies.RemoveAll([DestroyedActor](const TWeakObjectPtr<AEnemyBase>& EnemyPtr)
 	{
@@ -1247,6 +2125,30 @@ void AEnemySpawner::HandleSpawnedEnemyDied(AEnemyBase* Enemy)
 {
 	if (Enemy)
 	{
+		UClass* CountedClass = nullptr;
+		if (UClass* const* RegisteredClass = CountedEnemyClassByEnemy.Find(TObjectKey<AEnemyBase>(Enemy)))
+		{
+			CountedClass = *RegisteredClass;
+		}
+		UnregisterLivingEnemy(Enemy);
+
+		const FEnemySpawnEntry* SpawnDefinition = CountedClass ? FindSpawnDefinition(CountedClass) : nullptr;
+		if (SpawnDefinition)
+		{
+			const float MinimumDelay = FMath::Max(0.0f, FMath::Min(SpawnDefinition->MinRespawnDelayAfterDeath, SpawnDefinition->MaxRespawnDelayAfterDeath));
+			const float MaximumDelay = FMath::Max(0.0f, FMath::Max(SpawnDefinition->MinRespawnDelayAfterDeath, SpawnDefinition->MaxRespawnDelayAfterDeath));
+			if (MaximumDelay > 0.0f)
+			{
+				const float NextEligibleTime = RunTimeSeconds + FMath::FRandRange(MinimumDelay, MaximumDelay);
+				float& StoredEligibleTime = NextEligibleSpawnTimeByClass.FindOrAdd(CountedClass);
+				StoredEligibleTime = FMath::Max(StoredEligibleTime, NextEligibleTime);
+				if (bDebugSpawning || CVarLogSpawnDirector.GetValueOnGameThread() != 0)
+				{
+					UE_LOG(LogTemp, Log, TEXT("Spawn Director started %s replacement cooldown: %.2fs remaining (eligible at run time %.2f)."),
+						*GetNameSafe(CountedClass), StoredEligibleTime - RunTimeSeconds, StoredEligibleTime);
+				}
+			}
+		}
 		OnEnemyKilled.Broadcast(Enemy);
 	}
 }

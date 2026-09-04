@@ -117,25 +117,6 @@ void UInactiveCharacterAssistComponent::HandleCharacterSwapped(ACharacterBase* O
 			UE_LOG(LogTemp, Log, TEXT("[TagTeam] Assist character became active through swap; cleanup canceled."));
 		}
 	}
-
-	if (!bAssistEffectActive || !CanRunAssistEffect() || !HasAssistUpgrade() || !HasQuickHandoffUpgrade())
-	{
-		return;
-	}
-
-	if (!OldCharacter || !NewCharacter || OldCharacter == NewCharacter)
-	{
-		return;
-	}
-
-	if (TryTriggerAssistWithCharacters(NewCharacter, OldCharacter) && CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[QuickHandoff] Swap assist triggered Active=%s Assistant=%s CounterUnchanged=%d/%d"),
-			*GetNameSafe(NewCharacter),
-			*GetNameSafe(OldCharacter),
-			CurrentAttackCount,
-			FMath::Max(1, AttacksPerAssist));
-	}
 }
 
 void UInactiveCharacterAssistComponent::ActivateAssistEffect()
@@ -455,11 +436,6 @@ void UInactiveCharacterAssistComponent::CancelCurrentAssist()
 bool UInactiveCharacterAssistComponent::HasAssistUpgrade() const
 {
 	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::InactiveCharacterAssist) > 0;
-}
-
-bool UInactiveCharacterAssistComponent::HasQuickHandoffUpgrade() const
-{
-	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::QuickHandoff) > 0;
 }
 
 bool UInactiveCharacterAssistComponent::CanRunAssistEffect() const

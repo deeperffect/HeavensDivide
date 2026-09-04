@@ -13,6 +13,7 @@
 #include "SamuraiTechniqueTrial.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
+#include "TrialChoiceWidget.h"
 #include "TwinSoulTrial.h"
 #include "UObject/ConstructorHelpers.h"
 
@@ -38,6 +39,7 @@ void ARunObjectiveDirector::BeginPlay()
 
 void ARunObjectiveDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	CloseFirstTrialChoice(false);
 	CancelPendingMilestones();
 	if (PlayerController && PlayerController->GetPlayerHealthComponent()) PlayerController->GetPlayerHealthComponent()->OnDeath.RemoveDynamic(this, &ARunObjectiveDirector::HandleRunEnded);
 	if (BossGate) BossGate->OnBossGateTravelStarted.RemoveDynamic(this, &ARunObjectiveDirector::HandleBossTravelStarted);
@@ -100,7 +102,11 @@ void ARunObjectiveDirector::InitializeDirector()
 
 void ARunObjectiveDirector::ScheduleMilestones()
 {
-	Milestones = {{BloodShrineSpawnTime, ERunObjectiveMilestoneType::BloodShrine}, {GuaranteedCharacterTrialSpawnTime, ERunObjectiveMilestoneType::GuaranteedCharacterTrial}, {TwinSoulTrialSpawnTime, ERunObjectiveMilestoneType::TwinSoulTrial}};
+	Milestones = {
+		{BloodShrineSpawnTime, ERunObjectiveMilestoneType::BloodShrine},
+		{GuaranteedCharacterTrialSpawnTime, ERunObjectiveMilestoneType::FirstCharacterTrialChoice},
+		{SecondCharacterTrialSpawnTime, ERunObjectiveMilestoneType::SecondCharacterTrial},
+		{TwinSoulTrialSpawnTime, ERunObjectiveMilestoneType::TwinSoulTrial}};
 	MilestoneTimers.SetNum(Milestones.Num());
 	UObjectiveDirectorRunStateSubsystem* State = GetWorld()->GetSubsystem<UObjectiveDirectorRunStateSubsystem>();
 	const float RunTime = GetAuthoritativeRunTime();
@@ -131,14 +137,94 @@ void ARunObjectiveDirector::ExecuteMilestoneInternal(int32 Index, bool bIgnoreSc
 		return;
 	}
 	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] MilestoneReached %s Target=%.1f Current=%.1f"), *UEnum::GetValueAsString(Milestones[Index].Type), Milestones[Index].SpawnTime, GetAuthoritativeRunTime());
-	State->MarkExecuted(Index);
 	const FRunObjectiveMilestone& Milestone = Milestones[Index];
 	switch (Milestone.Type)
 	{
-	case ERunObjectiveMilestoneType::BloodShrine: SpawnObjective(BloodShrineClass, TEXT("BloodShrine")); break;
-	case ERunObjectiveMilestoneType::GuaranteedCharacterTrial: SpawnObjective(GetGuaranteedTrialClass(), TEXT("GuaranteedCharacterTrial")); break;
-	case ERunObjectiveMilestoneType::TwinSoulTrial: SpawnObjective(TwinSoulTrialClass, TEXT("TwinSoulTrial")); break;
+	case ERunObjectiveMilestoneType::BloodShrine:
+		State->MarkExecuted(Index);
+		SpawnObjective(BloodShrineClass, TEXT("BloodShrine"));
+		break;
+	case ERunObjectiveMilestoneType::FirstCharacterTrialChoice:
+		if (ShowFirstTrialChoice())
+		{
+			State->MarkExecuted(Index);
+		}
+		else if (!bFirstTrialChoiceResolved && !bFirstTrialChoiceOpen)
+		{
+			FTimerDelegate Retry = FTimerDelegate::CreateUObject(this, &ARunObjectiveDirector::ExecuteMilestone, Index);
+			GetWorldTimerManager().SetTimer(MilestoneTimers[Index], Retry, 0.25f, false);
+		}
+		break;
+	case ERunObjectiveMilestoneType::SecondCharacterTrial:
+		if (!bFirstTrialChoiceResolved)
+		{
+			FTimerDelegate Retry = FTimerDelegate::CreateUObject(this, &ARunObjectiveDirector::ExecuteMilestone, Index);
+			GetWorldTimerManager().SetTimer(MilestoneTimers[Index], Retry, 0.25f, false);
+			break;
+		}
+		State->MarkExecuted(Index);
+		SpawnCharacterTrial(FirstSelectedTrial == ECharacterTrialType::Samurai
+			? ECharacterTrialType::Ninja : ECharacterTrialType::Samurai, TEXT("SecondCharacterTrial"));
+		break;
+	case ERunObjectiveMilestoneType::TwinSoulTrial:
+		State->MarkExecuted(Index);
+		SpawnObjective(TwinSoulTrialClass, TEXT("TwinSoulTrial"));
+		break;
 	}
+}
+
+bool ARunObjectiveDirector::ShowFirstTrialChoice()
+{
+	if (bStopped || bFirstTrialChoiceResolved || bFirstTrialChoiceOpen || !PlayerController) return false;
+	TrialChoiceWidget = CreateWidget<UTrialChoiceWidget>(PlayerController, UTrialChoiceWidget::StaticClass());
+	if (!TrialChoiceWidget)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[ObjectiveDirector] Failed to create first trial choice UI."));
+		return false;
+	}
+	TrialChoiceWidget->InitializeTrialChoice(this);
+	TrialChoiceWidget->AddToViewport(200);
+	bFirstTrialChoiceOpen = true;
+	PlayerController->BeginObjectiveChoiceInput(TrialChoiceWidget);
+	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] First trial choice opened."));
+	return true;
+}
+
+bool ARunObjectiveDirector::ResolveFirstTrialChoice(ECharacterTrialType SelectedTrial)
+{
+	if (bStopped || bFirstTrialChoiceResolved || !bFirstTrialChoiceOpen
+		|| (SelectedTrial != ECharacterTrialType::Samurai && SelectedTrial != ECharacterTrialType::Ninja))
+	{
+		return false;
+	}
+
+	FirstSelectedTrial = SelectedTrial;
+	bFirstTrialChoiceResolved = true;
+	CloseFirstTrialChoice(true);
+	SpawnCharacterTrial(SelectedTrial, TEXT("FirstCharacterTrial"));
+	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] First trial choice resolved: %s"),
+		SelectedTrial == ECharacterTrialType::Samurai ? TEXT("Samurai") : TEXT("Ninja"));
+	return true;
+}
+
+void ARunObjectiveDirector::CloseFirstTrialChoice(bool bRestoreGameplay)
+{
+	if (TrialChoiceWidget)
+	{
+		TrialChoiceWidget->RemoveFromParent();
+		TrialChoiceWidget = nullptr;
+	}
+	bFirstTrialChoiceOpen = false;
+	if (bRestoreGameplay && PlayerController)
+	{
+		PlayerController->EndObjectiveChoiceInput();
+	}
+}
+
+AActor* ARunObjectiveDirector::SpawnCharacterTrial(ECharacterTrialType TrialType, const TCHAR* ObjectiveName)
+{
+	return SpawnObjective(TrialType == ECharacterTrialType::Samurai
+		? TSubclassOf<AActor>(SamuraiTrialClass) : TSubclassOf<AActor>(NinjaTrialClass), ObjectiveName);
 }
 
 AActor* ARunObjectiveDirector::SpawnObjective(TSubclassOf<AActor> ObjectiveClass, const TCHAR* ObjectiveName)
@@ -244,8 +330,8 @@ void ARunObjectiveDirector::ShufflePoints(TArray<AObjectiveSpawnPoint*>& Points)
 	for (int32 Index = Points.Num() - 1; Index > 0; --Index) Points.Swap(Index, State->RandRange(0, Index));
 }
 
-void ARunObjectiveDirector::HandleRunEnded() { bStopped = true; CancelPendingMilestones(); }
-void ARunObjectiveDirector::HandleBossTravelStarted() { bStopped = true; CancelPendingMilestones(); }
+void ARunObjectiveDirector::HandleRunEnded() { bStopped = true; CloseFirstTrialChoice(false); CancelPendingMilestones(); }
+void ARunObjectiveDirector::HandleBossTravelStarted() { bStopped = true; CloseFirstTrialChoice(false); CancelPendingMilestones(); }
 void ARunObjectiveDirector::CancelPendingMilestones()
 {
 	GetWorldTimerManager().ClearTimer(InitializationRetryTimer);
@@ -258,17 +344,7 @@ void ARunObjectiveDirector::LogRunTimeStatus()
 	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] RunTime=%.1f Spawner=%s ExecutedMask=0x%02x UsedPoints=%d/%d"), GetAuthoritativeRunTime(), *GetNameSafe(RunTimeSource), State->GetExecutedMilestoneMask(), State->GetUsedPointCount(), SpawnPoints.Num());
 }
 float ARunObjectiveDirector::GetAuthoritativeRunTime() const { return RunTimeSource ? RunTimeSource->GetRunTimeSeconds() : 0.0f; }
-TSubclassOf<AActor> ARunObjectiveDirector::GetGuaranteedTrialClass() const
-{
-	if (!SamuraiTrialClass) return NinjaTrialClass;
-	if (!NinjaTrialClass) return SamuraiTrialClass;
-	UObjectiveDirectorRunStateSubsystem* State = GetWorld()->GetSubsystem<UObjectiveDirectorRunStateSubsystem>();
-	const bool bChooseSamurai = !State || State->RollFraction() < 0.5f;
-	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] GuaranteedCharacterTrial selected %s"), bChooseSamurai ? TEXT("Samurai") : TEXT("Ninja"));
-	return bChooseSamurai ? TSubclassOf<AActor>(SamuraiTrialClass) : TSubclassOf<AActor>(NinjaTrialClass);
-}
-
 void ARunObjectiveDirector::DebugSpawnBloodShrine() { ExecuteMilestoneInternal(0, true); }
 void ARunObjectiveDirector::DebugSpawnGuaranteedCharacterTrial() { ExecuteMilestoneInternal(1, true); }
-void ARunObjectiveDirector::DebugSpawnTwinSoulTrial() { ExecuteMilestoneInternal(2, true); }
+void ARunObjectiveDirector::DebugSpawnTwinSoulTrial() { ExecuteMilestoneInternal(3, true); }
 void ARunObjectiveDirector::DebugTriggerAllObjectiveMilestones() { for (int32 Index = 0; Index < Milestones.Num(); ++Index) ExecuteMilestoneInternal(Index, true); }

@@ -12,13 +12,23 @@ class ANinjaTechniqueTrial;
 class ASamuraiTechniqueTrial;
 class ASurvivorPlayerController;
 class ATwinSoulTrial;
+class UTrialChoiceWidget;
 class UObjectiveDirectorRunStateSubsystem;
+
+UENUM(BlueprintType)
+enum class ECharacterTrialType : uint8
+{
+	None,
+	Samurai,
+	Ninja
+};
 
 UENUM()
 enum class ERunObjectiveMilestoneType : uint8
 {
 	BloodShrine,
-	GuaranteedCharacterTrial,
+	FirstCharacterTrialChoice,
+	SecondCharacterTrial,
 	TwinSoulTrial
 };
 
@@ -40,12 +50,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly)) void DebugSpawnGuaranteedCharacterTrial();
 	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly)) void DebugSpawnTwinSoulTrial();
 	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly)) void DebugTriggerAllObjectiveMilestones();
+	UFUNCTION(BlueprintCallable, Category="Objective Director|Trials") bool ResolveFirstTrialChoice(ECharacterTrialType SelectedTrial);
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float BloodShrineSpawnTime = 120.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float GuaranteedCharacterTrialSpawnTime = 210.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float SecondCharacterTrialSpawnTime = 360.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float TwinSoulTrialSpawnTime = 300.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Spawn Rules") bool bReuseObjectiveSpawnPoints = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Spawn Rules", meta=(ClampMin="0.0")) float ObjectiveSpawnMinDistanceFromPlayer = 1000.0f;
@@ -70,8 +82,10 @@ private:
 	UFUNCTION() void HandleBossTravelStarted();
 	UFUNCTION() void LogRunTimeStatus();
 	void CancelPendingMilestones();
+	bool ShowFirstTrialChoice();
+	void CloseFirstTrialChoice(bool bRestoreGameplay);
+	AActor* SpawnCharacterTrial(ECharacterTrialType TrialType, const TCHAR* ObjectiveName);
 	float GetAuthoritativeRunTime() const;
-	TSubclassOf<AActor> GetGuaranteedTrialClass() const;
 
 	UPROPERTY() TObjectPtr<AEnemySpawner> RunTimeSource;
 	UPROPERTY() TObjectPtr<ASurvivorPlayerController> PlayerController;
@@ -81,5 +95,9 @@ private:
 	TArray<FTimerHandle> MilestoneTimers;
 	FTimerHandle InitializationRetryTimer;
 	FTimerHandle StatusLogTimer;
+	UPROPERTY(Transient) TObjectPtr<UTrialChoiceWidget> TrialChoiceWidget;
+	ECharacterTrialType FirstSelectedTrial = ECharacterTrialType::None;
+	bool bFirstTrialChoiceResolved = false;
+	bool bFirstTrialChoiceOpen = false;
 	bool bStopped = false;
 };
