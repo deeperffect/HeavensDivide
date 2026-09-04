@@ -8,6 +8,7 @@
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/HorizontalBox.h"
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
@@ -600,6 +601,9 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 	UpgradeArtworkImages.Reset();
 	UpgradeBorderImages.Reset();
 	UpgradeRarityGlowImages.Reset();
+	UpgradeTitleTexts.Reset();
+	UpgradeDescriptionTexts.Reset();
+	UpgradeLevelDiamondRows.Reset();
 	if (!RareRarityMaterial)
 	{
 		RareRarityMaterial = LoadObject<UMaterialInterface>(
@@ -632,6 +636,9 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 			UpgradeArtworkImages.Add(nullptr);
 			UpgradeBorderImages.Add(nullptr);
 			UpgradeRarityGlowImages.Add(nullptr);
+			UpgradeTitleTexts.Add(nullptr);
+			UpgradeDescriptionTexts.Add(nullptr);
+			UpgradeLevelDiamondRows.Add(nullptr);
 			continue;
 		}
 
@@ -642,6 +649,9 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 			UpgradeBorderImages.Add(Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeBorder_%d"), Index))));
 			UImage* ExistingGlow = Cast<UImage>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeRarityGlow_%d"), Index)));
 			UpgradeRarityGlowImages.Add(ExistingGlow);
+			UpgradeTitleTexts.Add(Cast<UTextBlock>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeCardTitle_%d"), Index))));
+			UpgradeDescriptionTexts.Add(Cast<UTextBlock>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeCardDescription_%d"), Index))));
+			UpgradeLevelDiamondRows.Add(Cast<UHorizontalBox>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeLevelDiamonds_%d"), Index))));
 			continue;
 		}
 
@@ -656,7 +666,8 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		TransparentButtonStyle.SetDisabled(TransparentButtonBrush);
 		UpgradeButton->SetStyle(TransparentButtonStyle);
 
-		UWidget* ExistingTextContent = UpgradeButton->GetContent();
+		UTextBlock* AuthoredTitle = Cast<UTextBlock>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeTitle_%d"), Index)));
+		UTextBlock* AuthoredDescription = Cast<UTextBlock>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeDescription_%d"), Index)));
 		UpgradeButton->ClearChildren();
 
 		USizeBox* CardSize = WidgetTree->ConstructWidget<USizeBox>(
@@ -684,16 +695,23 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		AuthoredCardSize->SetContent(CardLayers);
 		UpgradeButton->SetContent(CardSize);
 
+		UVerticalBox* CardContent = WidgetTree->ConstructWidget<UVerticalBox>(
+			UVerticalBox::StaticClass(), *FString::Printf(TEXT("UpgradeCardContent_%d"), Index));
+		UOverlaySlot* CardContentSlot = CardLayers->AddChildToOverlay(CardContent);
+		CardContentSlot->SetHorizontalAlignment(HAlign_Fill);
+		CardContentSlot->SetVerticalAlignment(VAlign_Fill);
+		CardContentSlot->SetPadding(FMargin(ArtworkInset));
+
 		UScaleBox* ArtworkContainer = WidgetTree->ConstructWidget<UScaleBox>(
 			UScaleBox::StaticClass(), *FString::Printf(TEXT("UpgradeArtworkContainer_%d"), Index));
 		ArtworkContainer->SetStretch(EStretch::ScaleToFill);
 		ArtworkContainer->SetStretchDirection(EStretchDirection::Both);
 		ArtworkContainer->SetClipping(EWidgetClipping::ClipToBounds);
 		ArtworkContainer->SetVisibility(ESlateVisibility::HitTestInvisible);
-		UOverlaySlot* ArtworkContainerSlot = CardLayers->AddChildToOverlay(ArtworkContainer);
+		UVerticalBoxSlot* ArtworkContainerSlot = CardContent->AddChildToVerticalBox(ArtworkContainer);
+		ArtworkContainerSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 		ArtworkContainerSlot->SetHorizontalAlignment(HAlign_Fill);
 		ArtworkContainerSlot->SetVerticalAlignment(VAlign_Fill);
-		ArtworkContainerSlot->SetPadding(FMargin(ArtworkInset));
 
 		UImage* Artwork = WidgetTree->ConstructWidget<UImage>(
 			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeArtwork_%d"), Index));
@@ -710,17 +728,48 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 		UBorder* TextReadabilityLayer = WidgetTree->ConstructWidget<UBorder>(
 			UBorder::StaticClass(), *FString::Printf(TEXT("UpgradeTextLayer_%d"), Index));
-		TextReadabilityLayer->SetBrushColor(FLinearColor(0.015f, 0.015f, 0.02f, 0.42f));
-		TextReadabilityLayer->SetPadding(FMargin(18.0f, 20.0f));
+		TextReadabilityLayer->SetBrushColor(FLinearColor(0.008f, 0.009f, 0.014f, 0.98f));
+		TextReadabilityLayer->SetPadding(FMargin(18.0f, 14.0f, 18.0f, 13.0f));
 		TextReadabilityLayer->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-		if (ExistingTextContent)
-		{
-			TextReadabilityLayer->SetContent(ExistingTextContent);
-		}
-		UOverlaySlot* TextSlot = CardLayers->AddChildToOverlay(TextReadabilityLayer);
+		UVerticalBoxSlot* TextSlot = CardContent->AddChildToVerticalBox(TextReadabilityLayer);
+		TextSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 		TextSlot->SetHorizontalAlignment(HAlign_Fill);
 		TextSlot->SetVerticalAlignment(VAlign_Fill);
-		TextSlot->SetPadding(FMargin(TextInset));
+
+		UVerticalBox* InformationContent = WidgetTree->ConstructWidget<UVerticalBox>(
+			UVerticalBox::StaticClass(), *FString::Printf(TEXT("UpgradeInformation_%d"), Index));
+		TextReadabilityLayer->SetContent(InformationContent);
+
+		UTextBlock* UpgradeTitle = WidgetTree->ConstructWidget<UTextBlock>(
+			UTextBlock::StaticClass(), *FString::Printf(TEXT("UpgradeCardTitle_%d"), Index));
+		UpgradeTitle->SetJustification(ETextJustify::Center);
+		UpgradeTitle->SetAutoWrapText(true);
+		UpgradeTitle->SetColorAndOpacity(AuthoredTitle ? AuthoredTitle->GetColorAndOpacity() : FSlateColor(FLinearColor::White));
+		FSlateFontInfo TitleFont = AuthoredTitle ? AuthoredTitle->GetFont() : UpgradeTitle->GetFont();
+		TitleFont.Size = FMath::Max(24, TitleFont.Size);
+		UpgradeTitle->SetFont(TitleFont);
+		InformationContent->AddChildToVerticalBox(UpgradeTitle)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+
+		UTextBlock* UpgradeDescription = WidgetTree->ConstructWidget<UTextBlock>(
+			UTextBlock::StaticClass(), *FString::Printf(TEXT("UpgradeCardDescription_%d"), Index));
+		UpgradeDescription->SetJustification(ETextJustify::Center);
+		UpgradeDescription->SetAutoWrapText(true);
+		UpgradeDescription->SetWrapTextAt(CardWidth - (TextInset * 2.0f));
+		UpgradeDescription->SetColorAndOpacity(AuthoredDescription ? AuthoredDescription->GetColorAndOpacity() : FSlateColor(FLinearColor(0.88f, 0.88f, 0.9f)));
+		FSlateFontInfo DescriptionFont = AuthoredDescription ? AuthoredDescription->GetFont() : UpgradeDescription->GetFont();
+		DescriptionFont.Size = FMath::Max(17, DescriptionFont.Size);
+		UpgradeDescription->SetFont(DescriptionFont);
+		UVerticalBoxSlot* DescriptionSlot = InformationContent->AddChildToVerticalBox(UpgradeDescription);
+		DescriptionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		DescriptionSlot->SetHorizontalAlignment(HAlign_Fill);
+		DescriptionSlot->SetVerticalAlignment(VAlign_Center);
+
+		UHorizontalBox* DiamondRow = WidgetTree->ConstructWidget<UHorizontalBox>(
+			UHorizontalBox::StaticClass(), *FString::Printf(TEXT("UpgradeLevelDiamonds_%d"), Index));
+		UVerticalBoxSlot* DiamondRowSlot = InformationContent->AddChildToVerticalBox(DiamondRow);
+		DiamondRowSlot->SetHorizontalAlignment(HAlign_Center);
+		DiamondRowSlot->SetVerticalAlignment(VAlign_Bottom);
+		DiamondRowSlot->SetPadding(FMargin(0.0f, 10.0f, 0.0f, 0.0f));
 
 		UImage* CategoryBorder = WidgetTree->ConstructWidget<UImage>(
 			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeBorder_%d"), Index));
@@ -732,6 +781,9 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		UpgradeArtworkImages.Add(Artwork);
 		UpgradeBorderImages.Add(CategoryBorder);
 		UpgradeRarityGlowImages.Add(RarityGlow);
+		UpgradeTitleTexts.Add(UpgradeTitle);
+		UpgradeDescriptionTexts.Add(UpgradeDescription);
+		UpgradeLevelDiamondRows.Add(DiamondRow);
 	}
 }
 
@@ -748,6 +800,60 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
 		UUpgradeDefinition* Upgrade = Choices.IsValidIndex(Index) ? Choices[Index] : nullptr;
+		if (UpgradeTitleTexts.IsValidIndex(Index) && UpgradeTitleTexts[Index])
+		{
+			UpgradeTitleTexts[Index]->SetText(Upgrade ? Upgrade->DisplayName : FText::GetEmpty());
+		}
+		if (UpgradeDescriptionTexts.IsValidIndex(Index) && UpgradeDescriptionTexts[Index])
+		{
+			const FText Description = Offers.IsValidIndex(Index) && !Offers[Index].ResolvedDescription.IsEmpty()
+				? Offers[Index].ResolvedDescription
+				: (Upgrade ? Upgrade->Description : FText::GetEmpty());
+			UpgradeDescriptionTexts[Index]->SetText(Description);
+		}
+		if (UpgradeLevelDiamondRows.IsValidIndex(Index) && UpgradeLevelDiamondRows[Index])
+		{
+			UHorizontalBox* DiamondRow = UpgradeLevelDiamondRows[Index];
+			DiamondRow->ClearChildren();
+			if (Upgrade)
+			{
+				const int32 MaxLevel = FMath::Max(1, Upgrade->MaxLevel);
+				const int32 LevelAfterSelection = FMath::Clamp(
+					(PlayerUpgrades ? PlayerUpgrades->GetUpgradeLevel(Upgrade) : 0) + 1, 0, MaxLevel);
+				FLinearColor FilledDiamondColor;
+				switch (Upgrade->Category)
+				{
+				case EUpgradeCategory::Samurai: FilledDiamondColor = FLinearColor(0.96f, 0.20f, 0.24f); break;
+				case EUpgradeCategory::Ninja: FilledDiamondColor = FLinearColor(0.20f, 0.68f, 1.0f); break;
+				case EUpgradeCategory::Synergy: FilledDiamondColor = FLinearColor(0.82f, 0.28f, 0.96f); break;
+				default: FilledDiamondColor = FLinearColor(0.94f, 0.72f, 0.24f); break;
+				}
+				if (Offers.IsValidIndex(Index) && Offers[Index].bDisplaysRarity)
+				{
+					switch (Offers[Index].RolledRarity)
+					{
+					case EUpgradeRarity::Rare: FilledDiamondColor = FLinearColor(0.22f, 0.56f, 1.0f); break;
+					case EUpgradeRarity::Epic: FilledDiamondColor = FLinearColor(0.86f, 0.22f, 1.0f); break;
+					case EUpgradeRarity::Legendary: FilledDiamondColor = FLinearColor(1.0f, 0.62f, 0.12f); break;
+					default: break;
+					}
+				}
+				for (int32 DiamondIndex = 0; DiamondIndex < MaxLevel; ++DiamondIndex)
+				{
+					const bool bFilled = DiamondIndex < LevelAfterSelection;
+					UTextBlock* Diamond = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+					Diamond->SetText(FText::FromString(bFilled ? TEXT("\u25C6") : TEXT("\u25C7")));
+					Diamond->SetColorAndOpacity(FSlateColor(bFilled
+						? FilledDiamondColor
+						: FLinearColor(0.55f, 0.57f, 0.62f)));
+					FSlateFontInfo DiamondFont = Diamond->GetFont();
+					DiamondFont.Size = 19;
+					Diamond->SetFont(DiamondFont);
+					UHorizontalBoxSlot* DiamondSlot = DiamondRow->AddChildToHorizontalBox(Diamond);
+					DiamondSlot->SetPadding(FMargin(5.0f, 0.0f));
+				}
+			}
+		}
 		if (UpgradeArtworkImages.IsValidIndex(Index) && UpgradeArtworkImages[Index])
 		{
 			UpgradeArtworkImages[Index]->SetBrushFromTexture(Upgrade ? Upgrade->CardArtwork : nullptr, true);

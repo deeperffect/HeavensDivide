@@ -10,6 +10,7 @@
 class ASurvivorPlayerController;
 class UBorder;
 class UImage;
+class UHorizontalBox;
 class UMaterialInterface;
 class UTextBlock;
 class UTexture2D;
@@ -177,6 +178,15 @@ private:
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UImage>> UpgradeRarityGlowImages;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> UpgradeTitleTexts;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> UpgradeDescriptionTexts;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UHorizontalBox>> UpgradeLevelDiamondRows;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UImage>> CategoryArtworkImages;
