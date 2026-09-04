@@ -8,6 +8,7 @@
 
 class UHeavensDivideMetaSaveGame;
 class UUpgradeDefinition;
+enum class EUpgradeCategory : uint8;
 
 UCLASS()
 class HEAVENSDIVIDE_API USynergyMetaProgressionSubsystem : public UGameInstanceSubsystem
@@ -40,6 +41,13 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Meta Progression|Synergy")
 	TArray<UUpgradeDefinition*> GetSynergyUpgradeDefinitions() const;
+
+	/** Asset-registry-backed collection entries for a gameplay upgrade category. */
+	UFUNCTION(BlueprintPure, Category = "Meta Progression|Collection")
+	TArray<UUpgradeDefinition*> GetCollectionUpgradeDefinitions(EUpgradeCategory Category) const;
+
+	UFUNCTION(BlueprintPure, Category = "Meta Progression|Collection")
+	bool IsCollectionUpgradeUnlocked(const UUpgradeDefinition* Upgrade) const;
 
 	UFUNCTION(BlueprintPure, Category = "Meta Progression|Twin Soul")
 	int32 GetTwinSoulDiscoveryProgress() const;

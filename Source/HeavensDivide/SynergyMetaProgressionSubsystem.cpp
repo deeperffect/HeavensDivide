@@ -127,6 +127,38 @@ TArray<UUpgradeDefinition*> USynergyMetaProgressionSubsystem::GetSynergyUpgradeD
 	return Definitions;
 }
 
+TArray<UUpgradeDefinition*> USynergyMetaProgressionSubsystem::GetCollectionUpgradeDefinitions(EUpgradeCategory Category) const
+{
+	FARFilter Filter;
+	Filter.PackagePaths.Add(TEXT("/Game/HeavensDivide/Upgrades"));
+	Filter.ClassPaths.Add(UUpgradeDefinition::StaticClass()->GetClassPathName());
+	Filter.bRecursivePaths = true;
+	Filter.bRecursiveClasses = true;
+
+	TArray<FAssetData> Assets;
+	FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry")).Get().GetAssets(Filter, Assets);
+	TArray<UUpgradeDefinition*> Definitions;
+	for (const FAssetData& Asset : Assets)
+	{
+		UUpgradeDefinition* Definition = Cast<UUpgradeDefinition>(Asset.GetAsset());
+		if (Definition && Definition->Category == Category)
+		{
+			Definitions.Add(Definition);
+		}
+	}
+	Definitions.Sort([](const UUpgradeDefinition& A, const UUpgradeDefinition& B)
+	{
+		return A.DisplayName.ToString() < B.DisplayName.ToString();
+	});
+	return Definitions;
+}
+
+bool USynergyMetaProgressionSubsystem::IsCollectionUpgradeUnlocked(const UUpgradeDefinition* Upgrade) const
+{
+	if (!Upgrade) return false;
+	return Upgrade->Category != EUpgradeCategory::Synergy || IsUpgradeMetaEligible(Upgrade);
+}
+
 int32 USynergyMetaProgressionSubsystem::GetTwinSoulDiscoveryProgress() const
 {
 	return CurrentSave ? FMath::Max(0, CurrentSave->TwinSoulCompletionsTowardDiscovery) : 0;
