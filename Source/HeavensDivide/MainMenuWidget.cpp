@@ -194,34 +194,129 @@ void UMainMenuWidget::BuildMenu()
 	ResetButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleResetProgress);
 	ExitButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleExitGame);
 
-	CollectionOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("CollectionOverlay"));
-	CollectionOverlay->SetBrushColor(FLinearColor::Transparent);
-	CollectionOverlay->SetPadding(FMargin(0.0f));
-	CollectionOverlay->SetRenderTranslation(CollectionPageOffset);
-	CollectionOverlay->SetClipping(EWidgetClipping::ClipToBounds);
-	UScaleBox* CollectionScale = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), TEXT("CollectionResolutionScale"));
-	CollectionScale->SetStretch(EStretch::ScaleToFit);
-	CollectionScale->SetStretchDirection(EStretchDirection::DownOnly);
-	USizeBox* CollectionDesignSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CollectionDesignSize"));
-	CollectionDesignSize->SetWidthOverride(1030.0f);
-	CollectionDesignSize->SetHeightOverride(780.0f);
-	UOverlay* CollectionArtLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("CollectionArtLayers"));
-	CollectionDesignSize->SetContent(CollectionArtLayers);
-	UBorder* CollectionFallback = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("CollectionPanelFallback"));
-	CollectionFallback->SetBrushColor(FLinearColor(0.008f, 0.010f, 0.016f, 0.94f));
-	CollectionFallback->SetVisibility(CollectionPanelTexture ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
-	CollectionArtLayers->AddChildToOverlay(CollectionFallback);
-	UImage* CollectionBackgroundImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Img_CollectionPanelBackground"));
-	CollectionBackgroundImage->SetBrushFromTexture(CollectionPanelTexture, false);
-	CollectionBackgroundImage->SetRenderTransformPivot(FVector2D(0.5f));
-	CollectionBackgroundImage->SetRenderScale(CollectionPanelImageScale);
-	CollectionBackgroundImage->SetRenderTranslation(CollectionPanelImageOffset);
-	CollectionBackgroundImage->SetVisibility(CollectionPanelTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	CollectionArtLayers->AddChildToOverlay(CollectionBackgroundImage);
-	UVerticalBox* CollectionPanel = BuildCollectionPanel();
-	UOverlaySlot* ContentSlot = CollectionArtLayers->AddChildToOverlay(CollectionPanel);
-	ContentSlot->SetPadding(CollectionContentPadding);
-	auto AddCorner = [this, CollectionArtLayers](FName Name, EHorizontalAlignment Horizontal, EVerticalAlignment Vertical, float Angle)
+	auto AttachPage = [Root](UBorder* Page)
+	{
+		UOverlaySlot* PageSlot = Root->AddChildToOverlay(Page);
+		PageSlot->SetHorizontalAlignment(HAlign_Fill);
+		PageSlot->SetVerticalAlignment(VAlign_Fill);
+		PageSlot->SetPadding(FMargin(410.0f, 24.0f, 24.0f, 24.0f));
+	};
+	CollectionOverlay = BuildSecondaryPageFrame(BuildCollectionPanel(), TEXT("CollectionOverlay"),
+		CollectionPageOffset, CollectionContentPadding, FLinearColor(0.008f, 0.010f, 0.016f, 0.94f));
+	AttachPage(CollectionOverlay);
+	SetCollectionVisible(false);
+
+	auto AddFooterButton = [this](UHorizontalBox* Footer, const FText& Label, FName Name)
+	{
+		UVerticalBox* ButtonBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		UButton* Button = AddMenuButton(ButtonBox, Label, Name);
+		if (USizeBox* ButtonSize = Cast<USizeBox>(Button->GetChildAt(0)))
+		{
+			ButtonSize->SetWidthOverride(FMath::Max(60.0f, CollectionBackButtonSize.X));
+			ButtonSize->SetHeightOverride(FMath::Max(1.0f, CollectionBackButtonSize.Y));
+		}
+		Footer->AddChildToHorizontalBox(ButtonBox)->SetPadding(FMargin(12.0f, 0.0f, 0.0f, 0.0f));
+		return Button;
+	};
+	UHorizontalBox* SettingsActions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	SettingsActions->SetRenderTranslation(SecondaryButtonsOffset);
+	UButton* SettingsBack = AddFooterButton(SettingsActions, FText::FromString(TEXT("BACK")), TEXT("SettingsBackButton"));
+	SettingsBack->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
+	UHorizontalBox* ResetActions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	ResetActions->SetRenderTranslation(SecondaryButtonsOffset);
+	UButton* CancelButton = AddFooterButton(ResetActions, FText::FromString(TEXT("CANCEL")), TEXT("CancelResetButton"));
+	UButton* ConfirmButton = AddFooterButton(ResetActions, FText::FromString(TEXT("RESET")), TEXT("ConfirmResetButton"));
+	CancelButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleCancelReset);
+	ConfirmButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleConfirmReset);
+
+	SettingsPopupOverlay = BuildSecondaryPageFrame(BuildSettingsPanel(), TEXT("SettingsPopupOverlay"),
+		SettingsPageOffset, SettingsPopupPadding, SettingsPopupBackgroundColor, SettingsActions);
+	AttachPage(SettingsPopupOverlay);
+	SetSettingsPopupVisible(false);
+
+	UVerticalBox* ResetBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	ResetConfirmationOverlay = BuildSecondaryPageFrame(ResetBox, TEXT("ResetConfirmationOverlay"),
+		ResetPopupOffset, ResetPopupPadding, ResetPopupBackgroundColor, ResetActions);
+	AttachPage(ResetConfirmationOverlay);
+	UTextBlock* ResetTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	ResetTitle->SetText(MainMenuCopy::ResetTitle);
+	ResetTitle->SetJustification(ETextJustify::Left);
+	ResetTitle->SetColorAndOpacity(FSlateColor(ResetPopupTitleColor));
+	FSlateFontInfo ResetFont = SecondaryHeadingFont.Size > 0 ? SecondaryHeadingFont : ResetTitle->GetFont();
+	if (SecondaryHeadingFont.Size <= 0)
+	{
+		ResetFont.Size = CollectionDetailNameFontSize;
+		ResetFont.TypefaceFontName = TEXT("Bold");
+	}
+	ResetTitle->SetFont(ResetFont);
+	ResetBox->AddChildToVerticalBox(ResetTitle)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 18.0f));
+	AddSecondaryPageDivider(ResetBox);
+	UTextBlock* ResetBody = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	ResetBody->SetText(MainMenuCopy::ResetBody);
+	ResetBody->SetAutoWrapText(true);
+	ResetBody->SetWrapTextAt(520.0f);
+	ResetBody->SetJustification(ETextJustify::Left);
+	ResetBody->SetColorAndOpacity(FSlateColor(SecondaryBodyColor));
+	FSlateFontInfo ResetBodyFont = SecondaryBodyFont.Size > 0 ? SecondaryBodyFont : ResetBody->GetFont();
+	ResetBodyFont.Size = CollectionDescriptionFontSize;
+	ResetBody->SetFont(ResetBodyFont);
+	ResetBox->AddChildToVerticalBox(ResetBody)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 24.0f));
+	SetResetConfirmationVisible(false);
+}
+
+UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer)
+{
+	UBorder* PageOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), PageName);
+	PageOverlay->SetBrushColor(FLinearColor::Transparent);
+	PageOverlay->SetPadding(FMargin(0.0f));
+	PageOverlay->SetRenderTranslation(PageOffset);
+	PageOverlay->SetClipping(EWidgetClipping::ClipToBounds);
+	UScaleBox* PageScale = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), NAME_None);
+	PageScale->SetStretch(EStretch::ScaleToFit);
+	PageScale->SetStretchDirection(EStretchDirection::DownOnly);
+	USizeBox* PageDesignSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), NAME_None);
+	PageDesignSize->SetWidthOverride(1030.0f);
+	PageDesignSize->SetHeightOverride(780.0f + (Footer ? 24.0f + FMath::Max(1.0f, CollectionBackButtonSize.Y) : 0.0f));
+	UOverlay* PageArtLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), NAME_None);
+	if (Footer)
+	{
+		// Keep actions outside the artwork and its content padding.
+		UVerticalBox* PageStack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		PageDesignSize->SetContent(PageStack);
+		USizeBox* ArtSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		ArtSize->SetHeightOverride(780.0f);
+		ArtSize->SetContent(PageArtLayers);
+		PageStack->AddChildToVerticalBox(ArtSize);
+		UVerticalBoxSlot* FooterSlot = PageStack->AddChildToVerticalBox(Footer);
+		FooterSlot->SetHorizontalAlignment(HAlign_Right);
+		FooterSlot->SetPadding(FMargin(0.0f, 14.0f, ContentPadding.Right, 0.0f));
+	}
+	else
+	{
+		PageDesignSize->SetContent(PageArtLayers);
+	}
+	UBorder* PageFallback = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), NAME_None);
+	PageFallback->SetBrushColor(FallbackColor);
+	PageFallback->SetVisibility(CollectionPanelTexture ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	UOverlaySlot* FallbackSlot = PageArtLayers->AddChildToOverlay(PageFallback);
+	FallbackSlot->SetHorizontalAlignment(HAlign_Fill); FallbackSlot->SetVerticalAlignment(VAlign_Fill);
+	UImage* PageBackgroundImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), NAME_None);
+	PageBackgroundImage->SetBrushFromTexture(CollectionPanelTexture, false);
+	PageBackgroundImage->SetRenderTransformPivot(FVector2D(0.5f));
+	PageBackgroundImage->SetRenderScale(CollectionPanelImageScale);
+	PageBackgroundImage->SetRenderTranslation(CollectionPanelImageOffset);
+	PageBackgroundImage->SetVisibility(CollectionPanelTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	UOverlaySlot* BackgroundSlot = PageArtLayers->AddChildToOverlay(PageBackgroundImage);
+	// Preserve the original Collection brush size: saved image scale/offset values
+	// were tuned against it. Filling the panel first multiplies that scale again
+	// and crops the artwork down to its dark center.
+	BackgroundSlot->SetHorizontalAlignment(HAlign_Left);
+	BackgroundSlot->SetVerticalAlignment(VAlign_Top);
+
+	UOverlaySlot* ContentSlot = PageArtLayers->AddChildToOverlay(Content);
+	ContentSlot->SetPadding(ContentPadding);
+	ContentSlot->SetHorizontalAlignment(HAlign_Fill); ContentSlot->SetVerticalAlignment(VAlign_Fill);
+	auto AddCorner = [this, PageArtLayers](FName Name, EHorizontalAlignment Horizontal, EVerticalAlignment Vertical, float Angle)
 	{
 		USizeBox* CornerSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		CornerSize->SetWidthOverride(FMath::Max(1.0f, CornerBrushSize.X)); CornerSize->SetHeightOverride(FMath::Max(1.0f, CornerBrushSize.Y));
@@ -229,68 +324,33 @@ void UMainMenuWidget::BuildMenu()
 		UImage* Corner = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), Name);
 		Corner->SetBrushFromTexture(CornerBrushTexture, false); Corner->SetRenderTransformPivot(FVector2D(0.5f)); Corner->SetRenderTransformAngle(Angle);
 		Corner->SetVisibility(ESlateVisibility::HitTestInvisible); CornerSize->SetContent(Corner);
-		UOverlaySlot* CornerSlot = CollectionArtLayers->AddChildToOverlay(CornerSize);
+		UOverlaySlot* CornerSlot = PageArtLayers->AddChildToOverlay(CornerSize);
 		CornerSlot->SetHorizontalAlignment(Horizontal); CornerSlot->SetVerticalAlignment(Vertical);
 		CornerSlot->SetPadding(FMargin(FMath::Max(0.0f, CornerBrushInset.X), FMath::Max(0.0f, CornerBrushInset.Y)));
 	};
-	AddCorner(TEXT("Img_Corner_TL"), HAlign_Left, VAlign_Top, 0.0f);
-	AddCorner(TEXT("Img_Corner_TR"), HAlign_Right, VAlign_Top, 90.0f);
-	AddCorner(TEXT("Img_Corner_BR"), HAlign_Right, VAlign_Bottom, 180.0f);
-	AddCorner(TEXT("Img_Corner_BL"), HAlign_Left, VAlign_Bottom, 270.0f);
-	CollectionScale->SetContent(CollectionDesignSize);
-	CollectionOverlay->SetContent(CollectionScale);
-	UOverlaySlot* CollectionOverlaySlot = Root->AddChildToOverlay(CollectionOverlay);
-	CollectionOverlaySlot->SetHorizontalAlignment(HAlign_Fill);
-	CollectionOverlaySlot->SetVerticalAlignment(VAlign_Fill);
-	CollectionOverlaySlot->SetPadding(FMargin(410.0f, 24.0f, 24.0f, 24.0f));
-	SetCollectionVisible(false);
-
-	SettingsPopupOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SettingsPopupOverlay"));
-	SettingsPopupOverlay->SetBrushColor(SettingsPopupBackgroundColor);
-	SettingsPopupOverlay->SetPadding(SettingsPopupPadding);
-	UOverlaySlot* SettingsOverlaySlot = Root->AddChildToOverlay(SettingsPopupOverlay);
-	SettingsOverlaySlot->SetHorizontalAlignment(HAlign_Center);
-	SettingsOverlaySlot->SetVerticalAlignment(VAlign_Center);
-	SettingsPopupOverlay->SetContent(BuildSettingsPanel());
-	SetSettingsPopupVisible(false);
-
-	ResetConfirmationOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ResetConfirmationOverlay"));
-	ResetConfirmationOverlay->SetBrushColor(ResetPopupBackgroundColor);
-	ResetConfirmationOverlay->SetPadding(ResetPopupPadding);
-	ResetConfirmationOverlay->SetRenderTranslation(ResetPopupOffset);
-	UOverlaySlot* ResetOverlaySlot = Root->AddChildToOverlay(ResetConfirmationOverlay);
-	ResetOverlaySlot->SetHorizontalAlignment(HAlign_Center);
-	ResetOverlaySlot->SetVerticalAlignment(VAlign_Center);
-	UVerticalBox* ResetBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	ResetConfirmationOverlay->SetContent(ResetBox);
-	UTextBlock* ResetTitle = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	ResetTitle->SetText(MainMenuCopy::ResetTitle);
-	ResetTitle->SetJustification(ETextJustify::Center);
-	ResetTitle->SetColorAndOpacity(FSlateColor(ResetPopupTitleColor));
-	FSlateFontInfo ResetFont = SecondaryHeadingFont.Size > 0 ? SecondaryHeadingFont : ResetTitle->GetFont();
-	if (SecondaryHeadingFont.Size <= 0)
-	{
-		ResetFont.Size = 32;
-		ResetFont.TypefaceFontName = TEXT("Bold");
-	}
-	ResetTitle->SetFont(ResetFont);
-	ResetBox->AddChildToVerticalBox(ResetTitle)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 18.0f));
-	UTextBlock* ResetBody = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
-	ResetBody->SetText(MainMenuCopy::ResetBody);
-	ResetBody->SetAutoWrapText(true);
-	ResetBody->SetWrapTextAt(520.0f);
-	ResetBody->SetJustification(ETextJustify::Center);
-	ResetBody->SetColorAndOpacity(FSlateColor(SecondaryBodyColor));
-	if (SecondaryBodyFont.Size > 0) ResetBody->SetFont(SecondaryBodyFont);
-	ResetBox->AddChildToVerticalBox(ResetBody)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 24.0f));
-	UButton* CancelButton = AddMenuButton(ResetBox, FText::FromString(TEXT("CANCEL")), TEXT("CancelResetButton"));
-	UButton* ConfirmButton = AddMenuButton(ResetBox, FText::FromString(TEXT("RESET")), TEXT("ConfirmResetButton"));
-	CancelButton->SetRenderTranslation(SecondaryButtonsOffset);
-	ConfirmButton->SetRenderTranslation(SecondaryButtonsOffset);
-	CancelButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleCancelReset);
-	ConfirmButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleConfirmReset);
-	SetResetConfirmationVisible(false);
+	AddCorner(NAME_None, HAlign_Left, VAlign_Top, 0.0f);
+	AddCorner(NAME_None, HAlign_Right, VAlign_Top, 90.0f);
+	AddCorner(NAME_None, HAlign_Right, VAlign_Bottom, 180.0f);
+	AddCorner(NAME_None, HAlign_Left, VAlign_Bottom, 270.0f);
+	PageScale->SetContent(PageDesignSize);
+	PageOverlay->SetContent(PageScale);
+	return PageOverlay;
 }
+
+void UMainMenuWidget::AddSecondaryPageDivider(UVerticalBox* Panel)
+{
+	USizeBox* DividerSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	if (HorizontalBrushSize.X > 0.0f) DividerSize->SetWidthOverride(HorizontalBrushSize.X);
+	DividerSize->SetHeightOverride(FMath::Max(1.0f, HorizontalBrushSize.Y));
+	DividerSize->SetRenderTranslation(TitleDividerOffset);
+	DividerSize->SetVisibility(HorizontalBrushTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	UImage* Divider = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+	Divider->SetBrushFromTexture(HorizontalBrushTexture, false);
+	Divider->SetVisibility(ESlateVisibility::HitTestInvisible);
+	DividerSize->SetContent(Divider);
+	Panel->AddChildToVerticalBox(DividerSize)->SetPadding(FMargin(4.0f, 0.0f, 4.0f, 18.0f));
+}
+
 
 UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
 {
@@ -474,21 +534,22 @@ void UMainMenuWidget::RefreshCollection()
 UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
 {
 	UVerticalBox* Panel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("SettingsPanel"));
-	Panel->SetRenderTranslation(SettingsPageOffset);
+
 
 	UTextBlock* Heading = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SettingsHeading"));
 	Heading->SetText(FText::FromString(TEXT("SETTINGS")));
-	Heading->SetJustification(ETextJustify::Center);
+	Heading->SetJustification(ETextJustify::Left);
 	Heading->SetColorAndOpacity(FSlateColor(SecondaryHeadingColor));
 	FSlateFontInfo HeadingFont = SecondaryHeadingFont.Size > 0 ? SecondaryHeadingFont : Heading->GetFont();
 	if (SecondaryHeadingFont.Size <= 0)
 	{
-		HeadingFont.Size = 36;
+		HeadingFont.Size = CollectionDetailNameFontSize;
 		HeadingFont.TypefaceFontName = TEXT("Bold");
 	}
 	Heading->SetFont(HeadingFont);
 	Panel->AddChildToVerticalBox(Heading)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 28.0f));
 
+	AddSecondaryPageDivider(Panel);
 	UHorizontalBox* SettingRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("AutoTargetingRow"));
 	Panel->AddChildToVerticalBox(SettingRow)->SetPadding(FMargin(0.0f, 6.0f, 0.0f, 28.0f));
 
@@ -496,7 +557,7 @@ UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
 	Label->SetText(FText::FromString(TEXT("Auto Targeting")));
 	Label->SetColorAndOpacity(FSlateColor(SecondaryBodyColor));
 	FSlateFontInfo LabelFont = SecondaryBodyFont.Size > 0 ? SecondaryBodyFont : Label->GetFont();
-	if (SecondaryBodyFont.Size <= 0) LabelFont.Size = 22;
+	LabelFont.Size = CollectionDescriptionFontSize;
 	Label->SetFont(LabelFont);
 	UHorizontalBoxSlot* LabelSlot = SettingRow->AddChildToHorizontalBox(Label);
 	LabelSlot->SetPadding(FMargin(0.0f, 0.0f, 28.0f, 0.0f));
@@ -513,9 +574,6 @@ UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
 	StateSlot->SetPadding(FMargin(12.0f, 0.0f, 0.0f, 0.0f));
 	StateSlot->SetVerticalAlignment(VAlign_Center);
 
-	UButton* BackButton = AddMenuButton(Panel, FText::FromString(TEXT("BACK")), TEXT("SettingsBackButton"));
-	BackButton->SetRenderTranslation(SecondaryButtonsOffset);
-	BackButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
 	RefreshAutoTargetingSetting();
 	return Panel;
 }

@@ -69,6 +69,8 @@ protected:
 
 private:
 	void BuildMenu();
+	class UBorder* BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer = nullptr);
+	void AddSecondaryPageDivider(class UVerticalBox* Panel);
 	class UVerticalBox* BuildCollectionPanel();
 	class UVerticalBox* BuildSettingsPanel();
 	void RefreshAutoTargetingSetting();
@@ -152,7 +154,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
 	FMargin CollectionContentPadding = FMargin(28.0f, 22.0f);
 
-	/** Transparent grunge artwork behind the complete Collection content area. */
+	/** Shared grunge background for Collection, Settings, and Reset Progress. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
 	TObjectPtr<UTexture2D> CollectionPanelTexture;
 
@@ -245,7 +247,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
 	FVector2D VerticalDividerOffset = FVector2D::ZeroVector;
 
-	/** Reused by the title and details separators. */
+	/** Shared brush for Collection separators and the Settings / Reset Progress dividers. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
 	TObjectPtr<UTexture2D> HorizontalBrushTexture;
 
@@ -305,6 +307,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Settings", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
 	FVector2D SettingsPageOffset = FVector2D::ZeroVector;
 
+	/** Fallback panel color when the shared Collection Panel Texture is unassigned. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Settings", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
 	FLinearColor SettingsPopupBackgroundColor = FLinearColor(0.015f, 0.018f, 0.025f, 0.94f);
 
@@ -316,6 +319,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Reset Confirmation", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
 	FVector2D ResetPopupOffset = FVector2D::ZeroVector;
 
+	/** Fallback panel color when the shared Collection Panel Texture is unassigned. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Reset Confirmation", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
 	FLinearColor ResetPopupBackgroundColor = FLinearColor(0.035f, 0.01f, 0.015f, 0.98f);
 
