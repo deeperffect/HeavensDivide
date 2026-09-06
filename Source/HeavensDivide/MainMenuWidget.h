@@ -86,105 +86,262 @@ private:
 	UFUNCTION()
 	void HandleBackgroundMediaOpened(FString OpenedUrl);
 
+	// Cinematic Background
+
 	/** Optional UI material used for the full-screen menu video. Takes priority over BackgroundMediaTexture. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
 	TObjectPtr<UMaterialInterface> BackgroundMediaMaterial;
 
 	/** Optional media texture displayed when no background material is assigned. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
 	TObjectPtr<UMediaTexture> BackgroundMediaTexture;
 
 	/** Media Player opened and looped when this menu is constructed. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
 	TObjectPtr<UMediaPlayer> BackgroundMediaPlayer;
 
 	/** File/stream source opened by BackgroundMediaPlayer. Leave empty to use the player's already configured source. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
 	TObjectPtr<UMediaSource> BackgroundMediaSource;
 
 	/** Strength of the subtle full-screen readability veil. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Cinematic Background", meta = (AllowPrivateAccess = "true", DisplayPriority = "5", ClampMin = "0.0", ClampMax = "1.0"))
 	float ReadabilityOverlayOpacity = 0.32f;
 
-	/** Optional transparent sumi-e brush texture revealed behind focused/hovered menu labels. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Ink Menu", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UTexture2D> InkBrushTexture;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Ink Menu", meta = (AllowPrivateAccess = "true", ClampMin = "0.05", ClampMax = "1.0"))
-	float InkRevealDuration = 0.14f;
-
-	/** Shared font styling for all menu-entry labels. Leave Size at 0 to use the built-in 24 pt fallback. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Ink Menu", meta = (AllowPrivateAccess = "true"))
-	FSlateFontInfo MenuButtonFont;
+	// Logo
 
 	/** Optional logo that replaces the HEAVENS DIVIDE text title when assigned. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
 	TObjectPtr<UTexture2D> MainMenuLogo;
 
 	/** Display size of the optional main-menu logo. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true", ClampMin = "1.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true", DisplayPriority = "2", ClampMin = "1.0"))
 	FVector2D MainMenuLogoSize = FVector2D(420.0f, 150.0f);
 
 	/** Additional screen-space X/Y adjustment applied to the logo without moving the menu buttons. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
 	FVector2D MainMenuLogoOffset = FVector2D::ZeroVector;
 
 	/** Space between the title/logo region and the first menu option. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Logo", meta = (AllowPrivateAccess = "true", DisplayPriority = "4", ClampMin = "0.0"))
 	float MainMenuLogoBottomSpacing = 34.0f;
 
+	// Menu Buttons
+
 	/** Additional X/Y adjustment for the five primary menu options. Use a negative Y value to move them upward. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Layout", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Menu Buttons", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
 	FVector2D MainMenuButtonsOffset = FVector2D::ZeroVector;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Layout", meta = (AllowPrivateAccess = "true"))
+	/** Shared font styling for all menu-entry labels. Leave Size at 0 to use the built-in 24 pt fallback. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Menu Buttons", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
+	FSlateFontInfo MenuButtonFont;
+
+	/** Optional transparent sumi-e brush texture revealed behind focused/hovered menu labels. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Menu Buttons", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	TObjectPtr<UTexture2D> InkBrushTexture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Menu Buttons", meta = (AllowPrivateAccess = "true", DisplayPriority = "4", ClampMin = "0.05", ClampMax = "1.0"))
+	float InkRevealDuration = 0.14f;
+
+	// Collection - Page
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
 	FVector2D CollectionPageOffset = FVector2D::ZeroVector;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Layout", meta = (AllowPrivateAccess = "true"))
-	FVector2D SettingsPageOffset = FVector2D::ZeroVector;
+	/** Padding between the Collection background art edge and all page content. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
+	FMargin CollectionContentPadding = FMargin(28.0f, 22.0f);
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Layout", meta = (AllowPrivateAccess = "true"))
-	FVector2D ResetPopupOffset = FVector2D::ZeroVector;
+	/** Transparent grunge artwork behind the complete Collection content area. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	TObjectPtr<UTexture2D> CollectionPanelTexture;
 
-	/** Applied to Collection/Settings Back buttons and the reset dialog action buttons. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Layout", meta = (AllowPrivateAccess = "true"))
-	FVector2D SecondaryButtonsOffset = FVector2D::ZeroVector;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
+	FVector2D CollectionPanelImageScale = FVector2D(1.0f, 1.0f);
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Typography", meta = (AllowPrivateAccess = "true"))
-	FSlateFontInfo SecondaryHeadingFont;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "5"))
+	FVector2D CollectionPanelImageOffset = FVector2D::ZeroVector;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Typography", meta = (AllowPrivateAccess = "true"))
-	FSlateFontInfo SecondaryBodyFont;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "6", ClampMin = "8", ClampMax = "96"))
+	int32 CollectionSubtitleFontSize = 14;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Typography", meta = (AllowPrivateAccess = "true"))
-	FLinearColor SecondaryHeadingColor = FLinearColor(0.93f, 0.76f, 0.34f, 1.0f);
+	// Collection - Tabs and Tiles
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Typography", meta = (AllowPrivateAccess = "true"))
-	FLinearColor SecondaryBodyColor = FLinearColor(0.88f, 0.89f, 0.92f, 1.0f);
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "1", ClampMin = "8", ClampMax = "96"))
+	int32 CollectionTabFontSize = 20;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Reset Popup", meta = (AllowPrivateAccess = "true"))
-	FLinearColor ResetPopupBackgroundColor = FLinearColor(0.035f, 0.01f, 0.015f, 0.98f);
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
+	TObjectPtr<UTexture2D> TileBackgroundTexture;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Reset Popup", meta = (AllowPrivateAccess = "true"))
-	FLinearColor ResetPopupTitleColor = FLinearColor(0.95f, 0.30f, 0.25f, 1.0f);
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	TObjectPtr<UTexture2D> TileSelectedTexture;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Reset Popup", meta = (AllowPrivateAccess = "true"))
-	FMargin ResetPopupPadding = FMargin(46.0f, 34.0f);
+	/** Uniformly scales the background, icon, locked layer, and selected frame. 1.0 = 134 px; 0.5 = half size; 2.0 = double size. Applied when the Collection grid is built. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "4", ClampMin = "0.25", ClampMax = "3.0", UIMin = "0.25", UIMax = "3.0"))
+	float CollectionTileScale = 1.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Settings Popup", meta = (AllowPrivateAccess = "true"))
-	FLinearColor SettingsPopupBackgroundColor = FLinearColor(0.015f, 0.018f, 0.025f, 0.94f);
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "5", ClampMin = "0.0"))
+	float CollectionTileSpacing = 6.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Settings Popup", meta = (AllowPrivateAccess = "true"))
-	FMargin SettingsPopupPadding = FMargin(46.0f, 34.0f);
+	/** Design-space inset between the tile frame and icon. This is scaled together with the tile. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "6", ClampMin = "0.0"))
+	float CollectionTileIconPadding = 15.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Collection", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "7"))
 	FLinearColor CollectionUnlockedCardColor = FLinearColor(0.09f, 0.12f, 0.19f, 0.98f);
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Collection", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "8"))
 	FLinearColor CollectionLockedCardColor = FLinearColor(0.035f, 0.04f, 0.055f, 0.92f);
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Secondary Pages|Collection", meta = (AllowPrivateAccess = "true", ClampMin = "100.0"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Tabs and Tiles", meta = (AllowPrivateAccess = "true", DisplayPriority = "9", ClampMin = "100.0"))
 	FVector2D CollectionCardMinimumSize = FVector2D(340.0f, 150.0f);
+
+	// Collection - Details Panel
+
+	/** Moves the complete details panel. Negative Y moves it up; positive X moves it right. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
+	FVector2D CollectionDetailsPanelOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "2", ClampMin = "1.0"))
+	FVector2D CollectionDetailsPanelSize = FVector2D(380.0f, 570.0f);
+
+	/** Internal padding around the name, artwork, description, and stats. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	FMargin CollectionDetailsContentPadding = FMargin(24.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
+	TObjectPtr<UTexture2D> DetailsPanelTexture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "5"))
+	FVector2D DetailsPanelImageScale = FVector2D(1.0f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "6"))
+	FVector2D DetailsPanelImageOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "7", ClampMin = "1.0"))
+	FVector2D CollectionDetailsArtworkSize = FVector2D(235.0f, 235.0f);
+
+	/** Fine adjustment for the large details artwork without moving its title or description. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "8"))
+	FVector2D CollectionDetailsArtworkOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "9", ClampMin = "8", ClampMax = "96"))
+	int32 CollectionDetailNameFontSize = 28;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "10", ClampMin = "8", ClampMax = "96"))
+	int32 CollectionDescriptionFontSize = 17;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Details Panel", meta = (AllowPrivateAccess = "true", DisplayPriority = "11", ClampMin = "8", ClampMax = "96"))
+	int32 CollectionStatsFontSize = 14;
+
+	// Collection - Dividers and Corners
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
+	TObjectPtr<UTexture2D> VerticalDividerTexture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "2", ClampMin = "1.0"))
+	FVector2D VerticalDividerImageSize = FVector2D(18.0f, 570.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	FVector2D VerticalDividerOffset = FVector2D::ZeroVector;
+
+	/** Reused by the title and details separators. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
+	TObjectPtr<UTexture2D> HorizontalBrushTexture;
+
+	/** X <= 0 keeps the horizontal brushes stretched to the available width. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "5"))
+	FVector2D HorizontalBrushSize = FVector2D(0.0f, 12.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "6"))
+	FVector2D TitleDividerOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "7"))
+	FVector2D DetailsDividerOffset = FVector2D::ZeroVector;
+
+	/** Optional separator placed between the Samurai/Ninja/Synergy tabs and the upgrade grid. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "8"))
+	TObjectPtr<UTexture2D> CategoryGridDividerTexture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "9"))
+	FVector2D CategoryGridDividerSize = FVector2D(0.0f, 12.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "10"))
+	FVector2D CategoryGridDividerOffset = FVector2D::ZeroVector;
+
+	/** One top-left transparent corner texture, rotated for the other three corners. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "11"))
+	TObjectPtr<UTexture2D> CornerBrushTexture;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "12", ClampMin = "1.0"))
+	FVector2D CornerBrushSize = FVector2D(96.0f, 96.0f);
+
+	/** Positive values move every corner inward from its aligned panel edge. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Dividers and Corners", meta = (AllowPrivateAccess = "true", DisplayPriority = "13", ClampMin = "0.0"))
+	FVector2D CornerBrushInset = FVector2D::ZeroVector;
+
+	// Collection - Footer and Back Button
+
+	/** Moves the unlocked/discovery footer. Positive X moves right; positive Y moves down. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Footer and Back Button", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
+	FVector2D CollectionUnlockFooterOffset = FVector2D(24.0f, 70.0f);
+
+	/** Dedicated typeface for the unlocked/discovery footer. Leave Size at 0 to inherit Secondary Body Font. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Footer and Back Button", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
+	FSlateFontInfo CollectionFooterFont;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Footer and Back Button", meta = (AllowPrivateAccess = "true", DisplayPriority = "3", ClampMin = "8", ClampMax = "96"))
+	int32 CollectionFooterFontSize = 15;
+
+	/** Fine adjustment for the Collection Back button. Positive X moves right; positive Y moves down. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Footer and Back Button", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
+	FVector2D CollectionBackButtonOffset = FVector2D(0.0f, 18.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Footer and Back Button", meta = (AllowPrivateAccess = "true", DisplayPriority = "5", ClampMin = "60.0"))
+	FVector2D CollectionBackButtonSize = FVector2D(150.0f, 52.0f);
+
+	// Settings
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Settings", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
+	FVector2D SettingsPageOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Settings", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
+	FLinearColor SettingsPopupBackgroundColor = FLinearColor(0.015f, 0.018f, 0.025f, 0.94f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Settings", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	FMargin SettingsPopupPadding = FMargin(46.0f, 34.0f);
+
+	// Reset Confirmation
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Reset Confirmation", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
+	FVector2D ResetPopupOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Reset Confirmation", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
+	FLinearColor ResetPopupBackgroundColor = FLinearColor(0.035f, 0.01f, 0.015f, 0.98f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Reset Confirmation", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	FLinearColor ResetPopupTitleColor = FLinearColor(0.95f, 0.30f, 0.25f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Reset Confirmation", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
+	FMargin ResetPopupPadding = FMargin(46.0f, 34.0f);
+
+	// Shared Secondary Page Style
+
+	/** Applied to Collection/Settings Back buttons and the reset dialog action buttons. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Shared Secondary Page Style", meta = (AllowPrivateAccess = "true", DisplayPriority = "1"))
+	FVector2D SecondaryButtonsOffset = FVector2D::ZeroVector;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Shared Secondary Page Style", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
+	FSlateFontInfo SecondaryHeadingFont;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Shared Secondary Page Style", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	FLinearColor SecondaryHeadingColor = FLinearColor(0.93f, 0.76f, 0.34f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Shared Secondary Page Style", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
+	FSlateFontInfo SecondaryBodyFont;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Shared Secondary Page Style", meta = (AllowPrivateAccess = "true", DisplayPriority = "5"))
+	FLinearColor SecondaryBodyColor = FLinearColor(0.88f, 0.89f, 0.92f, 1.0f);
 
 	UFUNCTION()
 	void HandleNewRun();
@@ -237,8 +394,6 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> CollectionDetailName;
 	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> CollectionDetailCategory;
-	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> CollectionDetailDescription;
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> CollectionDetailStats;
@@ -246,6 +401,8 @@ private:
 	TArray<TObjectPtr<UCollectionUpgradeTileButton>> CollectionTileButtons;
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<class UBorder>> CollectionTileSelectionBorders;
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UImage>> CollectionTileSelectionImages;
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UImage>> CollectionTileIcons;
 	UPROPERTY(Transient)

@@ -195,8 +195,8 @@ void UMainMenuWidget::BuildMenu()
 	ExitButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleExitGame);
 
 	CollectionOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("CollectionOverlay"));
-	CollectionOverlay->SetBrushColor(FLinearColor(0.008f, 0.010f, 0.016f, 0.94f));
-	CollectionOverlay->SetPadding(FMargin(28.0f, 22.0f));
+	CollectionOverlay->SetBrushColor(FLinearColor::Transparent);
+	CollectionOverlay->SetPadding(FMargin(0.0f));
 	CollectionOverlay->SetRenderTranslation(CollectionPageOffset);
 	CollectionOverlay->SetClipping(EWidgetClipping::ClipToBounds);
 	UScaleBox* CollectionScale = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), TEXT("CollectionResolutionScale"));
@@ -205,7 +205,38 @@ void UMainMenuWidget::BuildMenu()
 	USizeBox* CollectionDesignSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CollectionDesignSize"));
 	CollectionDesignSize->SetWidthOverride(1030.0f);
 	CollectionDesignSize->SetHeightOverride(780.0f);
-	CollectionDesignSize->SetContent(BuildCollectionPanel());
+	UOverlay* CollectionArtLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("CollectionArtLayers"));
+	CollectionDesignSize->SetContent(CollectionArtLayers);
+	UBorder* CollectionFallback = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("CollectionPanelFallback"));
+	CollectionFallback->SetBrushColor(FLinearColor(0.008f, 0.010f, 0.016f, 0.94f));
+	CollectionFallback->SetVisibility(CollectionPanelTexture ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	CollectionArtLayers->AddChildToOverlay(CollectionFallback);
+	UImage* CollectionBackgroundImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Img_CollectionPanelBackground"));
+	CollectionBackgroundImage->SetBrushFromTexture(CollectionPanelTexture, false);
+	CollectionBackgroundImage->SetRenderTransformPivot(FVector2D(0.5f));
+	CollectionBackgroundImage->SetRenderScale(CollectionPanelImageScale);
+	CollectionBackgroundImage->SetRenderTranslation(CollectionPanelImageOffset);
+	CollectionBackgroundImage->SetVisibility(CollectionPanelTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	CollectionArtLayers->AddChildToOverlay(CollectionBackgroundImage);
+	UVerticalBox* CollectionPanel = BuildCollectionPanel();
+	UOverlaySlot* ContentSlot = CollectionArtLayers->AddChildToOverlay(CollectionPanel);
+	ContentSlot->SetPadding(CollectionContentPadding);
+	auto AddCorner = [this, CollectionArtLayers](FName Name, EHorizontalAlignment Horizontal, EVerticalAlignment Vertical, float Angle)
+	{
+		USizeBox* CornerSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		CornerSize->SetWidthOverride(FMath::Max(1.0f, CornerBrushSize.X)); CornerSize->SetHeightOverride(FMath::Max(1.0f, CornerBrushSize.Y));
+		CornerSize->SetVisibility(CornerBrushTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		UImage* Corner = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), Name);
+		Corner->SetBrushFromTexture(CornerBrushTexture, false); Corner->SetRenderTransformPivot(FVector2D(0.5f)); Corner->SetRenderTransformAngle(Angle);
+		Corner->SetVisibility(ESlateVisibility::HitTestInvisible); CornerSize->SetContent(Corner);
+		UOverlaySlot* CornerSlot = CollectionArtLayers->AddChildToOverlay(CornerSize);
+		CornerSlot->SetHorizontalAlignment(Horizontal); CornerSlot->SetVerticalAlignment(Vertical);
+		CornerSlot->SetPadding(FMargin(FMath::Max(0.0f, CornerBrushInset.X), FMath::Max(0.0f, CornerBrushInset.Y)));
+	};
+	AddCorner(TEXT("Img_Corner_TL"), HAlign_Left, VAlign_Top, 0.0f);
+	AddCorner(TEXT("Img_Corner_TR"), HAlign_Right, VAlign_Top, 90.0f);
+	AddCorner(TEXT("Img_Corner_BR"), HAlign_Right, VAlign_Bottom, 180.0f);
+	AddCorner(TEXT("Img_Corner_BL"), HAlign_Left, VAlign_Bottom, 270.0f);
 	CollectionScale->SetContent(CollectionDesignSize);
 	CollectionOverlay->SetContent(CollectionScale);
 	UOverlaySlot* CollectionOverlaySlot = Root->AddChildToOverlay(CollectionOverlay);
@@ -270,19 +301,25 @@ UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
 		Text->SetText(FText::FromString(Value));
 		Text->SetColorAndOpacity(FSlateColor(Color));
 		FSlateFontInfo Font = SecondaryBodyFont.Size > 0 ? SecondaryBodyFont : Text->GetFont();
-		if (SecondaryBodyFont.Size <= 0) Font.Size = Size;
+		Font.Size = Size;
 		Text->SetFont(Font);
 		return Text;
 	};
 
-	UTextBlock* Title = MakeText(TEXT("CollectionTitle"), TEXT("COLLECTION"), 36, SecondaryHeadingColor);
-	if (SecondaryHeadingFont.Size > 0) Title->SetFont(SecondaryHeadingFont);
-	Panel->AddChildToVerticalBox(Title)->SetPadding(FMargin(8.0f, 0.0f, 0.0f, 3.0f));
-	Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionSubtitle"), TEXT("DISCOVERED TECHNIQUES & SYNERGIES"), 14,
-		FLinearColor(0.55f, 0.57f, 0.62f)))->SetPadding(FMargin(8.0f, 0.0f, 0.0f, 18.0f));
+	Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionSubtitle"), TEXT("DISCOVERED TECHNIQUES & SYNERGIES"), CollectionSubtitleFontSize,
+		FLinearColor(0.55f, 0.57f, 0.62f)))->SetPadding(FMargin(8.0f, 0.0f, 0.0f, 6.0f));
+	USizeBox* TitleDividerSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	if (HorizontalBrushSize.X > 0.0f) TitleDividerSize->SetWidthOverride(HorizontalBrushSize.X);
+	TitleDividerSize->SetHeightOverride(FMath::Max(1.0f, HorizontalBrushSize.Y));
+	TitleDividerSize->SetRenderTranslation(TitleDividerOffset);
+	TitleDividerSize->SetVisibility(HorizontalBrushTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	UImage* TitleDivider = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Img_TitleDivider"));
+	TitleDivider->SetBrushFromTexture(HorizontalBrushTexture, false); TitleDivider->SetVisibility(ESlateVisibility::HitTestInvisible);
+	TitleDividerSize->SetContent(TitleDivider);
+	Panel->AddChildToVerticalBox(TitleDividerSize)->SetPadding(FMargin(4.0f, 0.0f, 4.0f, 10.0f));
 
 	UHorizontalBox* Tabs = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CollectionTabs"));
-	Panel->AddChildToVerticalBox(Tabs)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 18.0f));
+	Panel->AddChildToVerticalBox(Tabs)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 4.0f));
 	auto AddTab = [this, Tabs, MakeText](FName Name, const FString& Label)
 	{
 		UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
@@ -290,7 +327,7 @@ UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
 		FSlateBrush Empty; Empty.DrawAs = ESlateBrushDrawType::NoDrawType;
 		Style.SetNormal(Empty); Style.SetHovered(Empty); Style.SetPressed(Empty);
 		Button->SetStyle(Style);
-		Button->AddChild(MakeText(NAME_None, Label, 20, SecondaryBodyColor));
+		Button->AddChild(MakeText(NAME_None, Label, CollectionTabFontSize, SecondaryBodyColor));
 		UHorizontalBoxSlot* Slot = Tabs->AddChildToHorizontalBox(Button);
 		Slot->SetPadding(FMargin(10.0f, 4.0f, 28.0f, 4.0f));
 		return Button;
@@ -301,59 +338,118 @@ UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
 	SamuraiCollectionTab->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleSamuraiCollectionTab);
 	NinjaCollectionTab->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleNinjaCollectionTab);
 	SynergyCollectionTab->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleSynergyCollectionTab);
+	USizeBox* CategoryDividerSizeBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	if (CategoryGridDividerSize.X > 0.0f) CategoryDividerSizeBox->SetWidthOverride(CategoryGridDividerSize.X);
+	CategoryDividerSizeBox->SetHeightOverride(FMath::Max(1.0f, CategoryGridDividerSize.Y));
+	CategoryDividerSizeBox->SetRenderTranslation(CategoryGridDividerOffset);
+	CategoryDividerSizeBox->SetVisibility(CategoryGridDividerTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	UImage* CategoryDivider = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Img_CategoryGridDivider"));
+	CategoryDivider->SetBrushFromTexture(CategoryGridDividerTexture, false);
+	CategoryDivider->SetVisibility(ESlateVisibility::HitTestInvisible); CategoryDividerSizeBox->SetContent(CategoryDivider);
+	Panel->AddChildToVerticalBox(CategoryDividerSizeBox)->SetPadding(FMargin(4.0f, 0.0f, 4.0f, 10.0f));
 
 	UHorizontalBox* Body = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CollectionBody"));
 	Panel->AddChildToVerticalBox(Body);
 	UVerticalBox* Library = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("CollectionLibrary"));
 	UHorizontalBoxSlot* LibrarySlot = Body->AddChildToHorizontalBox(Library);
 	LibrarySlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-	LibrarySlot->SetPadding(FMargin(0.0f, 0.0f, 22.0f, 0.0f));
+	LibrarySlot->SetPadding(FMargin(0.0f, 0.0f, 8.0f, 0.0f));
 	USizeBox* ScrollSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 	ScrollSize->SetWidthOverride(570.0f); ScrollSize->SetHeightOverride(510.0f);
 	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("CollectionScroll"));
 	Scroll->SetScrollBarVisibility(ESlateVisibility::Visible);
 	ScrollSize->SetContent(Scroll);
 	SynergyCollectionGrid = WidgetTree->ConstructWidget<UUniformGridPanel>(UUniformGridPanel::StaticClass(), TEXT("CollectionGrid"));
-	SynergyCollectionGrid->SetMinDesiredSlotWidth(140.0f);
-	SynergyCollectionGrid->SetMinDesiredSlotHeight(140.0f);
+	const float CollectionTileExtent = 134.0f * FMath::Clamp(CollectionTileScale, 0.25f, 3.0f);
+	SynergyCollectionGrid->SetMinDesiredSlotWidth(CollectionTileExtent + FMath::Max(0.0f, CollectionTileSpacing));
+	SynergyCollectionGrid->SetMinDesiredSlotHeight(CollectionTileExtent + FMath::Max(0.0f, CollectionTileSpacing));
 	Scroll->AddChild(SynergyCollectionGrid);
 	Library->AddChildToVerticalBox(ScrollSize);
-	CollectionDiscoveryCountText = MakeText(TEXT("CollectionDiscoveryCount"), TEXT(""), 15, FLinearColor(0.62f, 0.65f, 0.70f));
-	Library->AddChildToVerticalBox(CollectionDiscoveryCountText)->SetPadding(FMargin(4.0f, 10.0f, 0.0f, 0.0f));
-	CollectionProgressText = MakeText(TEXT("CollectionDiscoveryProgress"), TEXT(""), 14, FLinearColor(0.66f, 0.48f, 0.82f));
-	Library->AddChildToVerticalBox(CollectionProgressText)->SetPadding(FMargin(4.0f, 3.0f, 0.0f, 0.0f));
+	UVerticalBox* CollectionFooter = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("CollectionUnlockFooter"));
+	CollectionFooter->SetRenderTranslation(CollectionUnlockFooterOffset);
+	Library->AddChildToVerticalBox(CollectionFooter);
+	CollectionDiscoveryCountText = MakeText(TEXT("CollectionDiscoveryCount"), TEXT(""), CollectionFooterFontSize, FLinearColor(0.62f, 0.65f, 0.70f));
+	FSlateFontInfo FooterFont = CollectionFooterFont.Size > 0 ? CollectionFooterFont
+		: (SecondaryBodyFont.Size > 0 ? SecondaryBodyFont : CollectionDiscoveryCountText->GetFont());
+	FooterFont.Size = CollectionFooterFontSize;
+	CollectionDiscoveryCountText->SetFont(FooterFont);
+	CollectionFooter->AddChildToVerticalBox(CollectionDiscoveryCountText)->SetPadding(FMargin(4.0f, 10.0f, 0.0f, 0.0f));
+	CollectionProgressText = MakeText(TEXT("CollectionDiscoveryProgress"), TEXT(""), CollectionFooterFontSize, FLinearColor(0.66f, 0.48f, 0.82f));
+	CollectionProgressText->SetFont(FooterFont);
+	CollectionFooter->AddChildToVerticalBox(CollectionProgressText)->SetPadding(FMargin(4.0f, 3.0f, 0.0f, 0.0f));
 
-	UBorder* Details = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("CollectionDetailsPanel"));
-	Details->SetBrushColor(FLinearColor(0.025f, 0.029f, 0.038f, 0.98f)); Details->SetPadding(FMargin(24.0f));
+	USizeBox* VerticalDividerSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	VerticalDividerSize->SetWidthOverride(FMath::Max(1.0f, VerticalDividerImageSize.X));
+	VerticalDividerSize->SetHeightOverride(FMath::Max(1.0f, VerticalDividerImageSize.Y));
+	VerticalDividerSize->SetRenderTranslation(VerticalDividerOffset);
+	UImage* VerticalDivider = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Img_VerticalDivider"));
+	VerticalDivider->SetBrushFromTexture(VerticalDividerTexture, false);
+	VerticalDivider->SetVisibility(VerticalDividerTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	VerticalDividerSize->SetContent(VerticalDivider);
+	Body->AddChildToHorizontalBox(VerticalDividerSize)->SetPadding(FMargin(0.0f, 0.0f, 10.0f, 0.0f));
+
+	USizeBox* Details = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CollectionDetailsPanel"));
+	Details->SetWidthOverride(FMath::Max(1.0f, CollectionDetailsPanelSize.X));
+	Details->SetHeightOverride(FMath::Max(1.0f, CollectionDetailsPanelSize.Y));
+	Details->SetRenderTranslation(CollectionDetailsPanelOffset);
 	UHorizontalBoxSlot* DetailsSlot = Body->AddChildToHorizontalBox(Details);
 	DetailsSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
-	USizeBox* DetailsSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-	DetailsSize->SetWidthOverride(380.0f); DetailsSize->SetHeightOverride(570.0f); Details->SetContent(DetailsSize);
-	UVerticalBox* DetailStack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass()); DetailsSize->SetContent(DetailStack);
-	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass()); IconSize->SetWidthOverride(235.0f); IconSize->SetHeightOverride(235.0f);
+	UOverlay* DetailsLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("CollectionDetailsLayers")); Details->SetContent(DetailsLayers);
+	UBorder* DetailsFallback = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("DetailsPanelFallback"));
+	DetailsFallback->SetBrushColor(FLinearColor(0.025f, 0.029f, 0.038f, 0.98f));
+	DetailsFallback->SetVisibility(DetailsPanelTexture ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	DetailsLayers->AddChildToOverlay(DetailsFallback);
+	UImage* DetailsBackground = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Img_DetailsPanelBackground"));
+	DetailsBackground->SetBrushFromTexture(DetailsPanelTexture, false);
+	DetailsBackground->SetRenderTransformPivot(FVector2D(0.5f));
+	DetailsBackground->SetRenderScale(DetailsPanelImageScale);
+	DetailsBackground->SetRenderTranslation(DetailsPanelImageOffset);
+	DetailsBackground->SetVisibility(DetailsPanelTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	DetailsLayers->AddChildToOverlay(DetailsBackground);
+	UBorder* DetailsPadding = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	DetailsPadding->SetBrushColor(FLinearColor::Transparent); DetailsPadding->SetPadding(CollectionDetailsContentPadding);
+	DetailsLayers->AddChildToOverlay(DetailsPadding);
+	UVerticalBox* DetailStack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass()); DetailsPadding->SetContent(DetailStack);
+	CollectionDetailName = MakeText(TEXT("CollectionDetailName"), TEXT(""), CollectionDetailNameFontSize, SecondaryHeadingColor);
+	CollectionDetailName->SetAutoWrapText(false);
+	DetailStack->AddChildToVerticalBox(CollectionDetailName)->SetPadding(FMargin(0,0,0,12));
+	USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	IconSize->SetWidthOverride(FMath::Max(1.0f, CollectionDetailsArtworkSize.X));
+	IconSize->SetHeightOverride(FMath::Max(1.0f, CollectionDetailsArtworkSize.Y));
+	IconSize->SetRenderTranslation(CollectionDetailsArtworkOffset);
 	CollectionDetailIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("CollectionDetailIcon"));
-	UScaleBox* DetailIconScale = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass());
-	DetailIconScale->SetStretch(EStretch::ScaleToFit); DetailIconScale->SetStretchDirection(EStretchDirection::Both);
-	DetailIconScale->SetContent(CollectionDetailIcon); IconSize->SetContent(DetailIconScale);
-	UVerticalBoxSlot* DetailIconSlot = DetailStack->AddChildToVerticalBox(IconSize); DetailIconSlot->SetHorizontalAlignment(HAlign_Center); DetailIconSlot->SetPadding(FMargin(0,0,0,14));
-	CollectionDetailName = MakeText(TEXT("CollectionDetailName"), TEXT(""), 28, SecondaryHeadingColor);
-	CollectionDetailName->SetAutoWrapText(true); CollectionDetailName->SetWrapTextAt(330.0f);
-	DetailStack->AddChildToVerticalBox(CollectionDetailName)->SetPadding(FMargin(0,0,0,5));
-	CollectionDetailCategory = MakeText(TEXT("CollectionDetailCategory"), TEXT(""), 13, FLinearColor(0.55f,0.58f,0.64f));
-	DetailStack->AddChildToVerticalBox(CollectionDetailCategory)->SetPadding(FMargin(0,0,0,18));
-	CollectionDetailDescription = MakeText(TEXT("CollectionDetailDescription"), TEXT(""), 17, SecondaryBodyColor);
+	UOverlay* DetailIconArea = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("CollectionDetailIconArea"));
+	IconSize->SetContent(DetailIconArea);
+	UOverlaySlot* DetailImageSlot = DetailIconArea->AddChildToOverlay(CollectionDetailIcon);
+	DetailImageSlot->SetHorizontalAlignment(HAlign_Left); DetailImageSlot->SetVerticalAlignment(VAlign_Center);
+	UVerticalBoxSlot* DetailIconSlot = DetailStack->AddChildToVerticalBox(IconSize); DetailIconSlot->SetHorizontalAlignment(HAlign_Left); DetailIconSlot->SetPadding(FMargin(0,0,0,14));
+	CollectionDetailDescription = MakeText(TEXT("CollectionDetailDescription"), TEXT(""), CollectionDescriptionFontSize, SecondaryBodyColor);
 	CollectionDetailDescription->SetAutoWrapText(true); CollectionDetailDescription->SetWrapTextAt(330.0f);
-	UScrollBox* DescriptionScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("CollectionDescriptionScroll"));
-	DescriptionScroll->SetScrollBarVisibility(ESlateVisibility::Visible); DescriptionScroll->AddChild(CollectionDetailDescription);
-	USizeBox* DescriptionSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass()); DescriptionSize->SetHeightOverride(150.0f); DescriptionSize->SetContent(DescriptionScroll);
-	DetailStack->AddChildToVerticalBox(DescriptionSize)->SetPadding(FMargin(0,0,0,16));
-	CollectionDetailStats = MakeText(TEXT("CollectionDetailStats"), TEXT(""), 14, FLinearColor(0.68f,0.70f,0.76f));
+	DetailStack->AddChildToVerticalBox(CollectionDetailDescription)->SetPadding(FMargin(0,0,0,16));
+	USizeBox* DetailsDividerSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	if (HorizontalBrushSize.X > 0.0f) DetailsDividerSize->SetWidthOverride(HorizontalBrushSize.X);
+	DetailsDividerSize->SetHeightOverride(FMath::Max(1.0f, HorizontalBrushSize.Y));
+	DetailsDividerSize->SetRenderTranslation(DetailsDividerOffset);
+	DetailsDividerSize->SetVisibility(HorizontalBrushTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	UImage* DetailsDivider = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("Img_DetailsDivider"));
+	DetailsDivider->SetBrushFromTexture(HorizontalBrushTexture, false); DetailsDivider->SetVisibility(ESlateVisibility::HitTestInvisible);
+	DetailsDividerSize->SetContent(DetailsDivider); DetailStack->AddChildToVerticalBox(DetailsDividerSize)->SetPadding(FMargin(0,0,0,8));
+	CollectionDetailStats = MakeText(TEXT("CollectionDetailStats"), TEXT(""), CollectionStatsFontSize, FLinearColor(0.68f,0.70f,0.76f));
 	CollectionDetailStats->SetAutoWrapText(true); DetailStack->AddChildToVerticalBox(CollectionDetailStats);
 
 	UButton* BackButton = AddMenuButton(Panel, FText::FromString(TEXT("BACK")), TEXT("CollectionBackButton"));
-	BackButton->SetRenderTranslation(SecondaryButtonsOffset);
+	BackButton->SetRenderTranslation(CollectionBackButtonOffset);
 	BackButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
-	if (UVerticalBoxSlot* BackSlot = Cast<UVerticalBoxSlot>(BackButton->Slot)) BackSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 0.0f));
+	if (USizeBox* BackSize = Cast<USizeBox>(BackButton->GetChildAt(0)))
+	{
+		BackSize->SetWidthOverride(FMath::Max(60.0f, CollectionBackButtonSize.X));
+		BackSize->SetHeightOverride(FMath::Max(1.0f, CollectionBackButtonSize.Y));
+	}
+	if (UVerticalBoxSlot* BackSlot = Cast<UVerticalBoxSlot>(BackButton->Slot))
+	{
+		BackSlot->SetHorizontalAlignment(HAlign_Right);
+		BackSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 0.0f));
+	}
 	return Panel;
 }
 
@@ -447,10 +543,27 @@ void UMainMenuWidget::RebuildCollectionGrid()
 	USynergyMetaProgressionSubsystem* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
 	if (!Meta) return;
 	SynergyCollectionGrid->ClearChildren();
-	CollectionTileButtons.Reset(); CollectionTileSelectionBorders.Reset(); CollectionTileIcons.Reset();
+	CollectionTileButtons.Reset(); CollectionTileSelectionBorders.Reset(); CollectionTileSelectionImages.Reset(); CollectionTileIcons.Reset();
 	CollectionDefinitions = Meta->GetCollectionUpgradeDefinitions(SelectedCollectionCategory);
 	if (!CollectionDefinitions.Contains(SelectedCollectionUpgrade)) SelectedCollectionUpgrade = CollectionDefinitions.Num() ? CollectionDefinitions[0] : nullptr;
 	int32 UnlockedCount = 0;
+	const float TileScale = FMath::Clamp(CollectionTileScale, 0.25f, 3.0f);
+	const float TileDisplayExtent = 134.0f * TileScale;
+	const float TileSpacing = FMath::Max(0.0f, CollectionTileSpacing);
+	const float ContentExtent = TileDisplayExtent - 6.0f * TileScale;
+	const float IconExtent = FMath::Max(1.0f, ContentExtent - 2.0f * FMath::Max(0.0f, CollectionTileIconPadding) * TileScale);
+	// The library is 570 px wide; reserve 20 px for the scrollbar.
+	const int32 ColumnCount = FMath::Max(1, FMath::FloorToInt(550.0f / (TileDisplayExtent + TileSpacing)));
+	SynergyCollectionGrid->SetMinDesiredSlotWidth(TileDisplayExtent + TileSpacing);
+	SynergyCollectionGrid->SetMinDesiredSlotHeight(TileDisplayExtent + TileSpacing);
+	// Size the artwork directly, so fitting containers cannot cancel the requested scale.
+	const auto AddFillLayer = [](UOverlay* Parent, UWidget* Child)
+	{
+		UOverlaySlot* LayerSlot = Parent->AddChildToOverlay(Child);
+		LayerSlot->SetHorizontalAlignment(HAlign_Fill);
+		LayerSlot->SetVerticalAlignment(VAlign_Fill);
+		return LayerSlot;
+	};
 	for (int32 Index = 0; Index < CollectionDefinitions.Num(); ++Index)
 	{
 		UUpgradeDefinition* Definition = CollectionDefinitions[Index];
@@ -459,22 +572,40 @@ void UMainMenuWidget::RebuildCollectionGrid()
 		UCollectionUpgradeTileButton* Tile = WidgetTree->ConstructWidget<UCollectionUpgradeTileButton>(UCollectionUpgradeTileButton::StaticClass());
 		Tile->InitializeCollectionTile(this, Definition);
 		FButtonStyle Style = Tile->GetStyle(); FSlateBrush Empty; Empty.DrawAs = ESlateBrushDrawType::NoDrawType;
-		Style.SetNormal(Empty); Style.SetHovered(Empty); Style.SetPressed(Empty); Tile->SetStyle(Style);
+		Style.SetNormal(Empty); Style.SetHovered(Empty); Style.SetPressed(Empty);
+		Style.SetNormalPadding(FMargin(0.0f)); Style.SetPressedPadding(FMargin(0.0f)); Tile->SetStyle(Style);
 		USizeBox* TileSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		TileSize->SetWidthOverride(134.0f); TileSize->SetHeightOverride(134.0f); Tile->AddChild(TileSize);
+		TileSize->SetWidthOverride(TileDisplayExtent); TileSize->SetHeightOverride(TileDisplayExtent); Tile->AddChild(TileSize);
+		UOverlay* TileLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass()); TileSize->SetContent(TileLayers);
 		UBorder* Selection = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-		Selection->SetPadding(FMargin(3.0f)); TileSize->SetContent(Selection);
-		UBorder* Inner = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-		Inner->SetBrushColor(bUnlocked ? CollectionUnlockedCardColor : CollectionLockedCardColor); Inner->SetPadding(FMargin(15.0f)); Selection->SetContent(Inner);
-		UOverlay* Layers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass()); Inner->SetContent(Layers);
+		Selection->SetBrushColor(FLinearColor(0.13f,0.14f,0.17f,1.0f)); Selection->SetVisibility(ESlateVisibility::HitTestInvisible);
+		AddFillLayer(TileLayers, Selection);
+		UOverlay* ContentLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		UOverlaySlot* ContentLayerSlot = AddFillLayer(TileLayers, ContentLayers); ContentLayerSlot->SetPadding(FMargin(3.0f * TileScale));
+		UBorder* BackgroundFallback = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+		BackgroundFallback->SetBrushColor(bUnlocked ? CollectionUnlockedCardColor : CollectionLockedCardColor);
+		BackgroundFallback->SetVisibility(TileBackgroundTexture ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+		AddFillLayer(ContentLayers, BackgroundFallback);
+		UImage* TileBackground = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
+			*FString::Printf(TEXT("Img_TileBackground_%d"), Index));
+		TileBackground->SetBrushFromTexture(TileBackgroundTexture, false);
+		TileBackground->SetDesiredSizeOverride(FVector2D(ContentExtent));
+		TileBackground->SetVisibility(TileBackgroundTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+		AddFillLayer(ContentLayers, TileBackground);
 		UTexture2D* DisplayTexture = Definition ? (Definition->Icon ? Definition->Icon : Definition->CardArtwork) : nullptr;
 		UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
 		Icon->SetBrushFromTexture(DisplayTexture, true);
 		Icon->SetColorAndOpacity(bUnlocked ? FLinearColor::White : FLinearColor(0.28f, 0.24f, 0.24f, 0.55f));
 		Icon->SetVisibility(DisplayTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-		UScaleBox* IconScale = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass());
-		IconScale->SetStretch(EStretch::ScaleToFit); IconScale->SetStretchDirection(EStretchDirection::Both); IconScale->SetContent(Icon);
-		Layers->AddChildToOverlay(IconScale);
+		FVector2D IconSize(IconExtent);
+		if (DisplayTexture)
+		{
+			const FVector2D SourceSize(FMath::Max(1, DisplayTexture->GetSizeX()), FMath::Max(1, DisplayTexture->GetSizeY()));
+			IconSize = SourceSize * (IconExtent / FMath::Max(SourceSize.X, SourceSize.Y));
+		}
+		Icon->SetDesiredSizeOverride(IconSize);
+		UOverlaySlot* IconSlot = ContentLayers->AddChildToOverlay(Icon);
+		IconSlot->SetHorizontalAlignment(HAlign_Center); IconSlot->SetVerticalAlignment(VAlign_Center);
 		if (DisplayTexture)
 		{
 			UE_LOG(LogTemp, Log, TEXT("Collection: Icon loaded for [%s] from %s"), *Definition->DisplayName.ToString(),
@@ -486,14 +617,27 @@ void UMainMenuWidget::RebuildCollectionGrid()
 		}
 		if (!bUnlocked)
 		{
+			UImage* LockedOverlay = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
+				*FString::Printf(TEXT("Img_LockedOverlay_%d"), Index));
+			LockedOverlay->SetBrushFromTexture(TileBackgroundTexture, false);
+			LockedOverlay->SetDesiredSizeOverride(FVector2D(ContentExtent));
+			LockedOverlay->SetColorAndOpacity(FLinearColor(0.18f, 0.025f, 0.025f, 0.46f));
+			LockedOverlay->SetVisibility(TileBackgroundTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+			AddFillLayer(ContentLayers, LockedOverlay);
 			UTextBlock* Lock = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()); Lock->SetText(FText::FromString(TEXT("LOCKED")));
 			Lock->SetJustification(ETextJustify::Center); Lock->SetColorAndOpacity(FSlateColor(FLinearColor(0.62f,0.63f,0.66f)));
-			FSlateFontInfo Font = Lock->GetFont(); Font.Size = 11; Lock->SetFont(Font);
-			UOverlaySlot* LockSlot = Layers->AddChildToOverlay(Lock); LockSlot->SetHorizontalAlignment(HAlign_Center); LockSlot->SetVerticalAlignment(VAlign_Bottom);
+			FSlateFontInfo Font = Lock->GetFont(); Font.Size = FMath::Max(1, FMath::RoundToInt(11.0f * TileScale)); Lock->SetFont(Font);
+			UOverlaySlot* LockSlot = ContentLayers->AddChildToOverlay(Lock); LockSlot->SetHorizontalAlignment(HAlign_Center); LockSlot->SetVerticalAlignment(VAlign_Bottom);
 		}
-		UUniformGridSlot* GridSlot = SynergyCollectionGrid->AddChildToUniformGrid(Tile, Index / 4, Index % 4);
+		UImage* SelectedFrame = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
+			*FString::Printf(TEXT("Img_TileSelectedFrame_%d"), Index));
+		SelectedFrame->SetBrushFromTexture(TileSelectedTexture, false);
+		SelectedFrame->SetDesiredSizeOverride(FVector2D(TileDisplayExtent));
+		SelectedFrame->SetVisibility(ESlateVisibility::Hidden);
+		AddFillLayer(TileLayers, SelectedFrame);
+		UUniformGridSlot* GridSlot = SynergyCollectionGrid->AddChildToUniformGrid(Tile, Index / ColumnCount, Index % ColumnCount);
 		GridSlot->SetHorizontalAlignment(HAlign_Center); GridSlot->SetVerticalAlignment(VAlign_Center);
-		CollectionTileButtons.Add(Tile); CollectionTileSelectionBorders.Add(Selection); CollectionTileIcons.Add(Icon);
+		CollectionTileButtons.Add(Tile); CollectionTileSelectionBorders.Add(Selection); CollectionTileSelectionImages.Add(SelectedFrame); CollectionTileIcons.Add(Icon);
 	}
 	CollectionDiscoveryCountText->SetText(FText::FromString(FString::Printf(TEXT("%d / %d UNLOCKED"), UnlockedCount, CollectionDefinitions.Num())));
 	if (SelectedCollectionCategory == EUpgradeCategory::Synergy && UnlockedCount < CollectionDefinitions.Num())
@@ -517,12 +661,16 @@ void UMainMenuWidget::RefreshCollectionDetails()
 	const bool bUnlocked = Meta && Meta->IsCollectionUpgradeUnlocked(SelectedCollectionUpgrade);
 	UTexture2D* DisplayTexture = SelectedCollectionUpgrade->Icon ? SelectedCollectionUpgrade->Icon : SelectedCollectionUpgrade->CardArtwork;
 	CollectionDetailIcon->SetBrushFromTexture(DisplayTexture, true);
+	if (DisplayTexture)
+	{
+		const FVector2D SourceSize(FMath::Max(1, DisplayTexture->GetSizeX()), FMath::Max(1, DisplayTexture->GetSizeY()));
+		const float FitScale = FMath::Min(FMath::Max(1.0f, CollectionDetailsArtworkSize.X) / SourceSize.X,
+			FMath::Max(1.0f, CollectionDetailsArtworkSize.Y) / SourceSize.Y);
+		CollectionDetailIcon->SetDesiredSizeOverride(SourceSize * FitScale);
+	}
 	CollectionDetailIcon->SetColorAndOpacity(bUnlocked ? FLinearColor::White : FLinearColor(0.24f, 0.21f, 0.21f, 0.48f));
 	CollectionDetailIcon->SetVisibility(DisplayTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	CollectionDetailName->SetText(bUnlocked ? SelectedCollectionUpgrade->DisplayName : FText::FromString(TEXT("UNKNOWN TECHNIQUE")));
-	const FString Category = SelectedCollectionCategory == EUpgradeCategory::Samurai ? TEXT("SAMURAI UPGRADE")
-		: SelectedCollectionCategory == EUpgradeCategory::Ninja ? TEXT("NINJA UPGRADE") : TEXT("TWIN SOUL SYNERGY");
-	CollectionDetailCategory->SetText(FText::FromString(Category));
 	CollectionDetailDescription->SetText(bUnlocked ? SelectedCollectionUpgrade->Description
 		: FText::FromString(TEXT("LOCKED. Find this upgrade during a run to unlock it.")));
 	CollectionDetailStats->SetText(bUnlocked ? FText::FromString(FString::Printf(TEXT("MAX LEVEL  %d\nRARITY  %s"),
@@ -536,9 +684,17 @@ void UMainMenuWidget::RefreshCollectionTileVisuals()
 	for (int32 Index = 0; Index < CollectionTileButtons.Num(); ++Index)
 	{
 		const bool bSelected = CollectionDefinitions.IsValidIndex(Index) && CollectionDefinitions[Index] == SelectedCollectionUpgrade;
-		const bool bHot = bSelected || (CollectionTileButtons[Index] && (CollectionTileButtons[Index]->IsHovered() || CollectionTileButtons[Index]->HasAnyUserFocus()));
+		const bool bHot = bSelected || (CollectionTileButtons[Index] && (CollectionTileButtons[Index]->IsHovered()
+			|| (bShowFocusHighlight && CollectionTileButtons[Index]->HasAnyUserFocus())));
 		if (CollectionTileSelectionBorders.IsValidIndex(Index) && CollectionTileSelectionBorders[Index])
-			CollectionTileSelectionBorders[Index]->SetBrushColor(bHot ? Accent : FLinearColor(0.13f,0.14f,0.17f,1.0f));
+			CollectionTileSelectionBorders[Index]->SetBrushColor(TileSelectedTexture ? FLinearColor::Transparent
+				: (bHot ? Accent : FLinearColor(0.13f,0.14f,0.17f,1.0f)));
+		if (CollectionTileSelectionImages.IsValidIndex(Index) && CollectionTileSelectionImages[Index])
+		{
+			CollectionTileSelectionImages[Index]->SetColorAndOpacity(Accent);
+			CollectionTileSelectionImages[Index]->SetVisibility(TileSelectedTexture && bHot
+				? ESlateVisibility::HitTestInvisible : ESlateVisibility::Hidden);
+		}
 	}
 	if (SamuraiCollectionTab) SamuraiCollectionTab->SetColorAndOpacity(SelectedCollectionCategory == EUpgradeCategory::Samurai ? FLinearColor(1,0.35f,0.3f) : FLinearColor::White);
 	if (NinjaCollectionTab) NinjaCollectionTab->SetColorAndOpacity(SelectedCollectionCategory == EUpgradeCategory::Ninja ? FLinearColor(0.45f,0.65f,1) : FLinearColor::White);
