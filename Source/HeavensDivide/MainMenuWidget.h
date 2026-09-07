@@ -355,6 +355,9 @@ private:
 	void HandleSettings();
 	UFUNCTION()
 	void HandleAutoTargetingChanged(bool bIsChecked);
+	UFUNCTION() void HandleCameraShakeChanged(float Value);
+	UPROPERTY() TObjectPtr<class USlider> CameraShakeSlider;
+	UPROPERTY() TObjectPtr<UTextBlock> CameraShakeValueText;
 	UFUNCTION()
 	void HandleResetProgress();
 	UFUNCTION()

@@ -26,6 +26,7 @@
 #include "IAnimationBudgetAllocator.h"
 #include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/ConstructorHelpers.h"
 #include "Materials/MaterialInterface.h"
 #include "NavigationPath.h"
 #include "NavigationSystem.h"
@@ -173,6 +174,8 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> FlashMaterial(TEXT("/Game/HeavensDivide/Materials/M_EnemyHitFlash.M_EnemyHitFlash"));
+	if (FlashMaterial.Succeeded()) HitFlashMaterial = FlashMaterial.Object;
 	StatusEffectComponent = CreateDefaultSubobject<UEnemyStatusEffectComponent>(TEXT("StatusEffectComponent"));
 	LightweightMovementComponent = CreateDefaultSubobject<UEnemyLightweightMovementComponent>(TEXT("LightweightMovementComponent"));
 	BloodboundNiagaraComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("BloodboundNiagaraComponent"));
@@ -218,9 +221,43 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	PathFallbackRequestJitter = PathRandomStream.FRandRange(0.0f, 0.08f);
 }
 
+void AEnemyBase::InitializeHitFlash()
+{
+	if (!bEnableHitFlash || !HitFlashMaterial || GetNetMode() == NM_DedicatedServer) return;
+	if (!HitFlashMID)
+	{
+		HitFlashMID = UMaterialInstanceDynamic::Create(HitFlashMaterial, this);
+		HitFlashMID->SetVectorParameterValue(TEXT("FlashColor"), HitFlashColor);
+		HitFlashMID->SetScalarParameterValue(TEXT("FlashOpacity"), FMath::Clamp(HitFlashOpacity, 0.0f, 1.0f));
+	}
+	if (HealthComponent) HealthComponent->OnDamaged.AddUniqueDynamic(this, &AEnemyBase::HandleHitFlashDamage);
+}
+
+void AEnemyBase::HandleHitFlashDamage(float DamageAmount, float CurrentHealth)
+{
+	if (CurrentHealth <= 0.0f || bIsDead) { EndHitFlash(); return; }
+	if (bSuppressHitFlash) return;
+	if (!bEnableHitFlash || DamageAmount <= 0.0f || HitFlashDuration <= 0.0f || !HitFlashMID || !GetMesh()) return;
+	// Repeated hits extend the timer without caching our flash as the original overlay.
+	if (GetMesh()->GetOverlayMaterial() != HitFlashMID)
+		PreHitFlashOverlay = GetMesh()->GetOverlayMaterial();
+	GetMesh()->SetOverlayMaterial(HitFlashMID);
+	GetWorldTimerManager().SetTimer(HitFlashTimer, this, &AEnemyBase::EndHitFlash, HitFlashDuration, false);
+}
+
+void AEnemyBase::EndHitFlash()
+{
+	GetWorldTimerManager().ClearTimer(HitFlashTimer);
+	// Do not overwrite a newer visual state installed by another reaction.
+	if (HitFlashMID && GetMesh() && GetMesh()->GetOverlayMaterial() == HitFlashMID)
+		GetMesh()->SetOverlayMaterial(PreHitFlashOverlay);
+	PreHitFlashOverlay = nullptr;
+}
+
 void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
+	InitializeHitFlash();
 
 	SnapToGroundBeforeLightweightMovement();
 	InitializeEnemyMovementMode();
@@ -251,6 +288,8 @@ void AEnemyBase::BeginPlay()
 
 void AEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	EndHitFlash();
+	if (HealthComponent) HealthComponent->OnDamaged.RemoveDynamic(this, &AEnemyBase::HandleHitFlashDamage);
 	GetWorldTimerManager().ClearTimer(CollapseDeathTimerHandle);
 	if (ObservedCharacterManager)
 	{
@@ -411,6 +450,12 @@ void AEnemyBase::ApplySpawnInstanceModifiers(float HealthMultiplier, float Damag
 	}
 }
 
+bool AEnemyBase::ApplyStatusDamage(float DamageAmount, EPlayerAttackSource AttackSource)
+{
+	TGuardValue<bool> SuppressFlash(bSuppressHitFlash, true);
+	return ApplyPlayerDamage(DamageAmount, AttackSource);
+}
+
 bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource)
 {
 	if (!CanReceivePlayerDamage(AttackSource) || !HealthComponent)
@@ -421,6 +466,25 @@ bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource Attac
 	const float PreviousHealth = HealthComponent->GetCurrentHealth();
 	HealthComponent->ApplyDamage(DamageAmount);
 	return HealthComponent->GetCurrentHealth() < PreviousHealth;
+}
+
+void AEnemyBase::GetImpactContact(FVector AttackLocation, FVector& Location, FVector& Normal) const
+{
+	const UCapsuleComponent* Capsule = GetCapsuleComponent();
+	const FVector Center = Capsule ? Capsule->GetComponentLocation() : GetActorLocation();
+	const float Radius = Capsule ? Capsule->GetScaledCapsuleRadius() : 0.0f;
+	const float SegmentHalf = Capsule ? FMath::Max(0.0f, Capsule->GetScaledCapsuleHalfHeight() - Radius) : 0.0f;
+	const FVector Up = Capsule ? Capsule->GetUpVector() : FVector::UpVector;
+	const FVector AxisPoint = Center + Up * FMath::Clamp(FVector::DotProduct(AttackLocation - Center, Up), -SegmentHalf, SegmentHalf);
+	Normal = (AttackLocation - AxisPoint).GetSafeNormal();
+	if (Normal.IsNearlyZero()) Normal = -GetActorForwardVector();
+	Location = AxisPoint + Normal * Radius;
+}
+
+void AEnemyBase::ApplyAttackPushback(FVector AttackOrigin, EPlayerAttackSource Source, float Distance, float Duration)
+{
+	if (Source != EPlayerAttackSource::Samurai || IsDead() || !HealthComponent || HealthComponent->IsDead() || !LightweightMovementComponent) return;
+	LightweightMovementComponent->ApplyPushback(GetActorLocation() - AttackOrigin, Distance * FMath::Max(0.0f, PushbackMultiplier), Duration);
 }
 
 bool AEnemyBase::CanReceivePlayerDamage(EPlayerAttackSource AttackSource) const
@@ -444,6 +508,7 @@ EPlayerAttackSource AEnemyBase::ResolvePlayerAttackSource(const AActor* DamageSo
 
 void AEnemyBase::ConfigureObjectiveEnemy(float MaxHealth, EPlayerAttackSource RequiredSource, UMaterialInterface* OverlayMaterial, FLinearColor OverlayTint)
 {
+	EndHitFlash();
 	RequiredPlayerAttackSource = RequiredSource;
 	bDropsXP = false;
 	BloodValue = 0;
@@ -545,7 +610,8 @@ void AEnemyBase::HandleStatusStacksChanged(EEnemyStatusEffect Status, int32 Stac
 	{
 		if (UEnemyStatusIndicatorWidget* Widget = Cast<UEnemyStatusIndicatorWidget>(Component->GetUserWidgetObject()))
 		{
-			Widget->SetStatusPresentation(Status, StackCount, bShowStatusStackCountAtOne, StatusStackFontSize);
+			Widget->SetStatusPresentation(Status, StackCount, bShowStatusStackCountAtOne, StatusStackFontSize,
+				Status == EEnemyStatusEffect::Bleed ? BleedStatusIcon.Get() : PoisonStatusIcon.Get());
 		}
 	}
 	UpdateStatusIndicatorLayout();
@@ -590,6 +656,7 @@ void AEnemyBase::CapturePreBloodboundState()
 	PreBloodboundMaxHealth = HealthComponent ? HealthComponent->GetMaxHealth() : 0.0f;
 	PreBloodboundMoveSpeed = MoveSpeed;
 	bPreBloodboundDropsXP = bDropsXP;
+	EndHitFlash();
 	PreBloodboundOverlayMaterial = GetMesh() ? GetMesh()->GetOverlayMaterial() : nullptr;
 	bHasPreBloodboundState = true;
 }
@@ -669,6 +736,7 @@ void AEnemyBase::DeactivateBloodboundVisuals()
 
 void AEnemyBase::RefreshEnemyVisualState()
 {
+	EndHitFlash();
 	if (bIsDead || bCollapseDeathActive)
 	{
 		DeactivateBloodboundVisuals();
@@ -767,6 +835,8 @@ void AEnemyBase::LogEnemyDebugState(const TCHAR* Context) const
 
 void AEnemyBase::HandleDeath()
 {
+	if (LightweightMovementComponent) LightweightMovementComponent->CancelPushback();
+	EndHitFlash();
 	if (bIsDead)
 	{
 		return;

@@ -165,7 +165,7 @@ void UEnemyStatusEffectComponent::TickStatus(EEnemyStatusEffect Status)
 
 	const float Damage = CalculateStatusDamagePerTick(Status, State);
 	const int32 StacksAtTick = State.Stacks;
-	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, Source);
+	const bool bApplied = Enemy->ApplyStatusDamage(Damage, Source);
 	if (bApplied && !Enemy->IsDead() && Status == EEnemyStatusEffect::Poison)
 	{
 		TryTriggerVirulentStrain(Enemy, Upgrades, StacksAtTick, Damage);
@@ -213,7 +213,7 @@ void UEnemyStatusEffectComponent::TryTriggerVirulentStrain(AEnemyBase* SourceEne
 		AEnemyBase* Target = Cast<AEnemyBase>(Overlap.GetActor());
 		if (!Target || Target == SourceEnemy || Target->IsDead() || Damaged.Contains(Target)) continue;
 		Damaged.Add(Target);
-		Target->ApplyPlayerDamage(PulseDamage, EPlayerAttackSource::Ninja);
+		Target->ApplyStatusDamage(PulseDamage, EPlayerAttackSource::Ninja);
 	}
 	OnVirulentStrainPulse.Broadcast(SourceEnemy, SourceEnemy->GetActorLocation(), Radius, PulseDamage, PoisonStacks);
 }

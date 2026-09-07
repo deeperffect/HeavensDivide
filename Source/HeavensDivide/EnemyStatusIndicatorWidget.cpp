@@ -4,6 +4,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
+#include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/SizeBox.h"
@@ -44,6 +45,14 @@ void UEnemyStatusIndicatorWidget::NativeOnInitialized()
 		OverlaySlot->SetVerticalAlignment(VAlign_Center);
 	}
 
+	StatusIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("StatusIcon"));
+	StatusIcon->SetVisibility(ESlateVisibility::Collapsed);
+	if (UOverlaySlot* IconSlot = Overlay->AddChildToOverlay(StatusIcon))
+	{
+		IconSlot->SetHorizontalAlignment(HAlign_Fill);
+		IconSlot->SetVerticalAlignment(VAlign_Fill);
+	}
+
 	StackCountText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("StackCountText"));
 	StackCountText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
 	StackCountText->SetShadowOffset(FVector2D(1.0f, 1.0f));
@@ -56,9 +65,16 @@ void UEnemyStatusIndicatorWidget::NativeOnInitialized()
 	}
 }
 
-void UEnemyStatusIndicatorWidget::SetStatusPresentation(EEnemyStatusEffect Status, int32 StackCount, bool bShowCountAtOne, int32 FontSize)
+void UEnemyStatusIndicatorWidget::SetStatusPresentation(EEnemyStatusEffect Status, int32 StackCount, bool bShowCountAtOne, int32 FontSize, UTexture2D* Icon)
 {
 	if (!IconBackground || !StatusGlyph || !StackCountText) return;
+	if (StatusIcon)
+	{
+		StatusIcon->SetBrushFromTexture(Icon, false);
+		StatusIcon->SetVisibility(Icon ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	IconBackground->SetVisibility(Icon ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
+	StatusGlyph->SetVisibility(Icon ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
 	const bool bBleed = Status == EEnemyStatusEffect::Bleed;
 	IconBackground->SetBrushColor(bBleed ? FLinearColor(0.55f, 0.015f, 0.02f, 0.92f) : FLinearColor(0.03f, 0.42f, 0.04f, 0.92f));
 	StatusGlyph->SetText(FText::FromString(bBleed ? TEXT("B") : TEXT("P")));

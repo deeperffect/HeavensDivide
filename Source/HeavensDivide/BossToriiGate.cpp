@@ -9,6 +9,7 @@
 #include "MinimapMarkerComponent.h"
 #include "ObjectiveInteractionComponent.h"
 #include "TimerManager.h"
+#include "NiagaraComponent.h"
 
 ABossToriiGate::ABossToriiGate()
 {
@@ -22,6 +23,10 @@ ABossToriiGate::ABossToriiGate()
 	GateVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GateVisual"));
 	GateVisual->SetupAttachment(SceneRoot);
 	GateVisual->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	UnlockVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("UnlockVFX"));
+	UnlockVFX->SetupAttachment(SceneRoot);
+	UnlockVFX->SetAutoActivate(false);
+	UnlockVFX->SetAutoDestroy(false);
 	ObjectiveInteraction = CreateDefaultSubobject<UObjectiveInteractionComponent>(TEXT("ObjectiveInteraction"));
 	ObjectiveInteraction->SetupAttachment(SceneRoot);
 	ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Enter Boss Arena")),300.0f,1.0f,240.0f);
@@ -31,6 +36,8 @@ ABossToriiGate::ABossToriiGate()
 void ABossToriiGate::BeginPlay()
 {
 	Super::BeginPlay();
+	// The gate owns activation, even if Auto Activate was changed in the Blueprint.
+	if (UnlockVFX) UnlockVFX->DeactivateImmediate();
 	FindRequiredReferences();
 	PollUnlockState();
 	if(ObjectiveInteraction)ObjectiveInteraction->SetUnavailablePresentation(GateState==EBossToriiGateState::Locked,FText::FromString(TEXT("SEALED")));
@@ -95,6 +102,8 @@ void ABossToriiGate::UnlockGate()
 	if(ObjectiveInteraction)ObjectiveInteraction->SetUnavailablePresentation(false);
 	MinimapMarker->SetMarkerState(EMinimapMarkerState::Available);
 	GetWorldTimerManager().ClearTimer(UnlockPollTimer);
+	if (UnlockVFX && UnlockVFX->GetAsset() && GetNetMode() != NM_DedicatedServer)
+		UnlockVFX->Activate(true);
 	OnBossGateUnlocked.Broadcast();
 	if(ObjectiveInteraction)ObjectiveInteraction->RefreshPrompt();
 }

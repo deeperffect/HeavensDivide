@@ -52,6 +52,16 @@ class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
 	GENERATED_BODY()
 
 public:
+	/** All gameplay shakes go through here. Only one impact shake can be active. */
+	UFUNCTION(BlueprintCallable, Category="Combat|Impact")
+	void PlayGameplayCameraShake(TSubclassOf<class UCameraShakeBase> ShakeClass, float BaseScale = 1.0f);
+private:
+	friend class FImpactFeedbackTest;
+	void HandleCameraShakeIntensityChanged(float Intensity);
+	TWeakObjectPtr<class UCameraShakeBase> ActiveGameplayShake;
+	float ActiveGameplayShakeBaseScale = 0.0f;
+	double LastGameplayShakeTime = -1.0;
+public:
 	ASurvivorPlayerController();
 
 	virtual void PlayerTick(float DeltaTime) override;

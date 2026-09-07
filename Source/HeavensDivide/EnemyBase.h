@@ -26,6 +26,7 @@ class UMaterialInterface;
 class UMaterialInstanceDynamic;
 class UEnemyStatusEffectComponent;
 class UEnemyStatusIndicatorWidget;
+class UTexture2D;
 
 class AEnemyBase;
 
@@ -53,6 +54,19 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
 {
 	GENERATED_BODY()
+	friend class FEnemyHitFlashTest;
+	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") bool bEnableHitFlash = true;
+	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash", meta=(ClampMin="0.0", Units="s")) float HitFlashDuration = 0.08f;
+	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") FLinearColor HitFlashColor = FLinearColor::White;
+	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash", meta=(ClampMin="0.0", ClampMax="1.0")) float HitFlashOpacity = 0.85f;
+	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") TObjectPtr<UMaterialInterface> HitFlashMaterial;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> HitFlashMID;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInterface> PreHitFlashOverlay;
+	FTimerHandle HitFlashTimer;
+	bool bSuppressHitFlash = false;
+	void InitializeHitFlash();
+	UFUNCTION() void HandleHitFlashDamage(float DamageAmount, float CurrentHealth);
+	void EndHitFlash();
 
 public:
 	AEnemyBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
@@ -106,6 +120,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Damage")
 	virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource);
+	/** Status damage retains damage filtering/death logic but does not start or refresh a hit flash. */
+	bool ApplyStatusDamage(float DamageAmount, EPlayerAttackSource AttackSource);
+	/** Contact on the enemy capsule nearest the attack. Query before applying lethal damage. */
+	UFUNCTION(BlueprintPure, Category="Enemy|Damage")
+	void GetImpactContact(FVector AttackLocation, FVector& Location, FVector& Normal) const;
+	/** Called only after an accepted direct hit. Ninja and damage-over-time paths do not push. */
+	void ApplyAttackPushback(FVector AttackOrigin, EPlayerAttackSource Source, float Distance, float Duration);
+	UPROPERTY(EditDefaultsOnly, Category="Enemy|Pushback", meta=(ClampMin="0.0"))
+	float PushbackMultiplier = 1.0f;
 	bool ApplyStatus(EEnemyStatusEffect Status, class UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource AttackSource);
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Status")
@@ -199,6 +222,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
 	FVector2D StatusIndicatorDrawSize = FVector2D(36.0f, 36.0f);
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ToolTip="Optional Bleed icon. Empty uses the red B placeholder."))
+	TObjectPtr<UTexture2D> BleedStatusIcon;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ToolTip="Optional Poison icon. Empty uses the green P placeholder."))
+	TObjectPtr<UTexture2D> PoisonStatusIcon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
 	bool bShowStatusStackCountAtOne = false;

@@ -16,6 +16,8 @@
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
 #include "NinjaCharacter.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "PlayerUpgradeComponent.h"
 #include "SamuraiCharacter.h"
 #include "SamuraiBladeWave.h"
@@ -65,6 +67,8 @@ UAutoAttackComponent::UAutoAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	BladeWaveClass = ASamuraiBladeWave::StaticClass();
+	ImpactFeedback.bEnableCameraShake = true;
+	ImpactFeedback.CameraShakeClass = USamuraiImpactCameraShake::StaticClass();
 }
 
 void UAutoAttackComponent::BeginPlay()
@@ -362,6 +366,20 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 	float PrimaryHealthBeforeHit = 0.0f;
 	FVector PrimaryDeathLocation = FVector::ZeroVector;
 	bool bPrimaryKilled = false;
+	bool bHitSomething = false;
+	const auto ApplyMeleeImpact = [&](AEnemyBase* Enemy, float Damage)
+	{
+		FVector Location, Normal;
+		Enemy->GetImpactContact(AttackOrigin, Location, Normal);
+		const bool bApplied = Enemy->ApplyPlayerDamage(Damage, AttackSource);
+		if (bApplied)
+		{
+			if (ShouldApplySamuraiPushback()) Enemy->ApplyAttackPushback(AttackOrigin, AttackSource, SamuraiPushbackDistance, SamuraiPushbackDuration);
+			bHitSomething = true;
+			UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, Location, Normal, false);
+		}
+		return bApplied;
+	};
 
 	if (PrimaryTarget)
 	{
@@ -369,7 +387,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		{
 			PrimaryHealthBeforeHit = PrimaryHealth->GetCurrentHealth();
 			PrimaryDeathLocation = PrimaryTarget->GetActorLocation();
-			const bool bDamageApplied = PrimaryTarget->ApplyPlayerDamage(ResolvedPrimaryDamage, AttackSource);
+			const bool bDamageApplied = ApplyMeleeImpact(PrimaryTarget, ResolvedPrimaryDamage);
 			bPrimaryKilled = PrimaryHealth->IsDead();
 			if (bDamageApplied && !bPrimaryKilled && bCanApplyBleed) PrimaryTarget->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
 			if (bCanApplyMarkedBlade) PrimaryTarget->ApplyMark();
@@ -400,15 +418,17 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		if (!HitEnemy || HitEnemy == PrimaryTarget) continue;
 		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
 		if (!EnemyHealth || EnemyHealth->IsDead()) continue;
-		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(SecondaryDamage, AttackSource);
+		const bool bDamageApplied = ApplyMeleeImpact(HitEnemy, SecondaryDamage);
 		if (bDamageApplied && !EnemyHealth->IsDead() && bCanApplyBleed) HitEnemy->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
 		if (bCanApplyMarkedBlade) HitEnemy->ApplyMark();
 	}
 
-	if (HitEnemies.Num() > 0 && ImpactSound)
+	if (bHitSomething && ImpactSound && !ImpactFeedback.HitSound)
 	{
 		UGameplayStatics::PlaySound2D(GetWorld(), ImpactSound);
 	}
+	if (bHitSomething && AttackSource == EPlayerAttackSource::Samurai && ImpactFeedback.bEnableCameraShake)
+		UImpactFeedbackLibrary::PlayGameplayCameraShake(this, ImpactFeedback.CameraShakeClass, ImpactFeedback.CameraShakeScale);
 
 	if (bDebugAttackTrace)
 	{
@@ -648,7 +668,8 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		if (ASamuraiBladeWave* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(BladeWaveClass, SpawnLocation, Direction.Rotation(), Params))
 		{
-			Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth, BladeWaveTravelDistance, BladeWaveSpeed, bReturns);
+			Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth, BladeWaveTravelDistance, BladeWaveSpeed, bReturns,
+				FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc), ShouldApplySamuraiPushback());
 		}
 	}
 }
@@ -1617,15 +1638,22 @@ void UAutoAttackComponent::HandleDoubleCutMontageEnded(UAnimMontage* Montage, bo
 	RestoreAttackWeaponVisualScale();
 }
 
-USceneComponent* UAutoAttackComponent::ResolveWeaponVisualScaleRoot()
+bool UAutoAttackComponent::ShouldApplySamuraiPushback() const
 {
-	if (IsValid(WeaponVisualScaleRoot))
+	// Checked before the primary strike increments its counter: includes the strike
+	// that earns Double Cut as well as a previously stored ready proc.
+	return bDoubleCutFollowUpActive || bActiveAttackIsAssist || !WillNextSamuraiAttackTriggerDoubleCut();
+}
+
+USceneComponent* UAutoAttackComponent::ResolveWeaponVisualComponent()
+{
+	if (IsValid(WeaponVisualComponent))
 	{
-		return WeaponVisualScaleRoot;
+		return WeaponVisualComponent;
 	}
 
 	ASamuraiCharacter* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
-	if (!Samurai || WeaponVisualScaleRootComponentName.IsNone())
+	if (!Samurai || WeaponVisualComponentName.IsNone())
 	{
 		return nullptr;
 	}
@@ -1634,10 +1662,10 @@ USceneComponent* UAutoAttackComponent::ResolveWeaponVisualScaleRoot()
 	Samurai->GetComponents<USceneComponent>(SceneComponents);
 	for (USceneComponent* SceneComponent : SceneComponents)
 	{
-		if (IsValid(SceneComponent) && SceneComponent->GetFName() == WeaponVisualScaleRootComponentName)
+		if (IsValid(SceneComponent) && SceneComponent->GetFName() == WeaponVisualComponentName)
 		{
-			WeaponVisualScaleRoot = SceneComponent;
-			return WeaponVisualScaleRoot;
+			WeaponVisualComponent = SceneComponent;
+			return WeaponVisualComponent;
 		}
 	}
 
@@ -1651,7 +1679,7 @@ void UAutoAttackComponent::ApplyAttackWeaponVisualScale()
 		return;
 	}
 
-	USceneComponent* ScaleRoot = ResolveWeaponVisualScaleRoot();
+	USceneComponent* ScaleRoot = ResolveWeaponVisualComponent();
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter->GetCharacterStats();
 	if (!ScaleRoot || !CharacterStats)
 	{
@@ -1660,12 +1688,12 @@ void UAutoAttackComponent::ApplyAttackWeaponVisualScale()
 
 	if (!bAttackWeaponVisualScaleApplied)
 	{
-		OriginalWeaponVisualScaleRootRelativeScale = ScaleRoot->GetRelativeScale3D();
+		OriginalWeaponVisualComponentRelativeScale = ScaleRoot->GetRelativeScale3D();
 		bAttackWeaponVisualScaleApplied = true;
 	}
 
 	const float AreaMultiplier = CharacterStats->GetFinalAttackAreaMultiplier();
-	ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualScaleRootRelativeScale * AreaMultiplier);
+	ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualComponentRelativeScale * AreaMultiplier);
 }
 
 void UAutoAttackComponent::RestoreAttackWeaponVisualScale()
@@ -1675,9 +1703,9 @@ void UAutoAttackComponent::RestoreAttackWeaponVisualScale()
 		return;
 	}
 
-	if (USceneComponent* ScaleRoot = ResolveWeaponVisualScaleRoot())
+	if (USceneComponent* ScaleRoot = ResolveWeaponVisualComponent())
 	{
-		ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualScaleRootRelativeScale);
+		ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualComponentRelativeScale);
 	}
 	bAttackWeaponVisualScaleApplied = false;
 }
@@ -1818,6 +1846,7 @@ void UAutoAttackComponent::ExecuteCleaverChain(AEnemyBase* OriginalPrimaryTarget
 		const FVector TargetLocation = Target->GetActorLocation();
 		OnCleaverTransfer.Broadcast(FromLocation, TargetLocation, RemainingDamage);
 		if (!Target->ApplyPlayerDamage(RemainingDamage, AttackSource)) break;
+		if (ShouldApplySamuraiPushback()) Target->ApplyAttackPushback(FromLocation, AttackSource, SamuraiPushbackDistance, SamuraiPushbackDuration);
 		if (!Health->IsDead()) break;
 
 		RemainingDamage = FMath::Max(0.0f, RemainingDamage - HealthBeforeHit);
@@ -1864,6 +1893,10 @@ void UAutoAttackComponent::ExecuteDeathblow(AEnemyBase* DeadPrimaryTarget, const
 	const float Radius = FMath::Max(0.0f, DeathblowBaseRadius) * FMath::Max(0.0f, AreaMultiplier);
 	const float Damage = ResolvedPrimaryDamage * FMath::Max(0.0f, DeathblowDamageMultiplier);
 	OnDeathblowTriggered.Broadcast(OriginLocation, Radius, Damage);
+	if (DeathblowVFX)
+	{
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, DeathblowVFX, OriginLocation, FRotator::ZeroRotator);
+	}
 	if (Radius <= 0.0f || Damage <= 0.0f) return;
 
 	TArray<FOverlapResult> Results;
@@ -1885,7 +1918,10 @@ void UAutoAttackComponent::ExecuteDeathblow(AEnemyBase* DeadPrimaryTarget, const
 		UHealthComponent* Health = Candidate->GetHealthComponent();
 		if (!Health || Health->IsDead()) continue;
 		DamagedTargets.Add(Candidate);
-		if (Candidate->ApplyPlayerDamage(Damage, AttackSource) && bApplyMarkedBlade) Candidate->ApplyMark();
+		if (Candidate->ApplyPlayerDamage(Damage, AttackSource))
+		{
+			if (bApplyMarkedBlade) Candidate->ApplyMark();
+		}
 	}
 }
 

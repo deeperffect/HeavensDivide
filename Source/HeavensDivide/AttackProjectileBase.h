@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "ImpactFeedback.h"
 #include "AttackProjectileBase.generated.h"
 
 class UProjectileMovementComponent;
@@ -22,6 +23,7 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AAttackProjectileBase : public AActor
 {
 	GENERATED_BODY()
+	friend class FImpactFeedbackTest;
 
 public:
 	AAttackProjectileBase();
@@ -42,6 +44,8 @@ public:
 		int32 InSplitUpgradeLevel = 0);
 
 protected:
+	/** Basic kunai defaults to no camera shake. Heavy projectile subclasses can opt in. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Projectile|Impact") FImpactFeedbackData ImpactFeedback;
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")

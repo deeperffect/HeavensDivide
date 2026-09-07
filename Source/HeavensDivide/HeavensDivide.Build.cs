@@ -10,6 +10,10 @@ public class HeavensDivide : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "MediaAssets", "AnimationBudgetAllocator", "NavigationSystem", "Niagara", "AssetRegistry", "DeveloperSettings" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore", "EngineCameras" });
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "NiagaraEditor" });
+		}
 	}
 }

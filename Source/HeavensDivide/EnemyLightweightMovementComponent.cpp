@@ -100,6 +100,22 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 		return;
 	}
 
+	if (PushbackRemaining > 0.0f)
+	{
+		const AEnemyBase* Enemy = Cast<AEnemyBase>(Owner);
+		if (Enemy && Enemy->IsDead()) { CancelPushback(); StopMovement(); return; }
+		const FVector Start = Owner->GetActorLocation();
+		const float OldFraction = PushbackRemaining / PushbackDuration;
+		PushbackRemaining = FMath::Max(0.0f, PushbackRemaining - DeltaTime);
+		const float NewFraction = PushbackRemaining / PushbackDuration;
+		const FVector Delta = PushbackDirection * PushbackDistance * (FMath::Square(OldFraction) - FMath::Square(NewFraction));
+		FHitResult Hit;
+		if (MoveOwnerToNoSlide(Start + Delta, Hit)) PushbackRemaining = 0.0f;
+		CurrentVelocity = (Owner->GetActorLocation() - Start) / DeltaTime;
+		bHasRequestedMove = false;
+		return;
+	}
+
 	if (!bHasRequestedMove || RequestedMoveDirection.IsNearlyZero())
 	{
 		CurrentVelocity = FVector::ZeroVector;
@@ -208,6 +224,7 @@ void UEnemyLightweightMovementComponent::SetMovementEnabled(bool bInMovementEnab
 
 	if (!bMovementEnabled)
 	{
+		CancelPushback();
 		StopMovement();
 	}
 }
@@ -244,7 +261,22 @@ void UEnemyLightweightMovementComponent::StopMovement()
 	CurrentVelocity = FVector::ZeroVector;
 	bHasRequestedMove = false;
 	bLastMoveBlockedByWorldGeometry = false;
-	SetComponentTickEnabled(false);
+	SetComponentTickEnabled(PushbackRemaining > 0.0f);
+}
+
+void UEnemyLightweightMovementComponent::ApplyPushback(FVector Direction, float Distance, float Duration)
+{
+	Direction.Z = 0.0f;
+	if (!bMovementEnabled || !Direction.Normalize() || !FMath::IsFinite(Distance) || !FMath::IsFinite(Duration) || Distance <= 0.0f || Duration <= 0.0f) return;
+	PushbackDirection = Direction;
+	PushbackDistance = Distance;
+	PushbackDuration = PushbackRemaining = Duration;
+	SetComponentTickEnabled(true);
+}
+
+void UEnemyLightweightMovementComponent::CancelPushback()
+{
+	PushbackRemaining = 0.0f;
 }
 
 FVector UEnemyLightweightMovementComponent::GetCurrentVelocity() const

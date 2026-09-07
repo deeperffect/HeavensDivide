@@ -13,6 +13,7 @@ class USphereComponent;
 class UStaticMeshComponent;
 class UWidgetComponent;
 class UObjectiveInteractionComponent;
+class UNiagaraComponent;
 
 UENUM(BlueprintType)
 enum class EBossToriiGateState : uint8 { Locked, Unlocked, TravelCommitted };
@@ -35,6 +36,8 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<USceneComponent> SceneRoot;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<UStaticMeshComponent> GateVisual;
+	/** Position this component in the Blueprint viewport and assign its Niagara System. Activated once when the run timer unlocks the gate. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<UNiagaraComponent> UnlockVFX;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss Gate", meta=(ClampMin="0.0")) float UnlockRunTimeSeconds = 480.0f;

@@ -17,6 +17,9 @@
 #include "VictoryWidget.h"
 #include "HealthComponent.h"
 #include "HeavensDivideGameUserSettings.h"
+#include "Camera/CameraShakeBase.h"
+#include "Camera/PlayerCameraManager.h"
+
 #include "Interactable.h"
 #include "InactiveCharacterAssistComponent.h"
 #include "InputActionValue.h"
@@ -109,6 +112,8 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 void ASurvivorPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	if (UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
+		Settings->OnCameraShakeIntensityChanged.AddUObject(this, &ASurvivorPlayerController::HandleCameraShakeIntensityChanged);
 
 	ConfigureInputMode();
 	if (CharacterManager)
@@ -190,6 +195,8 @@ void ASurvivorPlayerController::BeginPlay()
 
 void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
+		Settings->OnCameraShakeIntensityChanged.RemoveAll(this);
 	DestroyAllShadowClones();
 	if (CharacterManager)
 	{
@@ -1903,3 +1910,26 @@ void ASurvivorPlayerController::BroadcastDashChargesChanged()
 	OnDashChargesChanged.Broadcast(CurrentDashCharges, MaxDashCharges);
 }
 
+
+void ASurvivorPlayerController::PlayGameplayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass, float BaseScale)
+{
+	if (!IsLocalController() || !PlayerCameraManager || !ShakeClass || !FMath::IsFinite(BaseScale)) return;
+	const UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+	const float Scale = FMath::Max(0.0f, BaseScale) * (Settings ? Settings->GetCameraShakeIntensity() : 1.0f);
+	if (Scale <= 0.0f) return;
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (ActiveGameplayShake.IsValid() && !ActiveGameplayShake->IsFinished())
+	{
+		// Avoid additive buildup and rapid equal/weaker restarts; stronger impacts can interrupt.
+		if (BaseScale <= ActiveGameplayShakeBaseScale && Now - LastGameplayShakeTime < 0.05) return;
+		PlayerCameraManager->StopCameraShake(ActiveGameplayShake.Get(), true);
+	}
+	ActiveGameplayShakeBaseScale = BaseScale;
+	LastGameplayShakeTime = Now;
+	ActiveGameplayShake = PlayerCameraManager->StartCameraShake(ShakeClass, Scale);
+}
+
+void ASurvivorPlayerController::HandleCameraShakeIntensityChanged(float Intensity)
+{
+	if (ActiveGameplayShake.IsValid()) ActiveGameplayShake->ShakeScale = ActiveGameplayShakeBaseScale * Intensity;
+}

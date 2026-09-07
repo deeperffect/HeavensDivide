@@ -27,6 +27,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "HeavensDivideGameUserSettings.h"
+#include "Components/Slider.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "UpgradeDefinition.h"
 #include "MediaPlayer.h"
@@ -574,6 +575,26 @@ UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
 	StateSlot->SetPadding(FMargin(12.0f, 0.0f, 0.0f, 0.0f));
 	StateSlot->SetVerticalAlignment(VAlign_Center);
 
+	UHorizontalBox* ShakeRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CameraShakeRow"));
+	Panel->AddChildToVerticalBox(ShakeRow)->SetPadding(FMargin(0, 6, 0, 28));
+	UTextBlock* ShakeLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	ShakeLabel->SetText(FText::FromString(TEXT("Camera Shake Intensity")));
+	ShakeLabel->SetFont(LabelFont);
+	ShakeLabel->SetColorAndOpacity(FSlateColor(SecondaryBodyColor));
+	ShakeRow->AddChildToHorizontalBox(ShakeLabel)->SetPadding(FMargin(0, 0, 28, 0));
+	CameraShakeSlider = WidgetTree->ConstructWidget<USlider>(USlider::StaticClass(), TEXT("CameraShakeSlider"));
+	CameraShakeSlider->SetMinValue(0.0f);
+	CameraShakeSlider->SetMaxValue(1.0f);
+	CameraShakeSlider->SetStepSize(0.01f);
+	CameraShakeSlider->SetToolTipText(FText::FromString(TEXT("Camera shake strength. 0% disables shake without changing other feedback.")));
+	UHorizontalBoxSlot* SliderSlot = ShakeRow->AddChildToHorizontalBox(CameraShakeSlider);
+	SliderSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	SliderSlot->SetVerticalAlignment(VAlign_Center);
+	CameraShakeValueText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	CameraShakeValueText->SetFont(LabelFont);
+	CameraShakeValueText->SetColorAndOpacity(FSlateColor(SecondaryHeadingColor));
+	ShakeRow->AddChildToHorizontalBox(CameraShakeValueText)->SetPadding(FMargin(12, 0, 0, 0));
+	CameraShakeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::HandleCameraShakeChanged);
 	RefreshAutoTargetingSetting();
 	return Panel;
 }
@@ -582,8 +603,18 @@ void UMainMenuWidget::RefreshAutoTargetingSetting()
 {
 	const UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
 	const bool bEnabled = !Settings || Settings->IsAutoTargetingEnabled();
+	const float ShakeIntensity = Settings ? Settings->GetCameraShakeIntensity() : 1.0f;
+	if (CameraShakeSlider) CameraShakeSlider->SetValue(ShakeIntensity);
+	if (CameraShakeValueText) CameraShakeValueText->SetText(FText::AsPercent(ShakeIntensity));
 	if (AutoTargetingCheckBox) AutoTargetingCheckBox->SetIsChecked(bEnabled);
 	if (AutoTargetingStateText) AutoTargetingStateText->SetText(FText::FromString(bEnabled ? TEXT("ON") : TEXT("OFF")));
+}
+
+void UMainMenuWidget::HandleCameraShakeChanged(float Value)
+{
+	if (UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
+		Settings->SetCameraShakeIntensity(Value);
+	if (CameraShakeValueText) CameraShakeValueText->SetText(FText::AsPercent(Value));
 }
 
 void UMainMenuWidget::HandleAutoTargetingChanged(bool bIsChecked)

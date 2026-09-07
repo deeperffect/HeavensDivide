@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "CharacterBase.h"
 #include "Components/ActorComponent.h"
+#include "ImpactFeedback.h"
 #include "AutoAttackComponent.generated.h"
 
 class UAnimMontage;
@@ -14,6 +15,7 @@ class ANinjaCharacter;
 class ASamuraiCharacter;
 class ASamuraiBladeWave;
 class USoundBase;
+class UNiagaraSystem;
 class UUpgradeDefinition;
 enum class EPlayerAttackSource : uint8;
 
@@ -58,6 +60,8 @@ UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 {
 	GENERATED_BODY()
+	friend class FImpactFeedbackTest;
+	friend class FEnemyPushbackTest;
 
 public:
 	UAutoAttackComponent();
@@ -203,6 +207,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Technique|Deathblow", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float DeathblowBaseRadius = 450.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Samurai Technique|Deathblow", meta = (DisplayName = "Deathblow VFX", ToolTip = "Optional Niagara system spawned at the killed primary target's location when Deathblow triggers."))
+	TObjectPtr<UNiagaraSystem> DeathblowVFX = nullptr;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Targeting", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float TargetingRange = 1500.0f;
 
@@ -259,6 +266,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Audio", meta = (ToolTip = "2D feedback sound played once when this melee attack trace damages at least one valid enemy. Leave empty for no impact sound."))
 	TObjectPtr<USoundBase> ImpactSound;
+	/** Per-enemy VFX/audio; camera shake is requested once after a successful melee swing. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Auto Attack|Impact")
+	FImpactFeedbackData ImpactFeedback;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Auto Attack|Samurai Pushback", meta=(ClampMin="0.0", Units="cm")) float SamuraiPushbackDistance = 25.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Auto Attack|Samurai Pushback", meta=(ClampMin="0.01", Units="s")) float SamuraiPushbackDuration = 0.1f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Double Cut", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of normal Samurai melee attacks required before Double Cut triggers."))
 	int32 DoubleCutPrimaryAttackCount = 3;
@@ -266,8 +278,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack|Double Cut", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Animation-only multiplier applied to the normal Samurai primary montage when that primary is expected to earn or use a stored Double Cut proc."))
 	float DoubleCutPrimarySpeedMultiplier = 2.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Samurai|Weapon Visual Scaling", meta = (ToolTip = "Name of the Blueprint-authored scene component scaled during Samurai melee attacks."))
-	FName WeaponVisualScaleRootComponentName = TEXT("WeaponScaleRoot");
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Samurai|Weapon Visual Scaling", meta = (ToolTip = "Name of the weapon component scaled around its mesh origin during Samurai melee attacks."))
+	FName WeaponVisualComponentName = TEXT("Weapon");
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Fan of Blades", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of Ninja attacks required before Fan of Blades triggers."))
 	int32 FanOfBladesAttackInterval = 4;
@@ -335,6 +347,7 @@ private:
 	const UUpgradeDefinition* GetBladeCascadeUpgrade() const;
 	int32 ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount);
 	bool WillNextSamuraiAttackTriggerDoubleCut() const;
+	bool ShouldApplySamuraiPushback() const;
 	bool AcquireDoubleCutFollowUpTarget();
 	bool StartDoubleCutFollowUp();
 	bool ConsumePendingDoubleCutFollowUp();
@@ -349,7 +362,7 @@ private:
 	FVector GetProjectileSpawnLocation() const;
 	FVector GetEnemyAimLocation(const AEnemyBase* Enemy) const;
 	bool CanAutoAttack() const;
-	USceneComponent* ResolveWeaponVisualScaleRoot();
+	USceneComponent* ResolveWeaponVisualComponent();
 	void ApplyAttackWeaponVisualScale();
 	void RestoreAttackWeaponVisualScale();
 
@@ -386,8 +399,8 @@ private:
 	TObjectPtr<UAnimMontage> ActiveAttackMontage;
 
 	UPROPERTY(Transient)
-	TObjectPtr<USceneComponent> WeaponVisualScaleRoot;
+	TObjectPtr<USceneComponent> WeaponVisualComponent;
 
-	FVector OriginalWeaponVisualScaleRootRelativeScale = FVector::OneVector;
+	FVector OriginalWeaponVisualComponentRelativeScale = FVector::OneVector;
 	bool bAttackWeaponVisualScaleApplied = false;
 };

@@ -7,6 +7,8 @@
 #include "EnemyStatusEffectComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystemInstanceController.h"
 #include "PlayerUpgradeComponent.h"
 #include "SamuraiCharacter.h"
 #include "UObject/ConstructorHelpers.h"
@@ -34,15 +36,29 @@ ASamuraiBladeWave::ASamuraiBladeWave()
 }
 
 void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,
-	float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns)
+	float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale, bool bInAllowPushback)
 {
 	SourceSamurai = InSamurai;
 	SourceUpgrades = InUpgrades;
 	Damage = FMath::Max(0.0f, InDamage);
 	Speed = FMath::Max(1.0f, InSpeed);
 	bReturns = bInReturns;
+	bAllowPushback = bInAllowPushback;
 	Direction.Z = 0.0f;
 	if (!Direction.Normalize()) { Destroy(); return; }
+	// Preserve Blueprint-authored transforms before the collision visualization is resized.
+	// Niagara must not inherit the cube's nonuniform scale as well as its own Area parameter.
+	TInlineComponentArray<UNiagaraComponent*> Effects(this);
+	WaveEffects.Reset();
+	for (UNiagaraComponent* Effect : Effects)
+	{
+		Effect->SetAutoDestroy(false);
+		Effect->DeactivateImmediate();
+		Effect->AttachToComponent(Collision, FAttachmentTransformRules::KeepWorldTransform);
+		if (!VFXAreaScaleParameter.IsNone())
+			Effect->SetVariableFloat(VFXAreaScaleParameter, FMath::Max(0.0f, InAreaScale));
+		WaveEffects.Add(Effect);
+	}
 	Collision->SetBoxExtent(FVector(WaveThickness * 0.5f, FMath::Max(1.0f, InWidth) * 0.5f, WaveHeight * 0.5f));
 	Visual->SetRelativeScale3D(FVector(WaveThickness / 100.0f, FMath::Max(1.0f, InWidth) / 100.0f, WaveHeight / 100.0f));
 	SetActorRotation(Direction.Rotation());
@@ -52,6 +68,12 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
 	Collision->IgnoreActorWhenMoving(InSamurai, true);
 	Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	const float Duration = FMath::Max(0.01f, FMath::Max(1.0f, InTravelDistance) / Speed);
+	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : WaveEffects)
+	{
+		if (!Effect.IsValid()) continue;
+		Effect->SetCustomTimeDilation(FMath::Max(0.001f, VFXAuthoredDuration) / (Duration * (bReturns ? 2.0f : 1.0f)));
+		Effect->Activate(true);
+	}
 	GetWorldTimerManager().SetTimer(PhaseTimer, this, bReturns ? &ASamuraiBladeWave::BeginReturn : &ASamuraiBladeWave::FinishWave, Duration, false);
 	OnOutboundStarted.Broadcast(this);
 }
@@ -63,7 +85,11 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
 	if (!Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai)) return;
 	HitThisPhase.Add(Enemy);
 	UHealthComponent* Health = Enemy->GetHealthComponent();
+	FVector ImpactLocation, ImpactNormal;
+	Enemy->GetImpactContact(GetActorLocation(), ImpactLocation, ImpactNormal);
 	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Samurai);
+	if (bApplied && bAllowPushback) Enemy->ApplyAttackPushback(GetActorLocation() - GetActorForwardVector() * WaveThickness, EPlayerAttackSource::Samurai, PushbackDistance, PushbackDuration);
+	if (bApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, ImpactLocation, ImpactNormal);
 	UPlayerUpgradeComponent* Upgrades = SourceUpgrades.Get();
 	if (bApplied && Health && !Health->IsDead() && Upgrades && Upgrades->HasUpgradeId(TEXT("BleedingEdge")))
 		Enemy->ApplyStatus(EEnemyStatusEffect::Bleed, Upgrades, EPlayerAttackSource::Samurai);
@@ -81,7 +107,16 @@ void ASamuraiBladeWave::BeginReturn()
 	if (!Direction.Normalize() || Distance <= KINDA_SMALL_NUMBER) { FinishWave(); return; }
 	SetActorRotation(Direction.Rotation());
 	Movement->Velocity = Direction * Speed;
-	GetWorldTimerManager().SetTimer(PhaseTimer, this, &ASamuraiBladeWave::FinishWave, FMath::Max(0.01f, Distance / Speed), false);
+	const float ReturnDuration = FMath::Max(0.01f, Distance / Speed);
+	// The player may have moved: fit the remaining animation to the actual return distance.
+	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : WaveEffects)
+	{
+		if (!Effect.IsValid()) continue;
+		const auto Controller = Effect->GetSystemInstanceController();
+		const float Age = Controller.IsValid() ? Controller->GetAge() : VFXAuthoredDuration * 0.5f;
+		Effect->SetCustomTimeDilation(FMath::Max(0.001f, VFXAuthoredDuration - Age) / ReturnDuration);
+	}
+	GetWorldTimerManager().SetTimer(PhaseTimer, this, &ASamuraiBladeWave::FinishWave, ReturnDuration, false);
 	OnReturnStarted.Broadcast(this);
 }
 

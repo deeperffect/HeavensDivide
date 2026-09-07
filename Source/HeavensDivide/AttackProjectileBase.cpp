@@ -203,7 +203,15 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 
 		const FVector ExecutionLocation = HitEnemy->GetActorLocation();
+		FVector FeedbackLocation, ImpactNormal;
+		HitEnemy->GetImpactContact(GetActorLocation(), FeedbackLocation, ImpactNormal);
+		if (bFromSweep && !SweepResult.bStartPenetrating && !SweepResult.ImpactNormal.IsNearlyZero())
+		{
+			FeedbackLocation = SweepResult.ImpactPoint;
+			ImpactNormal = SweepResult.ImpactNormal;
+		}
 		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
+		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
 		{

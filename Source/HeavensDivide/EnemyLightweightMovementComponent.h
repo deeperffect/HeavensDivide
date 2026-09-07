@@ -23,6 +23,8 @@ public:
 	void SetMoveSpeed(float NewMoveSpeed);
 	void RequestMove(const FVector& WorldDirection);
 	void StopMovement();
+	void ApplyPushback(FVector Direction, float Distance, float Duration);
+	void CancelPushback();
 	void RefreshSpawnZ();
 
 	FVector GetCurrentVelocity() const;
@@ -33,6 +35,10 @@ public:
 	bool MoveOwnerToNoSlide(const FVector& DesiredLocation, FHitResult& OutBlockingHit);
 
 private:
+	FVector PushbackDirection = FVector::ZeroVector;
+	float PushbackDistance = 0.0f;
+	float PushbackDuration = 0.0f;
+	float PushbackRemaining = 0.0f;
 	UPROPERTY(Transient)
 	FVector RequestedMoveDirection = FVector::ZeroVector;
 

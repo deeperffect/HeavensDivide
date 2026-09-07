@@ -9,6 +9,8 @@
 
 class UBorder;
 class UTextBlock;
+class UImage;
+class UTexture2D;
 
 /** Compact status icon with an overlaid authoritative stack count. */
 UCLASS()
@@ -18,9 +20,10 @@ class HEAVENSDIVIDE_API UEnemyStatusIndicatorWidget : public UUserWidget
 
 public:
 	virtual void NativeOnInitialized() override;
-	void SetStatusPresentation(EEnemyStatusEffect Status, int32 StackCount, bool bShowCountAtOne, int32 FontSize);
+	void SetStatusPresentation(EEnemyStatusEffect Status, int32 StackCount, bool bShowCountAtOne, int32 FontSize, UTexture2D* Icon = nullptr);
 
 private:
+	UPROPERTY(Transient) TObjectPtr<UImage> StatusIcon;
 	UPROPERTY(Transient)
 	TObjectPtr<UBorder> IconBackground;
 
