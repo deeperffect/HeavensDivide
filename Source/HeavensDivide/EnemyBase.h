@@ -214,11 +214,17 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UEnemyStatusEffectComponent> StatusEffectComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
+	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Status icons now use the health bar anchor and screen-space spacing."))
 	FVector BleedStatusIndicatorRelativeLocation = FVector(-22.0f, 0.0f, 145.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status", meta=(ToolTip="Additional offset from the Bleed/status anchor used for Poison only when both statuses are visible."))
+	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use StatusIndicatorSpacing instead."))
 	FVector PoisonStatusIndicatorRelativeLocation = FVector(0.0f, 0.0f, 40.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ClampMin="0.0", ToolTip="Screen-space gap between the Bleed and Poison icons."))
+	float StatusIndicatorSpacing = 4.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ClampMin="0.0", ToolTip="Screen-space gap between the health bar top and status icons."))
+	float StatusIndicatorHealthBarGap = 4.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
 	FVector2D StatusIndicatorDrawSize = FVector2D(36.0f, 36.0f);
@@ -230,8 +236,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
 	bool bShowStatusStackCountAtOne = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status", meta=(ClampMin="6", ClampMax="32"))
-	int32 StatusStackFontSize = 12;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status", meta=(ClampMin="6", ClampMax="32", ToolTip="Font size of the stack numbers on Bleed and Poison icons. Lower values make the numbers smaller. Multi-digit counts shrink automatically, down to size 6."))
+	int32 StatusStackFontSize = 7;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Optional attached Niagara aura used while this enemy is Bloodbound."))
 	TObjectPtr<UNiagaraComponent> BloodboundNiagaraComponent;

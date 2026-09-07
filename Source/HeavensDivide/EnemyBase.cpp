@@ -588,12 +588,10 @@ void AEnemyBase::InitializeStatusIndicators()
 {
 	if (BleedStatusWidgetComponent)
 	{
-		BleedStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation);
 		BleedStatusWidgetComponent->SetDrawSize(StatusIndicatorDrawSize);
 	}
 	if (PoisonStatusWidgetComponent)
 	{
-		PoisonStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation);
 		PoisonStatusWidgetComponent->SetDrawSize(StatusIndicatorDrawSize);
 	}
 	UpdateStatusIndicatorLayout();
@@ -619,18 +617,31 @@ void AEnemyBase::HandleStatusStacksChanged(EEnemyStatusEffect Status, int32 Stac
 
 void AEnemyBase::UpdateStatusIndicatorLayout()
 {
-	const bool bBleedVisible = StatusEffectComponent && StatusEffectComponent->GetStatusStacks(EEnemyStatusEffect::Bleed) > 0;
-	const bool bPoisonVisible = StatusEffectComponent && StatusEffectComponent->GetStatusStacks(EEnemyStatusEffect::Poison) > 0;
+	if (!HealthBarWidgetComponent) return;
+
+	// Share the bar's projected world anchor. Canvas pivots provide fixed screen-space
+	// offsets, so camera rotation/perspective cannot change icon spacing or order.
+	const FVector Anchor = HealthBarWidgetComponent->GetComponentLocation();
+	const FVector2D BarSize = HealthBarWidgetComponent->GetDrawSize();
+	const FVector2D BarPivot = HealthBarWidgetComponent->GetPivot();
+	const float Width = FMath::Max(1.0, StatusIndicatorDrawSize.X);
+	const float Height = FMath::Max(1.0, StatusIndicatorDrawSize.Y);
+	const float HalfSpacing = FMath::Max(0.0f, StatusIndicatorSpacing) * 0.5f;
+	const float BarCenterX = (0.5f - BarPivot.X) * BarSize.X;
+	const float PivotY = 1.0f + (BarPivot.Y * BarSize.Y + FMath::Max(0.0f, StatusIndicatorHealthBarGap)) / Height;
 	if (BleedStatusWidgetComponent)
 	{
-		BleedStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation);
+		BleedStatusWidgetComponent->SetWorldLocation(Anchor);
+		BleedStatusWidgetComponent->SetDrawAtDesiredSize(false);
+		BleedStatusWidgetComponent->SetDrawSize(FVector2D(Width, Height));
+		BleedStatusWidgetComponent->SetPivot(FVector2D(1.0f + (HalfSpacing - BarCenterX) / Width, PivotY));
 	}
 	if (PoisonStatusWidgetComponent)
 	{
-		// Poison occupies the same proven anchor as Bleed when shown alone. If both
-		// are active, Poison moves above it so neither status covers the health bar.
-		PoisonStatusWidgetComponent->SetRelativeLocation(BleedStatusIndicatorRelativeLocation
-			+ (bBleedVisible && bPoisonVisible ? PoisonStatusIndicatorRelativeLocation : FVector::ZeroVector));
+		PoisonStatusWidgetComponent->SetWorldLocation(Anchor);
+		PoisonStatusWidgetComponent->SetDrawAtDesiredSize(false);
+		PoisonStatusWidgetComponent->SetDrawSize(FVector2D(Width, Height));
+		PoisonStatusWidgetComponent->SetPivot(FVector2D(-(HalfSpacing + BarCenterX) / Width, PivotY));
 	}
 }
 

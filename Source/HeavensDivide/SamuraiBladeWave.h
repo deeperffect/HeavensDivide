@@ -22,7 +22,7 @@ class HEAVENSDIVIDE_API ASamuraiBladeWave : public AActor
 public:
 	ASamuraiBladeWave();
 	void InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,
-		float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale = 1.0f, bool bInAllowPushback = true);
+		float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale = 1.0f);
 
 	UPROPERTY(BlueprintAssignable, Category="Blade Wave|Events") FBladeWaveEvent OnOutboundStarted;
 	UPROPERTY(BlueprintAssignable, Category="Blade Wave|Events") FBladeWaveEvent OnReturnStarted;
@@ -30,8 +30,6 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Blade Wave|Impact") FImpactFeedbackData ImpactFeedback;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Blade Wave|Impact", meta=(ClampMin="0.0", Units="cm")) float PushbackDistance = 25.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Blade Wave|Impact", meta=(ClampMin="0.01", Units="s")) float PushbackDuration = 0.1f;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Blade Wave") TObjectPtr<UBoxComponent> Collision;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Blade Wave") TObjectPtr<UStaticMeshComponent> Visual;
@@ -55,7 +53,6 @@ private:
 	float Damage = 0.0f;
 	float Speed = 0.0f;
 	bool bReturns = false;
-	bool bAllowPushback = true;
 	bool bReturning = false;
 	FTimerHandle PhaseTimer;
 };

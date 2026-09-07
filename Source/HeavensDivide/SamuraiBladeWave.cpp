@@ -36,14 +36,13 @@ ASamuraiBladeWave::ASamuraiBladeWave()
 }
 
 void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,
-	float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale, bool bInAllowPushback)
+	float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale)
 {
 	SourceSamurai = InSamurai;
 	SourceUpgrades = InUpgrades;
 	Damage = FMath::Max(0.0f, InDamage);
 	Speed = FMath::Max(1.0f, InSpeed);
 	bReturns = bInReturns;
-	bAllowPushback = bInAllowPushback;
 	Direction.Z = 0.0f;
 	if (!Direction.Normalize()) { Destroy(); return; }
 	// Preserve Blueprint-authored transforms before the collision visualization is resized.
@@ -88,7 +87,6 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
 	FVector ImpactLocation, ImpactNormal;
 	Enemy->GetImpactContact(GetActorLocation(), ImpactLocation, ImpactNormal);
 	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Samurai);
-	if (bApplied && bAllowPushback) Enemy->ApplyAttackPushback(GetActorLocation() - GetActorForwardVector() * WaveThickness, EPlayerAttackSource::Samurai, PushbackDistance, PushbackDuration);
 	if (bApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, ImpactLocation, ImpactNormal);
 	UPlayerUpgradeComponent* Upgrades = SourceUpgrades.Get();
 	if (bApplied && Health && !Health->IsDead() && Upgrades && Upgrades->HasUpgradeId(TEXT("BleedingEdge")))

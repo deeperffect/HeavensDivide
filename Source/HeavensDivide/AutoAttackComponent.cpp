@@ -669,7 +669,7 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
 		if (ASamuraiBladeWave* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(BladeWaveClass, SpawnLocation, Direction.Rotation(), Params))
 		{
 			Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth, BladeWaveTravelDistance, BladeWaveSpeed, bReturns,
-				FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc), ShouldApplySamuraiPushback());
+				FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc));
 		}
 	}
 }
