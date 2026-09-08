@@ -2,13 +2,13 @@
 
 #include "MeleeEnemyBase.h"
 
-#include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "DrawDebugHelpers.h"
 #include "HealthComponent.h"
-#include "Kismet/GameplayStatics.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "TimerManager.h"
 #include "SurvivorPlayerController.h"
 
 AMeleeEnemyBase::AMeleeEnemyBase(const FObjectInitializer& ObjectInitializer)
@@ -42,6 +42,7 @@ void AMeleeEnemyBase::RestorePreBloodboundState()
 
 void AMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	CancelBasicAttack();
 	StopAttackTimer();
 
 	Super::EndPlay(EndPlayReason);
@@ -51,12 +52,14 @@ void AMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 {
 	if (IsStressTestCombatDisabled())
 	{
+		CancelBasicAttack();
 		AEnemyBase::UpdateEnemyBehavior(DeltaSeconds);
 		return;
 	}
 
-	if (bIsDead || IsPlayerTargetDead())
+	if (bIsDead || bGameplaySuspended || IsPlayerTargetDead())
 	{
+		CancelBasicAttack();
 		StopAttackTimer();
 		StopEnemyMovement();
 		return;
@@ -64,6 +67,7 @@ void AMeleeEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 
 	if (!EnsureTargetFromCharacterManager())
 	{
+		CancelBasicAttack();
 		StopAttackTimer();
 		StopEnemyMovement();
 		return;
@@ -94,6 +98,7 @@ bool AMeleeEnemyBase::ShouldSkipMovement() const
 
 void AMeleeEnemyBase::StopEnemyBehavior()
 {
+	CancelBasicAttack();
 	bIsAttacking = false;
 	StopEnemyMovement();
 	StopAttackTimer();
@@ -103,13 +108,12 @@ void AMeleeEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter,
 {
 	Super::HandlePlayerCharacterSwapped(OldCharacter, NewCharacter);
 
-	if (bIsAttacking)
-	{
-	}
+	if (BasicAttackPhase != EBasicAttackPhase::None) CancelBasicAttack();
 }
 
 void AMeleeEnemyBase::HandleDeath()
 {
+	CancelBasicAttack();
 	bIsAttacking = false;
 	StopAttackTimer();
 
@@ -123,7 +127,7 @@ bool AMeleeEnemyBase::ShouldForceHighAnimationBudgetSignificance() const
 
 bool AMeleeEnemyBase::IsTargetInAttackRange() const
 {
-	if (!CurrentTarget)
+	if (!IsValid(CurrentTarget))
 	{
 		return false;
 	}
@@ -134,7 +138,7 @@ bool AMeleeEnemyBase::IsTargetInAttackRange() const
 
 void AMeleeEnemyBase::StartAttackTimer()
 {
-	if (bIsDead || IsPlayerTargetDead() || !GetWorld() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
+	if (bIsDead || bGameplaySuspended || IsPlayerTargetDead() || !GetWorld() || GetWorld()->GetTimerManager().IsTimerActive(AttackTimerHandle))
 	{
 		return;
 	}
@@ -191,69 +195,6 @@ void AMeleeEnemyBase::MarkAttackStarted()
 	}
 }
 
-void AMeleeEnemyBase::StartAttack()
-{
-	if (IsStressTestCombatDisabled())
-	{
-		StopAttackTimer();
-		return;
-	}
-
-	if (bIsDead || IsPlayerTargetDead() || bIsAttacking || !CurrentTarget || !IsTargetInAttackRange())
-	{
-		StopAttackTimer();
-		return;
-	}
-
-	if (!CanStartAttackNow())
-	{
-		StartAttackTimer();
-		return;
-	}
-
-	FaceTarget();
-
-	if (!AttackMontage)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy attack montage invalid: %s"), *GetNameSafe(this));
-		return;
-	}
-
-	UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
-	if (!AnimInstance)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy attack AnimInstance invalid: %s"), *GetNameSafe(this));
-		return;
-	}
-
-	const float PlayResult = AnimInstance->Montage_Play(AttackMontage);
-
-	if (PlayResult <= 0.0f)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy attack montage failed to play: %s"), *GetNameSafe(this));
-		return;
-	}
-
-	bIsAttacking = true;
-	MarkAttackStarted();
-	UpdateAnimationBudgetSignificance();
-	HandleAttackCommitted();
-
-	FOnMontageEnded MontageEndedDelegate;
-	MontageEndedDelegate.BindUObject(this, &AMeleeEnemyBase::HandleAttackMontageEnded);
-	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, AttackMontage);
-}
-
-void AMeleeEnemyBase::PerformAttackHit()
-{
-	if (IsStressTestCombatDisabled())
-	{
-		return;
-	}
-
-	ExecuteAttackHit();
-}
-
 void AMeleeEnemyBase::HandleAttackCommitted()
 {
 }
@@ -288,9 +229,18 @@ void AMeleeEnemyBase::ExecuteAttackHit()
 	}
 
 	const FVector HitCenter = GetActorLocation() + AttackForward * AttackHitForwardOffset;
-	const float DistanceSquaredToActivePlayer = FVector::DistSquared2D(HitCenter, ActivePlayerCharacter->GetActorLocation());
-	const bool bPlayerInHitArea = DistanceSquaredToActivePlayer <= FMath::Square(AttackHitRadius);
+	// Exact sphere/capsule overlap against only the active player: no crowd-wide
+	// physics query or dependency on overlap-event flags. Reject targets behind us.
+	const UCapsuleComponent* Capsule = ActivePlayerCharacter->GetCapsuleComponent();
+	if (!Capsule || AttackHitRadius <= 0.0f) return;
+	const float SegmentHalfLength = FMath::Max(0.0f, Capsule->GetScaledCapsuleHalfHeight() - Capsule->GetScaledCapsuleRadius());
+	const FVector CapsuleCenter = Capsule->GetComponentLocation();
+	const FVector CapsuleAxis = Capsule->GetUpVector() * SegmentHalfLength;
+	const bool bPlayerInHitArea = FVector::DotProduct(ActivePlayerCharacter->GetActorLocation() - GetActorLocation(), AttackForward) >= 0.0f
+		&& FMath::PointDistToSegmentSquared(HitCenter, CapsuleCenter - CapsuleAxis, CapsuleCenter + CapsuleAxis)
+		<= FMath::Square(AttackHitRadius + Capsule->GetScaledCapsuleRadius());
 
+#if ENABLE_DRAW_DEBUG
 	if (bDebugAttackHit && GetWorld())
 	{
 		const FColor DebugColor = bPlayerInHitArea ? FColor::Red : FColor::Silver;
@@ -299,6 +249,7 @@ void AMeleeEnemyBase::ExecuteAttackHit()
 		DrawDebugSphere(GetWorld(), HitCenter, AttackHitRadius, 24, DebugColor, false, DebugDuration, 0, 3.0f);
 	}
 
+#endif
 	if (!bPlayerInHitArea)
 	{
 		return;
@@ -319,18 +270,104 @@ void AMeleeEnemyBase::ExecuteAttackHit()
 	SurvivorController->ApplyDamageToPlayer(AttackDamage);
 }
 
-void AMeleeEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+
+void AMeleeEnemyBase::SetTarget(AActor* NewTarget)
 {
-	if (Montage != AttackMontage)
+	if (BasicAttackPhase != EBasicAttackPhase::None && NewTarget != CurrentTarget) CancelBasicAttack();
+	Super::SetTarget(NewTarget);
+}
+
+bool AMeleeEnemyBase::CanContinueBasicAttack() const
+{
+	return bIsAttacking && !bIsDead && !bGameplaySuspended && !IsActorBeingDestroyed()
+		&& !IsStressTestCombatDisabled() && !IsPlayerTargetDead()
+		&& BasicAttackTarget.IsValid() && BasicAttackTarget.Get() == CurrentTarget;
+}
+
+void AMeleeEnemyBase::StartAttack()
+{
+	if (!GetWorld() || bIsDead || bGameplaySuspended || bIsAttacking || IsActorBeingDestroyed()
+		|| IsStressTestCombatDisabled() || IsPlayerTargetDead() || !IsTargetInAttackRange()) return;
+	if (!CanStartAttackNow()) { StartAttackTimer(); return; }
+	StopAttackTimer();
+	StopEnemyMovement();
+	FaceTarget();
+	bIsAttacking = true;
+	BasicAttackPhase = EBasicAttackPhase::Windup;
+	BasicAttackTarget = CurrentTarget;
+	MarkAttackStarted();
+	UpdateAnimationBudgetSignificance();
+	HandleAttackCommitted();
+	GetWorldTimerManager().SetTimer(WindupTimer, this, &AMeleeEnemyBase::FinishAttackWindup,
+		FMath::Max(0.001f, AttackWindup), false);
+}
+
+void AMeleeEnemyBase::FinishAttackWindup()
+{
+	if (BasicAttackPhase != EBasicAttackPhase::Windup) return;
+	if (!CanContinueBasicAttack()) { CancelBasicAttack(); return; }
+	// Advance before applying damage so reentrant callbacks cannot hit twice.
+	BasicAttackPhase = EBasicAttackPhase::Recovery;
+	StopEnemyMovement();
+	ExecuteAttackHit();
+	if (!CanContinueBasicAttack() || BasicAttackPhase != EBasicAttackPhase::Recovery)
 	{
+		CancelBasicAttack();
 		return;
 	}
-
-	bIsAttacking = false;
-	UpdateAnimationBudgetSignificance();
-	HandleAttackFinished();
-	if (!bInterrupted && !bIsDead && !IsPlayerTargetDead() && CurrentTarget && IsTargetInAttackRange())
+	if (bUseProceduralAttackMotion && GetMesh() && AttackLungeDistance > 0.0f && GetNetMode() != NM_DedicatedServer)
 	{
-		StartAttackTimer();
+		PreAttackMeshLocation = GetMesh()->GetRelativeLocation();
+		const USceneComponent* Parent = GetMesh()->GetAttachParent();
+		LungeRelativeDirection = Parent ? Parent->GetComponentTransform().InverseTransformVector(GetActorForwardVector()) : GetActorForwardVector();
+		LungeStartTime = GetWorld()->GetTimeSeconds();
+		bLungeActive = true;
+		GetWorldTimerManager().SetTimer(LungeTimer, this, &AMeleeEnemyBase::UpdateAttackLunge, 1.0f / 60.0f, true);
 	}
+	GetWorldTimerManager().SetTimer(RecoveryTimer, this, &AMeleeEnemyBase::FinishAttackRecovery,
+		FMath::Max(0.001f, AttackRecovery), false);
+}
+
+void AMeleeEnemyBase::UpdateAttackLunge()
+{
+	if (!bLungeActive) return;
+	if (!CanContinueBasicAttack()) { CancelBasicAttack(); return; }
+	const float Elapsed = static_cast<float>(GetWorld()->GetTimeSeconds() - LungeStartTime);
+	// Fit the presentation inside recovery, even when designers shorten recovery.
+	const float Out = FMath::Max(0.001f, AttackLungeOutDuration);
+	const float Back = FMath::Max(0.001f, AttackLungeReturnDuration);
+	const float Fit = FMath::Min(1.0f, FMath::Max(0.001f, AttackRecovery) / (Out + Back));
+	if (Elapsed >= (Out + Back) * Fit) { ResetAttackLunge(); return; }
+	const float Alpha = Elapsed < Out * Fit ? Elapsed / (Out * Fit) : 1.0f - (Elapsed - Out * Fit) / (Back * Fit);
+	const float Smooth = FMath::SmoothStep(0.0f, 1.0f, FMath::Clamp(Alpha, 0.0f, 1.0f));
+	if (GetMesh()) GetMesh()->SetRelativeLocation(PreAttackMeshLocation + LungeRelativeDirection * AttackLungeDistance * Smooth);
+}
+
+void AMeleeEnemyBase::ResetAttackLunge()
+{
+	GetWorldTimerManager().ClearTimer(LungeTimer);
+	if (bLungeActive && GetMesh()) GetMesh()->SetRelativeLocation(PreAttackMeshLocation);
+	bLungeActive = false;
+}
+
+void AMeleeEnemyBase::CancelBasicAttack()
+{
+	GetWorldTimerManager().ClearTimer(WindupTimer);
+	GetWorldTimerManager().ClearTimer(RecoveryTimer);
+	ResetAttackLunge();
+	if (BasicAttackPhase == EBasicAttackPhase::None) return;
+	BasicAttackPhase = EBasicAttackPhase::None;
+	BasicAttackTarget.Reset();
+	bIsAttacking = false;
+	StopAttackTimer();
+	UpdateAnimationBudgetSignificance();
+}
+
+void AMeleeEnemyBase::FinishAttackRecovery()
+{
+	if (BasicAttackPhase != EBasicAttackPhase::Recovery) return;
+	const bool bResume = CanContinueBasicAttack();
+	CancelBasicAttack();
+	HandleAttackFinished();
+	if (bResume) UpdateEnemyBehavior(0.0f);
 }

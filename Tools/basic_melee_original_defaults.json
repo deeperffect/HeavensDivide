@@ -1,0 +1,122 @@
+[
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla",
+    "special": true,
+    "props": {
+      "attack_range": 150.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 75.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": null
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre",
+    "special": true,
+    "props": {
+      "attack_range": 400.0,
+      "attack_interval": 3.0,
+      "attack_damage": 30.0,
+      "attack_hit_radius": 500.0,
+      "attack_hit_forward_offset": 800.0,
+      "attack_montage": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Montages/AM_EnemyOgreAttack.AM_EnemyOgreAttack"
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear",
+    "special": false,
+    "props": {
+      "attack_range": 140.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 150.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Montages/AM_EnemyGruntAttack.AM_EnemyGruntAttack"
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature",
+    "special": false,
+    "props": {
+      "attack_range": 140.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 150.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Montages/AM_EnemyGruntAttack.AM_EnemyGruntAttack"
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish",
+    "special": false,
+    "props": {
+      "attack_range": 140.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 150.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": null
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton",
+    "special": false,
+    "props": {
+      "attack_range": 140.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 150.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Montages/AM_EnemyGruntAttack.AM_EnemyGruntAttack"
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb",
+    "special": true,
+    "props": {
+      "attack_range": 250.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 150.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": null
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler",
+    "special": false,
+    "props": {
+      "attack_range": 140.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 150.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Montages/AM_EnemyGruntAttack.AM_EnemyGruntAttack"
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt",
+    "special": false,
+    "props": {
+      "attack_range": 140.0,
+      "attack_interval": 1.5,
+      "attack_damage": 10.0,
+      "attack_hit_radius": 150.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Montages/AM_EnemyGruntAttack.AM_EnemyGruntAttack"
+    }
+  },
+  {
+    "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_TestDummy.BP_TestDummy",
+    "special": false,
+    "props": {
+      "attack_range": 0.0,
+      "attack_interval": 999.0,
+      "attack_damage": 0.0,
+      "attack_hit_radius": 75.0,
+      "attack_hit_forward_offset": 90.0,
+      "attack_montage": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Montages/AM_EnemyGruntAttack.AM_EnemyGruntAttack"
+    }
+  }
+]

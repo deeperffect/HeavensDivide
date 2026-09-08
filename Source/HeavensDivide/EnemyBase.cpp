@@ -2042,7 +2042,7 @@ void AEnemyBase::MoveTowardCurrentTarget()
 
 	FVector ToTarget = CurrentTarget->GetActorLocation() - GetActorLocation();
 	ToTarget.Z = 0.0f;
-	if (ToTarget.SizeSquared2D() <= FMath::Square(StopDistance))
+	if (ToTarget.SizeSquared2D() <= FMath::Square(GetChaseStopDistance()))
 	{
 		StopEnemyMovement();
 		return;

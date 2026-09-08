@@ -3,7 +3,7 @@
 #include "AnimNotify_EnemyAttackHit.h"
 
 #include "Components/SkeletalMeshComponent.h"
-#include "MeleeEnemyBase.h"
+#include "MontageMeleeEnemyBase.h"
 
 void UAnimNotify_EnemyAttackHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
@@ -14,10 +14,10 @@ void UAnimNotify_EnemyAttackHit::Notify(USkeletalMeshComponent* MeshComp, UAnimS
 		return;
 	}
 
-	AMeleeEnemyBase* Enemy = Cast<AMeleeEnemyBase>(MeshComp->GetOwner());
+	AMontageMeleeEnemyBase* Enemy = Cast<AMontageMeleeEnemyBase>(MeshComp->GetOwner());
 	if (!Enemy)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AnimNotify_EnemyAttackHit: owner is not MeleeEnemyBase."));
+		UE_LOG(LogTemp, Warning, TEXT("AnimNotify_EnemyAttackHit: owner is not MontageMeleeEnemyBase."));
 		return;
 	}
 

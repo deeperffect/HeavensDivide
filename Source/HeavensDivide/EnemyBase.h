@@ -78,7 +78,7 @@ public:
 	virtual FVector GetVelocity() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy")
-	void SetTarget(AActor* NewTarget);
+	virtual void SetTarget(AActor* NewTarget);
 
 	UFUNCTION(BlueprintPure, Category = "Enemy")
 	AActor* GetTarget() const;
@@ -498,6 +498,7 @@ protected:
 	virtual bool ShouldSkipMovement() const;
 	virtual void StopEnemyBehavior();
 	void MoveTowardCurrentTarget();
+	virtual float GetChaseStopDistance() const { return StopDistance; }
 	UFUNCTION(BlueprintNativeEvent, Category="Enemy|Death")
 	void BeginDeathPresentation();
 	virtual void BeginDeathPresentation_Implementation();

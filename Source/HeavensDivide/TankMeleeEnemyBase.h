@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MeleeEnemyBase.h"
+#include "MontageMeleeEnemyBase.h"
 #include "TankMeleeEnemyBase.generated.h"
 
 class UDecalComponent;
@@ -20,7 +20,7 @@ enum class ETankSlamAttackShape : uint8
 };
 
 UCLASS(Blueprintable)
-class HEAVENSDIVIDE_API ATankMeleeEnemyBase : public AMeleeEnemyBase
+class HEAVENSDIVIDE_API ATankMeleeEnemyBase : public AMontageMeleeEnemyBase
 {
 	GENERATED_BODY()
 
@@ -46,6 +46,7 @@ protected:
 	virtual void HandleAttackCommitted() override;
 	virtual void HandleAttackFinished() override;
 	virtual void ExecuteAttackHit() override;
+	virtual bool UsesContactDamage() const;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<UDecalComponent> AttackTelegraphDecal;
@@ -100,7 +101,6 @@ private:
 	void RefreshContactDamageTarget();
 	void ApplyContactDamage();
 	void StopContactDamage();
-	bool UsesContactDamage() const;
 
 	void ShowAttackTelegraph();
 	void HideAttackTelegraph();
