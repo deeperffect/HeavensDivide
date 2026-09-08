@@ -8,7 +8,7 @@
 #include "EnemyBase.generated.h"
 
 class UHealthComponent;
-class UAnimMontage;
+class UEnemyDeathComponent;
 class UMeshComponent;
 class UWidgetComponent;
 class UEnemyHealthBarWidget;
@@ -55,6 +55,7 @@ class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
 {
 	GENERATED_BODY()
 	friend class FEnemyHitFlashTest;
+	friend class FEnemyDeathTest;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") bool bEnableHitFlash = true;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash", meta=(ClampMin="0.0", Units="s")) float HitFlashDuration = 0.08f;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") FLinearColor HitFlashColor = FLinearColor::White;
@@ -190,6 +191,12 @@ public:
 	void LogEnemyDebugState(const TCHAR* Context) const;
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	TObjectPtr<UEnemyDeathComponent> EnemyDeathComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category="Enemy|Death", meta=(ClampMin="0.0"))
+	float BossDeathCleanupDelay = 3.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Rewards", meta = (ToolTip = "Category used by centralized enemy-death drop systems. Set elite enemy Blueprint defaults to Elite; final bosses set this automatically."))
 	EEnemyDropCategory DropCategory = EEnemyDropCategory::Normal;
 
@@ -359,9 +366,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (AdvancedDisplay, ToolTip = "NavMesh projection extent used when requesting lightweight obstacle fallback paths."))
 	FVector PathFallbackProjectionExtent = FVector(250.0f, 250.0f, 500.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Death", meta = (ToolTip = "Death animation montage played when this enemy dies. Actor cleanup still happens after Death Destroy Delay."))
-	TObjectPtr<UAnimMontage> DeathMontage;
-
 	UPROPERTY(BlueprintReadOnly, Category = "Enemy", meta = (ToolTip = "Current actor this enemy is trying to chase or attack. Usually the active player character."))
 	TObjectPtr<AActor> CurrentTarget;
 
@@ -379,36 +383,6 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Stress Test", meta = (ToolTip = "True when this stress-test enemy ignores damage/death."))
 	bool bStressTestInvulnerable = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Seconds after death before the enemy actor is destroyed. Allows the death montage to remain visible."))
-	float DeathDestroyDelay = 3.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ToolTip = "Use per-enemy dynamic material parameters to collapse the visible mesh after gameplay death processing."))
-	bool bUseCollapseDeathEffect = false;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.01", UIMin = "0.01", Units = "s"))
-	float CollapseDuration = 1.25f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse")
-	float CollapseStartRadius = 0.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse")
-	float CollapseEndRadius = 250.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.01", UIMin = "0.01"))
-	float CollapseHardness = 20.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse")
-	FLinearColor CollapseEmColor = FLinearColor(0.35f, 0.02f, 0.65f, 1.0f);
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float CollapseEmIntensity = 8.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float CollapseIntensity = 1.0f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Death Collapse", meta = (ToolTip = "World-space offset from the skeletal mesh bounds center used for CollapsePos."))
-	FVector CollapsePositionOffset = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0", UIMin = "0", ToolTip = "XP value awarded through the spawned experience pickup when this enemy dies."))
 	int32 XPReward = 1;
@@ -476,11 +450,6 @@ protected:
 	bool EnsureTargetFromCharacterManager();
 	void CachePlayerExperienceComponent();
 	void SpawnExperiencePickup();
-	bool StartCollapseDeathEffect();
-	void UpdateCollapseDeathEffect();
-	void FinishCollapseDeathEffect();
-	void ApplyCollapseMaterialParameters(float Radius);
-	virtual void GetAdditionalCollapseMeshComponents(TArray<UMeshComponent*>& OutMeshComponents) const;
 	void RefreshEnemyVisualState();
 	void ClearEnemyOverlayMaterials();
 	virtual void CapturePreBloodboundState();
@@ -529,8 +498,13 @@ protected:
 	virtual bool ShouldSkipMovement() const;
 	virtual void StopEnemyBehavior();
 	void MoveTowardCurrentTarget();
-	void HandleDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void DestroyAfterDeath();
+	UFUNCTION(BlueprintNativeEvent, Category="Enemy|Death")
+	void BeginDeathPresentation();
+	virtual void BeginDeathPresentation_Implementation();
+
+	/** Call after custom boss presentation. Standard deaths call this automatically. */
+	UFUNCTION(BlueprintCallable, Category="Enemy|Death")
+	virtual void DestroyAfterDeath();
 	void FaceTarget();
 	void SmoothFaceTarget(float DeltaSeconds);
 	bool IsPlayerTargetDead() const;
@@ -570,11 +544,4 @@ protected:
 	bool bCachedAnimationProfilingDisabled = false;
 	bool bAnimationBudgetInitialized = false;
 	bool bExperiencePickupSpawned = false;
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMaterialInstanceDynamic>> CollapseDeathMaterialInstances;
-	FTimerHandle CollapseDeathTimerHandle;
-	double CollapseDeathStartTime = 0.0;
-	double CollapseDeathDestroyTime = 0.0;
-	FVector ActiveCollapsePosition = FVector::ZeroVector;
-	bool bCollapseDeathActive = false;
 };

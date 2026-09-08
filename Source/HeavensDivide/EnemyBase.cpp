@@ -5,7 +5,9 @@
 #include "HealingPickupDropSubsystem.h"
 
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
+#include "EnemyDeathComponent.h"
+#include "AIController.h"
+#include "BrainComponent.h"
 #include "AnimationBudgetAllocatorParameters.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
@@ -173,6 +175,7 @@ AEnemyBase::AEnemyBase(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 
+	EnemyDeathComponent = CreateDefaultSubobject<UEnemyDeathComponent>(TEXT("EnemyDeathComponent"));
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> FlashMaterial(TEXT("/Game/HeavensDivide/Materials/M_EnemyHitFlash.M_EnemyHitFlash"));
 	if (FlashMaterial.Succeeded()) HitFlashMaterial = FlashMaterial.Object;
@@ -290,7 +293,6 @@ void AEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	EndHitFlash();
 	if (HealthComponent) HealthComponent->OnDamaged.RemoveDynamic(this, &AEnemyBase::HandleHitFlashDamage);
-	GetWorldTimerManager().ClearTimer(CollapseDeathTimerHandle);
 	if (ObservedCharacterManager)
 	{
 		ObservedCharacterManager->OnCharacterSwapped.RemoveDynamic(this, &AEnemyBase::HandlePlayerCharacterSwapped);
@@ -524,7 +526,7 @@ void AEnemyBase::ConfigureObjectiveEnemy(float MaxHealth, EPlayerAttackSource Re
 		NormalOverlayDynamicMaterial->SetVectorParameterValue(BloodboundMaterialTintParameterName, OverlayTint);
 		NormalOverlayDynamicMaterial->SetScalarParameterValue(BloodboundMaterialEmissiveParameterName, 0.75f);
 	}
-	if (!bIsDead && !bCollapseDeathActive && GetMesh())
+	if (!bIsDead && GetMesh())
 	{
 		GetMesh()->SetOverlayMaterial(NormalOverlayDynamicMaterial);
 	}
@@ -688,7 +690,7 @@ void AEnemyBase::RestorePreBloodboundState()
 
 void AEnemyBase::ActivateBloodboundVisuals()
 {
-	if (!bIsBloodbound || bIsDead || bCollapseDeathActive)
+	if (!bIsBloodbound || bIsDead)
 	{
 		return;
 	}
@@ -748,7 +750,7 @@ void AEnemyBase::DeactivateBloodboundVisuals()
 void AEnemyBase::RefreshEnemyVisualState()
 {
 	EndHitFlash();
-	if (bIsDead || bCollapseDeathActive)
+	if (bIsDead)
 	{
 		DeactivateBloodboundVisuals();
 		ClearEnemyOverlayMaterials();
@@ -854,6 +856,26 @@ void AEnemyBase::HandleDeath()
 	}
 
 	bIsDead = true;
+	CurrentTarget = nullptr;
+	StopEnemyBehavior();
+	StopBehaviorUpdates();
+	StopSeparationUpdates();
+	ClearObstaclePath();
+	StopEnemyMovement();
+
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+	if (AAIController* AI = Cast<AAIController>(GetController()))
+	{
+		AI->StopMovement();
+		if (UBrainComponent* Brain = AI->GetBrainComponent()) Brain->StopLogic(TEXT("Enemy died"));
+	}
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->DisableMovement();
+	}
+	if (GetMesh() && GetMesh()->GetAnimInstance()) GetMesh()->GetAnimInstance()->Montage_Stop(0.0f);
 	if (StatusEffectComponent) StatusEffectComponent->ClearAllStatuses();
 	OnEnemyDied.Broadcast(this);
 	if (bIsBloodbound)
@@ -873,56 +895,9 @@ void AEnemyBase::HandleDeath()
 	HideHealthBar();
 	SpawnExperiencePickup();
 	UpdateAnimationBudgetSignificance();
-	CurrentTarget = nullptr;
-	StopEnemyBehavior();
-	StopBehaviorUpdates();
-	StopSeparationUpdates();
-	ClearObstaclePath();
-	StopEnemyMovement();
-
-	SetActorEnableCollision(false);
 	OnEnemyDeath();
 
-	float DeathMontageDuration = 0.0f;
-	bool bDeathMontagePlaying = false;
-	if (DeathMontage)
-	{
-		UAnimInstance* AnimInstance = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
-		if (!AnimInstance)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Enemy death montage skipped: AnimInstance invalid for %s"), *GetNameSafe(this));
-		}
-		else
-		{
-			DeathMontageDuration = AnimInstance->Montage_Play(DeathMontage);
-			bDeathMontagePlaying = DeathMontageDuration > 0.0f;
-			if (bDeathMontagePlaying)
-			{
-				FOnMontageEnded DeathMontageEndedDelegate;
-				DeathMontageEndedDelegate.BindUObject(this, &AEnemyBase::HandleDeathMontageEnded);
-				AnimInstance->Montage_SetEndDelegate(DeathMontageEndedDelegate, DeathMontage);
-			}
-		}
-	}
-
-	if (bUseCollapseDeathEffect)
-	{
-		RefreshEnemyVisualState();
-		if (StartCollapseDeathEffect())
-		{
-			const float ExistingVisualDuration = bDeathMontagePlaying
-				? DeathMontageDuration
-				: FMath::Max(0.0f, DeathDestroyDelay);
-			CollapseDeathDestroyTime = CollapseDeathStartTime
-				+ FMath::Max(FMath::Max(0.01f, CollapseDuration), ExistingVisualDuration);
-			return;
-		}
-	}
-
-	if (!bDeathMontagePlaying)
-	{
-		DestroyAfterDeath();
-	}
+	if (IsValid(this) && !IsActorBeingDestroyed()) BeginDeathPresentation();
 }
 
 void AEnemyBase::HandleHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent)
@@ -939,31 +914,20 @@ void AEnemyBase::HandleHealthChanged(float CurrentHealth, float MaxHealth, float
 	UpdateHealthBarVisibility(HealthPercent);
 }
 
-void AEnemyBase::HandleDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+void AEnemyBase::BeginDeathPresentation_Implementation()
 {
-	if (Montage != DeathMontage)
+	if (DropCategory == EEnemyDropCategory::Boss)
 	{
+		if (BossDeathCleanupDelay > 0.0f) SetLifeSpan(BossDeathCleanupDelay);
+		else DestroyAfterDeath();
 		return;
 	}
-
-	if (bCollapseDeathActive)
-	{
-		return;
-	}
-
-	Destroy();
+	EnemyDeathComponent->StartDeathPresentation(FSimpleDelegate::CreateUObject(this, &AEnemyBase::DestroyAfterDeath));
 }
 
 void AEnemyBase::DestroyAfterDeath()
 {
-	if (DeathDestroyDelay > 0.0f)
-	{
-		SetLifeSpan(DeathDestroyDelay);
-	}
-	else
-	{
-		Destroy();
-	}
+	if (bIsDead) Destroy();
 }
 
 void AEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)
@@ -1091,125 +1055,6 @@ void AEnemyBase::SpawnExperiencePickup()
 		const int32 PickupXP = FMath::Min(XPPerPickup, RemainingXP);
 		RemainingXP -= PickupXP;
 		Pickup->InitializePickup(PickupXP, CachedPlayerExperienceComponent, ObservedCharacterManager);
-	}
-}
-
-bool AEnemyBase::StartCollapseDeathEffect()
-{
-	USkeletalMeshComponent* MeshComponent = GetMesh();
-	UWorld* World = GetWorld();
-	if (!MeshComponent || !World) return false;
-
-	TArray<UMeshComponent*> CollapseMeshComponents;
-	CollapseMeshComponents.Add(MeshComponent);
-	GetAdditionalCollapseMeshComponents(CollapseMeshComponents);
-
-	const FMaterialParameterInfo CollapsePosParameter(TEXT("CollapsePos"));
-	const FMaterialParameterInfo CollapseRadiusParameter(TEXT("CollapseRadius"));
-	const FMaterialParameterInfo CollapseHardnessParameter(TEXT("CollapseHardness"));
-	const FMaterialParameterInfo CollapseEmColorParameter(TEXT("CollapseEmColor"));
-	const FMaterialParameterInfo CollapseEmIntensityParameter(TEXT("CollapseEmIntensity"));
-	const FMaterialParameterInfo CollapseIntensityParameter(TEXT("CollapseIntensity"));
-	TArray<TObjectPtr<UMaterialInstanceDynamic>> NewMaterialInstances;
-
-	for (UMeshComponent* CollapseMeshComponent : CollapseMeshComponents)
-	{
-		if (!CollapseMeshComponent) continue;
-		const int32 MaterialCount = CollapseMeshComponent->GetNumMaterials();
-		for (int32 MaterialIndex = 0; MaterialIndex < MaterialCount; ++MaterialIndex)
-		{
-			UMaterialInterface* SourceMaterial = CollapseMeshComponent->GetMaterial(MaterialIndex);
-			float ScalarValue = 0.0f;
-			FLinearColor VectorValue = FLinearColor::Black;
-			const bool bHasRequiredParameters = SourceMaterial
-				&& SourceMaterial->GetVectorParameterValue(CollapsePosParameter, VectorValue)
-				&& SourceMaterial->GetScalarParameterValue(CollapseRadiusParameter, ScalarValue)
-				&& SourceMaterial->GetScalarParameterValue(CollapseHardnessParameter, ScalarValue)
-				&& SourceMaterial->GetVectorParameterValue(CollapseEmColorParameter, VectorValue)
-				&& SourceMaterial->GetScalarParameterValue(CollapseEmIntensityParameter, ScalarValue)
-				&& SourceMaterial->GetScalarParameterValue(CollapseIntensityParameter, ScalarValue);
-			if (!bHasRequiredParameters)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Enemy %s collapse skipped: material slot %d on %s (%s) does not expose all required local parameters."),
-					*GetNameSafe(this), MaterialIndex, *GetNameSafe(CollapseMeshComponent), *GetNameSafe(SourceMaterial));
-				return false;
-			}
-
-			UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(SourceMaterial, this);
-			if (!DynamicMaterial) return false;
-			NewMaterialInstances.Add(DynamicMaterial);
-		}
-	}
-	if (NewMaterialInstances.IsEmpty()) return false;
-
-	int32 DynamicMaterialIndex = 0;
-	for (UMeshComponent* CollapseMeshComponent : CollapseMeshComponents)
-	{
-		if (!CollapseMeshComponent) continue;
-		for (int32 MaterialIndex = 0; MaterialIndex < CollapseMeshComponent->GetNumMaterials(); ++MaterialIndex)
-		{
-			CollapseMeshComponent->SetMaterial(MaterialIndex, NewMaterialInstances[DynamicMaterialIndex++]);
-		}
-	}
-	CollapseDeathMaterialInstances = MoveTemp(NewMaterialInstances);
-
-	ActiveCollapsePosition = MeshComponent->Bounds.Origin + CollapsePositionOffset;
-	CollapseDeathStartTime = World->GetTimeSeconds();
-	CollapseDeathDestroyTime = CollapseDeathStartTime + FMath::Max(0.01f, CollapseDuration);
-	bCollapseDeathActive = true;
-	ApplyCollapseMaterialParameters(CollapseStartRadius);
-	World->GetTimerManager().SetTimer(CollapseDeathTimerHandle, this,
-		&AEnemyBase::UpdateCollapseDeathEffect, 1.0f / 30.0f, true);
-	return true;
-}
-
-void AEnemyBase::GetAdditionalCollapseMeshComponents(TArray<UMeshComponent*>& OutMeshComponents) const
-{
-}
-
-void AEnemyBase::UpdateCollapseDeathEffect()
-{
-	UWorld* World = GetWorld();
-	if (!World) return;
-
-	const float SafeDuration = FMath::Max(0.01f, CollapseDuration);
-	const float Alpha = FMath::Clamp(static_cast<float>(World->GetTimeSeconds() - CollapseDeathStartTime) / SafeDuration, 0.0f, 1.0f);
-	ApplyCollapseMaterialParameters(FMath::Lerp(CollapseStartRadius, CollapseEndRadius, Alpha));
-	if (Alpha >= 1.0f)
-	{
-		World->GetTimerManager().ClearTimer(CollapseDeathTimerHandle);
-		const float RemainingVisualTime = static_cast<float>(CollapseDeathDestroyTime - World->GetTimeSeconds());
-		if (RemainingVisualTime > KINDA_SMALL_NUMBER)
-		{
-			World->GetTimerManager().SetTimer(CollapseDeathTimerHandle, this,
-				&AEnemyBase::FinishCollapseDeathEffect, RemainingVisualTime, false);
-		}
-		else
-		{
-			FinishCollapseDeathEffect();
-		}
-	}
-}
-
-void AEnemyBase::FinishCollapseDeathEffect()
-{
-	bCollapseDeathActive = false;
-	Destroy();
-}
-
-void AEnemyBase::ApplyCollapseMaterialParameters(float Radius)
-{
-	const FLinearColor CollapsePositionValue(
-		ActiveCollapsePosition.X, ActiveCollapsePosition.Y, ActiveCollapsePosition.Z, 1.0f);
-	for (UMaterialInstanceDynamic* DynamicMaterial : CollapseDeathMaterialInstances)
-	{
-		if (!DynamicMaterial) continue;
-		DynamicMaterial->SetVectorParameterValue(TEXT("CollapsePos"), CollapsePositionValue);
-		DynamicMaterial->SetScalarParameterValue(TEXT("CollapseRadius"), Radius);
-		DynamicMaterial->SetScalarParameterValue(TEXT("CollapseHardness"), FMath::Max(0.01f, CollapseHardness));
-		DynamicMaterial->SetVectorParameterValue(TEXT("CollapseEmColor"), CollapseEmColor);
-		DynamicMaterial->SetScalarParameterValue(TEXT("CollapseEmIntensity"), FMath::Max(0.0f, CollapseEmIntensity));
-		DynamicMaterial->SetScalarParameterValue(TEXT("CollapseIntensity"), FMath::Max(0.0f, CollapseIntensity));
 	}
 }
 

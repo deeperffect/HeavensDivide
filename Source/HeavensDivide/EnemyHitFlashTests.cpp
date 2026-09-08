@@ -39,7 +39,7 @@ bool FEnemyHitFlashTest::RunTest(const FString& Parameters)
 	Health->SetDamageEnabled(true);
 	Enemy->ApplyPlayerDamage(10, EPlayerAttackSource::Samurai);
 	Enemy->ApplyStatusDamage(1000, EPlayerAttackSource::Samurai);
-	TestTrue(TEXT("Lethal damage clears flash"), Enemy->GetMesh()->GetOverlayMaterial() == ExistingOverlay);
+	TestTrue(TEXT("Lethal damage clears flash"), Enemy->GetMesh()->GetOverlayMaterial() != Enemy->HitFlashMID);
 	TestFalse(TEXT("Lethal damage cancels timer"), World->GetTimerManager().IsTimerActive(Enemy->HitFlashTimer));
 	World->DestroyWorld(false);
 	return true;

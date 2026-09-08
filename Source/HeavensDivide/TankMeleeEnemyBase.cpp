@@ -127,19 +127,6 @@ void ATankMeleeEnemyBase::HandleDeath()
 	Super::HandleDeath();
 }
 
-void ATankMeleeEnemyBase::GetAdditionalCollapseMeshComponents(TArray<UMeshComponent*>& OutMeshComponents) const
-{
-	TArray<UStaticMeshComponent*> StaticMeshComponents;
-	GetComponents(StaticMeshComponents);
-	for (UStaticMeshComponent* StaticMeshComponent : StaticMeshComponents)
-	{
-		if (StaticMeshComponent && StaticMeshComponent->GetAttachParent() == GetMesh())
-		{
-			OutMeshComponents.Add(StaticMeshComponent);
-		}
-	}
-}
-
 void ATankMeleeEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)
 {
 	Super::HandlePlayerCharacterSwapped(OldCharacter, NewCharacter);

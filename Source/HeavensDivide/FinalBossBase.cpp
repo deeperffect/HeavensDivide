@@ -855,3 +855,21 @@ void AFinalBossBase::HandleDeath()
 	if (ASurvivorPlayerController* SurvivorController = ResolvePlayerController()) SurvivorController->HandleFinalBossDefeated(this);
 	Super::HandleDeath();
 }
+
+void AFinalBossBase::BeginDeathPresentation_Implementation()
+{
+	UAnimInstance* Anim = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
+	if (Anim && DeathMontage && Anim->Montage_Play(DeathMontage) > 0.0f)
+	{
+		FOnMontageEnded EndDelegate;
+		EndDelegate.BindUObject(this, &AFinalBossBase::HandleBossDeathMontageEnded);
+		Anim->Montage_SetEndDelegate(EndDelegate, DeathMontage);
+		return;
+	}
+	Super::BeginDeathPresentation_Implementation();
+}
+
+void AFinalBossBase::HandleBossDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	DestroyAfterDeath();
+}
