@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AttackProjectileBase.h"
+#include "SurvivorAbilityComponent.h"
 
 #include "AutoAttackComponent.h"
 #include "Components/SphereComponent.h"
@@ -184,7 +185,8 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		const bool bHasVenomousKunai = AttackSource == EPlayerAttackSource::Ninja && PlayerUpgrades && PlayerUpgrades->HasUpgradeId(MarkedForDeathUpgradeIds::VenomousKunai);
 		const float NormalDamage = ProjectileDamage;
 		float FinalDamage = NormalDamage;
-		const bool bWasMarked = bHasMarkedBlade && HitEnemy->IsMarked();
+		// Intrinsic marks from War Banner / Spectral Brand also support the Ninja payoff.
+		const bool bWasMarked = AttackSource == EPlayerAttackSource::Ninja && HitEnemy->IsMarked();
 		const bool bConsumedMark = bWasMarked && HitEnemy->ConsumeMark();
 		if (bConsumedMark)
 		{
@@ -212,6 +214,8 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
 		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
+		if (bDamageApplied && GameplayOwnerOwner)
+			if (auto* Abilities = GameplayOwnerOwner->FindComponentByClass<USurvivorAbilityComponent>()) Abilities->NotifyPartnerHit(AttackSource, HitEnemy);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
 		{

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MainMenuWidget.h"
+#include "MetaSkillTreeWidget.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -34,12 +35,14 @@
 #include "MediaSource.h"
 #include "MediaTexture.h"
 #include "Materials/MaterialInterface.h"
+#include "Engine/Texture2D.h"
+#include "UObject/ConstructorHelpers.h"
 
 namespace MainMenuCopy
 {
 	static const FText Title = FText::FromString(TEXT("HEAVENS DIVIDE"));
 	static const FText ResetTitle = FText::FromString(TEXT("RESET ALL PROGRESS?"));
-	static const FText ResetBody = FText::FromString(TEXT("This will permanently erase your unlocked Synergies and Twin Soul discovery progress."));
+	static const FText ResetBody = FText::FromString(TEXT("This will permanently erase your skills, Soul Embers, unlocked Synergies and Twin Soul discovery progress."));
 }
 
 void UCollectionUpgradeTileButton::InitializeCollectionTile(UMainMenuWidget* InOwner, UUpgradeDefinition* InDefinition)
@@ -58,6 +61,12 @@ void UCollectionUpgradeTileButton::HandleTileClicked()
 void UCollectionUpgradeTileButton::HandleTileHovered()
 {
 	if (CollectionOwner) CollectionOwner->PreviewCollectionUpgrade(Definition, false);
+}
+
+UMainMenuWidget::UMainMenuWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+{
+	static ConstructorHelpers::FObjectFinder<UTexture2D> Panel(TEXT("/Game/HeavensDivide/Blueprints/UI/SkillTree/AscensionPanel.AscensionPanel"));
+	CollectionPanelTexture = Panel.Object;
 }
 
 void UMainMenuWidget::NativeOnInitialized()
@@ -185,6 +194,8 @@ void UMainMenuWidget::BuildMenu()
 	MainButtonStack->SetRenderTranslation(MainMenuButtonsOffset);
 	MainPanel->AddChildToVerticalBox(MainButtonStack)->SetHorizontalAlignment(HAlign_Left);
 	NewRunButton = AddMenuButton(MainButtonStack, FText::FromString(TEXT("NEW RUN")), TEXT("NewRunButton"));
+	UButton* SkillButton = AddMenuButton(MainButtonStack, FText::FromString(TEXT("SKILL TREE")), TEXT("SkillTreeButton"));
+	SkillButton->OnClicked.AddDynamic(this, &UMainMenuWidget::ShowSkillTree);
 	CollectionMenuButton = AddMenuButton(MainButtonStack, FText::FromString(TEXT("COLLECTION")), TEXT("CollectionButton"));
 	UButton* SettingsButton = AddMenuButton(MainButtonStack, FText::FromString(TEXT("SETTINGS")), TEXT("SettingsButton"));
 	UButton* ResetButton = AddMenuButton(MainButtonStack, FText::FromString(TEXT("RESET PROGRESS")), TEXT("ResetProgressButton"));
@@ -206,6 +217,14 @@ void UMainMenuWidget::BuildMenu()
 		CollectionPageOffset, CollectionContentPadding, FLinearColor(0.008f, 0.010f, 0.016f, 0.94f));
 	AttachPage(CollectionOverlay);
 	SetCollectionVisible(false);
+
+	// Share the collection page's reserved navigation column and responsive bounds.
+	SkillTreeOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SkillTreeOverlay"));
+	SkillTreeOverlay->SetBrushColor(FLinearColor::Transparent);
+	SkillTreeOverlay->SetPadding(FMargin(0));
+	SkillTreeOverlay->SetClipping(EWidgetClipping::ClipToBounds);
+	AttachPage(SkillTreeOverlay);
+	SetSkillTreeVisible(false);
 
 	auto AddFooterButton = [this](UHorizontalBox* Footer, const FText& Label, FName Name)
 	{
@@ -308,31 +327,12 @@ UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageNa
 	PageBackgroundImage->SetRenderTranslation(CollectionPanelImageOffset);
 	PageBackgroundImage->SetVisibility(CollectionPanelTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 	UOverlaySlot* BackgroundSlot = PageArtLayers->AddChildToOverlay(PageBackgroundImage);
-	// Preserve the original Collection brush size: saved image scale/offset values
-	// were tuned against it. Filling the panel first multiplies that scale again
-	// and crops the artwork down to its dark center.
-	BackgroundSlot->SetHorizontalAlignment(HAlign_Left);
-	BackgroundSlot->SetVerticalAlignment(VAlign_Top);
+	BackgroundSlot->SetHorizontalAlignment(HAlign_Fill);
+	BackgroundSlot->SetVerticalAlignment(VAlign_Fill);
 
 	UOverlaySlot* ContentSlot = PageArtLayers->AddChildToOverlay(Content);
 	ContentSlot->SetPadding(ContentPadding);
 	ContentSlot->SetHorizontalAlignment(HAlign_Fill); ContentSlot->SetVerticalAlignment(VAlign_Fill);
-	auto AddCorner = [this, PageArtLayers](FName Name, EHorizontalAlignment Horizontal, EVerticalAlignment Vertical, float Angle)
-	{
-		USizeBox* CornerSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		CornerSize->SetWidthOverride(FMath::Max(1.0f, CornerBrushSize.X)); CornerSize->SetHeightOverride(FMath::Max(1.0f, CornerBrushSize.Y));
-		CornerSize->SetVisibility(CornerBrushTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-		UImage* Corner = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), Name);
-		Corner->SetBrushFromTexture(CornerBrushTexture, false); Corner->SetRenderTransformPivot(FVector2D(0.5f)); Corner->SetRenderTransformAngle(Angle);
-		Corner->SetVisibility(ESlateVisibility::HitTestInvisible); CornerSize->SetContent(Corner);
-		UOverlaySlot* CornerSlot = PageArtLayers->AddChildToOverlay(CornerSize);
-		CornerSlot->SetHorizontalAlignment(Horizontal); CornerSlot->SetVerticalAlignment(Vertical);
-		CornerSlot->SetPadding(FMargin(FMath::Max(0.0f, CornerBrushInset.X), FMath::Max(0.0f, CornerBrushInset.Y)));
-	};
-	AddCorner(NAME_None, HAlign_Left, VAlign_Top, 0.0f);
-	AddCorner(NAME_None, HAlign_Right, VAlign_Top, 90.0f);
-	AddCorner(NAME_None, HAlign_Right, VAlign_Bottom, 180.0f);
-	AddCorner(NAME_None, HAlign_Left, VAlign_Bottom, 270.0f);
 	PageScale->SetContent(PageDesignSize);
 	PageOverlay->SetContent(PageScale);
 	return PageOverlay;
@@ -900,6 +900,8 @@ void UMainMenuWidget::RefreshMenuEntryPresentation(float DeltaTime)
 
 void UMainMenuWidget::ShowMainPanel()
 {
+	SetSkillTreeVisible(false);
+	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->RetrySkillReward();
 	SetResetConfirmationVisible(false);
 	SetSettingsPopupVisible(false);
 	SetCollectionVisible(false);
@@ -909,6 +911,7 @@ void UMainMenuWidget::ShowMainPanel()
 
 void UMainMenuWidget::ShowCollectionPanel()
 {
+	SetSkillTreeVisible(false);
 	SetResetConfirmationVisible(false);
 	SetSettingsPopupVisible(false);
 	if (MenuSwitcher) MenuSwitcher->SetActiveWidgetIndex(0);
@@ -919,6 +922,7 @@ void UMainMenuWidget::ShowCollectionPanel()
 
 void UMainMenuWidget::ShowSettingsPanel()
 {
+	SetSkillTreeVisible(false);
 	SetResetConfirmationVisible(false);
 	SetCollectionVisible(false);
 	RefreshAutoTargetingSetting();
@@ -929,6 +933,7 @@ void UMainMenuWidget::ShowSettingsPanel()
 
 void UMainMenuWidget::ShowResetConfirmation()
 {
+	SetSkillTreeVisible(false);
 	SetSettingsPopupVisible(false);
 	SetCollectionVisible(false);
 	SetResetConfirmationVisible(true);
@@ -967,6 +972,12 @@ void UMainMenuWidget::SetCollectionVisible(bool bVisible)
 	if (CollectionOverlay) CollectionOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 }
 
+void UMainMenuWidget::SetSkillTreeVisible(bool bVisible)
+{
+	bSkillTreeOpen = bVisible;
+	if (SkillTreeOverlay) SkillTreeOverlay->SetVisibility(bVisible ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+}
+
 void UMainMenuWidget::HandleNewRun()
 {
 	UGameplayStatics::OpenLevel(this, TEXT("/Game/Maps/Lvl_B1_Lvl1"));
@@ -1001,6 +1012,11 @@ FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 	bShowFocusHighlight = true;
 	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Right)
 	{
+		if (bSkillTreeOpen)
+		{
+			ShowMainPanel();
+			return FReply::Handled();
+		}
 		if (bResetConfirmationOpen)
 		{
 			SetResetConfirmationVisible(false);
@@ -1059,4 +1075,19 @@ FReply UMainMenuWidget::NativeOnMouseMove(const FGeometry& InGeometry, const FPo
 {
 	bShowFocusHighlight = false;
 	return Super::NativeOnMouseMove(InGeometry, InMouseEvent);
+}
+
+void UMainMenuWidget::ShowSkillTree()
+{
+ ShowMainPanel();
+ if (!SkillTreeOverlay) return;
+ if (auto* Tree = CreateWidget<UMetaSkillTreeWidget>(GetOwningPlayer()))
+ {
+  Tree->MenuOwner = this;
+  // Let the tree use all available space beside the navigation column.
+  // Its own scale box preserves proportions at every viewport size.
+  SkillTreeOverlay->SetContent(Tree);
+  SetSkillTreeVisible(true);
+  Tree->SetUserFocus(GetOwningPlayer());
+ }
 }

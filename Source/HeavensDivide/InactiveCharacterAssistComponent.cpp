@@ -440,7 +440,7 @@ bool UInactiveCharacterAssistComponent::HasAssistUpgrade() const
 
 bool UInactiveCharacterAssistComponent::CanRunAssistEffect() const
 {
-	return SurvivorController && !SurvivorController->IsPlayerDead();
+	return SurvivorController && SurvivorController->IsRunInProgress() && !SurvivorController->IsPlayerDead();
 }
 
 FString UInactiveCharacterAssistComponent::GetCharacterLabel(const ACharacterBase* Character) const

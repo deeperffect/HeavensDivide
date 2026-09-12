@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "GameOverWidget.h"
+#include "SynergyMetaProgressionSubsystem.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -53,6 +54,15 @@ void UGameOverWidget::BuildGameOverScreen()
 	AddText(TEXT("RunOverTitle"), FText::FromString(TEXT("RUN OVER")), 48, FLinearColor(0.90f, 0.22f, 0.20f), 30.0f);
 	AddText(TEXT("TimeSurvivedLabel"), FText::FromString(TEXT("TIME SURVIVED")), 18, FLinearColor(0.72f, 0.73f, 0.78f), 7.0f);
 	FinalRunTimeText = AddText(TEXT("FinalRunTimeText"), FText::FromString(TEXT("00:00")), 38, FLinearColor::White, 34.0f);
+
+ if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr)
+ {
+  UTextBlock* Reward = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SoulEmberReward"));
+  Reward->SetText(FText::FromString(FString::Printf(TEXT("+%d SOUL EMBERS%s"), Meta->GetLastSkillRunReward(), Meta->HasPendingSkillReward() ? TEXT(" (save pending)") : TEXT(""))));
+  Reward->SetJustification(ETextJustify::Center);
+  Reward->SetColorAndOpacity(FSlateColor(FLinearColor(.95f,.7f,.3f)));
+  Stack->AddChildToVerticalBox(Reward)->SetPadding(FMargin(0,0,0,20));
+ }
 	RestartRunButton = AddActionButton(Stack, FText::FromString(TEXT("RESTART RUN")), TEXT("RestartRunButton"));
 	UButton* MainMenuButton = AddActionButton(Stack, FText::FromString(TEXT("MAIN MENU")), TEXT("MainMenuButton"));
 	RestartRunButton->OnClicked.AddDynamic(this, &UGameOverWidget::HandleRestartRun);

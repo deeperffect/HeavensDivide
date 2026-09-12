@@ -36,7 +36,8 @@ class HEAVENSDIVIDE_API UEnemyStatusEffectComponent : public UActorComponent
 public:
 	UEnemyStatusEffectComponent();
 
-	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source);
+	/** Intrinsic ability/assist statuses share all normal scaling and source restrictions, without requiring the basic-attack starter. */
+	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus = false);
 
 	UFUNCTION(BlueprintPure, Category="Enemy|Status")
 	bool HasStatus(EEnemyStatusEffect Status) const;

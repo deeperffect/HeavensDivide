@@ -24,14 +24,14 @@ UEnemyStatusEffectComponent::UEnemyStatusEffectComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source)
+bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus)
 {
 	AEnemyBase* Enemy = Cast<AEnemyBase>(GetOwner());
 	if (!Enemy || Enemy->IsDead() || !SourceUpgrades || !Enemy->CanReceivePlayerDamage(Source)) return false;
 	const bool bCorrectSource = (Status == EEnemyStatusEffect::Bleed && Source == EPlayerAttackSource::Samurai)
 		|| (Status == EEnemyStatusEffect::Poison && Source == EPlayerAttackSource::Ninja);
 	const FName StarterId = Status == EEnemyStatusEffect::Bleed ? StatusUpgradeIds::BleedingEdge : StatusUpgradeIds::VenomousKunai;
-	if (!bCorrectSource || !SourceUpgrades->HasUpgradeId(StarterId)) return false;
+	if (!bCorrectSource || (!bIntrinsicStatus && !SourceUpgrades->HasUpgradeId(StarterId))) return false;
 
 	FEnemyDamageStatusState& State = GetState(Status);
 	const int32 PreviousStacks = State.Stacks;
@@ -133,7 +133,8 @@ float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffe
 	const float StoredMagnitude = Upgrades->GetAccumulatedUpgradeMagnitude(SupportId);
 	const float SupportMagnitude = StoredMagnitude > 0.0f ? StoredMagnitude : SupportLevel * FMath::Max(0.0f, LegacyPerLevel);
 	const float BaseTick = Status == EEnemyStatusEffect::Bleed ? BaseBleedDamagePerTick : BasePoisonDamagePerTick;
-	return BaseTick * FMath::Max(0.0f, Power) * (1.0f + SupportMagnitude) * State.Stacks;
+	return BaseTick * FMath::Max(0.0f, Power) * (1.0f + SupportMagnitude) * State.Stacks
+		* (1.f + Upgrades->GetMetaSkillBonus(Status == EEnemyStatusEffect::Bleed ? FName(TEXT("Bleed")) : FName(TEXT("Poison"))));
 }
 
 int32 UEnemyStatusEffectComponent::CalculateRemainingTickCount(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SurvivorPlayerController.h"
+#include "SurvivorAbilityComponent.h"
 
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
@@ -96,6 +97,7 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 	SharedPlayerStatsComponent = CreateDefaultSubobject<USharedPlayerStatsComponent>(TEXT("SharedPlayerStatsComponent"));
 	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
+	SurvivorAbilities = CreateDefaultSubobject<USurvivorAbilityComponent>(TEXT("SurvivorAbilities"));
 	InactiveCharacterAssistComponent = CreateDefaultSubobject<UInactiveCharacterAssistComponent>(TEXT("InactiveCharacterAssistComponent"));
 	InteractAction = CreateDefaultSubobject<UInputAction>(TEXT("IA_Interact_Runtime"));
 	InteractAction->ValueType = EInputActionValueType::Boolean;
@@ -334,7 +336,7 @@ float ASurvivorPlayerController::GetSwapCooldownRemaining() const
 
 float ASurvivorPlayerController::GetSwapCooldownDuration() const
 {
-	return FMath::Max(0.0f, SwapCooldown);
+	return FMath::Max(0.0f, SwapCooldown) / (1.f + (PlayerUpgradeComponent ? PlayerUpgradeComponent->GetMetaSkillBonus(TEXT("Swap")) : 0.f));
 }
 
 float ASurvivorPlayerController::GetSwapCooldownProgress() const
@@ -787,6 +789,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	}
 
 	RunEndState = ERunEndState::Defeat;
+	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->AwardSkillRun(GetRunTimeSeconds(), false);
 	bIsPlayerDead = true;
 	StopRunGameplay(true);
 	UE_LOG(LogTemp, Log, TEXT("Player Death Triggered"));
@@ -853,6 +856,7 @@ void ASurvivorPlayerController::HandleFinalBossDefeated(AFinalBossBase* Boss)
 {
 	if (RunEndState != ERunEndState::Playing || !IsValid(Boss) || Boss->GetBossState() != EFinalBossState::Dead) return;
 	RunEndState = ERunEndState::Victory;
+	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->AwardSkillRun(GetRunTimeSeconds(), true);
 	HideBossHealthBar(Boss);
 	StopRunGameplay(false);
 	UE_LOG(LogTemp, Log, TEXT("[RunEnd] Victory confirmed by final boss %s"), *GetNameSafe(Boss));
@@ -1310,7 +1314,8 @@ void ASurvivorPlayerController::CloseLevelUpWidget()
 
 void ASurvivorPlayerController::StartSwapCooldown()
 {
-	if (!GetWorld() || SwapCooldown <= 0.0f)
+	const float EffectiveCooldown = GetSwapCooldownDuration();
+	if (!GetWorld() || EffectiveCooldown <= 0.0f)
 	{
 		bCanSwap = true;
 		OnSwapCooldownFinished.Broadcast();
@@ -1323,9 +1328,9 @@ void ASurvivorPlayerController::StartSwapCooldown()
 		SwapCooldownTimerHandle,
 		this,
 		&ASurvivorPlayerController::HandleSwapCooldownFinished,
-		SwapCooldown,
+		EffectiveCooldown,
 		false);
-	OnSwapCooldownStarted.Broadcast(SwapCooldown);
+	OnSwapCooldownStarted.Broadcast(EffectiveCooldown);
 }
 
 void ASurvivorPlayerController::HandleSwapCooldownFinished()
@@ -1932,4 +1937,41 @@ void ASurvivorPlayerController::PlayGameplayCameraShake(TSubclassOf<UCameraShake
 void ASurvivorPlayerController::HandleCameraShakeIntensityChanged(float Intensity)
 {
 	if (ActiveGameplayShake.IsValid()) ActiveGameplayShake->ShakeScale = ActiveGameplayShakeBaseScale * Intensity;
+}
+
+void ASurvivorPlayerController::AbilityShowcase()
+{
+#if !UE_BUILD_SHIPPING
+ if (!PlayerUpgradeComponent || !IsRunInProgress()) return;
+ const TCHAR* Families[] = {TEXT("SteelTempest"),TEXT("Heavenfall"),TEXT("NightThread"),TEXT("VenomGarden")};
+ const TCHAR* Evolutions[] = {TEXT("RazorHalo"),TEXT("Starfall"),TEXT("BlackWeb"),TEXT("WitheringGarden")};
+ for (int32 i=0;i<4;++i)
+ {
+  const FString Folder=i<2?TEXT("Samurai"):TEXT("Ninja");
+  for (const TCHAR* Suffix : {TEXT(""),TEXT("Power"),TEXT("Area"),TEXT("Haste"),TEXT("Evolution")})
+  {
+   const bool Evolution=FString(Suffix)==TEXT("Evolution");
+   const FString Id=Evolution?FString(Evolutions[i]):FString(Families[i])+Suffix;
+   const FString Path=TEXT("/Game/HeavensDivide/Upgrades/")+Folder+TEXT("/DA_Upgrade_")+Folder+Id;
+   if (auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,*Path))
+   {
+    const int32 DesiredLevel=(Evolution||FString(Suffix).IsEmpty())?1:2;
+    while (PlayerUpgradeComponent->GetUpgradeLevel(Upgrade)<DesiredLevel)
+     if (!PlayerUpgradeComponent->AcquireUpgrade(Upgrade)) break;
+   }
+  }
+ }
+ for (const TCHAR* Path : {TEXT("/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBleedingEdge"),
+ TEXT("/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaVenomousKunai"),
+ TEXT("/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_TagTeam"),
+ TEXT("/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_HemotoxicReaction")})
+  if (auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,Path))
+   if (PlayerUpgradeComponent->GetUpgradeLevel(Upgrade)==0) PlayerUpgradeComponent->AcquireUpgrade(Upgrade);
+ ClientMessage(TEXT("Ability showcase ready. Swap Samurai / Ninja to try all four builds. Applies to this run only."));
+#endif
+}
+
+void ASurvivorPlayerController::BuildPreview(const FString& FamilyId, int32 Branch)
+{
+ if(auto* Abilities=FindComponentByClass<USurvivorAbilityComponent>()) Abilities->GrantBuildPreview(FamilyId,Branch);
 }

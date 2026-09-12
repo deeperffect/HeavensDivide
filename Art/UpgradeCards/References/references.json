@@ -1,0 +1,26 @@
+[
+  {
+    "asset": "/Game/HeavensDivide/Blueprints/UI/CardArt2/Samurai/BladeWave.BladeWave",
+    "file": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Art\\UpgradeCards\\References\\Samurai_BladeWave.png"
+  },
+  {
+    "asset": "/Game/HeavensDivide/Blueprints/UI/CardArt2/Samurai/Deathblow.Deathblow",
+    "file": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Art\\UpgradeCards\\References\\Samurai_Deathblow.png"
+  },
+  {
+    "asset": "/Game/HeavensDivide/Blueprints/UI/CardArt2/Samurai/CrossingBlades.CrossingBlades",
+    "file": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Art\\UpgradeCards\\References\\Samurai_CrossingBlades.png"
+  },
+  {
+    "asset": "/Game/HeavensDivide/Blueprints/UI/CardArt2/Ninja/VenomousKunai.VenomousKunai",
+    "file": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Art\\UpgradeCards\\References\\Ninja_VenomousKunai.png"
+  },
+  {
+    "asset": "/Game/HeavensDivide/Blueprints/UI/CardArt2/Ninja/ShadowStep.ShadowStep",
+    "file": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Art\\UpgradeCards\\References\\Ninja_ShadowStep.png"
+  },
+  {
+    "asset": "/Game/HeavensDivide/Blueprints/UI/CardArt2/Synergy/Hemotoxin.Hemotoxin",
+    "file": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Art\\UpgradeCards\\References\\Synergy_Hemotoxin.png"
+  }
+]

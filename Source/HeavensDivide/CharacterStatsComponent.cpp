@@ -14,8 +14,12 @@ void UCharacterStatsComponent::AddModifier(const FCharacterStatModifier& Modifie
 		return;
 	}
 
-	RemoveModifier(Modifier.ModifierId);
-	Modifiers.Add(Modifier);
+	if (auto* Existing = Modifiers.FindByPredicate([&Modifier](const FCharacterStatModifier& M) { return M.ModifierId == Modifier.ModifierId; }))
+	{
+		if (Existing->SourceId == Modifier.SourceId && Existing->Stat == Modifier.Stat && Existing->Operation == Modifier.Operation && Existing->Value == Modifier.Value) return;
+		*Existing = Modifier;
+	}
+	else Modifiers.Add(Modifier);
 	OnStatsChanged.Broadcast();
 }
 

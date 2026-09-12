@@ -1,5 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 #include "SamuraiBladeWave.h"
+#include "SurvivorAbilityComponent.h"
 
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -40,6 +41,8 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
 {
 	SourceSamurai = InSamurai;
 	SourceUpgrades = InUpgrades;
+ auto* Abilities=InSamurai&&InSamurai->GetOwner()?InSamurai->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>():nullptr;
+ if(Abilities){WaveThickness=Abilities->Tuning(4,TEXT("WaveThickness"),WaveThickness);WaveHeight=Abilities->Tuning(4,TEXT("WaveHeight"),WaveHeight);VFXAuthoredDuration=Abilities->Tuning(4,TEXT("WaveVFXAuthoredDuration"),VFXAuthoredDuration);}
 	Damage = FMath::Max(0.0f, InDamage);
 	Speed = FMath::Max(1.0f, InSpeed);
 	bReturns = bInReturns;
@@ -67,6 +70,16 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
 	Collision->IgnoreActorWhenMoving(InSamurai, true);
 	Collision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	const float Duration = FMath::Max(0.01f, FMath::Max(1.0f, InTravelDistance) / Speed);
+ if(Abilities)
+ {
+  const auto* Settings=Abilities->FamilyPresentation(4);
+  if(Settings&&Settings->PulseSystem)
+  {
+   AssignedVisual=Abilities->FamilyAccent(4,GetActorLocation(),GetActorLocation()+Direction*InTravelDistance,InWidth*0.5f,FLinearColor::White,Duration*(bReturns?2:1));
+   if(AssignedVisual.IsValid()){AssignedVisual->AttachToActor(this,FAttachmentTransformRules::KeepWorldTransform);AssignedVisual->SetActorRotation(Direction.Rotation());}
+   if(!Settings->bShowFallbackWithNiagara){Visual->SetVisibility(false);for(auto E:WaveEffects)if(E.IsValid())E->DeactivateImmediate();WaveEffects.Reset();}
+  }
+ }
 	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : WaveEffects)
 	{
 		if (!Effect.IsValid()) continue;
@@ -87,6 +100,9 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
 	FVector ImpactLocation, ImpactNormal;
 	Enemy->GetImpactContact(GetActorLocation(), ImpactLocation, ImpactNormal);
 	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Samurai);
+	if (bApplied && SourceSamurai->GetOwner())
+		if (auto* Abilities = SourceSamurai->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+		{ Abilities->BladeWaveImpact(Enemy, Damage, !bSplintered); bSplintered = true; }
 	if (bApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, ImpactLocation, ImpactNormal);
 	UPlayerUpgradeComponent* Upgrades = SourceUpgrades.Get();
 	if (bApplied && Health && !Health->IsDead() && Upgrades && Upgrades->HasUpgradeId(TEXT("BleedingEdge")))
@@ -97,7 +113,10 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
 void ASamuraiBladeWave::BeginReturn()
 {
 	if (!SourceSamurai.IsValid()) { FinishWave(); return; }
+ if(SourceSamurai->GetOwner())if(auto* Abilities=SourceSamurai->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+  Damage*=FMath::Max(0.0f,Abilities->Tuning(4,TEXT("ReturnDamageMultiplier"),1,0));
 	bReturning = true;
+	bSplintered = false;
 	HitThisPhase.Reset();
 	FVector Direction = SourceSamurai->GetActorLocation() - GetActorLocation();
 	Direction.Z = 0.0f;
@@ -106,6 +125,7 @@ void ASamuraiBladeWave::BeginReturn()
 	SetActorRotation(Direction.Rotation());
 	Movement->Velocity = Direction * Speed;
 	const float ReturnDuration = FMath::Max(0.01f, Distance / Speed);
+ if(AssignedVisual.IsValid())AssignedVisual->SetRemainingLifetime(ReturnDuration);
 	// The player may have moved: fit the remaining animation to the actual return distance.
 	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : WaveEffects)
 	{
@@ -128,5 +148,6 @@ void ASamuraiBladeWave::FinishWave()
 void ASamuraiBladeWave::EndPlay(const EEndPlayReason::Type Reason)
 {
 	GetWorldTimerManager().ClearTimer(PhaseTimer);
+ if(AssignedVisual.IsValid())AssignedVisual->Destroy();
 	Super::EndPlay(Reason);
 }

@@ -66,6 +66,10 @@ class HEAVENSDIVIDE_API UPlayerUpgradeComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	/** Zero when no game-instance progression exists (including isolated combat fixtures). */
+	float GetMetaSkillBonus(FName Effect) const;
+	void ApplyMetaSkillModifiers();
+	UUpgradeDefinition* FindUpgradeDefinition(FName Id) const;
 	UPlayerUpgradeComponent();
 	void CaptureRunState(FPlayerUpgradeRunState& OutState) const;
 	void RestoreRunState(const FPlayerUpgradeRunState& State);

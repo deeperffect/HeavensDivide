@@ -12,6 +12,7 @@ class UCharacterManagerComponent;
 class UExperienceComponent;
 class UHealthComponent;
 class UInactiveCharacterAssistComponent;
+class USurvivorAbilityComponent;
 class UGameOverWidget;
 class UVictoryWidget;
 class ULevelUpWidget;
@@ -57,6 +58,7 @@ public:
 	void PlayGameplayCameraShake(TSubclassOf<class UCameraShakeBase> ShakeClass, float BaseScale = 1.0f);
 private:
 	friend class FImpactFeedbackTest;
+	friend class FMetaSkillTreeTest;
 	void HandleCameraShakeIntensityChanged(float Intensity);
 	TWeakObjectPtr<class UCameraShakeBase> ActiveGameplayShake;
 	float ActiveGameplayShakeBaseScale = 0.0f;
@@ -84,6 +86,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
+	bool IsRunInProgress() const { return RunEndState == ERunEndState::Playing; }
+	/** Development shortcut: grant the four new ability builds for this run only. */
+	UFUNCTION(Exec)
+	void AbilityShowcase();
+	/** Preview one full family; branch 0 grants all three, 1-3 grants just that branch. */
+	UFUNCTION(Exec) void BuildPreview(const FString& FamilyId, int32 Branch = 0);
 	void BeginObjectiveChoiceInput(UWidget* FocusWidget);
 	void EndObjectiveChoiceInput();
 
@@ -287,6 +295,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player", meta = (ToolTip = "Player upgrade component that owns upgrade pool, acquired levels, and upgrade selection flow."))
 	TObjectPtr<UPlayerUpgradeComponent> PlayerUpgradeComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combat")
+	TObjectPtr<USurvivorAbilityComponent> SurvivorAbilities;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player|Synergy", meta = (ToolTip = "Component that handles inactive-character assist and Tag Team style synergy behavior."))
 	TObjectPtr<UInactiveCharacterAssistComponent> InactiveCharacterAssistComponent;

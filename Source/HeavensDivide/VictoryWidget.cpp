@@ -1,4 +1,5 @@
 #include "VictoryWidget.h"
+#include "SynergyMetaProgressionSubsystem.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -46,6 +47,15 @@ void UVictoryWidget::BuildVictoryScreen()
 	Title->SetFont(TitleFont);
 	Stack->AddChildToVerticalBox(Title)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 30.0f));
 
+
+ if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr)
+ {
+  UTextBlock* Reward = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SoulEmberReward"));
+  Reward->SetText(FText::FromString(FString::Printf(TEXT("+%d SOUL EMBERS%s"), Meta->GetLastSkillRunReward(), Meta->HasPendingSkillReward() ? TEXT(" (save pending)") : TEXT(""))));
+  Reward->SetJustification(ETextJustify::Center);
+  Reward->SetColorAndOpacity(FSlateColor(FLinearColor(.95f,.7f,.3f)));
+  Stack->AddChildToVerticalBox(Reward)->SetPadding(FMargin(0,0,0,20));
+ }
 	NewRunButton = AddActionButton(Stack, FText::FromString(TEXT("NEW RUN")), TEXT("NewRunButton"));
 	UButton* MainMenuButton = AddActionButton(Stack, FText::FromString(TEXT("BACK TO MENU")), TEXT("MainMenuButton"));
 	NewRunButton->OnClicked.AddDynamic(this, &UVictoryWidget::HandleNewRun);

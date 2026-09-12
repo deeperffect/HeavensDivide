@@ -6,6 +6,7 @@
 #include "CharacterStatsComponent.h"
 #include "Engine/DataAsset.h"
 #include "SharedPlayerStatsComponent.h"
+#include "UpgradePresentation.h"
 #include "UpgradeDefinition.generated.h"
 
 UENUM(BlueprintType)
@@ -132,6 +133,13 @@ class HEAVENSDIVIDE_API UUpgradeDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+ /** Seeded, named runtime balance values. Branch values override matching starter values when acquired. */
+ UPROPERTY(VisibleAnywhere, Category="Runtime Balance") bool bHasRuntimeBalance=false;
+ UPROPERTY(VisibleAnywhere, Category="Runtime VFX") bool bHasRuntimePresentation=false;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Runtime Balance",meta=(EditCondition="bHasRuntimeBalance",EditConditionHides)) TMap<FName,float> BalanceParameters;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Runtime VFX",meta=(ShowOnlyInnerProperties,EditCondition="bHasRuntimePresentation",EditConditionHides)) FUpgradePresentation Presentation;
+ UFUNCTION(BlueprintPure, Category="Upgrade|Balance") float GetBalanceValue(FName Key,float Fallback) const
+ { const float* Value=BalanceParameters.Find(Key);return Value&&FMath::IsFinite(*Value)?*Value:Fallback; }
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
 	FName UpgradeId = NAME_None;
 

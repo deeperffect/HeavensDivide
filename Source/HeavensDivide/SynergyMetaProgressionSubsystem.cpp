@@ -1,6 +1,11 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SynergyMetaProgressionSubsystem.h"
+#include "MetaSkillTree.h"
+#include "SurvivorPlayerController.h"
+#include "Engine/World.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "HeavensDivideMetaSaveGame.h"
@@ -11,7 +16,7 @@
 namespace SynergyMetaProgression
 {
 	static const FString SaveSlotName(TEXT("HeavensDivide_MetaProgression"));
-	static constexpr int32 CurrentSaveVersion = 2;
+	static constexpr int32 CurrentSaveVersion = 3;
 	static constexpr int32 TwinSoulCompletionsPerDiscovery = 3;
 	static const FName DefaultUnlockedIds[] =
 	{
@@ -23,6 +28,10 @@ namespace SynergyMetaProgression
 void USynergyMetaProgressionSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+#if WITH_DEV_AUTOMATION_TESTS
+	FString AutomationSlot;
+	if (FParse::Value(FCommandLine::Get(), TEXT("MetaSaveSlot="), AutomationSlot) && AutomationSlot.StartsWith(TEXT("Automation_"))) TestSaveSlot = AutomationSlot;
+#endif
 	LoadMetaProgression();
 }
 
@@ -69,12 +78,15 @@ bool USynergyMetaProgressionSubsystem::IsUpgradeMetaEligible(const UUpgradeDefin
 
 bool USynergyMetaProgressionSubsystem::SaveMetaProgression()
 {
-	return CurrentSave && UGameplayStatics::SaveGameToSlot(CurrentSave, GetSaveSlotName(), GetSaveUserIndex());
+#if WITH_DEV_AUTOMATION_TESTS
+	if (bSimulateSaveFailure) return false;
+#endif
+	return CurrentSave && UGameplayStatics::SaveGameToSlot(CurrentSave, TestSaveSlot.IsEmpty() ? GetSaveSlotName() : TestSaveSlot, GetSaveUserIndex());
 }
 
 void USynergyMetaProgressionSubsystem::LoadMetaProgression()
 {
-	CurrentSave = Cast<UHeavensDivideMetaSaveGame>(UGameplayStatics::LoadGameFromSlot(GetSaveSlotName(), GetSaveUserIndex()));
+	CurrentSave = Cast<UHeavensDivideMetaSaveGame>(UGameplayStatics::LoadGameFromSlot(TestSaveSlot.IsEmpty() ? GetSaveSlotName() : TestSaveSlot, GetSaveUserIndex()));
 	if (!CurrentSave)
 	{
 		CreateFreshSave();
@@ -82,8 +94,11 @@ void USynergyMetaProgressionSubsystem::LoadMetaProgression()
 		return;
 	}
 
+	MetaSkillTree::Sanitize(*CurrentSave);
+	RefreshSkillBonuses();
+	const bool bMigrated = CurrentSave->SaveVersion != SynergyMetaProgression::CurrentSaveVersion;
 	CurrentSave->SaveVersion = SynergyMetaProgression::CurrentSaveVersion;
-	if (AddDefaultUnlocks())
+	if (AddDefaultUnlocks() || bMigrated)
 	{
 		SaveMetaProgression();
 	}
@@ -91,9 +106,16 @@ void USynergyMetaProgressionSubsystem::LoadMetaProgression()
 
 bool USynergyMetaProgressionSubsystem::ResetMetaProgression()
 {
-	UGameplayStatics::DeleteGameInSlot(GetSaveSlotName(), GetSaveUserIndex());
+	const auto PreviousSave = CurrentSave;
 	CreateFreshSave();
-	return SaveMetaProgression();
+	if (!SaveMetaProgression())
+	{
+		CurrentSave = PreviousSave;
+		RefreshSkillBonuses();
+		return false;
+	}
+	PendingSkillReward = LastSkillRunReward = 0;
+	return true;
 }
 
 TArray<FName> USynergyMetaProgressionSubsystem::GetUnlockedSynergyUpgradeIds() const
@@ -205,6 +227,7 @@ void USynergyMetaProgressionSubsystem::CreateFreshSave()
 	{
 		CurrentSave->SaveVersion = SynergyMetaProgression::CurrentSaveVersion;
 		AddDefaultUnlocks();
+		RefreshSkillBonuses();
 	}
 }
 
@@ -225,4 +248,65 @@ bool USynergyMetaProgressionSubsystem::AddDefaultUnlocks()
 		}
 	}
 	return bChanged;
+}
+
+namespace
+{
+ bool SkillChangesAllowed(const USynergyMetaProgressionSubsystem* Meta)
+ {
+  // Purchases only between runs, including Blueprint callers.
+  const UWorld* World = Meta->GetWorld();
+  return !World || !Cast<ASurvivorPlayerController>(World->GetFirstPlayerController());
+ }
+}
+int32 USynergyMetaProgressionSubsystem::GetSoulEmbers() const { return CurrentSave ? CurrentSave->SoulEmbers : 0; }
+int32 USynergyMetaProgressionSubsystem::GetSkillRank(FName Id) const { return CurrentSave ? MetaSkillTree::Rank(*CurrentSave, Id) : 0; }
+int32 USynergyMetaProgressionSubsystem::GetSkillCost(FName Id) const { return CurrentSave ? MetaSkillTree::Cost(*CurrentSave, Id) : 0; }
+float USynergyMetaProgressionSubsystem::GetSkillBonus(FName Effect) const { return CachedSkillBonuses.FindRef(Effect); }
+FString USynergyMetaProgressionSubsystem::GetSkillPurchaseBlock(FName Id) const
+{
+ if (!SkillChangesAllowed(this)) return TEXT("Return to the main menu to learn skills.");
+ return CurrentSave ? MetaSkillTree::PurchaseBlock(*CurrentSave, Id) : TEXT("Progression unavailable.");
+}
+bool USynergyMetaProgressionSubsystem::PurchaseSkill(FName Id)
+{
+ if (!GetSkillPurchaseBlock(Id).IsEmpty()) return false;
+ const auto OldRanks = CurrentSave->SkillRanks;
+ const int32 OldWallet = CurrentSave->SoulEmbers, OldSpent = CurrentSave->SkillEmbersSpent;
+ if (!MetaSkillTree::Purchase(*CurrentSave, Id)) return false;
+ if (SaveMetaProgression()) { RefreshSkillBonuses(); return true; }
+ CurrentSave->SkillRanks = OldRanks; CurrentSave->SoulEmbers = OldWallet; CurrentSave->SkillEmbersSpent = OldSpent;
+ return false;
+}
+bool USynergyMetaProgressionSubsystem::RefundSkills()
+{
+ if (!CurrentSave || !SkillChangesAllowed(this)) return false;
+ const auto OldRanks = CurrentSave->SkillRanks;
+ const int32 OldWallet = CurrentSave->SoulEmbers, OldSpent = CurrentSave->SkillEmbersSpent;
+ MetaSkillTree::Refund(*CurrentSave);
+ if (SaveMetaProgression()) { RefreshSkillBonuses(); return true; }
+ CurrentSave->SkillRanks = OldRanks; CurrentSave->SoulEmbers = OldWallet; CurrentSave->SkillEmbersSpent = OldSpent;
+ return false;
+}
+bool USynergyMetaProgressionSubsystem::AwardSkillRun(float Seconds, bool bVictory)
+{
+ LastSkillRunReward = MetaSkillTree::RunReward(Seconds, bVictory);
+ PendingSkillReward = static_cast<int32>(FMath::Min<int64>(MAX_int32, int64(PendingSkillReward) + LastSkillRunReward));
+ RetrySkillReward();
+ return PendingSkillReward == 0;
+}
+void USynergyMetaProgressionSubsystem::RetrySkillReward()
+{
+ if (PendingSkillReward <= 0 || !CurrentSave) return;
+ const int32 OldWallet = CurrentSave->SoulEmbers;
+ CurrentSave->SoulEmbers = static_cast<int32>(FMath::Min<int64>(MAX_int32, int64(OldWallet) + PendingSkillReward));
+ if (SaveMetaProgression()) PendingSkillReward = 0;
+ else CurrentSave->SoulEmbers = OldWallet;
+}
+
+void USynergyMetaProgressionSubsystem::RefreshSkillBonuses()
+{
+ CachedSkillBonuses.Reset();
+ if (!CurrentSave) return;
+ for (const FMetaSkillNode& N : MetaSkillTree::Nodes()) CachedSkillBonuses.FindOrAdd(N.Effect) += MetaSkillTree::Rank(*CurrentSave, N.Id) * N.PerRank;
 }

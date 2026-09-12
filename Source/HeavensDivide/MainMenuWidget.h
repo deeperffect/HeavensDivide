@@ -42,8 +42,11 @@ class HEAVENSDIVIDE_API UMainMenuWidget : public UUserWidget
 	GENERATED_BODY()
 
 public:
+	UMainMenuWidget(const FObjectInitializer& ObjectInitializer);
+	UTexture2D* GetPageBackgroundTexture() const { return CollectionPanelTexture; }
 	UFUNCTION(BlueprintCallable, Category = "Main Menu")
 	void ShowMainPanel();
+	UFUNCTION(BlueprintCallable, Category = "Main Menu") void ShowSkillTree();
 
 	UFUNCTION(BlueprintCallable, Category = "Main Menu")
 	void ShowCollectionPanel();
@@ -78,6 +81,7 @@ private:
 	void RefreshCollectionDetails();
 	void RefreshCollectionTileVisuals();
 	void SetCollectionVisible(bool bVisible);
+	void SetSkillTreeVisible(bool bVisible);
 	UButton* AddMenuButton(class UVerticalBox* Parent, const FText& Label, FName WidgetName);
 	void SetResetConfirmationVisible(bool bVisible);
 	void SetSettingsPopupVisible(bool bVisible);
@@ -154,8 +158,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "2"))
 	FMargin CollectionContentPadding = FMargin(28.0f, 22.0f);
 
-	/** Shared grunge background for Collection, Settings, and Reset Progress. */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "3"))
+	/** Shared background for Collection, Skill Tree, Settings, and Reset Progress. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Shared Secondary Page Style", meta = (AllowPrivateAccess = "true", DisplayName = "Page Background Texture", DisplayPriority = "0"))
 	TObjectPtr<UTexture2D> CollectionPanelTexture;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Main Menu|Collection|Page", meta = (AllowPrivateAccess = "true", DisplayPriority = "4"))
@@ -389,6 +393,8 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<class UBorder> CollectionOverlay;
 	UPROPERTY(Transient)
+	TObjectPtr<class UBorder> SkillTreeOverlay;
+	UPROPERTY(Transient)
 	TObjectPtr<UButton> CollectionMenuButton;
 	UPROPERTY(Transient)
 	TObjectPtr<UButton> SamuraiCollectionTab;
@@ -432,5 +438,6 @@ private:
 	bool bResetConfirmationOpen = false;
 	bool bSettingsPopupOpen = false;
 	bool bCollectionOpen = false;
+	bool bSkillTreeOpen = false;
 	bool bShowFocusHighlight = false;
 };

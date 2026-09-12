@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AutoAttackComponent.h"
+#include "SurvivorAbilityComponent.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -252,6 +253,10 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		return false;
 	}
 
+	if (bActiveAttackIsAssist && OwnerCharacter->GetOwner())
+		if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+			return Abilities->ExecuteSetupAssist(OwnerCharacter);
+
 	if (bActiveAttackIsAssist && !ProjectileClass)
 	{
 		AEnemyBase* AssistTarget = CurrentAttackTarget.Get();
@@ -367,6 +372,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 	FVector PrimaryDeathLocation = FVector::ZeroVector;
 	bool bPrimaryKilled = false;
 	bool bHitSomething = false;
+	TArray<FVector> SuccessfulHitPositions;
 	const auto ApplyMeleeImpact = [&](AEnemyBase* Enemy, float Damage)
 	{
 		FVector Location, Normal;
@@ -376,6 +382,9 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		{
 			if (ShouldApplySamuraiPushback()) Enemy->ApplyAttackPushback(AttackOrigin, AttackSource, SamuraiPushbackDistance, SamuraiPushbackDuration);
 			bHitSomething = true;
+			SuccessfulHitPositions.Add(Enemy->GetActorLocation());
+			if (OwnerCharacter->GetOwner())
+				if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>()) Abilities->NotifyPartnerHit(AttackSource, Enemy);
 			UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, Location, Normal, false);
 		}
 		return bApplied;
@@ -423,6 +432,10 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		if (bCanApplyMarkedBlade) HitEnemy->ApplyMark();
 	}
 
+	if (!bActiveAttackIsAssist && AttackSource == EPlayerAttackSource::Samurai && OwnerCharacter->GetOwner())
+		if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+			for (const FVector& Position : SuccessfulHitPositions) Abilities->HandleSamuraiMeleeHit(Position);
+
 	if (bHitSomething && ImpactSound && !ImpactFeedback.HitSound)
 	{
 		UGameplayStatics::PlaySound2D(GetWorld(), ImpactSound);
@@ -453,6 +466,10 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn skipped: auto attack cannot run."));
 		return;
 	}
+
+	if (bActiveAttackIsAssist && OwnerCharacter->GetOwner())
+		if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+			{ Abilities->ExecuteSetupAssist(OwnerCharacter); return; }
 
 	if (!ProjectileClass)
 	{
@@ -637,6 +654,8 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
 	UPlayerUpgradeComponent* Upgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, Samurai);
 	if (!Samurai || !Upgrades || !Upgrades->HasUpgradeId(TEXT("BladeWave")) || !BladeWaveClass || !GetWorld()) return;
 
+	auto* FamilyComponent=Samurai->GetOwner()?Samurai->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>():nullptr;
+	const auto Tune=[FamilyComponent](FName Key,float Default,int32 Slot=-1){return FamilyComponent?FamilyComponent->Tuning(4,Key,Default,Slot):Default;};
 	FVector Forward = Samurai->GetVisualForwardVector();
 	if (bActiveAttackIsAssist)
 	{
@@ -649,26 +668,26 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
 	if (!Forward.Normalize()) return;
 	const float WideArc = FMath::Max(0.0f, Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("WideArc")));
 	const float AreaMultiplier = AttackRadius > KINDA_SMALL_NUMBER ? GetEffectiveAttackRadius() / AttackRadius : 1.0f;
-	const float WaveWidth = BladeWaveBaseWidth * FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc);
-	const float WaveDamage = FMath::Max(0.0f, ResolvedPrimaryDamage) * BladeWaveDamageMultiplier * (1.0f + WideArc);
+	const float WaveWidth = Tune(TEXT("WaveWidth"),BladeWaveBaseWidth) * FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc);
+	const float WaveDamage = FMath::Max(0.0f, ResolvedPrimaryDamage) * Tune(TEXT("WaveDamageMultiplier"),BladeWaveDamageMultiplier) * (1.0f + WideArc) * (1.0f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWavePower")));
 	const bool bReturns = Upgrades->HasUpgradeId(TEXT("ReturningBlade"));
 	const bool bCrossing = Upgrades->HasUpgradeId(TEXT("CrossingBlades"));
 	++CrossingBladesAttackCounter;
-	const bool bTriple = bCrossing && CrossingBladesAttackCounter % 3 == 0;
-	const float Angles[3] = { -CrossingBladeSideAngle, 0.0f, CrossingBladeSideAngle };
-	const int32 WaveCount = bTriple ? 3 : 1;
+	const bool bTriple = bCrossing && CrossingBladesAttackCounter % FMath::Max(1,FMath::RoundToInt(Tune(TEXT("AttackFrequency"),3,1))) == 0;
+	const float SideAngle=Tune(TEXT("SideAngle"),CrossingBladeSideAngle,1);
+	const int32 WaveCount = bTriple ? FMath::Clamp(FMath::RoundToInt(Tune(TEXT("WaveCount"),3,1)),1,16) : 1;
 	for (int32 Index = 0; Index < WaveCount; ++Index)
 	{
-		const float Angle = bTriple ? Angles[Index] : 0.0f;
+		const float Angle = bTriple && WaveCount>1 ? FMath::Lerp(-SideAngle,SideAngle,static_cast<float>(Index)/(WaveCount-1)) : 0.0f;
 		const FVector Direction = Forward.RotateAngleAxis(Angle, FVector::UpVector);
-		const FVector SpawnLocation = Samurai->GetActorLocation() + Direction * 80.0f + FVector(0.0f, 0.0f, 60.0f);
+		const FVector SpawnLocation = Samurai->GetActorLocation() + Direction * Tune(TEXT("SpawnForwardOffset"),80) + FVector(0.0f, 0.0f,Tune(TEXT("SpawnHeightOffset"),60));
 		FActorSpawnParameters Params;
 		Params.Owner = Samurai;
 		Params.Instigator = Samurai;
 		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		if (ASamuraiBladeWave* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(BladeWaveClass, SpawnLocation, Direction.Rotation(), Params))
 		{
-			Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth, BladeWaveTravelDistance, BladeWaveSpeed, bReturns,
+			Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth, Tune(TEXT("WaveTravelDistance"),BladeWaveTravelDistance), Tune(TEXT("WaveSpeed"),BladeWaveSpeed) * (1.0f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWaveHaste"))), bReturns,
 				FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc));
 		}
 	}

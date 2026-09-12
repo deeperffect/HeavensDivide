@@ -12,6 +12,7 @@ class UProjectileMovementComponent;
 class UStaticMeshComponent;
 class UPlayerUpgradeComponent;
 class UNiagaraComponent;
+class AAbilityAccent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBladeWaveEvent, ASamuraiBladeWave*, BladeWave);
 
@@ -44,6 +45,7 @@ protected:
 	FName VFXAreaScaleParameter = TEXT("User.AreaScale");
 private:
 	TArray<TWeakObjectPtr<UNiagaraComponent>> WaveEffects;
+ TWeakObjectPtr<AAbilityAccent> AssignedVisual;
 	UFUNCTION() void HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	void BeginReturn();
 	void FinishWave();
@@ -54,5 +56,6 @@ private:
 	float Speed = 0.0f;
 	bool bReturns = false;
 	bool bReturning = false;
+	bool bSplintered = false;
 	FTimerHandle PhaseTimer;
 };

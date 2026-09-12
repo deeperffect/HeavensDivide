@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "PlayerUpgradeComponent.h"
+#include "MetaSkillTree.h"
 
 #include "AutoAttackComponent.h"
 #include "CharacterBase.h"
@@ -161,6 +162,7 @@ bool UPlayerUpgradeComponent::AcquireUpgradeResolved(UUpgradeDefinition* Upgrade
 
 void UPlayerUpgradeComponent::RebuildAllUpgradeModifiers()
 {
+	ApplyMetaSkillModifiers();
 	UE_LOG(LogTemp, Log, TEXT("RebuildAllUpgradeModifiers: UpgradeCount=%d"), AcquiredUpgradeDefinitions.Num());
 
 	for (const TPair<FName, TObjectPtr<UUpgradeDefinition>>& UpgradePair : AcquiredUpgradeDefinitions)
@@ -296,6 +298,22 @@ TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::RollUpgradeChoices(EUpgrade
 	TArray<UUpgradeDefinition*> RemainingUpgrades = GetEligibleUpgradesForCategory(Category);
 	TArray<UUpgradeDefinition*> OfferedUpgrades;
 	const int32 DesiredChoiceCount = FMath::Max(0, ChoiceCount);
+	// Character offers give a choice between discovering an ability and investing
+	// in an unlocked build and choosing a branch or evolution.
+	if (Category == EUpgradeCategory::Samurai || Category == EUpgradeCategory::Ninja)
+	{
+		for (EUpgradeRole Role : {EUpgradeRole::Starter, EUpgradeRole::Support, EUpgradeRole::Mechanic})
+		{
+			if (OfferedUpgrades.Num() >= DesiredChoiceCount) break;
+			TArray<UUpgradeDefinition*> Candidates;
+			for (UUpgradeDefinition* Upgrade : RemainingUpgrades)
+				if (Upgrade->Role == Role || (Role == EUpgradeRole::Mechanic && Upgrade->Role == EUpgradeRole::Evolution)) Candidates.Add(Upgrade);
+			if (Candidates.IsEmpty()) continue;
+			UUpgradeDefinition* Pick = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+			OfferedUpgrades.Add(Pick);
+			RemainingUpgrades.Remove(Pick);
+		}
+	}
 
 	while (OfferedUpgrades.Num() < DesiredChoiceCount && RemainingUpgrades.Num() > 0)
 	{
@@ -1115,4 +1133,47 @@ FName UPlayerUpgradeComponent::MakeUpgradeModifierId(const UUpgradeDefinition* U
 	}
 
 	return FName(*FString::Printf(TEXT("%s.Modifier.%d"), *Upgrade->UpgradeId.ToString(), ModifierIndex));
+}
+
+UUpgradeDefinition* UPlayerUpgradeComponent::FindUpgradeDefinition(FName Id) const
+{
+ for(UUpgradeDefinition* Definition:UpgradePool) if(Definition&&Definition->UpgradeId==Id) return Definition;
+ return nullptr;
+}
+
+float UPlayerUpgradeComponent::GetMetaSkillBonus(FName Effect) const
+{
+ const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+ const auto* Meta = GI ? GI->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+ return Meta ? Meta->GetSkillBonus(Effect) : 0.f;
+}
+void UPlayerUpgradeComponent::ApplyMetaSkillModifiers()
+{
+ auto* PC = Cast<ASurvivorPlayerController>(GetOwner());
+ auto* Party = PC ? PC->GetCharacterManager() : nullptr;
+ auto* Shared = PC ? PC->GetSharedPlayerStats() : nullptr;
+ const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+ const auto* Meta = GI ? GI->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+ if (!PC || !Party) return;
+ for (const FMetaSkillNode& N : MetaSkillTree::Nodes())
+ {
+  if (N.Effect == TEXT("Swap") || N.Effect == TEXT("Preparation") || N.Effect == TEXT("Reaction") || N.Effect == TEXT("Bleed") || N.Effect == TEXT("Poison")) continue;
+  const FName Source(*FString::Printf(TEXT("MetaSkill.%s"), *N.Id.ToString()));
+  const float Value = Meta ? Meta->GetSkillRank(N.Id) * N.PerRank : 0.f;
+  if (N.Target == EUpgradeStatTarget::SharedPlayer)
+  {
+   if (!Shared) continue;
+   // AddModifier replaces by ID: rebuilds neither stack nor briefly remove health.
+   FSharedPlayerStatModifier M; M.SourceId = M.ModifierId = Source; M.Stat = N.SharedStat; M.Value = Value;
+   Shared->AddModifier(M);
+  }
+  else
+  {
+   ACharacterBase* Character = N.Target == EUpgradeStatTarget::Samurai ? static_cast<ACharacterBase*>(Party->GetSamurai()) : static_cast<ACharacterBase*>(Party->GetNinja());
+   auto* Stats = Character ? Character->GetCharacterStats() : nullptr;
+   if (!Stats) continue;
+   FCharacterStatModifier M; M.SourceId = M.ModifierId = Source; M.Stat = N.CharacterStat; M.Value = Value;
+   Stats->AddModifier(M);
+  }
+ }
 }
