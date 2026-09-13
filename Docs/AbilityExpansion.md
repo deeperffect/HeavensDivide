@@ -28,10 +28,23 @@ The field's future pulses are removed before detonation deals damage, preventing
 
 Tag Team keeps its existing unlock, attack counter, placement, montage and cleanup flow.
 
+Tag Team assist hits consume universal Prepare applied by the opposite character's abilities. Assists prioritize prepared enemies in range, both when selecting the initial target and resolving their limited hit list. Consumption deals bonus damage and spreads only existing Bleed/Poison; see `BuildFamilies.md` for the shared rules.
+
 - Ninja: a targeted streak fan hits up to five enemies within 1,000 cm, for 10 base damage each and one Poison stack. Targets must be in front of the assistant.
 - Samurai: a broad forward slash hits up to twelve enemies within 420 cm, for 12 base damage each, one Bleed stack and 65 cm pushback. Marked Blade additionally marks survivors.
 
 Direct assist damage scales with the assisting character's damage, shared damage and mastery. Intrinsic setup statuses do not require the basic-attack status starter. Their damage and reactions use the existing status component and its status upgrades. Ordinary basic attacks still need their own status starter. Samurai's acquired Blade Wave behavior continues through its existing attack-notify path.
+
+## Shared synergy upgrade: Grand Entrance
+
+**Grand Entrance** (`GrandEntrance`) is a one-rank Epic synergy card available through normal Synergy offers, without a family prerequisite or discovery lock. After a successful player-initiated swap, the incoming character's next normal attack is enhanced:
+
+- **Samurai:** a 360-degree slash with a **600 cm base radius**, scaling with basic attack area. All secondary targets take full normal attack damage; the primary target retains its normal technique modifiers.
+- **Ninja:** **8 additional projectiles** in a **100-degree fan**, retaining normal projectile damage and acquired projectile modifiers. Extra projectiles combine with the normal volley and Blade Cascade.
+
+The enhancement is spent at the attack's hit/projectile notify. Canceled attacks before that point retain it. It does not stack, and leaving the active character clears an unused enhancement. Assists, automatic abilities and Double Cut follow-ups cannot spend it. Acquiring the card does not immediately arm it: swap after acquisition. The enhanced normal attack does not itself apply universal Prepare.
+
+Balance is editable on `/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEntrance` under Runtime Balance: `SamuraiRadius`, `NinjaBonusProjectiles`, and `NinjaFanAngle`. The source illustration and exact built-in imagegen prompt are recorded in `Art/UpgradeCards/GrandEntrance.json`.
 
 ## Upgrade scaling
 

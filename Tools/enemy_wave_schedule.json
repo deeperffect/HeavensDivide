@@ -1,0 +1,349 @@
+{
+  "spawner": "/Game/HeavensDivide/Blueprints/EnemyCharacters/BP_EnemySpawner",
+  "level": "/Game/Maps/Lvl_B1_Lvl1",
+  "hard_cap": 160,
+  "enemies": {
+    "Grunt": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt",
+      "role": "basic",
+      "health": 18,
+      "speed": 160,
+      "health_per_minute": 0.03,
+      "unlock_seconds": 0,
+      "respawn_delay": [
+        0,
+        0
+      ]
+    },
+    "GoblinCrawler": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler",
+      "role": "basic",
+      "health": 12,
+      "speed": 255,
+      "health_per_minute": 0.03,
+      "unlock_seconds": 0,
+      "respawn_delay": [
+        0,
+        0
+      ]
+    },
+    "Creature": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature",
+      "role": "basic",
+      "health": 24,
+      "speed": 200,
+      "health_per_minute": 0.03,
+      "unlock_seconds": 0,
+      "respawn_delay": [
+        0,
+        0
+      ]
+    },
+    "Fish": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish",
+      "role": "basic",
+      "health": 10,
+      "speed": 300,
+      "health_per_minute": 0.03,
+      "unlock_seconds": 0,
+      "respawn_delay": [
+        0,
+        0
+      ]
+    },
+    "Bear": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear",
+      "role": "basic",
+      "health": 32,
+      "speed": 135,
+      "health_per_minute": 0.03,
+      "unlock_seconds": 0,
+      "respawn_delay": [
+        0,
+        0
+      ]
+    },
+    "FloatingSkeleton": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton",
+      "role": "basic",
+      "health": 16,
+      "speed": 225,
+      "health_per_minute": 0.03,
+      "unlock_seconds": 0,
+      "respawn_delay": [
+        0,
+        0
+      ]
+    },
+    "DevilRanged": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged",
+      "role": "threat",
+      "health_per_minute": 0.06,
+      "unlock_seconds": 90,
+      "respawn_delay": [
+        16,
+        22
+      ]
+    },
+    "GoblinBomb": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb",
+      "role": "threat",
+      "health_per_minute": 0.04,
+      "unlock_seconds": 150,
+      "respawn_delay": [
+        22,
+        30
+      ]
+    },
+    "Ogre": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre",
+      "role": "threat",
+      "health_per_minute": 0.08,
+      "unlock_seconds": 210,
+      "respawn_delay": [
+        35,
+        45
+      ]
+    },
+    "Gorilla": {
+      "path": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla",
+      "role": "threat",
+      "health_per_minute": 0.02,
+      "unlock_seconds": 330,
+      "respawn_delay": [
+        60,
+        80
+      ]
+    }
+  },
+  "phases": [
+    {
+      "name": "Wave01_Grunt",
+      "start_seconds": 0,
+      "end_seconds": 60,
+      "basic": "Grunt",
+      "desired_population": 40,
+      "global_cap": 52,
+      "intervals": [
+        0.7,
+        0.38,
+        0.24
+      ],
+      "threat_caps": {
+        "DevilRanged": 0,
+        "GoblinBomb": 0,
+        "Ogre": 0,
+        "Gorilla": 0
+      }
+    },
+    {
+      "name": "Wave02_GoblinCrawler",
+      "start_seconds": 60,
+      "end_seconds": 120,
+      "basic": "GoblinCrawler",
+      "desired_population": 48,
+      "global_cap": 61,
+      "intervals": [
+        0.675,
+        0.368,
+        0.233
+      ],
+      "threat_caps": {
+        "DevilRanged": 1,
+        "GoblinBomb": 0,
+        "Ogre": 0,
+        "Gorilla": 0
+      }
+    },
+    {
+      "name": "Wave03_Creature",
+      "start_seconds": 120,
+      "end_seconds": 180,
+      "basic": "Creature",
+      "desired_population": 56,
+      "global_cap": 70,
+      "intervals": [
+        0.65,
+        0.356,
+        0.226
+      ],
+      "threat_caps": {
+        "DevilRanged": 1,
+        "GoblinBomb": 1,
+        "Ogre": 0,
+        "Gorilla": 0
+      }
+    },
+    {
+      "name": "Wave04_Fish",
+      "start_seconds": 180,
+      "end_seconds": 240,
+      "basic": "Fish",
+      "desired_population": 64,
+      "global_cap": 79,
+      "intervals": [
+        0.625,
+        0.344,
+        0.219
+      ],
+      "threat_caps": {
+        "DevilRanged": 1,
+        "GoblinBomb": 1,
+        "Ogre": 1,
+        "Gorilla": 0
+      }
+    },
+    {
+      "name": "Wave05_Bear",
+      "start_seconds": 240,
+      "end_seconds": 300,
+      "basic": "Bear",
+      "desired_population": 72,
+      "global_cap": 88,
+      "intervals": [
+        0.6,
+        0.332,
+        0.212
+      ],
+      "threat_caps": {
+        "DevilRanged": 2,
+        "GoblinBomb": 1,
+        "Ogre": 1,
+        "Gorilla": 0
+      }
+    },
+    {
+      "name": "Wave06_FloatingSkeleton",
+      "start_seconds": 300,
+      "end_seconds": 360,
+      "basic": "FloatingSkeleton",
+      "desired_population": 80,
+      "global_cap": 98,
+      "intervals": [
+        0.575,
+        0.32,
+        0.205
+      ],
+      "threat_caps": {
+        "DevilRanged": 2,
+        "GoblinBomb": 2,
+        "Ogre": 1,
+        "Gorilla": 1
+      }
+    },
+    {
+      "name": "Wave07_Grunt",
+      "start_seconds": 360,
+      "end_seconds": 420,
+      "basic": "Grunt",
+      "desired_population": 88,
+      "global_cap": 106,
+      "intervals": [
+        0.55,
+        0.308,
+        0.198
+      ],
+      "threat_caps": {
+        "DevilRanged": 2,
+        "GoblinBomb": 2,
+        "Ogre": 1,
+        "Gorilla": 1
+      }
+    },
+    {
+      "name": "Wave08_GoblinCrawler",
+      "start_seconds": 420,
+      "end_seconds": 480,
+      "basic": "GoblinCrawler",
+      "desired_population": 96,
+      "global_cap": 114,
+      "intervals": [
+        0.525,
+        0.296,
+        0.191
+      ],
+      "threat_caps": {
+        "DevilRanged": 2,
+        "GoblinBomb": 2,
+        "Ogre": 1,
+        "Gorilla": 1
+      }
+    },
+    {
+      "name": "Wave09_Creature",
+      "start_seconds": 480,
+      "end_seconds": 540,
+      "basic": "Creature",
+      "desired_population": 104,
+      "global_cap": 124,
+      "intervals": [
+        0.5,
+        0.284,
+        0.184
+      ],
+      "threat_caps": {
+        "DevilRanged": 3,
+        "GoblinBomb": 2,
+        "Ogre": 2,
+        "Gorilla": 1
+      }
+    },
+    {
+      "name": "Wave10_Fish",
+      "start_seconds": 540,
+      "end_seconds": 600,
+      "basic": "Fish",
+      "desired_population": 112,
+      "global_cap": 133,
+      "intervals": [
+        0.475,
+        0.272,
+        0.177
+      ],
+      "threat_caps": {
+        "DevilRanged": 3,
+        "GoblinBomb": 3,
+        "Ogre": 2,
+        "Gorilla": 1
+      }
+    },
+    {
+      "name": "Wave11_Bear",
+      "start_seconds": 600,
+      "end_seconds": 660,
+      "basic": "Bear",
+      "desired_population": 120,
+      "global_cap": 142,
+      "intervals": [
+        0.45,
+        0.26,
+        0.17
+      ],
+      "threat_caps": {
+        "DevilRanged": 3,
+        "GoblinBomb": 3,
+        "Ogre": 2,
+        "Gorilla": 2
+      }
+    },
+    {
+      "name": "Wave12_FloatingSkeleton",
+      "start_seconds": 660,
+      "end_seconds": 0,
+      "basic": "FloatingSkeleton",
+      "desired_population": 128,
+      "global_cap": 150,
+      "intervals": [
+        0.425,
+        0.248,
+        0.163
+      ],
+      "threat_caps": {
+        "DevilRanged": 3,
+        "GoblinBomb": 3,
+        "Ogre": 2,
+        "Gorilla": 2
+      }
+    }
+  ]
+}

@@ -32,16 +32,7 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "StormConductor",
-      "name": "Storm Conductor",
-      "kind": "Chain",
-      "factor": 0.6,
-      "radius": 300,
-      "count": 3,
-      "description": "Steel Tempest prepares surviving enemies for 6 seconds; the partner's hit chains bonus strikes through nearby enemies. Trigger with Ninja attacks or abilities."
-    }
+    ]
   },
   {
     "index": 1,
@@ -76,16 +67,7 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "FallenConstellation",
-      "name": "Fallen Constellation",
-      "kind": "Echo",
-      "factor": 0.8,
-      "radius": 210,
-      "count": 2,
-      "description": "Heavenfall prepares surviving enemies for 6 seconds; the partner's hit calls down two delayed follow-up strikes. Trigger with Ninja attacks or abilities."
-    }
+    ]
   },
   {
     "index": 2,
@@ -120,16 +102,7 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "ThreadSever",
-      "name": "Sever the Thread",
-      "kind": "Chain",
-      "factor": 0.7,
-      "radius": 360,
-      "count": 4,
-      "description": "Night Thread prepares surviving enemies for 6 seconds; the partner's hit chains bonus strikes through nearby enemies. Trigger with Samurai attacks or abilities."
-    }
+    ]
   },
   {
     "index": 3,
@@ -164,16 +137,7 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "PlagueHarvest",
-      "name": "Plague Harvest",
-      "kind": "Bloom",
-      "factor": 4,
-      "radius": 300,
-      "count": 1,
-      "description": "Venom Garden prepares surviving enemies for 6 seconds; the partner's hit triggers a status-spreading burst. Trigger with Samurai attacks or abilities."
-    }
+    ]
   },
   {
     "index": 4,
@@ -208,63 +172,10 @@
       "Power",
       "WideArc",
       "Haste"
-    ],
-    "synergy": {
-      "id": "VenomEdge",
-      "name": "Venom Edge",
-      "kind": "Bloom",
-      "factor": 0.6,
-      "radius": 240,
-      "count": 1,
-      "description": "Blade Wave prepares surviving enemies for 6 seconds; the partner's hit triggers a status-spreading burst. Trigger with Ninja attacks or abilities."
-    }
+    ]
   },
   {
     "index": 5,
-    "owner": "Samurai",
-    "id": "CrescentReaper",
-    "name": "Crescent Reaper",
-    "description": "A crescent travels through the crowd, hitting each enemy once per pass.",
-    "kind": "Travel",
-    "damage": 28,
-    "radius": 120,
-    "cooldown": 4.5,
-    "count": 7,
-    "interval": 0.12,
-    "branches": [
-      {
-        "id": "ReapingReturn",
-        "name": "Reaping Return",
-        "description": "The crescent retraces its path for a second hit pass."
-      },
-      {
-        "id": "TwinCrescents",
-        "name": "Twin Crescents",
-        "description": "Send an additional crescent angled 30 degrees to the side."
-      },
-      {
-        "id": "CrimsonCrescent",
-        "name": "Crimson Crescent",
-        "description": "Each hit applies Bleed."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "ReapersInvitation",
-      "name": "Reaper's Invitation",
-      "kind": "Pull",
-      "factor": 0.6,
-      "radius": 300,
-      "count": 1,
-      "description": "Crescent Reaper prepares surviving enemies for 6 seconds; the partner's hit pulls nearby enemies toward the victim and damages them. Trigger with Ninja attacks or abilities."
-    }
-  },
-  {
-    "index": 6,
     "owner": "Samurai",
     "id": "IronOrbit",
     "name": "Iron Orbit",
@@ -296,63 +207,10 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "OrbitRelay",
-      "name": "Orbit Relay",
-      "kind": "Recharge",
-      "factor": 0.5,
-      "radius": 180,
-      "count": 1,
-      "description": "Iron Orbit prepares surviving enemies for 6 seconds; the partner's hit deals a bonus strike and reduces this family's remaining cooldown by one second. Trigger with Ninja attacks or abilities."
-    }
+    ]
   },
   {
-    "index": 7,
-    "owner": "Samurai",
-    "id": "FaultLine",
-    "name": "Fault Line",
-    "description": "Three delayed eruptions tear a line through the crowd.",
-    "kind": "Rupture",
-    "damage": 30,
-    "radius": 170,
-    "cooldown": 5,
-    "count": 3,
-    "interval": 0.3,
-    "branches": [
-      {
-        "id": "CrossFault",
-        "name": "Cross Fault",
-        "description": "Add a perpendicular fault line."
-      },
-      {
-        "id": "RollingAftershock",
-        "name": "Rolling Aftershock",
-        "description": "Eruptions repeat at half damage."
-      },
-      {
-        "id": "RuptureLift",
-        "name": "Rupture Lift",
-        "description": "Eruptions push enemies away from their centers."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "FaultDetonator",
-      "name": "Fault Detonator",
-      "kind": "Echo",
-      "factor": 0.75,
-      "radius": 250,
-      "count": 2,
-      "description": "Fault Line prepares surviving enemies for 6 seconds; the partner's hit calls down two delayed follow-up strikes. Trigger with Ninja attacks or abilities."
-    }
-  },
-  {
-    "index": 8,
+    "index": 6,
     "owner": "Samurai",
     "id": "WarBanner",
     "name": "War Banner",
@@ -384,107 +242,10 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "RallyingShadows",
-      "name": "Rallying Shadows",
-      "kind": "Recharge",
-      "factor": 1,
-      "radius": 260,
-      "count": 1,
-      "description": "War Banner prepares surviving enemies for 6 seconds; the partner's hit deals a bonus strike and reduces this family's remaining cooldown by one second. Trigger with Ninja attacks or abilities."
-    }
+    ]
   },
   {
-    "index": 9,
-    "owner": "Samurai",
-    "id": "ThousandCuts",
-    "name": "Thousand Cuts",
-    "description": "Focus six rapid cuts on one enemy; its death ends the flurry.",
-    "kind": "Flurry",
-    "damage": 9,
-    "radius": 75,
-    "cooldown": 4,
-    "count": 6,
-    "interval": 0.15,
-    "branches": [
-      {
-        "id": "PassingSentence",
-        "name": "Passing Sentence",
-        "description": "Retarget a nearby enemy if the victim dies."
-      },
-      {
-        "id": "SharedSentence",
-        "name": "Shared Sentence",
-        "description": "Each cut splashes nearby enemies for half damage."
-      },
-      {
-        "id": "OpenWounds",
-        "name": "Open Wounds",
-        "description": "Cuts apply Bleed."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "ExecutionWindow",
-      "name": "Execution Window",
-      "kind": "Focus",
-      "factor": 2,
-      "radius": 150,
-      "count": 1,
-      "description": "Thousand Cuts prepares surviving enemies for 6 seconds; the partner's hit triggers a heavy single-target follow-up. Trigger with Ninja attacks or abilities."
-    }
-  },
-  {
-    "index": 10,
-    "owner": "Samurai",
-    "id": "SpiritLance",
-    "name": "Spirit Lance",
-    "description": "Pierce a long, narrow line through enemies.",
-    "kind": "Lance",
-    "damage": 38,
-    "radius": 70,
-    "cooldown": 4.5,
-    "count": 1,
-    "interval": 0.2,
-    "branches": [
-      {
-        "id": "CrossedLances",
-        "name": "Crossed Lances",
-        "description": "Fire two additional lances at side angles."
-      },
-      {
-        "id": "ReboundingLance",
-        "name": "Rebounding Lance",
-        "description": "Repeat the line after a short delay at half damage."
-      },
-      {
-        "id": "SpectralBrand",
-        "name": "Spectral Brand",
-        "description": "Mark enemies hit by the lance."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "ShadowSpear",
-      "name": "Shadow Spear",
-      "kind": "Chain",
-      "factor": 0.65,
-      "radius": 440,
-      "count": 3,
-      "description": "Spirit Lance prepares surviving enemies for 6 seconds; the partner's hit chains bonus strikes through nearby enemies. Trigger with Ninja attacks or abilities."
-    }
-  },
-  {
-    "index": 11,
+    "index": 7,
     "owner": "Samurai",
     "id": "BloodMoon",
     "name": "Blood Moon",
@@ -516,195 +277,10 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "EclipseHarvest",
-      "name": "Eclipse Harvest",
-      "kind": "Bloom",
-      "factor": 1,
-      "radius": 320,
-      "count": 1,
-      "description": "Blood Moon prepares surviving enemies for 6 seconds; the partner's hit triggers a status-spreading burst. Trigger with Ninja attacks or abilities."
-    }
+    ]
   },
   {
-    "index": 12,
-    "owner": "Ninja",
-    "id": "LotusMines",
-    "name": "Lotus Mines",
-    "description": "Scatter three mines near a crowd. After arming, each bursts when an enemy approaches.",
-    "kind": "Mine",
-    "damage": 30,
-    "radius": 180,
-    "cooldown": 6,
-    "count": 3,
-    "interval": 0.6,
-    "branches": [
-      {
-        "id": "DoublePetals",
-        "name": "Double Petals",
-        "description": "Scatter two additional mines."
-      },
-      {
-        "id": "PatientLotus",
-        "name": "Patient Lotus",
-        "description": "A triggered mine rearms once for a second explosion."
-      },
-      {
-        "id": "VenomPetals",
-        "name": "Venom Petals",
-        "description": "Explosions apply Poison."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "LotusExecution",
-      "name": "Lotus Execution",
-      "kind": "Echo",
-      "factor": 0.8,
-      "radius": 260,
-      "count": 2,
-      "description": "Lotus Mines prepares surviving enemies for 6 seconds; the partner's hit calls down two delayed follow-up strikes. Trigger with Samurai attacks or abilities."
-    }
-  },
-  {
-    "index": 13,
-    "owner": "Ninja",
-    "id": "ShadowShuriken",
-    "name": "Shadow Shuriken",
-    "description": "A shuriken ricochets through five distinct enemies.",
-    "kind": "Ricochet",
-    "damage": 16,
-    "radius": 380,
-    "cooldown": 4,
-    "count": 5,
-    "interval": 0.12,
-    "branches": [
-      {
-        "id": "ReturningStar",
-        "name": "Returning Star",
-        "description": "After the last bounce, revisit the first target at half damage."
-      },
-      {
-        "id": "SplittingStar",
-        "name": "Splitting Star",
-        "description": "Each bounce splashes nearby enemies for 30% damage."
-      },
-      {
-        "id": "ToxicStar",
-        "name": "Toxic Star",
-        "description": "Bounces apply Poison."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "SteelRicochet",
-      "name": "Steel Ricochet",
-      "kind": "Chain",
-      "factor": 0.9,
-      "radius": 420,
-      "count": 3,
-      "description": "Shadow Shuriken prepares surviving enemies for 6 seconds; the partner's hit chains bonus strikes through nearby enemies. Trigger with Samurai attacks or abilities."
-    }
-  },
-  {
-    "index": 14,
-    "owner": "Ninja",
-    "id": "SmokeLattice",
-    "name": "Smoke Lattice",
-    "description": "Lay down a Poison lattice that repeatedly pushes enemies out of its center.",
-    "kind": "Smoke",
-    "damage": 6,
-    "radius": 290,
-    "cooldown": 6.5,
-    "count": 5,
-    "interval": 0.8,
-    "branches": [
-      {
-        "id": "DriftingSmoke",
-        "name": "Drifting Smoke",
-        "description": "The lattice follows active Ninja before being left behind on swap."
-      },
-      {
-        "id": "DoubleVeil",
-        "name": "Double Veil",
-        "description": "Create a second lattice at another nearby position."
-      },
-      {
-        "id": "ChokingFinale",
-        "name": "Choking Finale",
-        "description": "The last pulse deals triple damage."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "HiddenBlade",
-      "name": "Hidden Blade",
-      "kind": "Focus",
-      "factor": 3,
-      "radius": 200,
-      "count": 1,
-      "description": "Smoke Lattice prepares surviving enemies for 6 seconds; the partner's hit triggers a heavy single-target follow-up. Trigger with Samurai attacks or abilities."
-    }
-  },
-  {
-    "index": 15,
-    "owner": "Ninja",
-    "id": "ThunderWire",
-    "name": "Thunder Wire",
-    "description": "Stretch a damaging wire through a nearby enemy for three pulses.",
-    "kind": "Wire",
-    "damage": 14,
-    "radius": 65,
-    "cooldown": 5,
-    "count": 3,
-    "interval": 0.45,
-    "branches": [
-      {
-        "id": "CrossWire",
-        "name": "Cross Wire",
-        "description": "Lay a second wire perpendicular to the first."
-      },
-      {
-        "id": "LiveWire",
-        "name": "Live Wire",
-        "description": "Wire endpoints also emit half-damage bursts."
-      },
-      {
-        "id": "VenomCable",
-        "name": "Venom Cable",
-        "description": "Wire hits apply Poison."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "GroundedSteel",
-      "name": "Grounded Steel",
-      "kind": "Pull",
-      "factor": 1,
-      "radius": 360,
-      "count": 1,
-      "description": "Thunder Wire prepares surviving enemies for 6 seconds; the partner's hit pulls nearby enemies toward the victim and damages them. Trigger with Samurai attacks or abilities."
-    }
-  },
-  {
-    "index": 16,
+    "index": 8,
     "owner": "Ninja",
     "id": "PhantomAmbush",
     "name": "Phantom Ambush",
@@ -736,63 +312,10 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "PhantomHandoff",
-      "name": "Phantom Handoff",
-      "kind": "Recharge",
-      "factor": 0.75,
-      "radius": 200,
-      "count": 1,
-      "description": "Phantom Ambush prepares surviving enemies for 6 seconds; the partner's hit deals a bonus strike and reduces this family's remaining cooldown by one second. Trigger with Samurai attacks or abilities."
-    }
+    ]
   },
   {
-    "index": 17,
-    "owner": "Ninja",
-    "id": "CaltropTrail",
-    "name": "Caltrop Trail",
-    "description": "Moving leaves armed caltrops behind you. Enemies stepping on them take damage and Poison.",
-    "kind": "Trail",
-    "damage": 12,
-    "radius": 130,
-    "cooldown": 1.3,
-    "count": 1,
-    "interval": 0.4,
-    "branches": [
-      {
-        "id": "ForkedTrail",
-        "name": "Forked Trail",
-        "description": "Leave two caltrop patches to either side."
-      },
-      {
-        "id": "PersistentSpikes",
-        "name": "Persistent Spikes",
-        "description": "Each patch rearms once after triggering."
-      },
-      {
-        "id": "BarbedExit",
-        "name": "Barbed Exit",
-        "description": "Triggered patches push enemies away."
-      }
-    ],
-    "scales": [
-      "Power",
-      "Area",
-      "Haste"
-    ],
-    "synergy": {
-      "id": "SpikedOpening",
-      "name": "Spiked Opening",
-      "kind": "Bloom",
-      "factor": 1.6,
-      "radius": 230,
-      "count": 1,
-      "description": "Caltrop Trail prepares surviving enemies for 6 seconds; the partner's hit triggers a status-spreading burst. Trigger with Samurai attacks or abilities."
-    }
-  },
-  {
-    "index": 18,
+    "index": 9,
     "owner": "Ninja",
     "id": "CrimsonNeedle",
     "name": "Crimson Needle",
@@ -824,19 +347,10 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "CrimsonVerdict",
-      "name": "Crimson Verdict",
-      "kind": "Focus",
-      "factor": 1.25,
-      "radius": 120,
-      "count": 1,
-      "description": "Crimson Needle prepares surviving enemies for 6 seconds; the partner's hit triggers a heavy single-target follow-up. Trigger with Samurai attacks or abilities."
-    }
+    ]
   },
   {
-    "index": 19,
+    "index": 10,
     "owner": "Ninja",
     "id": "RavenSwarm",
     "name": "Raven Swarm",
@@ -868,15 +382,6 @@
       "Power",
       "Area",
       "Haste"
-    ],
-    "synergy": {
-      "id": "CarrionFeast",
-      "name": "Carrion Feast",
-      "kind": "Bloom",
-      "factor": 2,
-      "radius": 280,
-      "count": 1,
-      "description": "Raven Swarm prepares surviving enemies for 6 seconds; the partner's hit triggers a status-spreading burst. Trigger with Samurai attacks or abilities."
-    }
+    ]
   }
 ]

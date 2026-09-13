@@ -172,7 +172,7 @@ void USurvivorAbilityComponent::Pulse(const FPendingPulse& P)
   {
    FamilyAccent(VF,Enemy->GetActorLocation(),Enemy->GetActorLocation(),P.Radius,P.Color,0.25f,false,P.VisualSlot,2);
    if(!P.bReaction) NotifyPartnerHit(P.Source,Enemy);
-   if(P.Family>=0 && ((FCString::Strcmp(BuildFamilies[P.Family].Owner,TEXT("Samurai"))==0)==(P.Source==EPlayerAttackSource::Samurai))) RegisterFamilyHit(P.Family,Enemy,P.Damage);
+   if(!P.bReaction && P.Family>=0 && ((FCString::Strcmp(BuildFamilies[P.Family].Owner,TEXT("Samurai"))==0)==(P.Source==EPlayerAttackSource::Samurai))) RegisterFamilyHit(P.Family,Enemy,P.Damage);
   }
   if(bApplied&&!Enemy->IsDead())
   {
@@ -334,14 +334,18 @@ bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase* Character)
  const FVector Origin=Character->GetActorLocation();
  const FVector Forward=Character->GetVisualForwardVector().GetSafeNormal2D();
  int32 Hits=0;
- for(auto* Enemy:FindEnemies(Origin,bSamurai?AssistTune(TEXT("SamuraiRange"),420):AssistTune(TEXT("NinjaRange"),1000),Source))
+ auto Targets=FindEnemies(Origin,bSamurai?AssistTune(TEXT("SamuraiRange"),420):AssistTune(TEXT("NinjaRange"),1000),Source);
+ PrioritizePreparedTargets(Source,Targets);
+ for(auto* Enemy:Targets)
  {
   if(!Controller->IsRunInProgress()||Controller->IsPlayerDead()) break;
   const FVector Position=Enemy->GetActorLocation();
   const FVector Direction=(Position-Origin).GetSafeNormal2D();
   if(!Direction.IsNearlyZero()&&FVector::DotProduct(Forward,Direction)<FMath::Cos(FMath::DegreesToRadians(AssistTune(TEXT("ConeHalfAngle"),69.51268f)))) continue;
+  // Death clears statuses, so snapshot them before the successful assist hit.
+  const uint8 StatusBeforeHit=(Enemy->HasStatus(EEnemyStatusEffect::Bleed)?1:0)|(Enemy->HasStatus(EEnemyStatusEffect::Poison)?2:0);
   if(!Enemy->ApplyPlayerDamage((bSamurai?AssistTune(TEXT("SamuraiDamage"),12):AssistTune(TEXT("NinjaDamage"),10))*Power(Character),Source)) continue;
-  NotifyPartnerHit(Source,Enemy);
+  NotifyPartnerHit(Source,Enemy,true,StatusBeforeHit);
   Accent(Origin,Position,0,bSamurai?Colors[0]:Colors[3],0.3f,true,Definition?&Definition->Presentation:nullptr);
   if(!Enemy->IsDead())
   {

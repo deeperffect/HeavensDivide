@@ -59,6 +59,8 @@ public:
 private:
 	friend class FImpactFeedbackTest;
 	friend class FMetaSkillTreeTest;
+	friend class FGrandEntranceTest;
+	friend class FKeybindSettingsTest;
 	void HandleCameraShakeIntensityChanged(float Intensity);
 	TWeakObjectPtr<class UCameraShakeBase> ActiveGameplayShake;
 	float ActiveGameplayShakeBaseScale = 0.0f;
@@ -241,6 +243,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input mapping context added for player controls at BeginPlay."))
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
+	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> RuntimeMappingContext;
+	void RefreshKeybindings();
+	void BuildRuntimeKeyMappings(const class UHeavensDivideGameUserSettings* Settings);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input action used for player movement."))
 	TObjectPtr<UInputAction> MoveAction;

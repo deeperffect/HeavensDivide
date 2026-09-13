@@ -166,39 +166,57 @@ void ASurvivorPlayerController::BeginPlay()
 		}
 	}
 
-	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
-	if (!LocalPlayer)
-	{
-		return;
-	}
+ if(auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
+  Settings->OnKeybindingsChanged.AddUObject(this,&ASurvivorPlayerController::RefreshKeybindings);
+ RefreshKeybindings();
+}
 
-	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
-	if (InputSubsystem && DefaultMappingContext)
-	{
-		auto EnsureMapping = [this](UInputAction* Action, const FKey Key)
-		{
-			if (Action && !DefaultMappingContext->GetMappings().ContainsByPredicate([Action, Key](const FEnhancedActionKeyMapping& Mapping)
-			{
-				return Mapping.Action == Action && Mapping.Key == Key;
-			}))
-			{
-				DefaultMappingContext->MapKey(Action, Key);
-			}
-		};
+void ASurvivorPlayerController::RefreshKeybindings()
+{
+ const auto* LocalPlayer=GetLocalPlayer();
+ auto* Subsystem=LocalPlayer?LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>():nullptr;
+ if(!Subsystem||!DefaultMappingContext)return;
+ if(RuntimeMappingContext)Subsystem->RemoveMappingContext(RuntimeMappingContext);
+ BuildRuntimeKeyMappings(UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings());
+ Subsystem->AddMappingContext(RuntimeMappingContext,0);
+}
 
-		EnsureMapping(MoveAction, EKeys::Gamepad_Left2D);
-		EnsureMapping(DashAction, EKeys::Gamepad_FaceButton_Right);
-		EnsureMapping(SwapAction, EKeys::Gamepad_FaceButton_Top);
-		EnsureMapping(InteractAction, EKeys::Gamepad_FaceButton_Bottom);
-		EnsureMapping(AimAction, EKeys::Gamepad_Right2D);
-		InputSubsystem->AddMappingContext(DefaultMappingContext, 0);
-	}
+void ASurvivorPlayerController::BuildRuntimeKeyMappings(const UHeavensDivideGameUserSettings* Settings)
+{
+ if(!DefaultMappingContext)return;
+ RuntimeMappingContext=DuplicateObject<UInputMappingContext>(DefaultMappingContext,this);
+ auto EnsureMapping=[this](UInputAction* Action,FKey Key)
+ {
+  if(Action&&!RuntimeMappingContext->GetMappings().ContainsByPredicate([Action,Key](const FEnhancedActionKeyMapping& M){return M.Action==Action&&M.Key==Key;}))
+   RuntimeMappingContext->MapKey(Action,Key);
+ };
+ EnsureMapping(MoveAction,EKeys::Gamepad_Left2D);
+ EnsureMapping(DashAction,EKeys::Gamepad_FaceButton_Right);
+ EnsureMapping(SwapAction,EKeys::Gamepad_FaceButton_Top);
+ EnsureMapping(InteractAction,EKeys::Gamepad_FaceButton_Bottom);
+ EnsureMapping(InteractAction,EKeys::E);
+ EnsureMapping(AimAction,EKeys::Gamepad_Right2D);
+ for(int32 Index=0;Index<RuntimeMappingContext->GetMappings().Num();++Index)
+ {
+  auto& Mapping=RuntimeMappingContext->GetMapping(Index);
+  if(Mapping.Key.IsGamepadKey())continue;
+  FName Binding;
+  if(Mapping.Action==SwapAction)Binding=TEXT("Swap");
+  else if(Mapping.Action==DashAction)Binding=TEXT("Dash");
+  else if(Mapping.Action==InteractAction)Binding=TEXT("Interact");
+  else if(Mapping.Action==MoveAction)
+   for(FName Direction:{FName(TEXT("MoveForward")),FName(TEXT("MoveBackward")),FName(TEXT("MoveLeft")),FName(TEXT("MoveRight"))})
+    if(Mapping.Key==UHeavensDivideGameUserSettings::GetDefaultBinding(Direction)){Binding=Direction;break;}
+  if(!Binding.IsNone())Mapping.Key=Settings?Settings->GetKeyBinding(Binding):UHeavensDivideGameUserSettings::GetDefaultBinding(Binding);
+ }
 }
 
 void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if(const auto* InputPlayer=GetLocalPlayer())if(auto* Subsystem=InputPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		if(RuntimeMappingContext)Subsystem->RemoveMappingContext(RuntimeMappingContext);
 	if (UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
-		Settings->OnCameraShakeIntensityChanged.RemoveAll(this);
+		{ Settings->OnCameraShakeIntensityChanged.RemoveAll(this); Settings->OnKeybindingsChanged.RemoveAll(this); }
 	DestroyAllShadowClones();
 	if (CharacterManager)
 	{
@@ -528,7 +546,7 @@ void ASurvivorPlayerController::SetupInputComponent()
 		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &ASurvivorPlayerController::Aim);
 	}
 
-	InputComponent->BindKey(EKeys::E, IE_Pressed, this, &ASurvivorPlayerController::Interact);
+
 }
 
 void ASurvivorPlayerController::RestoreRunTravelDashCharges(int32 Charges)
@@ -734,6 +752,8 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 	}
 
 	ApplyHandoffBuff(NewCharacter);
+	if (bWasPlayerInitiatedSwap && OldCharacter && NewCharacter && OldCharacter != NewCharacter && IsRunInProgress())
+		if (auto* Attack = NewCharacter->FindComponentByClass<UAutoAttackComponent>()) Attack->ArmGrandEntranceAfterSwap();
 	ApplySharedMoveSpeedToParty();
 	SetCameraFollowTarget(NewCharacter);
 	if (bWasPlayerInitiatedSwap) TryTriggerHemotoxicReaction(NewCharacter);
@@ -1943,15 +1963,15 @@ void ASurvivorPlayerController::AbilityShowcase()
 {
 #if !UE_BUILD_SHIPPING
  if (!PlayerUpgradeComponent || !IsRunInProgress()) return;
- const TCHAR* Families[] = {TEXT("SteelTempest"),TEXT("Heavenfall"),TEXT("NightThread"),TEXT("VenomGarden")};
- const TCHAR* Evolutions[] = {TEXT("RazorHalo"),TEXT("Starfall"),TEXT("BlackWeb"),TEXT("WitheringGarden")};
+ const TCHAR* ShowcaseFamilies[] = {TEXT("SteelTempest"),TEXT("Heavenfall"),TEXT("NightThread"),TEXT("VenomGarden")};
+ const TCHAR* ShowcaseEvolutions[] = {TEXT("RazorHalo"),TEXT("Starfall"),TEXT("BlackWeb"),TEXT("WitheringGarden")};
  for (int32 i=0;i<4;++i)
  {
   const FString Folder=i<2?TEXT("Samurai"):TEXT("Ninja");
   for (const TCHAR* Suffix : {TEXT(""),TEXT("Power"),TEXT("Area"),TEXT("Haste"),TEXT("Evolution")})
   {
    const bool Evolution=FString(Suffix)==TEXT("Evolution");
-   const FString Id=Evolution?FString(Evolutions[i]):FString(Families[i])+Suffix;
+   const FString Id=Evolution?FString(ShowcaseEvolutions[i]):FString(ShowcaseFamilies[i])+Suffix;
    const FString Path=TEXT("/Game/HeavensDivide/Upgrades/")+Folder+TEXT("/DA_Upgrade_")+Folder+Id;
    if (auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,*Path))
    {

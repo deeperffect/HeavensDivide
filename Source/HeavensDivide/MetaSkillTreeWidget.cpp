@@ -105,6 +105,8 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
  return SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("NoBrush")).Padding(0)
  [SNew(SScaleBox).Stretch(EStretch::ScaleToFit)
   [SNew(SBox).WidthOverride(1440).HeightOverride(920)
+   [SNew(SVerticalBox)
+    +SVerticalBox::Slot().FillHeight(1)
    [SNew(SBorder).BorderImage(&PanelBrush).Padding(FMargin(48,56))
    [SNew(SVerticalBox)
     +SVerticalBox::Slot().AutoHeight().Padding(28,22,28,8)
@@ -124,7 +126,13 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
      +SHorizontalBox::Slot().AutoWidth()[SNew(SBox).WidthOverride(300)[Inspector]]
      +SHorizontalBox::Slot().AutoWidth().Padding(22,26,12,24)[SNew(SSeparator).Orientation(Orient_Vertical).SeparatorImage(&VerticalDividerBrush).ColorAndOpacity(FLinearColor(.36f,.36f,.33f)).Thickness(6)]
      +SHorizontalBox::Slot().FillWidth(1)[Map]]
-    +SVerticalBox::Slot().AutoHeight().Padding(28,6,28,12)
+    +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(28,6,28,12)
+    [SNew(STextBlock).Text(FText::FromString(TEXT("Filled: learned   /   Bright: available   /   Dim: locked"))).Font(MenuFont(11)).ColorAndOpacity(Muted)]
+    +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(28,0,28,14)
+    [SNew(STextBlock).Text(FText::FromString(TEXT("Scroll: zoom   /   Drag: pan   /   Arrows or D-pad: select   /   Enter or A: learn"))).Font(MenuFont(9)).ColorAndOpacity(Muted)]
+   ]]
+    // Keep page actions below the artwork, within the responsive page bounds.
+    +SVerticalBox::Slot().AutoHeight().Padding(76,14,76,0)
     [SNew(SHorizontalBox)
      +SHorizontalBox::Slot().AutoWidth().Padding(0,0,18,0)
      [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(22,12)).OnClicked_Lambda([this](){CloseTree();return FReply::Handled();})[SNew(STextBlock).Font(MenuFont(13,true)).Text(FText::FromString(TEXT("BACK"))).ColorAndOpacity(FSlateColor::UseForeground())]]
@@ -132,13 +140,11 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
      [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(18,12))
       .OnClicked_Lambda([this,Meta,Map](){if(!bConfirmRefund){bConfirmRefund=true;Message=TEXT("Refund every skill for its full paid cost? Select CONFIRM REFUND, or select a node to cancel.");}else{if(auto* M=Meta())Message=M->RefundSkills()?TEXT("All skill costs refunded."):TEXT("Could not save refund. Your skills are unchanged.");bConfirmRefund=false;Map->Refresh();}return FReply::Handled();})
       [SNew(STextBlock).Font(MenuFont(13,true)).ColorAndOpacity(FSlateColor::UseForeground()).Text_Lambda([this](){return FText::FromString(bConfirmRefund?TEXT("CONFIRM REFUND"):TEXT("REFUND SKILLS"));})]]
-     +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center).HAlign(HAlign_Center)
-     [SNew(STextBlock).Text(FText::FromString(TEXT("Filled: learned   /   Bright: available   /   Dim: locked"))).Font(MenuFont(11)).ColorAndOpacity(Muted)]
+     +SHorizontalBox::Slot().FillWidth(1)
+     [SNew(SBox)]
      +SHorizontalBox::Slot().AutoWidth()
      [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(16,12)).OnClicked_Lambda([Map](){Map->ResetView();return FReply::Handled();})[SNew(STextBlock).Font(MenuFont(13,true)).Text(FText::FromString(TEXT("RESET VIEW"))).ColorAndOpacity(FSlateColor::UseForeground())]]]
-    +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(28,0,28,14)
-    [SNew(STextBlock).Text(FText::FromString(TEXT("Scroll: zoom   /   Drag: pan   /   Arrows or D-pad: select   /   Enter or A: learn"))).Font(MenuFont(9)).ColorAndOpacity(Muted)]
-   ]]
+   ]
   ]
  ];
 }

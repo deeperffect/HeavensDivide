@@ -7,7 +7,7 @@ import unreal
 
 root = Path(unreal.Paths.project_dir()).resolve()
 jobs = json.loads((root / 'Art/UpgradeCards/manifest.json').read_text(encoding='utf-8'))
-assert len(jobs) == 160
+assert len(jobs) == 77
 assert len({j['id'] for j in jobs}) == len(jobs)
 digests = set()
 for j in jobs:

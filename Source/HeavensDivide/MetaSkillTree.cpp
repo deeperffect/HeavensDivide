@@ -40,11 +40,11 @@ const TArray<FMetaSkillNode>& MetaSkillTree::Nodes()
 		Add(TEXT("Shadow.Pierce"), TEXT("Through the Veil"), TEXT("Ninja basic projectiles pierce one additional enemy."), 2,3,0,TEXT("Shadow.Power"),TEXT("Pierce"),1,1);
 		Add(TEXT("Shadow.Twin"), TEXT("Twin Fangs"), TEXT("+1 Ninja basic projectile."), 2,3,1,TEXT("Shadow.Toxin"),TEXT("Projectile"),1,1);
 		Add(TEXT("Bond.Flow"), TEXT("Crossing Souls"), TEXT("+5% swap recharge speed per rank."), 3,0,0,TEXT("Root.Strength"),TEXT("Swap"),.05f);
-		Add(TEXT("Bond.Memory"), TEXT("Lingering Intent"), TEXT("Family synergy preparation lasts +0.5 seconds per rank."), 3,0,1,TEXT("Root.Step"),TEXT("Preparation"),.5f);
-		Add(TEXT("Bond.Strike"), TEXT("Answered Challenge"), TEXT("+5% family partner-reaction damage per rank."), 3,1,0,TEXT("Bond.Flow"),TEXT("Reaction"),.05f);
+		Add(TEXT("Bond.Memory"), TEXT("Lingering Intent"), TEXT("Universal Prepare lasts +0.5 seconds per rank."), 3,0,1,TEXT("Root.Step"),TEXT("Preparation"),.5f);
+		Add(TEXT("Bond.Strike"), TEXT("Answered Challenge"), TEXT("+5% Prepare bonus damage per rank."), 3,1,0,TEXT("Bond.Flow"),TEXT("Reaction"),.05f);
 		Add(TEXT("Bond.Relay"), TEXT("Seamless Relay"), TEXT("+5% swap recharge speed per rank."), 3,1,1,TEXT("Bond.Memory"),TEXT("Swap"),.05f);
-		Add(TEXT("Bond.Echo"), TEXT("Unbroken Promise"), TEXT("Family synergy preparation lasts +0.5 seconds per rank."), 3,2,0,TEXT("Bond.Strike"),TEXT("Preparation"),.5f);
-		Add(TEXT("Bond.Reaction"), TEXT("Converging Blades"), TEXT("+5% family partner-reaction damage per rank."), 3,2,1,TEXT("Bond.Relay"),TEXT("Reaction"),.05f);
+		Add(TEXT("Bond.Echo"), TEXT("Unbroken Promise"), TEXT("Universal Prepare lasts +0.5 seconds per rank."), 3,2,0,TEXT("Bond.Strike"),TEXT("Preparation"),.5f);
+		Add(TEXT("Bond.Reaction"), TEXT("Converging Blades"), TEXT("+5% Prepare bonus damage per rank."), 3,2,1,TEXT("Bond.Relay"),TEXT("Reaction"),.05f);
 		Add(TEXT("Bond.Unity"), TEXT("Two Souls, One Will"), TEXT("+8% damage for both characters."), 3,3,0,TEXT("Bond.Echo"),TEXT("Damage"),.08f,1);
 		Add(TEXT("Bond.Rhythm"), TEXT("Heaven Undivided"), TEXT("+8% basic attack speed for both characters."), 3,3,1,TEXT("Bond.Reaction"),TEXT("Attack"),.08f,1);
 		Result[30].Prerequisites.Append({FName(TEXT("Steel.Power")), FName(TEXT("Shadow.Power"))});

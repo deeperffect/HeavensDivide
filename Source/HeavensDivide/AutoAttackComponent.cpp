@@ -228,6 +228,7 @@ void UAutoAttackComponent::CaptureRunState(FAutoAttackRunState& OutState) const
 	OutState.BladeCascadeProgress = BladeCascadeKunaiProgress;
 	OutState.CrossingBladesCounter = CrossingBladesAttackCounter;
 	OutState.bBladeCascadeReady = bBladeCascadeReady;
+	OutState.bGrandEntranceReady = bGrandEntranceReady;
 	OutState.bExtraProjectileOnRight = bNormalVolleyExtraProjectileOnRight;
 }
 
@@ -242,6 +243,7 @@ void UAutoAttackComponent::RestoreRunState(const FAutoAttackRunState& State)
 	BladeCascadeKunaiProgress = FMath::Max(0, State.BladeCascadeProgress);
 	CrossingBladesAttackCounter = FMath::Max(0, State.CrossingBladesCounter);
 	bBladeCascadeReady = State.bBladeCascadeReady;
+	bGrandEntranceReady = State.bGrandEntranceReady;
 	bNormalVolleyExtraProjectileOnRight = State.bExtraProjectileOnRight;
 }
 
@@ -281,8 +283,18 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 	}
 
 	const FVector AttackOrigin = OwnerCharacter->GetActorLocation();
-	const FVector HitboxCenter = AttackOrigin + AttackForward * AttackForwardOffset;
-	const float EffectiveAttackRadius = GetEffectiveAttackRadius();
+	const UUpgradeDefinition* GrandEntrance = GetReadyGrandEntranceUpgrade();
+	const FVector HitboxCenter = GrandEntrance ? AttackOrigin : AttackOrigin + AttackForward * AttackForwardOffset;
+	const float EffectiveAttackRadius = GrandEntrance ? GetGrandEntranceRadius(GrandEntrance) : GetEffectiveAttackRadius();
+	if (GrandEntrance)
+	{
+		// Spend only at the committed swing, including a legitimate swing that misses.
+		bGrandEntranceReady = false;
+		FActorSpawnParameters VisualParams;
+		VisualParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		if (auto* Visual = GetWorld()->SpawnActor<AAbilityAccent>(AttackOrigin-FVector(0,0,70), FRotator::ZeroRotator, VisualParams))
+			Visual->Initialize(AttackOrigin, EffectiveAttackRadius, FLinearColor(3,0.15f,0.5f), 0.4f, false, &GrandEntrance->Presentation);
+	}
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
 	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
 	const bool bCanApplyMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(AutoAttackMarkedForDeathUpgradeIds::MarkedBlade);
@@ -367,7 +379,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		? ResolveDuelistPrimaryDamage(PrimaryTarget, EffectiveAttackDamage)
 		: EffectiveAttackDamage;
 	LastResolvedPrimaryAttackDamage = ResolvedPrimaryDamage;
-	const float SecondaryDamage = EffectiveAttackDamage * FMath::Clamp(SecondaryTargetDamageMultiplier, 0.0f, 1.0f);
+	const float SecondaryDamage = GrandEntrance ? EffectiveAttackDamage : EffectiveAttackDamage * FMath::Clamp(SecondaryTargetDamageMultiplier, 0.0f, 1.0f);
 	float PrimaryHealthBeforeHit = 0.0f;
 	FVector PrimaryDeathLocation = FVector::ZeroVector;
 	bool bPrimaryKilled = false;
@@ -481,7 +493,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	const float EffectiveProjectileSpeed = GetEffectiveProjectileSpeed();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
 	const int32 NormalProjectileCount = GetEffectiveProjectileCount();
-	const int32 EffectiveProjectileCount = ConsumeBladeCascadeBonusForNormalVolley(NormalProjectileCount);
+	int32 EffectiveProjectileCount = ConsumeBladeCascadeBonusForNormalVolley(NormalProjectileCount);
 	const int32 EffectiveProjectilePierceBonus = GetEffectiveProjectilePierceBonus();
 
 	AEnemyBase* PrimaryTarget = nullptr;
@@ -509,7 +521,15 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		if (!BaseDirection.Normalize()) return;
 	}
 	TArray<FVector> VolleyDirections;
-	BuildCenteredProjectileSpreadDirections(BaseDirection, EffectiveProjectileCount, KunaiSpreadAngle, bNormalVolleyExtraProjectileOnRight, VolleyDirections);
+	const UUpgradeDefinition* GrandEntrance = GetReadyGrandEntranceUpgrade();
+	float VolleySpacing = KunaiSpreadAngle;
+	if (GrandEntrance)
+	{
+		EffectiveProjectileCount = FMath::Clamp(EffectiveProjectileCount + FMath::Clamp(FMath::RoundToInt(GrandEntrance->GetBalanceValue(TEXT("NinjaBonusProjectiles"),8)),1,64),1,128);
+		VolleySpacing = FMath::Clamp(GrandEntrance->GetBalanceValue(TEXT("NinjaFanAngle"),100),0.f,180.f) / FMath::Max(1,EffectiveProjectileCount-1);
+		bGrandEntranceReady = false;
+	}
+	BuildCenteredProjectileSpreadDirections(BaseDirection, EffectiveProjectileCount, VolleySpacing, bNormalVolleyExtraProjectileOnRight, VolleyDirections);
 	if (EffectiveProjectileCount % 2 == 0) bNormalVolleyExtraProjectileOnRight = !bNormalVolleyExtraProjectileOnRight;
 
 	int32 SpawnedProjectileCount = 0;
@@ -695,18 +715,27 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
 
 AEnemyBase* UAutoAttackComponent::FindAssistTarget() const
 {
-	return FindNearestEnemyTarget();
+	return OwnerCharacter ? FindAssistTargetNearLocation(OwnerCharacter->GetActorLocation(), GetEffectiveTargetingRange()) : nullptr;
 }
 
 AEnemyBase* UAutoAttackComponent::FindAssistTargetNearLocation(const FVector& SearchLocation, float SearchRadius) const
 {
+	TArray<AEnemyBase*> SortedTargets;
+	FindEnemyTargetsSortedFromLocation(SearchLocation, SearchRadius, SortedTargets);
+	if (OwnerCharacter && OwnerCharacter->GetOwner())
+	{
+		if (const auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+		{
+			const auto Source = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
+			Abilities->PrioritizePreparedTargets(Source, SortedTargets);
+			if (!SortedTargets.IsEmpty() && Abilities->HasTriggerablePreparation(Source, SortedTargets[0])) return SortedTargets[0];
+		}
+	}
 	if (!ProjectileClass)
 	{
 		return FindBestMeleeTarget(SearchLocation, SearchRadius);
 	}
 
-	TArray<AEnemyBase*> SortedTargets;
-	FindEnemyTargetsSortedFromLocation(SearchLocation, SearchRadius, SortedTargets);
 	return SortedTargets.Num() > 0 ? SortedTargets[0] : nullptr;
 }
 
@@ -737,6 +766,7 @@ bool UAutoAttackComponent::IsTargetInCurrentMeleeReach(const AEnemyBase* TargetE
 
 void UAutoAttackComponent::HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode)
 {
+	if (OldMode == ECharacterMode::Active && NewMode != ECharacterMode::Active) bGrandEntranceReady = false;
 	if (NewMode == ECharacterMode::Active)
 	{
 		if (CVarHDLogAutoAttackCooldown.GetValueOnGameThread() != 0 && GetWorld())
@@ -1756,6 +1786,29 @@ float UAutoAttackComponent::GetEffectiveAttackDamage() const
 	return AttackDamage * DamageMultiplier * GlobalDamageMultiplier * PowerMultiplier;
 }
 
+void UAutoAttackComponent::ArmGrandEntranceAfterSwap()
+{
+	const auto* Upgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+	bGrandEntranceReady = OwnerCharacter && OwnerCharacter->GetCharacterMode() == ECharacterMode::Active
+		&& Upgrades && Upgrades->HasUpgradeId(TEXT("GrandEntrance"));
+}
+
+const UUpgradeDefinition* UAutoAttackComponent::GetReadyGrandEntranceUpgrade() const
+{
+	if (!bGrandEntranceReady || bActiveAttackIsAssist || bDoubleCutFollowUpActive || !OwnerCharacter
+		|| OwnerCharacter->GetCharacterMode() != ECharacterMode::Active || IsOwningPlayerDead()) return nullptr;
+	const auto* Controller = Cast<ASurvivorPlayerController>(OwnerCharacter->GetOwner());
+	if (!Controller || !Controller->IsRunInProgress()) return nullptr;
+	const auto* Upgrades = Controller->GetPlayerUpgrades();
+	return Upgrades && Upgrades->HasUpgradeId(TEXT("GrandEntrance")) ? Upgrades->FindUpgradeDefinition(TEXT("GrandEntrance")) : nullptr;
+}
+
+float UAutoAttackComponent::GetGrandEntranceRadius(const UUpgradeDefinition* Upgrade) const
+{
+	const auto* Stats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
+	return FMath::Max(GetEffectiveAttackRadius(), FMath::Max(0.f,Upgrade->GetBalanceValue(TEXT("SamuraiRadius"),600)) * (Stats ? Stats->GetFinalAttackAreaMultiplier() : 1.f));
+}
+
 float UAutoAttackComponent::GetEffectiveAttackRadius() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
@@ -1778,7 +1831,8 @@ float UAutoAttackComponent::GetEffectiveTargetingRange() const
 	}
 
 	const float EffectiveMeleeReach = FMath::Max(0.0f, AttackForwardOffset) + GetEffectiveAttackRadius();
-	return FMath::Max(TargetingRange, EffectiveMeleeReach + 60.0f);
+	const auto* GrandEntrance = GetReadyGrandEntranceUpgrade();
+	return FMath::Max(TargetingRange, FMath::Max(EffectiveMeleeReach, GrandEntrance ? GetGrandEntranceRadius(GrandEntrance) : 0.f) + 60.0f);
 }
 
 int32 UAutoAttackComponent::GetEffectiveProjectileCount() const

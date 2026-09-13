@@ -1,4 +1,4 @@
-"""Author 20 complete build families from the checked-in design catalog; preserve unrelated upgrades."""
+"""Author 11 complete build families from the checked-in design catalog; preserve unrelated upgrades."""
 import unreal,json,shutil
 from pathlib import Path
 root=Path(unreal.Paths.project_dir()).resolve()
@@ -13,14 +13,14 @@ def asset(path):
  return unreal.load_asset(path) if unreal.EditorAssetLibrary.does_asset_exist(path) else asset_tools.create_asset(path.rsplit('/',1)[1],path.rsplit('/',1)[0],unreal.UpgradeDefinition,factory)
 def set_props(a,props):
  for k,v in props.items():a.set_editor_property(k,v)
-def configure(r,uid,title,desc,role,synergy=False,scale=None):
- owner=r['owner'];folder='/Game/HeavensDivide/Upgrades/'+('Synergy' if synergy else owner)
- path=folder+('/DA_BuildSynergy_' if synergy else '/DA_Upgrade_'+owner)+uid
+def configure(r,uid,title,desc,role,scale=None):
+ owner=r['owner'];folder='/Game/HeavensDivide/Upgrades/'+owner
+ path=folder+('/DA_Upgrade_'+owner)+uid
  a=asset(path)
  existing_art=a.get_editor_property('card_artwork')
  art=existing_art or unreal.load_asset('/Game/HeavensDivide/Blueprints/UI/CardArt2/'+owner+('/BladeWave' if owner=='Samurai' else '/VenomousKunai'))
  legacy_evo=uid in ['RazorHalo','Starfall','BlackWeb','WitheringGarden']
- set_props(a,dict(upgrade_id=uid,display_name=title,description=desc,category=unreal.UpgradeCategory.SYNERGY if synergy else getattr(unreal.UpgradeCategory,owner.upper()),investment_owner=getattr(unreal.UpgradeInvestmentOwner,owner.upper()),role=unreal.UpgradeRole.EVOLUTION if legacy_evo else getattr(unreal.UpgradeRole,role.upper()),build_family_id=r['id'],max_level=5 if scale else 1,rarity=unreal.UpgradeRarity.LEGENDARY if legacy_evo else unreal.UpgradeRarity.RARE if role in ['Mechanic','Special'] else unreal.UpgradeRarity.COMMON,uses_rolled_rarity=bool(scale),prerequisite_upgrade_ids=[] if role=='Starter' else [r['id']],prerequisite_requirements=[],exclusivity_group='None',requires_meta_unlock=False,stat_modifiers=[],special_effects=[],card_artwork=art,icon=art))
+ set_props(a,dict(upgrade_id=uid,display_name=title,description=desc,category=getattr(unreal.UpgradeCategory,owner.upper()),investment_owner=getattr(unreal.UpgradeInvestmentOwner,owner.upper()),role=unreal.UpgradeRole.EVOLUTION if legacy_evo else getattr(unreal.UpgradeRole,role.upper()),build_family_id=r['id'],max_level=5 if scale else 1,rarity=unreal.UpgradeRarity.LEGENDARY if legacy_evo else unreal.UpgradeRarity.RARE if role in ['Mechanic','Special'] else unreal.UpgradeRarity.COMMON,uses_rolled_rarity=bool(scale),prerequisite_upgrade_ids=[] if role=='Starter' else [r['id']],prerequisite_requirements=[],exclusivity_group='None',requires_meta_unlock=False,stat_modifiers=[],special_effects=[],card_artwork=art,icon=art))
  if legacy_evo:
   reqs=[]
   for suffix in ['Power','Area']:
@@ -48,9 +48,8 @@ for r in rows:
   uid='WideArc' if suffix=='WideArc' else r['id']+suffix
   label={'Power':'Force','Area':'Reach','WideArc':'Wide Arc','Haste':'Velocity' if r['id']=='BladeWave' else 'Rhythm'}[suffix]
   created.append(configure(r,uid,r['name']+': '+label,'Scale this ability independently.','Support',scale=suffix))
- y=r['synergy'];created.append(configure(r,y['id'],y['name'],y['description']+f" Follow-up: {int(y['factor']*100)}% of the preparing hit's damage"+(' split across the echoes' if y['kind']=='Echo' else '')+f"; {y['radius']} cm reach. Triggers at most once per "+('1 second' if y['kind']=='Recharge' else '0.35 seconds')+' per family. The same victim can be prepared again after 2 seconds.','Special',synergy=True))
-assert len(created)==160
-assert len({str(a.get_editor_property('upgrade_id')) for a in created})==160
+assert len(created)==len(rows)*7
+assert len({str(a.get_editor_property('upgrade_id')) for a in created})==len(rows)*7
 path='/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController';backup(path)
 bp=unreal.load_asset(path);comp=unreal.get_default_object(bp.generated_class()).get_editor_property('player_upgrade_component')
 # Replace by ID, preventing duplicate offers if an older asset used the same ID elsewhere.
@@ -65,4 +64,4 @@ for uid,a in new_by_id.items():
  if uid not in seen:pool.append(a);seen.add(uid)
 comp.set_editor_property('upgrade_pool',pool)
 unreal.BlueprintEditorLibrary.compile_blueprint(bp);assert unreal.EditorAssetLibrary.save_loaded_asset(bp,False)
-unreal.log('BUILD_FAMILIES_ASSETS_PASS: 20 families, 60 branches, 60 scalables, 20 synergies; '+str(len(pool))+' unique pool entries')
+unreal.log('BUILD_FAMILIES_ASSETS_PASS: 11 families, 33 branches, 33 scalables; '+str(len(pool))+' unique pool entries')

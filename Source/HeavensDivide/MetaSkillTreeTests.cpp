@@ -145,19 +145,17 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	Meta->RefreshSkillBonuses();
 	auto* Ability=PC->FindComponentByClass<USurvivorAbilityComponent>();
 	Ability->Controller=PC;Ability->Upgrades=Upgrades;
-	const int32 Family=5; // Crescent Reaper in the authored runtime catalog.
+	const int32 Family=5; // Iron Orbit in the authored runtime catalog.
 	const auto& Spec=BuildFamilies[Family];
 	auto* Starter=LoadObject<UUpgradeDefinition>(nullptr,*FString::Printf(TEXT("/Game/HeavensDivide/Upgrades/%s/DA_Upgrade_%s%s"),Spec.Owner,Spec.Owner,Spec.Id));
-	auto* Synergy=LoadObject<UUpgradeDefinition>(nullptr,*FString::Printf(TEXT("/Game/HeavensDivide/Upgrades/Synergy/DA_BuildSynergy_%s"),Spec.Synergy));
 	TestTrue(TEXT("Acquire family for reaction test"),Upgrades->AcquireUpgrade(Starter));
-	TestTrue(TEXT("Acquire family synergy"),Upgrades->AcquireUpgrade(Synergy));
 	Ability->RegisterFamilyHit(Family,Enemy,20);
-	TestTrue(TEXT("Preparation gets three bonus seconds"),Ability->BuildMarks.Num()==1 && FMath::IsNearlyEqual(Ability->BuildMarks[0].Remaining,Ability->Tuning(Family,TEXT("PreparationDuration"),6,3)+3));
+	TestTrue(TEXT("Preparation gets three bonus seconds"),Ability->BuildMarks.Num()==1 && FMath::IsNearlyEqual(Ability->BuildMarks[0].Remaining,Ability->PreparationDuration+3));
 	const float Before=Enemy->GetHealthComponent()->GetCurrentHealth();
-	Ability->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy);
-	const float Expected=20*Ability->FamilySpec(Family).ReactionFactor*1.3f;
+	Ability->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy,true);
+	const float Expected=20*Ability->PreparationDamageMultiplier*1.3f;
 	TestTrue(TEXT("Partner reaction receives damage passive"),FMath::IsNearlyEqual(Before-Enemy->GetHealthComponent()->GetCurrentHealth(),Expected,.01f));
-	Ability->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy);
+	Ability->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy,true);
 	TestTrue(TEXT("Passive does not bypass duplicate reaction guard"),FMath::IsNearlyEqual(Before-Enemy->GetHealthComponent()->GetCurrentHealth(),Expected,.01f));
 	// Construct Slate graph without needing a local player or modifying project assets.
 	auto* Tree=CreateWidget<UMetaSkillTreeWidget>(GI);

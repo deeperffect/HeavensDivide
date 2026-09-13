@@ -57,8 +57,10 @@ public:
  virtual void EndPlay(const EEndPlayReason::Type Reason) override;
  // Called by the existing attack notify path, never by swap or passive pulses.
  bool ExecuteSetupAssist(ACharacterBase* Character);
+ bool HasTriggerablePreparation(EPlayerAttackSource Source, const AEnemyBase* Enemy) const;
+ void PrioritizePreparedTargets(EPlayerAttackSource Source, TArray<AEnemyBase*>& Targets) const;
  void HandleSamuraiMeleeHit(FVector HitPosition);
- void NotifyPartnerHit(EPlayerAttackSource Source, AEnemyBase* Enemy);
+ void NotifyPartnerHit(EPlayerAttackSource Source, AEnemyBase* Enemy, bool bAssistHit=false, uint8 StatusBeforeHit=255);
  void RegisterFamilyHit(int32 Family, AEnemyBase* Enemy, float Damage);
  void BladeWaveImpact(AEnemyBase* Enemy, float Damage, bool bSplinter);
  void GrantBuildPreview(FString FamilyId, int32 Branch = 0);
@@ -68,6 +70,13 @@ public:
  void ApplyConfiguredStatus(int32 Family,AEnemyBase* Enemy,EEnemyStatusEffect Status,EPlayerAttackSource Source);
  const FUpgradePresentation* FamilyPresentation(int32 Family,int32 Slot=-1) const;
  AAbilityAccent* FamilyAccent(int32 Family,FVector Position,FVector End,float Radius,FLinearColor Color,float Duration=0.35f,bool bBeam=false,int32 Slot=-1,int32 Stage=0);
+
+ UPROPERTY(EditAnywhere, Category="Abilities|Prepare", meta=(ClampMin="0.1"))
+ float PreparationDuration=6.0f;
+ UPROPERTY(EditAnywhere, Category="Abilities|Prepare", meta=(ClampMin="0.0"))
+ float PreparationDamageMultiplier=0.6f;
+ UPROPERTY(EditAnywhere, Category="Abilities|Prepare", meta=(ClampMin="0.0"))
+ float PreparationSpreadRadius=300.0f;
 
 
 private:
@@ -98,7 +107,8 @@ private:
  struct FBuildMark
  {
   TWeakObjectPtr<AEnemyBase> Enemy;
-  int32 Family=0; float Damage=0, Remaining=6; bool bSpent=false;
+  EPlayerAttackSource Source=EPlayerAttackSource::Other;
+  float Damage=0, Remaining=6;
  };
  void UpdateBuildFamilies(ACharacterBase* Character);
  bool ActivateBuildFamily(int32 Family,ACharacterBase* Character);
@@ -111,11 +121,8 @@ private:
  void ClearBuildFamilies();
  TArray<FBuildCast> BuildCasts;
  TArray<FBuildMark> BuildMarks;
- float BuildCooldowns[20]={};
- float ReactionGates[20]={};
+ float BuildCooldowns[BuildFamilyCount]={};
  bool bResolvingReaction=false;
- bool bTrailInitialized=false;
- FVector LastTrailPosition=FVector::ZeroVector;
  void UpdateAbilities();
  bool ActivateAbility(int32 Index, ACharacterBase* Character);
  TArray<AEnemyBase*> FindEnemies(FVector Position,float Radius,EPlayerAttackSource Source) const;

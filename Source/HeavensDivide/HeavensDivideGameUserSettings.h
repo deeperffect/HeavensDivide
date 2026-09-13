@@ -2,9 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameUserSettings.h"
+#include "InputCoreTypes.h"
 #include "HeavensDivideGameUserSettings.generated.h"
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCameraShakeIntensityChanged, float);
+DECLARE_MULTICAST_DELEGATE(FOnKeybindingsChanged);
 
 UCLASS()
 class HEAVENSDIVIDE_API UHeavensDivideGameUserSettings : public UGameUserSettings
@@ -12,6 +14,12 @@ class HEAVENSDIVIDE_API UHeavensDivideGameUserSettings : public UGameUserSetting
 	GENERATED_BODY()
 
 public:
+	FOnKeybindingsChanged OnKeybindingsChanged;
+	static TArray<FName> GetBindableActions();
+	static FKey GetDefaultBinding(FName Action);
+	FKey GetKeyBinding(FName Action) const;
+	bool SetKeyBinding(FName Action, FKey Key);
+	void ResetKeyBindings();
 	FOnCameraShakeIntensityChanged OnCameraShakeIntensityChanged;
 	UFUNCTION(BlueprintPure, Category="Settings|Accessibility")
 	float GetCameraShakeIntensity() const { return FMath::IsFinite(CameraShakeIntensity) ? FMath::Clamp(CameraShakeIntensity, 0.0f, 1.0f) : 1.0f; }
@@ -27,6 +35,7 @@ public:
 	void SetAutoTargetingEnabled(bool bEnabled);
 
 private:
+	UPROPERTY(Config) TMap<FName,FKey> KeybindOverrides;
 	UPROPERTY(Config) float CameraShakeIntensity = 1.0f;
 	UPROPERTY(Config)
 	bool bAutoTargetingEnabled = true;

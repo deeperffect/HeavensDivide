@@ -1,0 +1,10 @@
+{
+  "id": "GrandEntrance",
+  "name": "Grand Entrance",
+  "asset": "/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEntrance",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/BuildFamilyArt/T_GrandEntrance",
+  "file": "Art/UpgradeCards/Generated/GrandEntrance.png",
+  "generator": "Built-in image_gen",
+  "reference": "Art/UpgradeCards/References/Synergy_Hemotoxin.png",
+  "prompt": "Use case: stylized-concept. Asset type: square game synergy upgrade illustration, Grand Entrance. Reference image is STYLE REFERENCE ONLY: match its dark Japanese fantasy ink illustration, textured parchment-gray ground, black silhouettes, crimson and violet accents and explosive ink splatter. NEW SUBJECT: a samurai and masked ninja crossing past each other during a sudden combat handoff; samurai releases an enormous circular crimson katana sweep while ninja launches a dense fan of distinct violet-trailed kunai. Clear dynamic silhouettes, one unified circular composition, readable at thumbnail size. Weapons and motion are the focal point. Full-bleed square artwork with dark vignette. No text, letters, numbers, card frame, UI, logo or watermark. Not photorealistic, not 3D."
+}

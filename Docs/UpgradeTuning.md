@@ -30,9 +30,10 @@ The default ring anchor is 70 cm below the enemy/player center. Location Offset 
 | --- | --- |
 | Base family damage, radius, cooldown, targeting, timing, pattern-specific settings | Starter's Runtime Balance map |
 | Branch damage fractions, delays, angles, counts, splash/return settings | Branch card's Runtime Balance map |
-| Synergy payout, reach, target count, preparation duration, re-prime delay, trigger throttle, pull/refund/echo settings | Synergy card under `/Game/HeavensDivide/Upgrades/Synergy/DA_BuildSynergy_*` |
+| Universal Prepare duration, bonus damage multiplier and status spread radius | SurvivorAbility component, Abilities > Prepare, on `BP_SurvivorPlayerController` |
 | Force / Reach / Rhythm / Wide Arc / Velocity magnitudes | Scaling card's existing Rarity Magnitudes entries; Common, Rare and Epic are independent |
 | Maximum ranks, rarity, prerequisites, exclusivity, artwork, card text | Existing Upgrade Data Asset fields |
+| Grand Entrance empowered attack radius, extra projectile count and fan width | `/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEntrance` Runtime Balance |
 | Tag Team setup attack damage, range, target counts, cone and pushback | `/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_TagTeam` Runtime Balance |
 | Tag Team frequency, placement and visibility duration | InactiveCharacterAssist component on `BP_SurvivorPlayerController` |
 | Earlier Double Cut / Fan of Blades / technique attack settings | AutoAttack component on the relevant character Blueprint |
@@ -50,7 +51,7 @@ An acquired branch can override a matching starter balance key. Explicit branch-
 
 For branch visuals, enable **Override Family Visuals** on the branch card, then configure its presentation. Otherwise it inherits the starter's visuals. The same precedence applies if several acquired branches enable a visual override. This replaces the whole family's presentation while that branch is owned; it is not an extra effect layered on every hit.
 
-Synergy presentation is independent: enable Override Family Visuals on the synergy card to customize its reaction. Otherwise it inherits the starter. A starter's own presentation always applies without needing that override checkbox.
+Universal Prepare uses one shared burst visual. A starter's own presentation always applies without needing the override checkbox.
 
 ## VFX slots
 

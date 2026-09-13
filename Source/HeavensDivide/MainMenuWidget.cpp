@@ -214,7 +214,8 @@ void UMainMenuWidget::BuildMenu()
 		PageSlot->SetPadding(FMargin(410.0f, 24.0f, 24.0f, 24.0f));
 	};
 	CollectionOverlay = BuildSecondaryPageFrame(BuildCollectionPanel(), TEXT("CollectionOverlay"),
-		CollectionPageOffset, CollectionContentPadding, FLinearColor(0.008f, 0.010f, 0.016f, 0.94f));
+		CollectionPageOffset, CollectionContentPadding, FLinearColor(0.008f, 0.010f, 0.016f, 0.94f), nullptr,
+		FVector2D(1440.0f, 920.0f), true);
 	AttachPage(CollectionOverlay);
 	SetCollectionVisible(false);
 
@@ -284,7 +285,7 @@ void UMainMenuWidget::BuildMenu()
 	SetResetConfirmationVisible(false);
 }
 
-UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer)
+UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer, FVector2D PageSize, bool bAllowUpscaling)
 {
 	UBorder* PageOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), PageName);
 	PageOverlay->SetBrushColor(FLinearColor::Transparent);
@@ -293,10 +294,10 @@ UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageNa
 	PageOverlay->SetClipping(EWidgetClipping::ClipToBounds);
 	UScaleBox* PageScale = WidgetTree->ConstructWidget<UScaleBox>(UScaleBox::StaticClass(), NAME_None);
 	PageScale->SetStretch(EStretch::ScaleToFit);
-	PageScale->SetStretchDirection(EStretchDirection::DownOnly);
+	PageScale->SetStretchDirection(bAllowUpscaling ? EStretchDirection::Both : EStretchDirection::DownOnly);
 	USizeBox* PageDesignSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), NAME_None);
-	PageDesignSize->SetWidthOverride(1030.0f);
-	PageDesignSize->SetHeightOverride(780.0f + (Footer ? 24.0f + FMath::Max(1.0f, CollectionBackButtonSize.Y) : 0.0f));
+	PageDesignSize->SetWidthOverride(PageSize.X);
+	PageDesignSize->SetHeightOverride(PageSize.Y + (Footer ? 24.0f + FMath::Max(1.0f, CollectionBackButtonSize.Y) : 0.0f));
 	UOverlay* PageArtLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), NAME_None);
 	if (Footer)
 	{
@@ -304,7 +305,7 @@ UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageNa
 		UVerticalBox* PageStack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		PageDesignSize->SetContent(PageStack);
 		USizeBox* ArtSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		ArtSize->SetHeightOverride(780.0f);
+		ArtSize->SetHeightOverride(PageSize.Y);
 		ArtSize->SetContent(PageArtLayers);
 		PageStack->AddChildToVerticalBox(ArtSize);
 		UVerticalBoxSlot* FooterSlot = PageStack->AddChildToVerticalBox(Footer);
@@ -532,7 +533,94 @@ void UMainMenuWidget::RefreshCollection()
 	RebuildCollectionGrid();
 }
 
+void UMenuKeybindSelector::InitializeBinding(UMainMenuWidget* Owner,FName Action)
+{
+ MenuOwner=Owner;BindingAction=Action;
+ SetAllowModifierKeys(false);SetAllowGamepadKeys(false);SetEscapeKeys({EKeys::Escape,EKeys::Gamepad_FaceButton_Right});
+ SetKeySelectionText(FText::FromString(TEXT("Press a key...")));
+ OnKeySelected.AddDynamic(this,&UMenuKeybindSelector::HandleBindingSelected);
+}
+void UMenuKeybindSelector::HandleBindingSelected(FInputChord Key)
+{
+ if(MenuOwner)MenuOwner->ApplyKeyBinding(BindingAction,Key);
+}
 UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
+{
+ auto* Host=WidgetTree->ConstructWidget<UVerticalBox>();
+ SettingsSwitcher=WidgetTree->ConstructWidget<UWidgetSwitcher>(UWidgetSwitcher::StaticClass(),TEXT("SettingsSubpages"));
+ Host->AddChildToVerticalBox(SettingsSwitcher)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+ SettingsSwitcher->AddChild(BuildGeneralSettingsPanel());SettingsSwitcher->AddChild(BuildKeybindPanel());
+ return Host;
+}
+UVerticalBox* UMainMenuWidget::BuildKeybindPanel()
+{
+ auto* Panel=WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(),TEXT("KeybindPanel"));
+ auto* Heading=WidgetTree->ConstructWidget<UTextBlock>();
+ Heading->SetText(FText::FromString(TEXT("KEYBINDS")));Heading->SetColorAndOpacity(SecondaryHeadingColor);
+ auto HeadingFont=SecondaryHeadingFont.Size>0?SecondaryHeadingFont:Heading->GetFont();
+ if(SecondaryHeadingFont.Size<=0){HeadingFont.Size=CollectionDetailNameFontSize;HeadingFont.TypefaceFontName=TEXT("Bold");}
+ Heading->SetFont(HeadingFont);Panel->AddChildToVerticalBox(Heading)->SetPadding(FMargin(0,0,0,28));
+ AddSecondaryPageDivider(Panel);
+ auto* RootPanel=Panel;
+ auto* Scroll=WidgetTree->ConstructWidget<UScrollBox>();
+ RootPanel->AddChildToVerticalBox(Scroll)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+ Panel=WidgetTree->ConstructWidget<UVerticalBox>();Scroll->AddChild(Panel);
+ auto BodyFont=SecondaryBodyFont.Size>0?SecondaryBodyFont:Heading->GetFont();BodyFont.Size=CollectionDescriptionFontSize;
+ auto* Help=WidgetTree->ConstructWidget<UTextBlock>();Help->SetFont(BodyFont);Help->SetColorAndOpacity(SecondaryBodyColor);
+ Help->SetText(FText::FromString(TEXT("Keyboard & mouse. Select a binding, then press a key. Esc cancels.")));Help->SetAutoWrapText(true);
+ Panel->AddChildToVerticalBox(Help)->SetPadding(FMargin(0,0,0,16));
+ const TCHAR* Labels[]={TEXT("Move Forward"),TEXT("Move Backward"),TEXT("Move Left"),TEXT("Move Right"),TEXT("Swap Character"),TEXT("Dash"),TEXT("Interact")};
+ const auto Actions=UHeavensDivideGameUserSettings::GetBindableActions();KeybindSelectors.Reset();
+ for(int32 Index=0;Index<Actions.Num();++Index)
+ {
+  auto* Row=WidgetTree->ConstructWidget<UHorizontalBox>();Panel->AddChildToVerticalBox(Row)->SetPadding(FMargin(0,4));
+  auto* Label=WidgetTree->ConstructWidget<UTextBlock>();Label->SetText(FText::FromString(Labels[Index]));Label->SetFont(BodyFont);Label->SetColorAndOpacity(SecondaryBodyColor);
+  auto* LabelSlot=Row->AddChildToHorizontalBox(Label);LabelSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));LabelSlot->SetVerticalAlignment(VAlign_Center);
+  auto* Selector=WidgetTree->ConstructWidget<UMenuKeybindSelector>(UMenuKeybindSelector::StaticClass(),FName(FString(TEXT("Bind_"))+Actions[Index].ToString()));
+  Selector->InitializeBinding(this,Actions[Index]);
+  FTextBlockStyle TextStyle=Selector->GetTextStyle();TextStyle.SetFont(BodyFont);TextStyle.SetColorAndOpacity(SecondaryHeadingColor);Selector->SetTextStyle(TextStyle);
+  FButtonStyle Style=Selector->GetButtonStyle();FSlateBrush Normal;Normal.DrawAs=ESlateBrushDrawType::NoDrawType;
+  FSlateBrush Ink;Ink.SetResourceObject(InkBrushTexture);Ink.DrawAs=InkBrushTexture?ESlateBrushDrawType::Image:ESlateBrushDrawType::NoDrawType;
+  Style.SetNormal(Normal);Style.SetHovered(Ink);Style.SetPressed(Ink);Selector->SetButtonStyle(Style);Selector->SetMargin(FMargin(12,4));
+  auto* Size=WidgetTree->ConstructWidget<USizeBox>();Size->SetWidthOverride(300);Size->SetHeightOverride(42);Size->SetContent(Selector);Row->AddChildToHorizontalBox(Size);
+  KeybindSelectors.Add(Selector);
+ }
+ KeybindStatus=WidgetTree->ConstructWidget<UTextBlock>();KeybindStatus->SetFont(BodyFont);KeybindStatus->SetColorAndOpacity(SecondaryBodyColor);KeybindStatus->SetAutoWrapText(true);
+ Panel->AddChildToVerticalBox(KeybindStatus)->SetPadding(FMargin(0,12));
+ AddMenuButton(Panel,FText::FromString(TEXT("RESTORE DEFAULTS")),TEXT("ResetKeybindsButton"))->OnClicked.AddDynamic(this,&UMainMenuWidget::HandleResetKeybinds);
+ RefreshKeybindRows();return RootPanel;
+}
+void UMainMenuWidget::RefreshKeybindRows()
+{
+ TGuardValue<bool> Guard(bRefreshingKeybinds,true);
+ const auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+ for(const auto& Row:KeybindSelectors)if(Row)Row->SetSelectedKey(FInputChord(Settings?Settings->GetKeyBinding(Row->BindingAction):UHeavensDivideGameUserSettings::GetDefaultBinding(Row->BindingAction)));
+}
+void UMainMenuWidget::ApplyKeyBinding(FName Action,FInputChord Key)
+{
+ if(bRefreshingKeybinds)return;
+ auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+ const bool Saved=Settings&&Settings->SetKeyBinding(Action,Key.Key);
+ if(KeybindStatus)KeybindStatus->SetText(FText::FromString(Saved?TEXT("Saved. Conflicting bindings exchange keys."):TEXT("Choose a keyboard or mouse button. Esc and ~ are reserved.")));
+ RefreshKeybindRows();
+}
+bool UMainMenuWidget::IsSelectingKeybind() const
+{
+ return KeybindSelectors.ContainsByPredicate([](const auto& Row){return Row&&Row->GetIsSelectingKey();});
+}
+void UMainMenuWidget::HandleKeybindSettings()
+{
+ RefreshKeybindRows();if(KeybindStatus)KeybindStatus->SetText(FText::FromString(TEXT("Changes save automatically. Conflicting bindings exchange keys.")));
+ if(SettingsSwitcher)SettingsSwitcher->SetActiveWidgetIndex(1);
+ if(!KeybindSelectors.IsEmpty())KeybindSelectors[0]->SetUserFocus(GetOwningPlayer());
+}
+void UMainMenuWidget::HandleResetKeybinds()
+{
+ if(auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())Settings->ResetKeyBindings();
+ RefreshKeybindRows();if(KeybindStatus)KeybindStatus->SetText(FText::FromString(TEXT("Default bindings restored.")));
+}
+
+UVerticalBox* UMainMenuWidget::BuildGeneralSettingsPanel()
 {
 	UVerticalBox* Panel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("SettingsPanel"));
 
@@ -595,6 +683,7 @@ UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
 	CameraShakeValueText->SetColorAndOpacity(FSlateColor(SecondaryHeadingColor));
 	ShakeRow->AddChildToHorizontalBox(CameraShakeValueText)->SetPadding(FMargin(12, 0, 0, 0));
 	CameraShakeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::HandleCameraShakeChanged);
+	AddMenuButton(Panel,FText::FromString(TEXT("KEYBINDS")),TEXT("KeybindSettingsButton"))->OnClicked.AddDynamic(this,&UMainMenuWidget::HandleKeybindSettings);
 	RefreshAutoTargetingSetting();
 	return Panel;
 }
@@ -922,6 +1011,7 @@ void UMainMenuWidget::ShowCollectionPanel()
 
 void UMainMenuWidget::ShowSettingsPanel()
 {
+	if(SettingsSwitcher)SettingsSwitcher->SetActiveWidgetIndex(0);
 	SetSkillTreeVisible(false);
 	SetResetConfirmationVisible(false);
 	SetCollectionVisible(false);
@@ -986,7 +1076,7 @@ void UMainMenuWidget::HandleNewRun()
 void UMainMenuWidget::HandleCollection() { ShowCollectionPanel(); }
 void UMainMenuWidget::HandleSettings() { ShowSettingsPanel(); }
 void UMainMenuWidget::HandleResetProgress() { ShowResetConfirmation(); }
-void UMainMenuWidget::HandleBack() { ShowMainPanel(); }
+void UMainMenuWidget::HandleBack() { if(bSettingsPopupOpen&&SettingsSwitcher&&SettingsSwitcher->GetActiveWidgetIndex()==1){ShowSettingsPanel();FocusNamedWidget(TEXT("KeybindSettingsButton"));}else ShowMainPanel(); }
 void UMainMenuWidget::HandleCancelReset() { SetResetConfirmationVisible(false); }
 
 void UMainMenuWidget::HandleConfirmReset()
@@ -1009,6 +1099,7 @@ void UMainMenuWidget::HandleExitGame()
 
 FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
+	if(IsSelectingKeybind())return FReply::Unhandled();
 	bShowFocusHighlight = true;
 	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Right)
 	{
@@ -1024,7 +1115,7 @@ FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 		}
 		if (bSettingsPopupOpen)
 		{
-			ShowMainPanel();
+			HandleBack();
 			return FReply::Handled();
 		}
 		if (bCollectionOpen)
@@ -1043,6 +1134,7 @@ FReply UMainMenuWidget::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyE
 
 FReply UMainMenuWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
 {
+	if(IsSelectingKeybind())return FReply::Unhandled();
 	bShowFocusHighlight = true;
 	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Right)
 	{
@@ -1054,7 +1146,7 @@ FReply UMainMenuWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, cons
 		}
 		if (bSettingsPopupOpen)
 		{
-			ShowMainPanel();
+			HandleBack();
 			return FReply::Handled();
 		}
 		if (bCollectionOpen)

@@ -35,17 +35,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `Delay` | 0.3 |
 | `DamageMultiplier` | 0.5 |
 
-### Synergy: Storm Conductor (`StormConductor`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.6 |
-| `Radius` | 300 |
-| `Count` | 3 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
 
 ## Heavenfall
 
@@ -75,17 +64,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `DamageMultiplier` | 0.5 |
 | `Delay` | 0.4 |
 
-### Synergy: Fallen Constellation (`FallenConstellation`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.8 |
-| `Radius` | 210 |
-| `Count` | 2 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `EchoInterval` | 0.25 |
 
 ## Night Thread
 
@@ -117,17 +95,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `LineWidth` | 55 |
 | `DamageMultiplier` | 0.4 |
 
-### Synergy: Sever the Thread (`ThreadSever`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.7 |
-| `Radius` | 360 |
-| `Count` | 4 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
 
 ## Venom Garden
 
@@ -161,16 +128,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `PushDistance` | 45 |
 | `PushDuration` | 0.15 |
 
-### Synergy: Plague Harvest (`PlagueHarvest`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 4 |
-| `Radius` | 300 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
 
 ## Blade Wave
 
@@ -210,63 +167,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `SplinterDamageMultiplier` | 0.3 |
 | `SplinterRadius` | 120 |
 
-### Synergy: Venom Edge (`VenomEdge`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.6 |
-| `Radius` | 240 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
-
-## Crescent Reaper
-
-### Starter (`CrescentReaper`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 28 |
-| `Radius` | 120 |
-| `Cooldown` | 4.5 |
-| `Count` | 7 |
-| `Interval` | 0.12 |
-| `InitialDelay` | 0.1 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-| `StepDistance` | 120 |
-| `StatusStacks` | 1 |
-
-### Reaping Return (`ReapingReturn`)
-
-| Key | Migration default |
-| --- | --- |
-| `ReturnDamageMultiplier` | 0.7 |
-
-### Twin Crescents (`TwinCrescents`)
-
-| Key | Migration default |
-| --- | --- |
-| `SideAngle` | 30 |
-
-### Crimson Crescent (`CrimsonCrescent`)
-
-| Key | Migration default |
-| --- | --- |
-| `StatusStacks` | 1 |
-
-### Synergy: Reaper's Invitation (`ReapersInvitation`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.6 |
-| `Radius` | 300 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `PullDistance` | 100 |
-| `PullDuration` | 0.2 |
 
 ## Iron Orbit
 
@@ -307,58 +207,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | --- | --- |
 | `StatusStacks` | 1 |
 
-### Synergy: Orbit Relay (`OrbitRelay`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.5 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 1 |
-| `CooldownRefund` | 1 |
-| `StatusStacks` | 1 |
-
-## Fault Line
-
-### Starter (`FaultLine`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 30 |
-| `Radius` | 170 |
-| `Cooldown` | 5 |
-| `Count` | 3 |
-| `Interval` | 0.3 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-| `WarningDelay` | 0.4 |
-| `PushDistance` | 65 |
-| `PushDuration` | 0.15 |
-| `StepDistance` | 220 |
-
-### Cross Fault (`CrossFault`)
-
-| Key | Migration default |
-| --- | --- |
-| `CrossAngle` | 90 |
-
-### Rolling Aftershock (`RollingAftershock`)
-
-| Key | Migration default |
-| --- | --- |
-| `EchoDamageMultiplier` | 0.5 |
-
-### Synergy: Fault Detonator (`FaultDetonator`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.75 |
-| `Radius` | 250 |
-| `Count` | 2 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `EchoInterval` | 0.25 |
 
 ## War Banner
 
@@ -389,99 +237,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | --- | --- |
 | `StatusStacks` | 1 |
 
-### Synergy: Rallying Shadows (`RallyingShadows`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 1 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 1 |
-| `CooldownRefund` | 1 |
-| `StatusStacks` | 1 |
-
-## Thousand Cuts
-
-### Starter (`ThousandCuts`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 9 |
-| `Radius` | 75 |
-| `Cooldown` | 4 |
-| `Count` | 6 |
-| `Interval` | 0.15 |
-| `InitialDelay` | 0.1 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-| `StatusStacks` | 1 |
-
-### Passing Sentence (`PassingSentence`)
-
-| Key | Migration default |
-| --- | --- |
-| `RetargetRange` | 600 |
-
-### Shared Sentence (`SharedSentence`)
-
-| Key | Migration default |
-| --- | --- |
-| `SplashDamageMultiplier` | 0.5 |
-
-### Open Wounds (`OpenWounds`)
-
-| Key | Migration default |
-| --- | --- |
-| `StatusStacks` | 1 |
-
-### Synergy: Execution Window (`ExecutionWindow`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 2 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
-
-## Spirit Lance
-
-### Starter (`SpiritLance`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 38 |
-| `Radius` | 70 |
-| `Cooldown` | 4.5 |
-| `Count` | 1 |
-| `Interval` | 0.2 |
-| `InitialDelay` | 0.1 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-
-### Crossed Lances (`CrossedLances`)
-
-| Key | Migration default |
-| --- | --- |
-| `SideAngle` | 25 |
-
-### Rebounding Lance (`ReboundingLance`)
-
-| Key | Migration default |
-| --- | --- |
-| `EchoDamageMultiplier` | 0.5 |
-
-### Synergy: Shadow Spear (`ShadowSpear`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.65 |
-| `Radius` | 440 |
-| `Count` | 3 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
 
 ## Blood Moon
 
@@ -508,201 +263,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `SecondaryRadiusMultiplier` | 1 |
 | `SecondaryDamageMultiplier` | 1 |
 
-### Synergy: Eclipse Harvest (`EclipseHarvest`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 1 |
-| `Radius` | 320 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
-
-## Lotus Mines
-
-### Starter (`LotusMines`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 30 |
-| `Radius` | 180 |
-| `Cooldown` | 6 |
-| `Count` | 3 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-| `ArmDelay` | 0.6 |
-| `TriggerPollInterval` | 0.2 |
-| `ScatterRadius` | 130 |
-| `TriggerRadiusMultiplier` | 0.75 |
-| `StatusStacks` | 1 |
-
-### Double Petals (`DoublePetals`)
-
-| Key | Migration default |
-| --- | --- |
-| `AdditionalMines` | 2 |
-
-### Patient Lotus (`PatientLotus`)
-
-| Key | Migration default |
-| --- | --- |
-| `Charges` | 2 |
-| `RearmDelay` | 0.4 |
-
-### Venom Petals (`VenomPetals`)
-
-| Key | Migration default |
-| --- | --- |
-| `StatusStacks` | 1 |
-
-### Synergy: Lotus Execution (`LotusExecution`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.8 |
-| `Radius` | 260 |
-| `Count` | 2 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `EchoInterval` | 0.25 |
-
-## Shadow Shuriken
-
-### Starter (`ShadowShuriken`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 16 |
-| `Radius` | 380 |
-| `Cooldown` | 4 |
-| `Count` | 5 |
-| `InitialDelay` | 0.1 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-| `StatusStacks` | 1 |
-
-### Returning Star (`ReturningStar`)
-
-| Key | Migration default |
-| --- | --- |
-| `ReturnDamageMultiplier` | 0.5 |
-
-### Splitting Star (`SplittingStar`)
-
-| Key | Migration default |
-| --- | --- |
-| `SplashRadius` | 120 |
-| `SplashDamageMultiplier` | 0.3 |
-
-### Toxic Star (`ToxicStar`)
-
-| Key | Migration default |
-| --- | --- |
-| `StatusStacks` | 1 |
-
-### Synergy: Steel Ricochet (`SteelRicochet`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.9 |
-| `Radius` | 420 |
-| `Count` | 3 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
-
-## Smoke Lattice
-
-### Starter (`SmokeLattice`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 6 |
-| `Radius` | 290 |
-| `Cooldown` | 6.5 |
-| `Count` | 5 |
-| `Interval` | 0.8 |
-| `InitialDelay` | 0.1 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-| `PushDistance` | 65 |
-| `PushDuration` | 0.15 |
-| `StatusStacks` | 1 |
-
-### Double Veil (`DoubleVeil`)
-
-| Key | Migration default |
-| --- | --- |
-| `SecondaryRadiusMultiplier` | 1 |
-| `SecondaryDamageMultiplier` | 1 |
-
-### Choking Finale (`ChokingFinale`)
-
-| Key | Migration default |
-| --- | --- |
-| `FinalDamageMultiplier` | 3 |
-
-### Synergy: Hidden Blade (`HiddenBlade`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 3 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
-
-## Thunder Wire
-
-### Starter (`ThunderWire`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 14 |
-| `Radius` | 65 |
-| `Cooldown` | 5 |
-| `Count` | 3 |
-| `Interval` | 0.45 |
-| `InitialDelay` | 0.1 |
-| `Lifetime` | 8 |
-| `TargetRange` | 1200 |
-| `WireLength` | 1000 |
-| `StatusStacks` | 1 |
-
-### Cross Wire (`CrossWire`)
-
-| Key | Migration default |
-| --- | --- |
-| `CrossHalfLength` | 450 |
-| `CrossAngle` | 90 |
-
-### Live Wire (`LiveWire`)
-
-| Key | Migration default |
-| --- | --- |
-| `EndpointRadius` | 150 |
-| `EndpointDamageMultiplier` | 0.5 |
-
-### Venom Cable (`VenomCable`)
-
-| Key | Migration default |
-| --- | --- |
-| `StatusStacks` | 1 |
-
-### Synergy: Grounded Steel (`GroundedSteel`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 1 |
-| `Radius` | 360 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `PullDistance` | 100 |
-| `PullDuration` | 0.2 |
 
 ## Phantom Ambush
 
@@ -741,60 +301,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | --- | --- |
 | `StatusStacks` | 1 |
 
-### Synergy: Phantom Handoff (`PhantomHandoff`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 0.75 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 1 |
-| `CooldownRefund` | 1 |
-| `StatusStacks` | 1 |
-
-## Caltrop Trail
-
-### Starter (`CaltropTrail`)
-
-| Key | Migration default |
-| --- | --- |
-| `Damage` | 12 |
-| `Radius` | 130 |
-| `Cooldown` | 1.3 |
-| `Count` | 1 |
-| `Lifetime` | 8 |
-| `MovementSpacing` | 160 |
-| `ArmDelay` | 0.4 |
-| `TriggerPollInterval` | 0.2 |
-| `TargetRange` | 1200 |
-| `PushDistance` | 65 |
-| `PushDuration` | 0.15 |
-| `TriggerRadiusMultiplier` | 0.75 |
-| `StatusStacks` | 1 |
-
-### Forked Trail (`ForkedTrail`)
-
-| Key | Migration default |
-| --- | --- |
-| `SideOffset` | 90 |
-
-### Persistent Spikes (`PersistentSpikes`)
-
-| Key | Migration default |
-| --- | --- |
-| `Charges` | 2 |
-| `RearmDelay` | 0.4 |
-
-### Synergy: Spiked Opening (`SpikedOpening`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 1.6 |
-| `Radius` | 230 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
 
 ## Crimson Needle
 
@@ -831,15 +337,6 @@ These are migration defaults, not a live export of your edited assets. Values on
 | --- | --- |
 | `StatusStacks` | 1 |
 
-### Synergy: Crimson Verdict (`CrimsonVerdict`)
-
-| Key | Migration default |
-| --- | --- |
-| `DamageMultiplier` | 1.25 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
 
 ## Raven Swarm
 
@@ -876,16 +373,18 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `FinalRadiusMultiplier` | 2 |
 | `FinalDamageMultiplier` | 3 |
 
-### Synergy: Carrion Feast (`CarrionFeast`)
 
-| Key | Migration default |
+## Universal Prepare
+
+On the SurvivorAbility component of `BP_SurvivorPlayerController`, under **Abilities > Prepare**:
+
+| Setting | Default |
 | --- | --- |
-| `DamageMultiplier` | 2 |
-| `Radius` | 280 |
-| `PreparationDuration` | 6 |
-| `ReprimeDelay` | 2 |
-| `TriggerCooldown` | 0.35 |
-| `StatusStacks` | 1 |
+| Preparation Duration | 6 seconds |
+| Preparation Damage Multiplier | 0.6 of the preparing hit |
+| Preparation Spread Radius | 300 cm |
+
+These shared settings replace the eleven family Prepare cards.
 
 ## Tag Team setup assists
 
@@ -900,3 +399,13 @@ These are migration defaults, not a live export of your edited assets. Values on
 | `ConeHalfAngle` | 69.5127 |
 | `PushDistance` | 65 |
 | `PushDuration` | 0.15 |
+
+## Grand Entrance
+
+On `DA_Synergy_GrandEntrance`, under Runtime Balance:
+
+| Key | Default |
+| --- | --- |
+| `SamuraiRadius` | 600 cm, scaled by basic attack area |
+| `NinjaBonusProjectiles` | 8 extra projectiles |
+| `NinjaFanAngle` | 100 degrees total fan width |

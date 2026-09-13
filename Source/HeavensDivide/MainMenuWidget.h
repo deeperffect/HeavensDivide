@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Button.h"
+#include "Components/InputKeySelector.h"
 #include "MainMenuWidget.generated.h"
 
 class UCheckBox;
@@ -20,6 +21,18 @@ class UWidgetSwitcher;
 class UUpgradeDefinition;
 class UMainMenuWidget;
 enum class EUpgradeCategory : uint8;
+
+UCLASS()
+class UMenuKeybindSelector : public UInputKeySelector
+{
+	GENERATED_BODY()
+public:
+	void InitializeBinding(UMainMenuWidget* Owner,FName Action);
+	FName BindingAction;
+private:
+	UFUNCTION() void HandleBindingSelected(FInputChord Key);
+	UPROPERTY(Transient) TObjectPtr<UMainMenuWidget> MenuOwner;
+};
 
 UCLASS()
 class HEAVENSDIVIDE_API UCollectionUpgradeTileButton : public UButton
@@ -40,6 +53,7 @@ UCLASS(BlueprintType, Blueprintable)
 class HEAVENSDIVIDE_API UMainMenuWidget : public UUserWidget
 {
 	GENERATED_BODY()
+	friend class FKeybindSettingsTest;
 
 public:
 	UMainMenuWidget(const FObjectInitializer& ObjectInitializer);
@@ -60,6 +74,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Main Menu|Collection")
 	void RefreshCollection();
 	void PreviewCollectionUpgrade(UUpgradeDefinition* Definition, bool bCommitSelection);
+	void ApplyKeyBinding(FName Action,FInputChord Key);
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -72,10 +87,20 @@ protected:
 
 private:
 	void BuildMenu();
-	class UBorder* BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer = nullptr);
+	class UBorder* BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer = nullptr, FVector2D PageSize = FVector2D(1030.0f, 780.0f), bool bAllowUpscaling = false);
 	void AddSecondaryPageDivider(class UVerticalBox* Panel);
 	class UVerticalBox* BuildCollectionPanel();
 	class UVerticalBox* BuildSettingsPanel();
+	class UVerticalBox* BuildGeneralSettingsPanel();
+	class UVerticalBox* BuildKeybindPanel();
+	void RefreshKeybindRows();
+	bool IsSelectingKeybind() const;
+	UFUNCTION() void HandleKeybindSettings();
+	UFUNCTION() void HandleResetKeybinds();
+	UPROPERTY(Transient) TObjectPtr<UWidgetSwitcher> SettingsSwitcher;
+	UPROPERTY(Transient) TArray<TObjectPtr<UMenuKeybindSelector>> KeybindSelectors;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> KeybindStatus;
+	bool bRefreshingKeybinds=false;
 	void RefreshAutoTargetingSetting();
 	void RebuildCollectionGrid();
 	void RefreshCollectionDetails();

@@ -68,11 +68,11 @@ Values below are per rank unless the node has one rank. Character direct damage 
 | Node | Effect | Ranks | Prerequisite (one rank each) |
 | --- | --- | --- | --- |
 | Crossing Souls | +5% swap recharge speed per rank. | 3 | Inner Fire |
-| Lingering Intent | Family synergy preparation lasts +0.5 seconds per rank. | 3 | Pilgrim's Step |
-| Answered Challenge | +5% family partner-reaction damage per rank. | 3 | Crossing Souls |
+| Lingering Intent | Universal Prepare lasts +0.5 seconds per rank. | 3 | Pilgrim's Step |
+| Answered Challenge | +5% Prepare bonus damage per rank. | 3 | Crossing Souls |
 | Seamless Relay | +5% swap recharge speed per rank. | 3 | Lingering Intent |
-| Unbroken Promise | Family synergy preparation lasts +0.5 seconds per rank. | 3 | Answered Challenge |
-| Converging Blades | +5% family partner-reaction damage per rank. | 3 | Seamless Relay |
+| Unbroken Promise | Universal Prepare lasts +0.5 seconds per rank. | 3 | Answered Challenge |
+| Converging Blades | +5% Prepare bonus damage per rank. | 3 | Seamless Relay |
 | Two Souls, One Will | +8% damage for both characters. | 1 | Unbroken Promise, Mountain Splitter, Assassin's Patience |
 | Heaven Undivided | +8% basic attack speed for both characters. | 1 | Converging Blades, Unclosing Wounds, Black Lotus |
 
@@ -80,7 +80,7 @@ Values below are per rank unless the node has one rank. Character direct damage 
 
 Bonuses with the same effect add across tree nodes. Shared and character stat bonuses use Add Flat on existing multiplier stats. Full investment gives +27% max health, +17% shared damage, +14% shared basic attack speed, +6% movement speed, +44% pickup radius and one extra dash charge. Each character receives +24% direct damage and +17% basic attack speed. Samurai gains +30% basic melee area scale; Ninja gains +18% basic projectile speed, one projectile and one pierce. Bleed and Poison each gain a separate 30% multiplier.
 
-Swap cooldown is `base / (1 + swap bonus)`: a 3-second cooldown becomes approximately 2.31 seconds at +30% recharge speed. The timer and HUD use the same effective duration. Family synergy preparation lasts up to three additional seconds; partner-reaction damage gains a separate 30% multiplier. Same-character restrictions, victim re-prime lockouts and recursion guards are preserved.
+Swap cooldown is `base / (1 + swap bonus)`: a 3-second cooldown becomes approximately 2.31 seconds at +30% recharge speed. The timer and HUD use the same effective duration. Universal Prepare lasts up to three additional seconds; Prepare bonus damage gains a separate 30% multiplier. Only the opposite character’s Tag Team assist can consume Prepare. Consumption cannot recurse.
 
 Stats are rebuilt using stable `MetaSkill.<node ID>` modifier IDs. Modifier replacement is atomic and skips identical values, preventing temporary stat drops and dash refills during rebuilds. Passive effects are cached when progression changes; status ticks and family hits use constant-time lookups. No new per-frame gameplay work is added.
 

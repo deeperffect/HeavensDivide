@@ -54,6 +54,7 @@ struct FAutoAttackRunState
 	UPROPERTY() int32 CrossingBladesCounter = 0;
 	UPROPERTY() bool bBladeCascadeReady = false;
 	UPROPERTY() bool bExtraProjectileOnRight = true;
+	UPROPERTY() bool bGrandEntranceReady = false;
 };
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -62,11 +63,13 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 	GENERATED_BODY()
 	friend class FImpactFeedbackTest;
 	friend class FEnemyPushbackTest;
+	friend class FGrandEntranceTest;
 
 public:
 	UAutoAttackComponent();
 	void CaptureRunState(FAutoAttackRunState& OutState) const;
 	void RestoreRunState(const FAutoAttackRunState& State);
+	void ArmGrandEntranceAfterSwap();
 
 	UFUNCTION(BlueprintCallable, Category = "Auto Attack")
 	void StartAutoAttack();
@@ -345,6 +348,8 @@ private:
 	void SpawnFanOfBladesConvergenceGroup(AEnemyBase* Target, int32 AssignedProjectileCount, const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount);
 	void SpawnBladeWavesForAttack(float ResolvedPrimaryDamage);
 	const UUpgradeDefinition* GetBladeCascadeUpgrade() const;
+	const UUpgradeDefinition* GetReadyGrandEntranceUpgrade() const;
+	float GetGrandEntranceRadius(const UUpgradeDefinition* Upgrade) const;
 	int32 ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount);
 	bool WillNextSamuraiAttackTriggerDoubleCut() const;
 	bool ShouldApplySamuraiPushback() const;
@@ -390,6 +395,7 @@ private:
 	bool bActiveAttackIsAssist = false;
 	bool bActiveAttackTriggersFanOfBlades = false;
 	bool bBladeCascadeReady = false;
+	bool bGrandEntranceReady = false;
 	bool bDoubleCutReady = false;
 	bool bDoubleCutFollowUpActive = false;
 	bool bDoubleCutFollowUpPending = false;

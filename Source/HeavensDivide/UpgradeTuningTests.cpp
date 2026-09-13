@@ -24,13 +24,12 @@ bool FUpgradeTuningTest::RunTest(const FString&)
  auto* Samurai=World->SpawnActor<ASamuraiCharacter>(FVector::ZeroVector,FRotator::ZeroRotator,Params);Samurai->SetOwner(PC);
  auto* Enemy=World->SpawnActor<AEnemyBase>(FVector(500,0,0),FRotator::ZeroRotator,Params);
  Enemy->GetHealthComponent()->SetMaxHealthPreservePercent(100000);Enemy->GetHealthComponent()->RestoreCurrentHealth(100000);
- auto* Root=A->TuningDefinition(0);auto* Echo=A->TuningDefinition(0,0);auto* Synergy=A->TuningDefinition(0,3);
- if(!TestNotNull(TEXT("Editable starter loaded from saved pool"),Root)||!Echo||!Synergy){World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return false;}
- const auto SavedRoot=Root->BalanceParameters,SavedEcho=Echo->BalanceParameters,SavedSynergy=Synergy->BalanceParameters;
+ auto* Root=A->TuningDefinition(0);auto* Echo=A->TuningDefinition(0,0);
+ if(!TestNotNull(TEXT("Editable starter loaded from saved pool"),Root)||!Echo){World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return false;}
+ const auto SavedRoot=Root->BalanceParameters,SavedEcho=Echo->BalanceParameters;
  const auto SavedVFX=Root->Presentation;const auto SavedBranchVFX=Echo->Presentation;
  TestTrue(TEXT("Migration exposes starter balance"),Root->bHasRuntimeBalance&&Root->BalanceParameters.Contains(TEXT("Radius")));
  TestTrue(TEXT("Migration exposes branch balance"),Echo->BalanceParameters.Contains(TEXT("DamageMultiplier")));
- TestTrue(TEXT("Migration exposes synergy balance"),Synergy->BalanceParameters.Contains(TEXT("TriggerCooldown")));
  U->AcquireUpgrade(Root);
  Root->BalanceParameters.Add(TEXT("Radius"),260);
  TestFalse(TEXT("Enemy outside configured base radius cannot trigger Tempest"),A->ActivateAbility(0,Samurai));
@@ -48,11 +47,12 @@ bool FUpgradeTuningTest::RunTest(const FString&)
   TestEqual(TEXT("Branch asset controls echo delay"),A->Pending[0].Remaining,0.7f);
   TestTrue(TEXT("Branch asset controls echo fraction"),FMath::IsNearlyEqual(A->Pending[0].Damage,(BeforeEcho-Enemy->GetHealthComponent()->GetCurrentHealth())*0.2f,0.02f));
  }
- A->Pending.Reset();A->BuildMarks.Reset();A->ReactionGates[0]=0;
- Synergy->BalanceParameters.Add(TEXT("DamageMultiplier"),2);Synergy->BalanceParameters.Add(TEXT("Count"),1);Synergy->BalanceParameters.Add(TEXT("TriggerCooldown"),2.5f);
- A->RegisterFamilyHit(0,Enemy,20);const float BeforeReaction=Enemy->GetHealthComponent()->GetCurrentHealth();A->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy);
- TestTrue(TEXT("Synergy asset controls payout"),FMath::IsNearlyEqual(BeforeReaction-Enemy->GetHealthComponent()->GetCurrentHealth(),40,0.01f));
- TestEqual(TEXT("Synergy asset controls trigger throttle"),A->ReactionGates[0],2.5f);
+ A->Pending.Reset();A->BuildMarks.Reset();
+ A->PreparationDamageMultiplier=2;A->PreparationDuration=9;
+ A->RegisterFamilyHit(0,Enemy,20);const float BeforeReaction=Enemy->GetHealthComponent()->GetCurrentHealth();
+ TestEqual(TEXT("Component setting controls universal preparation duration"),A->BuildMarks[0].Remaining,9.f);
+ A->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy,true);
+ TestTrue(TEXT("Component setting controls universal preparation payout"),FMath::IsNearlyEqual(BeforeReaction-Enemy->GetHealthComponent()->GetCurrentHealth(),40,0.01f));
  // A real Niagara component receives the selected system, world placement and live radius parameters.
  auto* System=NewObject<UNiagaraSystem>(GetTransientPackage());
  Root->Presentation.PulseSystem=System;Root->Presentation.LocationOffset=FVector(10,20,30);Root->Presentation.AuthoredRadius=100;
@@ -75,7 +75,7 @@ bool FUpgradeTuningTest::RunTest(const FString&)
  }
  Echo->Presentation.bOverrideFamilyVisuals=true;Echo->Presentation.Scale=FVector(3);
  TestTrue(TEXT("Owned branch can override the base presentation"),A->FamilyPresentation(0)==&Echo->Presentation);
- Root->BalanceParameters=SavedRoot;Echo->BalanceParameters=SavedEcho;Synergy->BalanceParameters=SavedSynergy;Root->Presentation=SavedVFX;Echo->Presentation=SavedBranchVFX;
+ Root->BalanceParameters=SavedRoot;Echo->BalanceParameters=SavedEcho;Root->Presentation=SavedVFX;Echo->Presentation=SavedBranchVFX;
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }
 #endif

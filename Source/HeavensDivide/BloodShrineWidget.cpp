@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "BloodShrineWidget.h"
+#include "HeavensDivideGameUserSettings.h"
 
 #include "Styling/AppStyle.h"
 #include "Widgets/Layout/SBorder.h"
@@ -22,7 +23,7 @@ TSharedRef<SWidget> UBloodShrineWidget::RebuildWidget()
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0.0f, 0.0f, 0.0f, 4.0f)
 				[
-					SAssignNew(KeyText, STextBlock).Text(FText::FromString(TEXT("E"))).Font(FAppStyle::GetFontStyle("HeadingExtraSmall"))
+					SAssignNew(KeyText, STextBlock).Font(FAppStyle::GetFontStyle("HeadingExtraSmall"))
 				]
 				+ SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)
 				[
@@ -47,9 +48,16 @@ void UBloodShrineWidget::ShowInteractionPrompt()
 
 void UBloodShrineWidget::ShowInteractionPrompt(const FText& ShrineName)
 {
-	if (KeyText) KeyText->SetVisibility(EVisibility::Visible);
+	const auto* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+	const FText KeyLabel = (Settings ? Settings->GetKeyBinding(TEXT("Interact"))
+		: UHeavensDivideGameUserSettings::GetDefaultBinding(TEXT("Interact"))).GetDisplayName();
+	if (KeyText)
+	{
+		KeyText->SetText(KeyLabel);
+		KeyText->SetVisibility(EVisibility::Visible);
+	}
 	SetVisibility(ESlateVisibility::HitTestInvisible);
-	SetLines(ShrineName, FText::FromString(TEXT("Press E to activate")), FText::GetEmpty());
+	SetLines(ShrineName, FText::Format(NSLOCTEXT("Keybindings", "ActivatePrompt", "Press {0} to activate"), KeyLabel), FText::GetEmpty());
 }
 
 void UBloodShrineWidget::ShowUnavailablePrompt(const FText& Name, const FText& Status)
