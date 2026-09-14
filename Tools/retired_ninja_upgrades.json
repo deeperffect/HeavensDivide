@@ -1,0 +1,89 @@
+[
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaExecutionersKunai",
+    "id": "ExecutionersKunai",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": [
+      "MarkedBlade"
+    ]
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFanOfBlades",
+    "id": "FanOfBlades",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": []
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaProjectileBonus",
+    "id": "NinjaProjectileBonus",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": []
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/NinjaTrial/DA_Upgrade_NinjaProjectilePierce",
+    "id": "NinjaProjectilePierce",
+    "category": "<UpgradeCategory.NINJA_TRIAL: 5>",
+    "requires": []
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaSpreadMarks",
+    "id": "ChainExecution",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": [
+      "MarkedBlade"
+    ]
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaBladeCascade",
+    "id": "BladeCascade",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": []
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/NinjaTrial/DA_Upgrade_NinjaProjectileBounce",
+    "id": "ProjectileBounce",
+    "category": "<UpgradeCategory.NINJA_TRIAL: 5>",
+    "requires": []
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/NinjaTrial/DA_Upgrade_NinjaProjectileSplit",
+    "id": "ProjectileSplit",
+    "category": "<UpgradeCategory.NINJA_TRIAL: 5>",
+    "requires": []
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaPotentVenom",
+    "id": "PotentVenom",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": [
+      "VenomousKunai"
+    ]
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_HemotoxicReaction",
+    "id": "HemotoxicReaction",
+    "category": "<UpgradeCategory.SYNERGY: 3>",
+    "requires": [
+      "BleedingEdge",
+      "VenomousKunai"
+    ]
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaVirulentStrain",
+    "id": "VirulentStrain",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": [
+      "VenomousKunai",
+      "PotentVenom"
+    ]
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_AcceleratedVenom",
+    "id": "AcceleratedVenom",
+    "category": "<UpgradeCategory.SYNERGY: 3>",
+    "requires": [
+      "BleedingEdge",
+      "VenomousKunai"
+    ]
+  }
+]

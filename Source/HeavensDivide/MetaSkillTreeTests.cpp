@@ -145,7 +145,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	Meta->RefreshSkillBonuses();
 	auto* Ability=PC->FindComponentByClass<USurvivorAbilityComponent>();
 	Ability->Controller=PC;Ability->Upgrades=Upgrades;
-	const int32 Family=5; // Iron Orbit in the authored runtime catalog.
+	const int32 Family=4; // Blade Wave retains its stable runtime catalog index.
 	const auto& Spec=BuildFamilies[Family];
 	auto* Starter=LoadObject<UUpgradeDefinition>(nullptr,*FString::Printf(TEXT("/Game/HeavensDivide/Upgrades/%s/DA_Upgrade_%s%s"),Spec.Owner,Spec.Owner,Spec.Id));
 	TestTrue(TEXT("Acquire family for reaction test"),Upgrades->AcquireUpgrade(Starter));

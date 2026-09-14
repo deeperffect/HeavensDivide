@@ -1,0 +1,250 @@
+[
+  {
+    "id": "ReturningFang",
+    "name": "Returning Fang",
+    "description": "One homing blade returns and instantly relaunches. Attack speed increases blade speed; extra projectiles increase damage. One Ninja stance per run.",
+    "art": "KunaisBounce",
+    "requires": [],
+    "stance": true,
+    "balance": {
+      "CountDamage": 0.25
+    }
+  },
+  {
+    "id": "BarrageStance",
+    "name": "Barrage",
+    "description": "+65% attack speed, -40% damage, +2 projectiles. One Ninja stance per run.",
+    "art": "FanOfBl",
+    "requires": [],
+    "stance": true,
+    "mods": [
+      [
+        "AttackSpeedMultiplier",
+        1.65
+      ],
+      [
+        "DamageMultiplier",
+        0.6
+      ],
+      [
+        "ProjectileCountBonus",
+        2
+      ]
+    ]
+  },
+  {
+    "id": "GreatShuriken",
+    "name": "Great Shuriken",
+    "description": "Throw a large, piercing shuriken with repeat hits. +50% damage, -50% attack speed, -55% projectile speed. Extra projectiles increase size. One Ninja stance per run.",
+    "art": "ProjectilesPierce",
+    "requires": [],
+    "stance": true,
+    "mods": [
+      [
+        "DamageMultiplier",
+        1.5
+      ],
+      [
+        "AttackSpeedMultiplier",
+        0.5
+      ],
+      [
+        "ProjectileSpeedMultiplier",
+        0.45
+      ]
+    ],
+    "balance": {
+      "Radius": 95,
+      "CountSize": 0.12,
+      "HitInterval": 0.25,
+      "Lifetime": 2.5,
+      "TravelSpeed": 900
+    }
+  },
+  {
+    "id": "CuttingReturn",
+    "name": "Cutting Return",
+    "description": "The returning blade damages each enemy once.",
+    "art": "KunaisBounce",
+    "requires": [
+      "ReturningFang"
+    ]
+  },
+  {
+    "id": "Bloodhound",
+    "name": "Bloodhound",
+    "description": "Hitting a bleeding or poisoned enemy makes the next trip 50% faster.",
+    "art": "VenomousKunai",
+    "requires": [
+      "ReturningFang"
+    ],
+    "balance": {
+      "SpeedMultiplier": 1.5
+    }
+  },
+  {
+    "id": "RelentlessFang",
+    "name": "Relentless Fang",
+    "description": "Consecutive outbound hits on one enemy gain +15% damage, up to +75%.",
+    "art": "MultipleStrikes",
+    "requires": [
+      "ReturningFang"
+    ]
+  },
+  {
+    "id": "FinalPursuit",
+    "name": "Final Pursuit",
+    "description": "On a kill, the blade strikes one nearby enemy before returning.",
+    "art": "Exec",
+    "requires": [
+      "ReturningFang"
+    ]
+  },
+  {
+    "id": "FocusedVolley",
+    "name": "Focused Volley",
+    "description": "65% tighter projectile spread.",
+    "art": "MultipleStrikes",
+    "requires": [
+      "BarrageStance"
+    ],
+    "levels": 1
+  },
+  {
+    "id": "AlternatingFans",
+    "name": "Alternating Fans",
+    "description": "Volleys alternate 12 degrees left and right.",
+    "art": "Cascade",
+    "requires": [
+      "BarrageStance"
+    ],
+    "levels": 1
+  },
+  {
+    "id": "Crescendo",
+    "name": "Crescendo",
+    "description": "Every 3 attacks add 1 temporary projectile. At the cap, the next attack restarts the buildup. Cap: 5, +2 per extra rank.",
+    "art": "Afterimage",
+    "requires": [
+      "BarrageStance"
+    ],
+    "levels": 5,
+    "balance": {
+      "BaseCap": 5,
+      "CapPerRank": 2,
+      "AttacksPerProjectile": 3
+    }
+  },
+  {
+    "id": "NeedleRain",
+    "name": "Needle Rain",
+    "description": "Every 4th volley fires twice as many projectiles.",
+    "art": "ProjectileBonus",
+    "requires": [
+      "BarrageStance"
+    ],
+    "levels": 1
+  },
+  {
+    "id": "SerratedEdge",
+    "name": "Serrated Edge",
+    "description": "Repeat shuriken hits on one enemy gain +15% damage, up to +75%.",
+    "art": "ProjectilesPierce",
+    "requires": [
+      "GreatShuriken"
+    ]
+  },
+  {
+    "id": "GrindingHalt",
+    "name": "Grinding Halt",
+    "description": "The shuriken briefly slows on its first hit against an elite or boss.",
+    "art": "ShadowStep",
+    "requires": [
+      "GreatShuriken"
+    ]
+  },
+  {
+    "id": "WideOrbit",
+    "name": "Growing Shuriken",
+    "description": "The shuriken grows as it travels, reaching double size after 1000 cm.",
+    "art": "KunaisBounce",
+    "requires": [
+      "GreatShuriken"
+    ],
+    "balance": {
+      "GrowthDistance": 1000,
+      "MaxSizeMultiplier": 2
+    }
+  },
+  {
+    "id": "BreakingWheel",
+    "name": "Breaking Wheel",
+    "description": "When the shuriken expires, scatter 6 blades dealing 30% hit damage each.",
+    "art": "ProjectilesSplit",
+    "requires": [
+      "GreatShuriken"
+    ]
+  },
+  {
+    "id": "EmbeddedBlades",
+    "name": "Embedded Blades",
+    "description": "Projectile hits embed blades, including killing hits. On death, scatter them for 40% of their hit damage. Stores up to 12 blades; scattered blades cannot embed.",
+    "art": "ProjectilesSplit",
+    "requires": [],
+    "balance": {
+      "DamageFraction": 0.4,
+      "Range": 700
+    }
+  },
+  {
+    "id": "FragmentDamage",
+    "name": "Sharper Fragments",
+    "description": "Increase embedded blade damage.",
+    "art": "PotentVenom",
+    "requires": [
+      "EmbeddedBlades"
+    ],
+    "levels": 5,
+    "magnitudes": [
+      0.2,
+      0.3,
+      0.45
+    ],
+    "format": "+{Percent}% embedded blade damage."
+  },
+  {
+    "id": "FragmentLoad",
+    "name": "Barbed Blades",
+    "description": "Embed 1 additional blade per hit, per rank.",
+    "art": "ProjectileBonus",
+    "requires": [
+      "EmbeddedBlades"
+    ],
+    "levels": 3
+  },
+  {
+    "id": "FragmentReach",
+    "name": "Scattering Blades",
+    "description": "Increase fragment target range.",
+    "art": "MarksSpread",
+    "requires": [
+      "EmbeddedBlades"
+    ],
+    "levels": 5,
+    "magnitudes": [
+      0.15,
+      0.22,
+      0.3
+    ],
+    "format": "+{Percent}% fragment target range."
+  },
+  {
+    "id": "ForkingProjectiles",
+    "name": "Forking Projectiles",
+    "description": "Projectiles fork on hit into 2 projectiles dealing 50% damage each. Forked projectiles cannot fork again.",
+    "art": "ProjectilesSplit",
+    "requires": [
+      "BarrageStance"
+    ]
+  }
+]

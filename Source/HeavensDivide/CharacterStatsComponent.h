@@ -24,7 +24,9 @@ UENUM(BlueprintType)
 enum class EStatModifierOperation : uint8
 {
 	AddFlat,
-	AddPercent
+	AddPercent,
+	/** Final multiplier, applied after additive upgrades. 0.7 retains a 30% penalty. */
+	Multiply
 };
 
 USTRUCT(BlueprintType)

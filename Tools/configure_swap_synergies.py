@@ -1,3 +1,4 @@
+raise RuntimeError("This legacy ability migration is retired; do not recreate automatic abilities.")
 import unreal, shutil
 from pathlib import Path
 root=Path(unreal.Paths.project_dir()).resolve()

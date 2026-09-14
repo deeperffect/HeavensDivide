@@ -19,6 +19,7 @@ factory = unreal.DataAssetFactory()
 factory.set_editor_property("data_asset_class", unreal.UpgradeDefinition)
 created = []
 for folder, asset_name, upgrade_id, display_name, description, role, family, max_level, prerequisites in UPGRADES:
+    if folder == "Ninja": continue  # Legacy poison cards are retired.
     package_path = f"{ROOT}/{folder}"
     object_path = f"{package_path}/{asset_name}"
     asset = unreal.load_asset(object_path)

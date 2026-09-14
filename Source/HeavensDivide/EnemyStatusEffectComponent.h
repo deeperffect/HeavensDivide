@@ -25,6 +25,9 @@ struct FEnemyDamageStatusState
 	TWeakObjectPtr<UPlayerUpgradeComponent> SourceUpgrades;
 	FTimerHandle TickTimer;
 	float ActiveTickInterval = 0.0f;
+	float BleedBaseStackWeight = 0.0f;
+	float BleedHitBonusPerTick = 0.0f;
+	float TransferredDamageRemaining = 0.0f;
 };
 
 /** Lightweight, timer-driven damage-over-time state owned by one enemy. */
@@ -34,10 +37,14 @@ class HEAVENSDIVIDE_API UEnemyStatusEffectComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	friend class FSamuraiBuildsTest;
 	UEnemyStatusEffectComponent();
 
 	/** Intrinsic ability/assist statuses share all normal scaling and source restrictions, without requiring the basic-attack starter. */
-	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus = false);
+	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus = false, float ApplyingHitDamage = 0.0f);
+	/** Called once before death clears status state. Transfer keeps a finite damage budget. */
+	void TransferBleedOnDeath();
+	void ReceiveBleedTransfer(UPlayerUpgradeComponent* Upgrades, float DamageBudget, float RemainingDuration);
 
 	UFUNCTION(BlueprintPure, Category="Enemy|Status")
 	bool HasStatus(EEnemyStatusEffect Status) const;

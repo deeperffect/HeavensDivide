@@ -32,7 +32,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 1,
@@ -67,7 +68,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 2,
@@ -102,7 +104,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 3,
@@ -137,7 +140,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 4,
@@ -172,7 +176,8 @@
       "Power",
       "WideArc",
       "Haste"
-    ]
+    ],
+    "available": true
   },
   {
     "index": 5,
@@ -207,7 +212,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 6,
@@ -242,7 +248,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 7,
@@ -277,7 +284,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 8,
@@ -312,7 +320,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 9,
@@ -347,7 +356,8 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   },
   {
     "index": 10,
@@ -382,6 +392,7 @@
       "Power",
       "Area",
       "Haste"
-    ]
+    ],
+    "available": false
   }
 ]

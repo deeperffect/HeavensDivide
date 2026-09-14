@@ -876,7 +876,11 @@ void AEnemyBase::HandleDeath()
 		GetCharacterMovement()->DisableMovement();
 	}
 	if (GetMesh() && GetMesh()->GetAnimInstance()) GetMesh()->GetAnimInstance()->Montage_Stop(0.0f);
-	if (StatusEffectComponent) StatusEffectComponent->ClearAllStatuses();
+	if (StatusEffectComponent)
+	{
+		StatusEffectComponent->TransferBleedOnDeath();
+		StatusEffectComponent->ClearAllStatuses();
+	}
 	OnEnemyDied.Broadcast(this);
 	if (bIsBloodbound)
 	{

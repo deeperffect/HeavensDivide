@@ -1,3 +1,4 @@
+raise RuntimeError("Automatic ability upgrades are retired. Use configure_build_families.py for Blade Wave.")
 """Create four ability families and their scalable support/evolution cards."""
 import unreal,shutil
 from pathlib import Path

@@ -99,14 +99,16 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
 	UHealthComponent* Health = Enemy->GetHealthComponent();
 	FVector ImpactLocation, ImpactNormal;
 	Enemy->GetImpactContact(GetActorLocation(), ImpactLocation, ImpactNormal);
+	const float HealthBeforeHit = Health ? Health->GetCurrentHealth() : 0.f;
 	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Samurai);
+	if (bApplied && SourceUpgrades.IsValid()) SourceUpgrades->HandleSamuraiDirectHit(Enemy, Damage, HealthBeforeHit);
 	if (bApplied && SourceSamurai->GetOwner())
 		if (auto* Abilities = SourceSamurai->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
 		{ Abilities->BladeWaveImpact(Enemy, Damage, !bSplintered); bSplintered = true; }
 	if (bApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, ImpactLocation, ImpactNormal);
 	UPlayerUpgradeComponent* Upgrades = SourceUpgrades.Get();
 	if (bApplied && Health && !Health->IsDead() && Upgrades && Upgrades->HasUpgradeId(TEXT("BleedingEdge")))
-		Enemy->ApplyStatus(EEnemyStatusEffect::Bleed, Upgrades, EPlayerAttackSource::Samurai);
+		Enemy->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed, Upgrades, EPlayerAttackSource::Samurai, false, Damage);
 	if (Upgrades && Upgrades->HasUpgradeId(TEXT("MarkedBlade"))) Enemy->ApplyMark();
 }
 

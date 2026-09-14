@@ -20,6 +20,7 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API ASamuraiBladeWave : public AActor
 {
 	GENERATED_BODY()
+	friend class FSamuraiBuildsTest;
 public:
 	ASamuraiBladeWave();
 	void InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,

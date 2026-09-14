@@ -3,6 +3,10 @@
 #include "EnemyStatusEffectComponent.h"
 
 #include "EnemyBase.h"
+#include "SurvivorPlayerController.h"
+#include "CharacterManagerComponent.h"
+#include "SamuraiCharacter.h"
+#include "SurvivorAbilityComponent.h"
 #include "Engine/OverlapResult.h"
 #include "HealthComponent.h"
 #include "PlayerUpgradeComponent.h"
@@ -24,7 +28,7 @@ UEnemyStatusEffectComponent::UEnemyStatusEffectComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus)
+bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus, float ApplyingHitDamage)
 {
 	AEnemyBase* Enemy = Cast<AEnemyBase>(GetOwner());
 	if (!Enemy || Enemy->IsDead() || !SourceUpgrades || !Enemy->CanReceivePlayerDamage(Source)) return false;
@@ -39,8 +43,19 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 	EnsureUpgradeListener(SourceUpgrades);
 	// Statuses have no gameplay stack cap. Saturate only at int32's technical limit
 	// so malformed input can never wrap the authoritative count negative.
-	if (State.Stacks < MAX_int32) ++State.Stacks;
-	State.RemainingDuration = GetDuration(Status);
+	const int32 AddedStacks = Status == EEnemyStatusEffect::Bleed && !bIntrinsicStatus && ApplyingHitDamage > 0
+        ? 1 + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("Bloodletting")), 0, 3) : 1;
+    const int32 AcceptedStacks = FMath::Min(AddedStacks, MAX_int32 - State.Stacks);
+    State.Stacks += AcceptedStacks;
+    if (Status == EEnemyStatusEffect::Bleed)
+    {
+        State.BleedBaseStackWeight += AcceptedStacks;
+        const auto* Starter = SourceUpgrades->FindUpgradeDefinition(TEXT("BleedingEdge"));
+        const float HitFraction = Starter ? Starter->GetBalanceValue(TEXT("HitDamagePerTick"), 0.1f) : 0.1f;
+        State.BleedHitBonusPerTick += FMath::Max(0.f, ApplyingHitDamage) * FMath::Max(0.f, HitFraction) * AcceptedStacks;
+    }
+	State.RemainingDuration = GetDuration(Status) * (Status == EEnemyStatusEffect::Bleed
+        ? 1.f + FMath::Max(0.f, SourceUpgrades->GetAccumulatedUpgradeMagnitude(TEXT("LingeringWounds"))) : 1.f);
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(State.TickTimer))
 	{
@@ -62,7 +77,7 @@ int32 UEnemyStatusEffectComponent::GetStatusStacks(EEnemyStatusEffect Status) co
 float UEnemyStatusEffectComponent::CalculateRemainingStatusDamage(EEnemyStatusEffect Status) const
 {
 	const FEnemyDamageStatusState& State = GetState(Status);
-	return CalculateStatusDamagePerTick(Status, State) * CalculateRemainingTickCount(Status, State);
+	return CalculateStatusDamagePerTick(Status, State) * CalculateRemainingTickCount(Status, State) + State.TransferredDamageRemaining;
 }
 
 bool UEnemyStatusEffectComponent::ConsumeStatus(EEnemyStatusEffect Status)
@@ -133,7 +148,10 @@ float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffe
 	const float StoredMagnitude = Upgrades->GetAccumulatedUpgradeMagnitude(SupportId);
 	const float SupportMagnitude = StoredMagnitude > 0.0f ? StoredMagnitude : SupportLevel * FMath::Max(0.0f, LegacyPerLevel);
 	const float BaseTick = Status == EEnemyStatusEffect::Bleed ? BaseBleedDamagePerTick : BasePoisonDamagePerTick;
-	return BaseTick * FMath::Max(0.0f, Power) * (1.0f + SupportMagnitude) * State.Stacks
+	const float BaseDamage = Status == EEnemyStatusEffect::Bleed
+        ? BaseTick * FMath::Max(0.f, Power) * State.BleedBaseStackWeight + State.BleedHitBonusPerTick
+        : BaseTick * FMath::Max(0.f, Power) * State.Stacks;
+    return BaseDamage * (1.0f + SupportMagnitude)
 		* (1.f + Upgrades->GetMetaSkillBonus(Status == EEnemyStatusEffect::Bleed ? FName(TEXT("Bleed")) : FName(TEXT("Poison"))));
 }
 
@@ -164,7 +182,11 @@ void UEnemyStatusEffectComponent::TickStatus(EEnemyStatusEffect Status)
 		return;
 	}
 
-	const float Damage = CalculateStatusDamagePerTick(Status, State);
+	const float TransferTick = State.TransferredDamageRemaining / FMath::Max(1, CalculateRemainingTickCount(Status, State));
+    const float Damage = CalculateStatusDamagePerTick(Status, State) + TransferTick;
+    State.TransferredDamageRemaining = FMath::Max(0.f, State.TransferredDamageRemaining - TransferTick);
+    // Spend this tick before damage can invoke death and transfer the remaining budget.
+    State.RemainingDuration -= State.ActiveTickInterval > KINDA_SMALL_NUMBER ? State.ActiveTickInterval : GetTickInterval(Status);
 	const int32 StacksAtTick = State.Stacks;
 	const bool bApplied = Enemy->ApplyStatusDamage(Damage, Source);
 	if (bApplied && !Enemy->IsDead() && Status == EEnemyStatusEffect::Poison)
@@ -172,7 +194,6 @@ void UEnemyStatusEffectComponent::TickStatus(EEnemyStatusEffect Status)
 		TryTriggerVirulentStrain(Enemy, Upgrades, StacksAtTick, Damage);
 	}
 
-	State.RemainingDuration -= State.ActiveTickInterval > KINDA_SMALL_NUMBER ? State.ActiveTickInterval : GetTickInterval(Status);
 	if (Enemy->IsDead() || State.RemainingDuration <= KINDA_SMALL_NUMBER) ClearStatus(Status);
 }
 
@@ -183,6 +204,7 @@ void UEnemyStatusEffectComponent::ClearStatus(EEnemyStatusEffect Status)
 	UPlayerUpgradeComponent* SourceUpgrades = State.SourceUpgrades.Get();
 	if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(State.TickTimer);
 	State.Stacks = 0;
+	State.BleedBaseStackWeight = State.BleedHitBonusPerTick = State.TransferredDamageRemaining = 0.f;
 	State.RemainingDuration = 0.0f;
 	State.ActiveTickInterval = 0.0f;
 	State.SourceUpgrades.Reset();

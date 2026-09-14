@@ -1,183 +1,181 @@
 # Build families
 
-This roster contains **six Samurai and five Ninja families**. Each has one starter, three combinable behavior branches, three five-rank scalable cards: **77 family cards total**, including upgraded existing cards. The controller pool contains 112 unique cards with the unrelated earlier upgrades retained.
+Combat now uses normal autoattacks and **Blade Wave**, which launches from Samurai's normal melee attacks. The saved upgrade pool contains **57 unique cards**, including 20 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
 
-## Current roster
+The ten automatic ability families and their 70 starter, branch, scaling and evolution cards are retired. They cannot appear in offers, be acquired through stale references, or run through the old automatic cast scheduler.
 
-| Samurai (6) | Ninja (5) |
-| --- | --- |
-| Steel Tempest | Night Thread |
-| Heavenfall | Venom Garden |
-| Blade Wave | Phantom Ambush |
-| Iron Orbit | Crimson Needle |
-| War Banner | Raven Swarm |
-| Blood Moon | |
+## Samurai stances and routes
 
-Only these families are available through the upgrade pool and `BuildPreview`.
+Three Rare, one-rank stance cards appear in normal Samurai upgrade offers. Acquiring one excludes the other two for the current run. Stances do not automatically grant Bleed, explosions or Blade Wave. All effect upgrades remain mixable across stances.
 
-## Start here
+| Stance | Area / reach | Attack speed | Damage |
+| --- | --- | --- | --- |
+| Blood Stance (`BloodStance`) | +35% | +30% | -30% |
+| Execution Stance (`ExecutionStance`) | +35% | -35% | +80% |
+| Blade Wave Stance (`WaveStance`) | -35% | +25% | +25% |
 
-Start a fresh run, then use the Unreal console:
+These are multiplicative factors applied after additive stat upgrades. A 35% attack-speed penalty remains a 0.65 multiplier even after buying more attack speed. Area scales melee reach, melee presentation, wave width, and these routes' transfer/explosion radii. Wave travel distance is unchanged. Ninja stats are unaffected.
 
-- `BuildPreview IronOrbit` grants that starter, all three branches, rank 2 scaling. Universal Prepare is always available.
-- `BuildPreview IronOrbit 1` grants only its first branch (plus the starter and scaling). Use 2 or 3 for another branch. This adds to the current run; it does not remove already acquired branches.
-- Repeat the command with a partner family. Example: `BuildPreview PhantomAmbush`.
-- `BuildPreview All` is available for a saturation/stress test; an individual pair is better for assessing the combat feel.
-- The older `AbilityShowcase` still previews its original four builds and setup assists.
+### Blood: fast crowd coverage
 
-These commands are disabled in shipping builds. They use normal run-local acquisition, preserve higher ranks, and repeat safely without adding mastery for already owned cards. No persistent meta unlocks are changed.
+Start with **Bleeding Edge**. Normal melee and Blade Wave hits apply Bleed; each stack contributes its base Bleed damage plus **10% of its applying hit's damage per tick**. The hit contribution is captured when applied and already includes attack damage scaling. Deep Cuts and Bleed meta bonuses scale the resulting damage. Intrinsic assists and status spreads retain their base-stack behavior.
 
-Suggested pairings:
+- **Bloodletting (`Bloodletting`)**: +1 Bleed stack per direct melee/wave hit per rank, up to 3 ranks. Requires Bleeding Edge.
+- **Blood Transfer (`BloodTransfer`)**: on a bleeding enemy's death, distribute **50% of its remaining Bleed damage** evenly among up to **5** nearest valid enemies within **300 cm**, scaling with Samurai area. Requires Bleeding Edge. Works on deaths from direct hits, status ticks or other damage.
+- **Lingering Wounds (`LingeringWounds`)**: newly applied Bleed lasts 15/22/30% longer per Common/Rare/Epic rank, up to 5 ranks.
+- Continue scaling with **Deep Cuts**, **Quickened Cuts** and the existing Samurai area upgrade.
 
-| Samurai | Ninja | Playstyle |
+Transfers retain the source's remaining duration and add no free base-stack damage. They carry a finite damage budget, so damage/mastery bonuses are not applied twice and refreshing duration does not multiply that budget. Further deaths can transfer half the remaining budget again. A lethal Bleed tick is spent before transfer. Poison and source-restricted enemies are unaffected by this transfer.
+
+### Execution: heavy killing blows
+
+**Overkill Burst (`OverkillBurst`)** is a separate, mixable Rare starter. Direct normal melee and Blade Wave kills explode for their excess damage within **220 cm**, scaling with Samurai area. A hit dealing 150 damage to a 40-HP enemy creates a 110-damage explosion. Exact kills with no overkill create no explosion.
+
+Assists, Bleed, explosion kills and other proc damage cannot start an explosion. Each directly killed melee target can produce its own burst. Explosion damage respects enemy source restrictions and does not apply Bleed or Prepare.
+
+- **Expanding Ruin (`BurstRadius`)**: +12/18/25% explosion radius per Common/Rare/Epic rank, up to 5 ranks. Requires Overkill Burst.
+- Continue scaling with **Heavy Blade**, Samurai area and **Double Cut**. Double Cut's committed follow-up is another normal attack and can create its own overkill burst.
+
+### Blade Wave: narrow, frequent attacks
+
+Unlock **Blade Wave** separately. Blade Wave Stance increases its inherited attack damage and frequency while reducing both melee reach and wave width. Dedicated width upgrades can compensate gradually.
+
+**Wave Volley (`WaveMultishot`)** adds one additional wave per committed swing per rank, up to three ranks. Waves retain their normal damage, width and returning behavior. Ordinary volleys use an 8-degree spacing. Crossing Blades adds its extra crossing waves on every third swing: with all three Wave Volley ranks, ordinary swings launch 4 waves and crossing swings launch 6.
+
+**Quickened Cuts (`SamuraiTempo`)** is a mixable Samurai attack-speed card: +10/15/22% per Common/Rare/Epic rank, up to 5 ranks. It supports Blood or Blade Wave, or partly offsets Execution's slower cadence without removing its multiplier.
+
+## Blade Wave (`BladeWave`)
+
+Samurai's basic melee attacks launch traveling blade waves through the existing attack notify path. The original seven family cards remain, alongside the new Wave Volley card:
+
+- **Blade Wave:** unlock the attack-triggered wave.
+- **Returning Blade:** waves return for another hit pass.
+- **Crossing Blades:** every third swing launches three crossing waves, plus acquired Wave Volley waves.
+- **Splinter Wave:** the first enemy hit on each wave pass sheds a small 30%-damage Bleed burst.
+- **Force (`BladeWavePower`):** increase wave damage.
+- **Wide Arc (`WideArc`):** increase wave width and damage.
+- **Velocity (`BladeWaveHaste`):** increase wave travel speed; does not change basic attack frequency.
+
+Branches combine and require Blade Wave. The three scaling cards have five ranks. Force grants 20/30/45%, Wide Arc 12/18/25%, and Velocity 10/15/22% at Common/Rare/Epic rarity; magnitudes add across ranks.
+
+## Ninja weapon routes
+
+Three Rare stance cards replace or modify Ninja's normal attack. Choose one per run; its branch cards require that stance. **Embedded Blades** and its upgrades work with every route.
+
+| Stance | Attack behavior | Scaling |
 | --- | --- | --- |
-| War Banner | Crimson Needle | Mark a crowd, swap to Ninja and pick off weakened enemies. Native Ninja projectiles can consume intrinsic marks without needing Marked Blade. |
-| Blood Moon | Raven Swarm | Spread Bleed, return to Ninja for persistent Poison and status-spreading follow-ups. |
+| Returning Fang (`ReturningFang`) | One homing blade hits, returns, and immediately relaunches. Close targets shorten the cycle. | Attack speed becomes travel speed. Each extra projectile adds 25% damage instead. |
+| Barrage (`BarrageStance`) | Normal volleys with +65% attack speed, +2 projectiles and -40% damage. | Attack speed, projectile count and damage. |
+| Great Shuriken (`GreatShuriken`) | A large spinning blade pierces crowds and can hit each enemy every 0.25 seconds. +50% damage, -50% attack speed, -55% projectile speed. | Damage and attack frequency; each extra projectile adds 12% blade size instead. |
 
-## Rules
+### Returning Fang
 
-Only the active character starts and recharges automatic abilities. Already-cast attacks continue with their original damage attribution across swaps. Following fields/orbits follow their owner only while that character is active; they remain at the last position after a swap. Blade Wave continues to use the real melee attack/notify path.
+- **Cutting Return:** the returning blade also damages enemies along its path.
+- **Bloodhound:** hitting a bleeding or poisoned target boosts the next throw's travel speed by 50%; does not grant either status.
+- **Relentless Fang:** repeated hits against the same enemy build up to 75% bonus damage.
+- **Final Pursuit:** a killing hit seeks one additional nearby enemy before returning.
 
-Branches combine. Most require their starter and are fixed Rare cards. The four existing legendary evolutions (Razor Halo, Starfall, Black Web, Withering Garden) occupy the first branch slot of their respective families and retain the rank-2 Force/Reach requirement. Character offers reserve a starter, scaling card and branch/evolution when eligible; missing categories fall back to normal random eligible choices.
+Swapping away retrieves the blade without relaunching. The ordinary attack timer does not control this weapon.
 
-Force increases direct family damage; Reach increases its attack footprint, chain reach or acquisition range; Rhythm increases recharge speed. Blade Wave instead has Force, Wide Arc (its existing width + damage scaling), and Velocity (projectile travel speed). Force and Reach use Common/Rare/Epic values of 20/30/45% and 12/18/25%; Rhythm/Velocity uses 10/15/22%. Magnitudes add across ranks. Recharge = base cooldown / (1 + total Rhythm). Status damage continues to use the existing Bleed/Poison upgrades and mastery.
+### Barrage
 
-Universal **Prepare** is available automatically, without a synergy card. A successful ability hit prepares a surviving enemy for **6 seconds**. Normal attacks and Tag Team setup attacks do not apply Prepare. Blade Wave is an ability even though a melee attack launches it; its wave hits can prepare enemies.
+- **Focused Volley:** tighten the projectile fan.
+- **Forking Projectiles:** on impact, a projectile forks into two shots dealing 50% damage each. Forked shots cannot fork again. Requires Barrage; clone volleys also fork.
+- **Alternating Fans:** alternate the volley angle to sweep a wider region.
+- **Crescendo:** gain another temporary projectile every three attacks. Fire the capped volley, then restart the buildup. Dashing and swapping preserve progress. Five ranks; the cap starts at 5 and increases by 2 per additional rank (5/7/9/11/13). Edit `BaseCap`, `CapPerRank` and `AttacksPerProjectile` on its data asset.
+- **Needle Rain:** every fourth volley fires twice as many main-fan projectiles.
 
-Each enemy holds one preparation. Another ability from the same character refreshes its duration and stores that hit's damage. An opposite-character ability does not overwrite an unexpired preparation. The preparing character's own hits cannot consume it, and swapping alone does nothing.
+### Great Shuriken
 
-The inactive partner's **Tag Team assist hit** consumes Prepare once. Active-character hits, including hits after a swap, do not consume it. Consumption deals **60% of the preparing ability hit's damage** as bonus damage to the prepared enemy, attributed to the assisting character. It also spreads **one stack of each Bleed/Poison status already present on that enemy to other enemies within 300 cm**. Both spread if both are present; neither is created if absent. The original statuses remain. Spread uses each status's normal source restrictions and scaling, and still works when the assist kills the prepared enemy.
+- **Serrated Edge:** successive hits from the same blade against an enemy deal increasing damage, up to +75%.
+- **Grinding Halt:** briefly slow the blade when it reaches a tougher enemy, allowing more contact hits.
+- **Growing Shuriken (`WideOrbit`):** grow while travelling, reaching double size after 1,000 cm. Both visual size and hit radius grow; the normal flight lifetime is unchanged. The internal ID is retained for compatibility.
+- **Breaking Wheel:** scatter six smaller blades when the shuriken expires.
 
-Bonus damage and status spread cannot prepare enemies or trigger another consumption. There is no family trigger cooldown or re-prime lockout: a later ability hit can prepare the enemy again. Lingering Intent and Unbroken Promise extend the duration; Answered Challenge and Converging Blades increase the bonus damage. Family Reach does not change the shared spread radius.
+### Embedded Blades
 
-Tag Team prioritizes prepared enemies the assistant can consume, both for its initial target and its limited hit list. Normal targeting applies when none qualify; range, facing, hit limits and placement checks still apply. The universal duration, damage multiplier and spread radius are editable on the SurvivorAbility component under **Abilities > Prepare** on `BP_SurvivorPlayerController`.
+Direct Ninja projectile hits embed a fragment **before damage resolves**, so even a one-hit kill scatters a blade toward nearby enemies. Each fragment deals 40% of its embedding hit's damage. Surviving enemies can store up to 12 fragments. Scattered fragments cannot embed more fragments.
 
-Venom Garden retains its separate baseline melee detonation. Other existing synergies such as Tag Team and Hemotoxic Reaction retain their own unlocks and behavior.
+- **Fragment Damage:** +20/30/45% fragment damage per Common/Rare/Epic rank, up to 5 ranks.
+- **Fragment Load:** embed one additional fragment per hit per rank, up to 3 ranks.
+- **Fragment Reach:** +15/22/30% scatter targeting range per Common/Rare/Epic rank, up to 5 ranks; base range 700 cm.
+
+The old Ninja cards are retired, except **Shadow Step**, **Multiple Strikes** and **Afterimage Frenzy**, which retain Shadow Clone and its upgrades. **Venomous Kunai** is restored as a standalone card: Ninja attacks apply Poison, including all three weapons and clone attacks. The other old poison upgrades remain retired. The removed cards cover the old projectile bonus, bounce/pierce/split, Fan of Blades, Blade Cascade, execution branches and poison scaling upgrades. Hemotoxic Reaction and Accelerated Venom are also retired alongside the retired poison scaling upgrades. Shared Marked Blade remains available. Ninja trial rewards now offer current Ninja cards for every stance. None of the new Ninja attacks applies universal Prepare.
+
+## Prepare and Tag Team
+
+Blade Wave hits prepare surviving enemies for **6 seconds**. Normal attack hits and assists do not apply Prepare. Further wave hits refresh the mark and stored hit damage.
+
+The inactive Ninja's **Tag Team assist** consumes Samurai's preparation once, dealing **60% of the preparing hit's damage** as bonus damage to that enemy. It spreads one stack of each Bleed/Poison status already present to other enemies within **300 cm**, respecting status source restrictions. Absent statuses are never created. This still works when the assist kills the prepared enemy.
+
+Active-character attacks, including attacks after swapping, cannot consume Prepare. Tag Team prioritizes prepared targets within its normal targeting limits. Bonus damage and status spread cannot recursively consume Prepare. Preparation and Reaction meta bonuses continue to affect duration and damage. Shared Prepare settings remain on the SurvivorAbility component.
 
 ## Shared synergy upgrade: Grand Entrance
 
 **Grand Entrance** (`GrandEntrance`) is a one-rank Epic synergy card available through normal Synergy offers, without a family prerequisite or discovery lock. After a successful player-initiated swap, the incoming character's next normal attack is enhanced:
 
 - **Samurai:** a 360-degree slash with a **600 cm base radius**, scaling with basic attack area. All secondary targets take full normal attack damage; the primary target retains its normal technique modifiers.
-- **Ninja:** **8 additional projectiles** in a **100-degree fan**, retaining normal projectile damage and acquired projectile modifiers. Extra projectiles combine with the normal volley and Blade Cascade.
+- **Ninja:** **8 additional projectiles** in a **100-degree fan**, retaining normal projectile damage and acquired projectile modifiers. Extra projectiles combine with the normal volley.
+
+For Returning Fang, Grand Entrance's extra projectiles become bonus damage on the next throw. For Great Shuriken, they become extra size on the next blade. Barrage retains the enhanced normal volley.
 
 The enhancement is spent at the attack's hit/projectile notify. Canceled attacks before that point retain it. It does not stack, and leaving the active character clears an unused enhancement. Assists, automatic abilities and Double Cut follow-ups cannot spend it. Acquiring the card does not immediately arm it: swap after acquisition. The enhanced normal attack does not itself apply universal Prepare.
 
 Balance is editable on `/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEntrance` under Runtime Balance: `SamuraiRadius`, `NinjaBonusProjectiles`, and `NinjaFanAngle`. The source illustration and exact built-in imagegen prompt are recorded in `Art/UpgradeCards/GrandEntrance.json`.
 
-## Samurai
+## Preview and maintenance
 
-### Steel Tempest (`SteelTempest`)
+In a non-shipping build, `BuildPreview BladeWave` grants its starter, all branches and rank-2 scaling. `BuildPreview BladeWave 1` selects only its first branch; use 2 or 3 for the others. `BuildPreview All` and the legacy `AbilityShowcase` command now preview only Blade Wave. These commands affect the current run only.
 
-An automatic close-range steel ring.
+- `Tools/build_family_catalog.json`: Blade Wave is the only available family. Retired entries retain their stable internal indices for compatibility and stale-ID rejection.
+- `Tools/generate_build_catalog.py`: regenerates the runtime catalog.
+- `Tools/configure_build_families.py`: authors only available families.
+- `Tools/remove_automatic_ability_upgrades.py`: removes retired saved assets with backups; `-ValidateAttackRoster` verifies the saved pool without editing.
+- `Art/UpgradeCards/manifest.json`: the seven retained family illustrations. Grand Entrance keeps its separate art manifest.
 
-1. **Razor Halo** : Echo the ring after 0.3 seconds for 65% damage.
-2. **Storm Eye** : The ring also applies Bleed.
-3. **Advancing Storm** : Send a second half-strength ring into the nearest crowd.
+Normal-attack execution and Blade Wave still use `AutoAttackComponent` and `SamuraiBladeWave`. `SurvivorAbilityComponent` retains assist, Prepare, presentation and Blade Wave hit support; automatic casts are disabled.
 
-### Heavenfall (`Heavenfall`)
+## Samurai build authoring
 
-Strike the densest nearby group after a warning; apply Bleed.
+- `Tools/samurai_build_upgrades.json`: stance values, seven new mixable cards, prerequisites and scaling.
+- `Tools/configure_samurai_builds.py`: authors those ten cards and updates the saved controller pool; use `-ValidateSamuraiBuilds` for read-only validation.
+- New cards reuse matching Samurai illustrations from the existing CardArt2 set.
+- `SamuraiBuildUpgrades.cpp`: finite Bleed transfer and direct-hit overkill explosions. Both use bounded nearby queries and existing combat ring visuals.
+- `HeavensDivide.Combat.SamuraiBuilds`: verifies saved cards, stance exclusivity/scaling/restoration, Bleed transfer budgets, lethal ticks, real melee explosions and actual wave spawns.
 
-1. **Starfall** : Strike up to three separate groups.
-2. **Aftershock** : Each strike echoes at half damage after 0.4 seconds.
-3. **Seeking Star** : The warning follows its selected enemy until impact.
+These are starting balance values and need playtesting against the current enemy waves.
 
-### Blade Wave (`BladeWave`)
+## Ninja testing and authoring
 
-Basic melee attacks launch the existing traveling blade wave.
+During a run in a non-shipping build, switch to Ninja and enter one of these console commands:
 
-1. **Returning Blade** : Waves return for another hit pass.
-2. **Crossing Blades** : Every third swing launches three crossing waves.
-3. **Splinter Wave** : The first enemy hit on each wave pass sheds a small 30%-damage Bleed burst.
+- `NinjaBuildPreview Fang`
+- `NinjaBuildPreview Barrage`
+- `NinjaBuildPreview Shuriken`
+- `NinjaBuildPreview Clear`
 
-### Iron Orbit (`IronOrbit`)
+Each route preview grants its stance, its branch cards and the Embedded Blades package at one rank. Switching previews replaces the new Ninja build cards while preserving other acquired upgrades. Clear removes the new Ninja cards. These commands affect only the current run.
 
-Three blades circle Samurai for four seconds, cutting enemies along their paths.
+`Tools/ninja_build_upgrades.json` defines the 20 cards. `Tools/configure_ninja_builds.py` creates missing cards and updates the controller pool while preserving existing card tuning; `-ValidateNinjaBuilds` validates without writing. Cards reuse existing Ninja illustrations. Fang and scattered kunai reuse the original Ninja projectile Blueprint visuals, trails and impact sound. The giant shuriken retains its spinning mesh visual.
 
-Base: 7 direct damage per hit/pulse, 85 cm radius/width, 6s recharge. Repeated attacks deal that damage each time unless a branch specifies a fraction.
+`NinjaBuildComponent` implements the weapons and fragments. `HeavensDivide.Combat.NinjaBuilds` exercises the saved Ninja Blueprint, real volley spawning, timer-independent Fang returns, repeated shuriken hits, growth with distance, lethal-hit fragments, stance exclusivity and preview switching.
 
-1. **Counter Orbit** : Add a blade orbiting in the opposite direction.
-2. **Satellite Blades** : Add a second outer orbit.
-3. **Orbit Shrapnel** : Orbiting blades apply Bleed.
+## Legacy Samurai cleanup
 
-### War Banner (`WarBanner`)
+The old Cleaver, Duelist and Deathblow technique cards are removed. Samurai trial rewards now offer eligible upgrades from the current Samurai build pool. The old technique effects cannot activate from stale run data.
 
-Plant a banner in a crowd. Four pulses damage and mark survivors for Ninja.
+The 22 retained Samurai cards are the ten route cards; Bleeding Edge, Deep Cuts, Heavy Blade, Area and Double Cut; and the seven original Blade Wave cards. Shared synergies and Ninja/global upgrades remain available. Existing tuned card assets are preserved without rewriting their values.
 
-Base: 10 direct damage per hit/pulse, 300 cm radius/width, 7s recharge. Repeated attacks deal that damage each time unless a branch specifies a fraction.
+`Tools/remove_legacy_samurai_techniques.py` removes the three legacy assets and verifies retained card file hashes. Backups and hashes are under `Saved/Backups/LegacySamuraiCleanup`. Their shared artwork is retained because current build cards reuse it.
 
-1. **Marching Banner** : Plant at Samurai and follow him while active.
-2. **Rallying Banner** : The banner also pulses at a second nearby enemy position.
-3. **Banner of Thorns** : Banner pulses also apply Bleed.
+`Tools/remove_legacy_ninja_upgrades.py` removes the 12 retired cards and changes Wide Orbit into Growing Shuriken, preserving all other saved card tuning and Shadow Clone artwork. Backups are under `Saved/Backups/LegacyNinjaCleanup`; `-ValidateNinjaCleanup` checks the saved roster without writing. Growth distance and maximum size multiplier are editable on the Growing Shuriken card under Runtime Balance.
 
-### Blood Moon (`BloodMoon`)
+## Ninja clone attacks and weapon speed
 
-An expanding hollow ring sweeps outward, applying Bleed.
+Shadow Clones use the Ninja's current weapon: Barrage/normal projectiles, Great Shuriken, or an independent Returning Fang that returns to the clone. Multiple Strikes increases the attack quota. A Fang round trip counts as one attack and immediately relaunches while attacks remain; Afterimage Frenzy increases its travel speed. Barrage counters belong to each clone. Clone attacks do not spend Grand Entrance or advance the player's attack counters.
 
-Base: 18 direct damage per hit/pulse, 140 cm radius/width, 5s recharge. Repeated attacks deal that damage each time unless a branch specifies a fraction.
+Open `/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaGreatShuriken` and edit **Runtime Balance > Balance Parameters > TravelSpeed** (cm/s, default 900). This directly controls player and clone shuriken speed, independently of normal kunai speed. Grinding Halt can still briefly slow a blade. The stance's old projectile-speed stat modifier no longer determines giant shuriken travel speed.
 
-1. **Second Moon** : The ring contracts after expanding, enabling a second pass.
-2. **Red Tide** : Add a second expanding ring centered on the targeted crowd.
-3. **Moon Recoil** : The wave pushes enemies outward.
+`Tools/restore_ninja_poison.py` restores the original poison starter from the cleanup backup and re-adds it to the saved pool, preserving other card tuning.
 
-## Ninja
-
-### Night Thread (`NightThread`)
-
-Chain between three enemies, prioritizing Bleed and poisoning bleeding targets.
-
-1. **Black Web** : Leave a delayed half-damage burst at each hit.
-2. **Venom Thread** : Every thread hit applies Poison, even without Bleed.
-3. **Cross Stitch** : Connecting threads also cut enemies between their endpoints for 40% damage.
-
-### Venom Garden (`VenomGarden`)
-
-Plant a wide field for eight slow pulses and Poison. Samurai melee detonates its remaining damage.
-
-1. **Withering Garden** : Eleven pulses and a final burst; included in Samurai detonation.
-2. **Wandering Garden** : Plant the field at Ninja; it follows him while he is active, then stays where he left it.
-3. **Briar Garden** : Pulses push enemies outward, making the field a space-clearing tool.
-
-### Phantom Ambush (`PhantomAmbush`)
-
-Two delayed phantom slashes converge on the targeted crowd.
-
-Base: 25 direct damage per hit/pulse, 280 cm radius/width, 5s recharge. Repeated attacks deal that damage each time unless a branch specifies a fraction.
-
-1. **Third Shadow** : Add a third phantom from the opposite side.
-2. **Lingering Shadow** : Each phantom repeats its slash at half damage.
-3. **Assassin's Ink** : Phantom slashes apply Poison.
-
-### Crimson Needle (`CrimsonNeedle`)
-
-Target the lowest-health enemy with a focused needle; bleeding targets take 50% extra damage.
-
-Base: 40 direct damage per hit/pulse, 90 cm radius/width, 4s recharge. Repeated attacks deal that damage each time unless a branch specifies a fraction.
-
-1. **Twin Needles** : Strike the second-lowest-health target too.
-2. **Needle Fan** : The impact splashes nearby enemies for half damage.
-3. **Septic Needle** : Needles apply Poison.
-
-### Raven Swarm (`RavenSwarm`)
-
-A raven swarm follows an enemy for six pecks, applying Poison.
-
-Base: 8 direct damage per hit/pulse, 100 cm radius/width, 5.5s recharge. Repeated attacks deal that damage each time unless a branch specifies a fraction.
-
-1. **Carrion Flight** : Retarget a nearby victim when the current one dies.
-2. **Murder of Crows** : Pecks splash nearby enemies for half damage.
-3. **Last Cry** : The final peck emits a triple-damage burst.
-
-## Files and maintenance
-
-- `Tools/build_family_catalog.json`: authored roster, card text, branch IDs and base tuning.
-- `Tools/generate_build_catalog.py`: regenerates `Source/HeavensDivide/BuildFamilyCatalog.h` from that roster.
-- `Tools/configure_build_families.py`: creates/updates the 77 family cards and controller pool; backups are under `Saved/Backups/BuildFamilies`.
-- `SurvivorBuildFamilies.cpp`: orbiting, banner, expanding-ring, phantom, needle and swarm attack behavior plus universal Prepare, using the existing controller ability component and its 10 Hz scheduler.
-- `SurvivorAbilityComponent`: expanded existing families and delayed work; `AutoAttackComponent`, `SamuraiBladeWave` and `AttackProjectileBase`: actual attack-hit integration.
-- `BuildFamilyTests.cpp`: saved-asset structure/gating, independent branch paths, actual damage, universal Prepare, existing-status spread, assist-only consumption, duplicate-payout protection, line misses, Raven Swarm retargeting and cleanup.
-
-Gameplay work is bounded at 96 expanded casts, 512 prepared-enemy records, 128 queried enemies and 64 live visual accents per controller. No global per-frame enemy scans or persistent audio components were added. Damage continues through EnemyBase, preserving rewards, loot and death handling.
-
-Visuals use the existing rings, connecting streaks and native Blade Wave effect. All 77 family cards have dedicated generated illustrations assigned; see `Docs/UpgradeArtwork.md`. Combat VFX use the existing presentation system and per-upgrade settings. Final balance and visual polish still need playtesting.
+`Tools/update_barrage_upgrades.py` replaces Crossfire (both side and rear shots) with Forking Projectiles and updates Crescendo. Other saved card tuning is preserved.

@@ -38,6 +38,7 @@ bool FBuildFamiliesTest::RunTest(const FString&)
  }
  for(int32 f=0;f<BuildFamilyCount;++f)
  {
+  if(!BuildFamilies[f].Available)continue;
   Upgrades->RestoreRunState(Empty);const auto& S=BuildFamilies[f];++Counts[FCString::Strcmp(S.Owner,TEXT("Samurai"))==0?0:1];
   auto* Starter=Card(f,S.Id);if(!Starter) continue;
   TestTrue(TEXT("Unique family ID"),!Ids.Contains(Starter->UpgradeId));Ids.Add(Starter->UpgradeId);
@@ -80,53 +81,19 @@ bool FBuildFamiliesTest::RunTest(const FString&)
   for(auto* E:Enemies) TestFalse(TEXT("Prepare invents no Bleed or Poison"),E->HasStatus(EEnemyStatusEffect::Bleed)||E->HasStatus(EEnemyStatusEffect::Poison));
   TestTrue(TEXT("Normal hits never prepare enemies"),Ability->BuildMarks.IsEmpty());
   Ability->Pending.Reset();
-  if(f<5)
-  {
-   for(auto* E:Enemies) E->GetStatusEffectComponent()->ClearAllStatuses();
-   if(f<4)
-   {
-    Ability->ActivateAbility(f,f<2?static_cast<ACharacterBase*>(Samurai):static_cast<ACharacterBase*>(Ninja));
-    if(f==0) TestTrue(TEXT("Tempest branches include remote echo and Bleed"),Ability->Pending.Num()>=2&&Enemies[12]->HasStatus(EEnemyStatusEffect::Bleed));
-    if(f==1) TestTrue(TEXT("Seeking Star follows a target and Aftershock adds work"),Ability->Pending.Num()>=2&&Ability->Pending[0].FollowTarget.IsValid());
-    if(f==2) TestTrue(TEXT("Venom Thread applies intrinsic Poison"),Enemies.ContainsByPredicate([](const auto* E){return E->HasStatus(EEnemyStatusEffect::Poison);}));
-    if(f==3) TestTrue(TEXT("Wandering/Briar Garden combine"),Ability->Pending.Num()==1&&Ability->Pending[0].bFollowOwner&&Ability->Pending[0].bPush);
-   }
-   else
-   {
-    const float Before=Enemies[12]->GetHealthComponent()->GetCurrentHealth();Ability->BladeWaveImpact(Enemies[12],20,true);
-    TestTrue(TEXT("Splinter Wave adds real Bleed damage"),Enemies[12]->GetHealthComponent()->GetCurrentHealth()<Before&&Enemies[12]->HasStatus(EEnemyStatusEffect::Bleed));
-   }
-   Ability->Pending.Reset();continue;
-  }
-  ACharacterBase* Character=Own==EPlayerAttackSource::Samurai?static_cast<ACharacterBase*>(Samurai):static_cast<ACharacterBase*>(Ninja);
-  Character->SetCharacterMode(ECharacterMode::Active);Character->SetActorLocation(FVector::ZeroVector);
-  FindFProperty<FObjectProperty>(UCharacterManagerComponent::StaticClass(),TEXT("ActiveCharacter"))->SetObjectPropertyValue_InContainer(PC->GetCharacterManager(),Character);
-  for(int32 variant=0;variant<4;++variant)
-  {
-   Upgrades->RestoreRunState(ScaledState);
-   if(variant>0) Upgrades->AcquireUpgrade(Card(f,S.Branches[variant-1]));
-   Ability->ClearBuildFamilies();Ability->Pending.Reset();
-   for(float& CD:Ability->BuildCooldowns)CD=1000;
-   for(float& CD:Ability->Cooldowns)CD=1000;
-   for(auto* E:Enemies){E->GetHealthComponent()->RestoreCurrentHealth(100000);E->GetStatusEffectComponent()->ClearAllStatuses();E->ClearMark();}
-   // Real acquisition selects each branch independently, including cast-time placement changes.
-   TestTrue(*FString::Printf(TEXT("%s activates"),S.Id),Ability->ActivateBuildFamily(f,Character));
-   for(int32 tick=0;tick<90;++tick) Ability->UpdateBuildFamilies(Character);
-   float Damage=0;for(auto* E:Enemies)Damage+=100000-E->GetHealthComponent()->GetCurrentHealth();
-   TestTrue(*FString::Printf(TEXT("%s variant %d deals real damage"),S.Id,variant),Damage>0);
-   TestTrue(TEXT("Scheduled ability work terminates"),Ability->BuildCasts.IsEmpty());
-  }
+  const float Before=Enemies[12]->GetHealthComponent()->GetCurrentHealth();Ability->BladeWaveImpact(Enemies[12],20,true);
+  TestTrue(TEXT("Splinter Wave adds real Bleed damage"),Enemies[12]->GetHealthComponent()->GetCurrentHealth()<Before&&Enemies[12]->HasStatus(EEnemyStatusEffect::Bleed));
  }
- TestEqual(TEXT("Six Samurai families"),Counts[0],6);TestEqual(TEXT("Five Ninja families"),Counts[1],5);TestEqual(TEXT("77 unique family cards"),Ids.Num(),77);
+ TestEqual(TEXT("One Samurai family"),Counts[0],1);TestEqual(TEXT("No Ninja ability families"),Counts[1],0);TestEqual(TEXT("Seven Blade Wave cards"),Ids.Num(),7);
  // Shared preparation, expiration, assist selection and status spread.
  Upgrades->RestoreRunState(Empty);Ability->ClearBuildFamilies();Ability->Pending.Reset();
  for(auto* E:Enemies){E->GetStatusEffectComponent()->ClearAllStatuses();E->GetHealthComponent()->RestoreCurrentHealth(100000);}
- Ability->RegisterFamilyHit(0,Enemies[24],20);
- Ability->RegisterFamilyHit(1,Enemies[24],30);
+ Ability->RegisterFamilyHit(4,Enemies[24],20);
+ Ability->RegisterFamilyHit(4,Enemies[24],30);
  TestEqual(TEXT("Multiple abilities share one preparation per enemy"),Ability->BuildMarks.Num(),1);
  TestEqual(TEXT("Latest same-source ability refreshes damage snapshot"),Ability->BuildMarks[0].Damage,30.f);
  Ability->RegisterFamilyHit(2,Enemies[24],40);
- TestEqual(TEXT("Opposite-source lingering ability cannot steal Prepare"),Ability->BuildMarks[0].Source,EPlayerAttackSource::Samurai);
+ TestEqual(TEXT("Retired abilities cannot overwrite Prepare"),Ability->BuildMarks[0].Source,EPlayerAttackSource::Samurai);
  TArray<AEnemyBase*> Targets={Enemies[10],Enemies[12],Enemies[24]};
  Ability->PrioritizePreparedTargets(EPlayerAttackSource::Ninja,Targets);
  TestTrue(TEXT("Assist prioritizes prepared targets and preserves fallback order"),Targets[0]==Enemies[24]&&Targets[1]==Enemies[10]&&Targets[2]==Enemies[12]);
@@ -136,7 +103,7 @@ bool FBuildFamiliesTest::RunTest(const FString&)
  TestFalse(TEXT("Expired preparation is not prioritized"),Ability->HasTriggerablePreparation(EPlayerAttackSource::Ninja,Enemies[24]));
  Targets={Enemies[10],Enemies[12],Enemies[24]};Ability->PrioritizePreparedTargets(EPlayerAttackSource::Ninja,Targets);
  TestTrue(TEXT("No valid preparation preserves normal target order"),Targets[0]==Enemies[10]&&Targets[2]==Enemies[24]);
- Ability->RegisterFamilyHit(0,Enemies[24],20);
+ Ability->RegisterFamilyHit(4,Enemies[24],20);
  auto* Attack=Ninja->FindComponentByClass<UAutoAttackComponent>();
  if(TestNotNull(TEXT("Ninja assist component"),Attack))
  {
@@ -152,7 +119,7 @@ bool FBuildFamiliesTest::RunTest(const FString&)
  Status->ApplyStatus(EEnemyStatusEffect::Bleed,Upgrades,EPlayerAttackSource::Samurai,true);
  Status->ApplyStatus(EEnemyStatusEffect::Poison,Upgrades,EPlayerAttackSource::Ninja,true);
  Enemies[11]->ConfigureObjectiveEnemy(100000,EPlayerAttackSource::Ninja,nullptr,FLinearColor::White);
- Ability->RegisterFamilyHit(0,Enemies[12],20);Ability->RegisterFamilyHit(0,Enemies[13],20);
+ Ability->RegisterFamilyHit(4,Enemies[12],20);Ability->RegisterFamilyHit(4,Enemies[13],20);
  const float NearbyHealth=Enemies[13]->GetHealthComponent()->GetCurrentHealth();
  Ability->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemies[12],true);
  TestEqual(TEXT("Prepare spreads existing Bleed"),Enemies[13]->GetStatusEffectComponent()->GetStatusStacks(EEnemyStatusEffect::Bleed),1);
@@ -166,7 +133,7 @@ bool FBuildFamiliesTest::RunTest(const FString&)
  Ability->ClearBuildFamilies();
  for(auto* E:Enemies) E->GetStatusEffectComponent()->ClearAllStatuses();
  Enemies[24]->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed,Upgrades,EPlayerAttackSource::Samurai,true);
- Ability->RegisterFamilyHit(0,Enemies[24],20);
+ Ability->RegisterFamilyHit(4,Enemies[24],20);
  Enemies[24]->ConfigureObjectiveEnemy(100000,EPlayerAttackSource::Other,nullptr,FLinearColor::White);
  FScriptDelegate DeathHandler;DeathHandler.BindUFunction(Enemies[24],TEXT("HandleDeath"));
  Enemies[24]->GetHealthComponent()->OnDeath.AddUnique(DeathHandler);
@@ -176,14 +143,7 @@ bool FBuildFamiliesTest::RunTest(const FString&)
  TestTrue(TEXT("Lethal assist spreads pre-hit status snapshot"),Enemies[23]->HasStatus(EEnemyStatusEffect::Bleed));
  TestFalse(TEXT("Absent Poison is not invented by Prepare"),Enemies[23]->HasStatus(EEnemyStatusEffect::Poison));
  Ninja->SetCharacterMode(ECharacterMode::Inactive);
- // Behavioral checks beyond catalog coverage: lanes miss off-axis targets and status source restrictions remain enforced.
- Ability->ClearBuildFamilies();USurvivorAbilityComponent::FBuildCast Lane;Lane.Family=2;Lane.Damage=10;
- const float OffAxis=Enemies[0]->GetHealthComponent()->GetCurrentHealth();
- Ability->BuildLine(Lane,FVector::ZeroVector,FVector(1000,0,0),50);
- TestEqual(TEXT("Line damage cannot hit off-axis enemies"),Enemies[0]->GetHealthComponent()->GetCurrentHealth(),OffAxis);
- auto Retarget=Lane;Retarget.Family=10;Retarget.Steps=6;Retarget.End=FVector::ZeroVector;
- TestFalse(TEXT("Raven Swarm ends without a living target"),Ability->StepBuildCast(Retarget));
- Retarget.Branches=1;TestTrue(TEXT("Carrion Flight reacquires a living target"),Ability->StepBuildCast(Retarget));
+ USurvivorAbilityComponent::FBuildCast Lane;Lane.Family=4;
  Ability->ClearBuildFamilies();Ability->Pending.Reset();
  auto* EndState=FindFProperty<FEnumProperty>(ASurvivorPlayerController::StaticClass(),TEXT("RunEndState"));
  EndState->GetUnderlyingProperty()->SetIntPropertyValue(EndState->ContainerPtrToValuePtr<void>(PC),static_cast<int64>(ERunEndState::Victory));

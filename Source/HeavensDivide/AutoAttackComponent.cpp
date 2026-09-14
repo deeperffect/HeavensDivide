@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AutoAttackComponent.h"
+#include "NinjaBuildComponent.h"
 #include "SurvivorAbilityComponent.h"
 
 #include "Animation/AnimInstance.h"
@@ -389,9 +390,11 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 	{
 		FVector Location, Normal;
 		Enemy->GetImpactContact(AttackOrigin, Location, Normal);
+		const float HealthBeforeHit = Enemy->GetHealthComponent() ? Enemy->GetHealthComponent()->GetCurrentHealth() : 0.f;
 		const bool bApplied = Enemy->ApplyPlayerDamage(Damage, AttackSource);
 		if (bApplied)
 		{
+			if (!bActiveAttackIsAssist && PlayerUpgrades) const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)->HandleSamuraiDirectHit(Enemy, Damage, HealthBeforeHit);
 			if (ShouldApplySamuraiPushback()) Enemy->ApplyAttackPushback(AttackOrigin, AttackSource, SamuraiPushbackDistance, SamuraiPushbackDuration);
 			bHitSomething = true;
 			SuccessfulHitPositions.Add(Enemy->GetActorLocation());
@@ -410,7 +413,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 			PrimaryDeathLocation = PrimaryTarget->GetActorLocation();
 			const bool bDamageApplied = ApplyMeleeImpact(PrimaryTarget, ResolvedPrimaryDamage);
 			bPrimaryKilled = PrimaryHealth->IsDead();
-			if (bDamageApplied && !bPrimaryKilled && bCanApplyBleed) PrimaryTarget->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
+			if (bDamageApplied && !bPrimaryKilled && bCanApplyBleed) PrimaryTarget->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource, false, ResolvedPrimaryDamage);
 			if (bCanApplyMarkedBlade) PrimaryTarget->ApplyMark();
 		}
 	}
@@ -440,7 +443,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
 		if (!EnemyHealth || EnemyHealth->IsDead()) continue;
 		const bool bDamageApplied = ApplyMeleeImpact(HitEnemy, SecondaryDamage);
-		if (bDamageApplied && !EnemyHealth->IsDead() && bCanApplyBleed) HitEnemy->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource);
+		if (bDamageApplied && !EnemyHealth->IsDead() && bCanApplyBleed) HitEnemy->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource, false, SecondaryDamage);
 		if (bCanApplyMarkedBlade) HitEnemy->ApplyMark();
 	}
 
@@ -483,6 +486,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
 			{ Abilities->ExecuteSetupAssist(OwnerCharacter); return; }
 
+ if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>();B&&B->ReplaceVolley(ActiveAttackDirection))return;
 	if (!ProjectileClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn skipped: ProjectileClass invalid."));
@@ -529,6 +533,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		VolleySpacing = FMath::Clamp(GrandEntrance->GetBalanceValue(TEXT("NinjaFanAngle"),100),0.f,180.f) / FMath::Max(1,EffectiveProjectileCount-1);
 		bGrandEntranceReady = false;
 	}
+ if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>())B->ModifyVolley(BaseDirection,EffectiveProjectileCount,VolleySpacing);
 	BuildCenteredProjectileSpreadDirections(BaseDirection, EffectiveProjectileCount, VolleySpacing, bNormalVolleyExtraProjectileOnRight, VolleyDirections);
 	if (EffectiveProjectileCount % 2 == 0) bNormalVolleyExtraProjectileOnRight = !bNormalVolleyExtraProjectileOnRight;
 
@@ -618,7 +623,7 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 	}
 }
 
-bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight)
+bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight, int32* CloneVolley, int32* CloneConsecutive)
 {
 	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass || !GetWorld() || IsOwningPlayerDead())
 	{
@@ -634,12 +639,15 @@ bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, 
 	FVector BaseDirection = GetEnemyAimLocation(PrimaryTarget) - SpawnLocation;
 	BaseDirection.Z = 0.0f;
 	if (!BaseDirection.Normalize()) return false;
-	const int32 ProjectileCount = FMath::Max(1, GetEffectiveProjectileCount());
+	int32 ProjectileCount = FMath::Max(1, GetEffectiveProjectileCount());
 	const float Damage = GetEffectiveAttackDamage();
 	const float Speed = GetEffectiveProjectileSpeed();
 	const int32 Pierce = GetEffectiveProjectilePierceBonus();
 	TArray<FVector> VolleyDirections;
-	BuildCenteredProjectileSpreadDirections(BaseDirection, ProjectileCount, KunaiSpreadAngle, bExtraProjectileOnRight, VolleyDirections);
+	float Spacing=KunaiSpreadAngle;
+ auto* Build=OwnerCharacter->FindComponentByClass<UNinjaBuildComponent>();
+ if(Build&&CloneVolley&&CloneConsecutive)Build->ModifyVolleyWithCounters(BaseDirection,ProjectileCount,Spacing,*CloneVolley,*CloneConsecutive);
+ BuildCenteredProjectileSpreadDirections(BaseDirection, ProjectileCount, Spacing, bExtraProjectileOnRight, VolleyDirections);
 	if (ProjectileCount % 2 == 0) bExtraProjectileOnRight = !bExtraProjectileOnRight;
 	int32 Spawned = 0;
 	for (const FVector& Direction : VolleyDirections)
@@ -647,7 +655,7 @@ bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, 
 		SpawnProjectileInstance(SpawnLocation, Direction, Damage, Speed, Pierce, false);
 		++Spawned;
 	}
-	return Spawned > 0;
+ return Spawned > 0;
 }
 
 void UAutoAttackComponent::BuildCenteredProjectileSpreadDirections(const FVector& BaseDirection, int32 ProjectileCount, float SpreadAngleDegrees, bool bExtraProjectileOnRight, TArray<FVector>& OutDirections)
@@ -695,10 +703,14 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
 	++CrossingBladesAttackCounter;
 	const bool bTriple = bCrossing && CrossingBladesAttackCounter % FMath::Max(1,FMath::RoundToInt(Tune(TEXT("AttackFrequency"),3,1))) == 0;
 	const float SideAngle=Tune(TEXT("SideAngle"),CrossingBladeSideAngle,1);
-	const int32 WaveCount = bTriple ? FMath::Clamp(FMath::RoundToInt(Tune(TEXT("WaveCount"),3,1)),1,16) : 1;
+	const int32 BonusWaves = FMath::Clamp(Upgrades->GetUpgradeLevelById(TEXT("WaveMultishot")),0,3);
+    const int32 WaveCount = FMath::Clamp((bTriple ? FMath::RoundToInt(Tune(TEXT("WaveCount"),3,1)) : 1) + BonusWaves,1,16);
+    const auto* Multishot = Upgrades->FindUpgradeDefinition(TEXT("WaveMultishot"));
+    const float ExtraAngle = FMath::Max(0.f, Multishot ? Multishot->GetBalanceValue(TEXT("AnglePerWave"),8.f) : 8.f);
+    const float FanHalfAngle = bTriple ? SideAngle : ExtraAngle * BonusWaves * 0.5f;
 	for (int32 Index = 0; Index < WaveCount; ++Index)
 	{
-		const float Angle = bTriple && WaveCount>1 ? FMath::Lerp(-SideAngle,SideAngle,static_cast<float>(Index)/(WaveCount-1)) : 0.0f;
+		const float Angle = WaveCount>1 ? FMath::Lerp(-FanHalfAngle,FanHalfAngle,static_cast<float>(Index)/(WaveCount-1)) : 0.0f;
 		const FVector Direction = Forward.RotateAngleAxis(Angle, FVector::UpVector);
 		const FVector SpawnLocation = Samurai->GetActorLocation() + Direction * Tune(TEXT("SpawnForwardOffset"),80) + FVector(0.0f, 0.0f,Tune(TEXT("SpawnHeightOffset"),60));
 		FActorSpawnParameters Params;
@@ -1182,6 +1194,7 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 
 bool UAutoAttackComponent::StartTargetedAttack()
 {
+ if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>();B&&B->Has(TEXT("ReturningFang")))return false;
 	if (OwnerCharacter && OwnerCharacter->IsDashing())
 	{
 		return false;
@@ -1849,11 +1862,7 @@ int32 UAutoAttackComponent::GetEffectiveProjectilePierceBonus() const
 
 ESamuraiTechnique UAutoAttackComponent::GetActiveSamuraiTechnique() const
 {
-	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
-	if (!PlayerUpgrades) return ESamuraiTechnique::None;
-	if (PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::SamuraiCleaver) > 0) return ESamuraiTechnique::Cleaver;
-	if (PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::SamuraiDuelist) > 0) return ESamuraiTechnique::Duelist;
-	if (PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::SamuraiDeathblow) > 0) return ESamuraiTechnique::Deathblow;
+	// Retired techniques never activate, including in an older run snapshot.
 	return ESamuraiTechnique::None;
 }
 
@@ -2006,8 +2015,8 @@ int32 UAutoAttackComponent::GetEffectiveProjectileBounceBonus() const
 
 int32 UAutoAttackComponent::GetEffectiveProjectileSplitBonus() const
 {
-	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
-	return CharacterStats ? CharacterStats->GetFinalProjectileSplitBonus() : 0;
+ const auto* Build=OwnerCharacter?OwnerCharacter->FindComponentByClass<UNinjaBuildComponent>():nullptr;
+ return Build&&Build->Has(TEXT("ForkingProjectiles"))?1:0;
 }
 
 float UAutoAttackComponent::GetBaseAttackInterval() const

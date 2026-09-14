@@ -1961,34 +1961,7 @@ void ASurvivorPlayerController::HandleCameraShakeIntensityChanged(float Intensit
 
 void ASurvivorPlayerController::AbilityShowcase()
 {
-#if !UE_BUILD_SHIPPING
- if (!PlayerUpgradeComponent || !IsRunInProgress()) return;
- const TCHAR* ShowcaseFamilies[] = {TEXT("SteelTempest"),TEXT("Heavenfall"),TEXT("NightThread"),TEXT("VenomGarden")};
- const TCHAR* ShowcaseEvolutions[] = {TEXT("RazorHalo"),TEXT("Starfall"),TEXT("BlackWeb"),TEXT("WitheringGarden")};
- for (int32 i=0;i<4;++i)
- {
-  const FString Folder=i<2?TEXT("Samurai"):TEXT("Ninja");
-  for (const TCHAR* Suffix : {TEXT(""),TEXT("Power"),TEXT("Area"),TEXT("Haste"),TEXT("Evolution")})
-  {
-   const bool Evolution=FString(Suffix)==TEXT("Evolution");
-   const FString Id=Evolution?FString(ShowcaseEvolutions[i]):FString(ShowcaseFamilies[i])+Suffix;
-   const FString Path=TEXT("/Game/HeavensDivide/Upgrades/")+Folder+TEXT("/DA_Upgrade_")+Folder+Id;
-   if (auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,*Path))
-   {
-    const int32 DesiredLevel=(Evolution||FString(Suffix).IsEmpty())?1:2;
-    while (PlayerUpgradeComponent->GetUpgradeLevel(Upgrade)<DesiredLevel)
-     if (!PlayerUpgradeComponent->AcquireUpgrade(Upgrade)) break;
-   }
-  }
- }
- for (const TCHAR* Path : {TEXT("/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBleedingEdge"),
- TEXT("/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaVenomousKunai"),
- TEXT("/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_TagTeam"),
- TEXT("/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_HemotoxicReaction")})
-  if (auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,Path))
-   if (PlayerUpgradeComponent->GetUpgradeLevel(Upgrade)==0) PlayerUpgradeComponent->AcquireUpgrade(Upgrade);
- ClientMessage(TEXT("Ability showcase ready. Swap Samurai / Ninja to try all four builds. Applies to this run only."));
-#endif
+ BuildPreview(TEXT("BladeWave"),0);
 }
 
 void ASurvivorPlayerController::BuildPreview(const FString& FamilyId, int32 Branch)

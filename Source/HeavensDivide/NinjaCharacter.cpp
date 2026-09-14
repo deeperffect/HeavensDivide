@@ -3,8 +3,10 @@
 #include "NinjaCharacter.h"
 
 #include "AutoAttackComponent.h"
+#include "NinjaBuildComponent.h"
 
 ANinjaCharacter::ANinjaCharacter()
 {
 	AutoAttackComponent = CreateDefaultSubobject<UAutoAttackComponent>(TEXT("AutoAttackComponent"));
+ CreateDefaultSubobject<UNinjaBuildComponent>(TEXT("NinjaBuildComponent"));
 }

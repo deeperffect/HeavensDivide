@@ -64,6 +64,10 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 	friend class FImpactFeedbackTest;
 	friend class FEnemyPushbackTest;
 	friend class FGrandEntranceTest;
+	friend class FSamuraiBuildsTest;
+ friend class UNinjaBuildComponent;
+ friend class ANinjaBuildProjectile;
+ friend class FNinjaBuildsTest;
 
 public:
 	UAutoAttackComponent();
@@ -140,7 +144,7 @@ public:
 
 	// Fires one Ninja projectile volley from an external origin without advancing
 	// normal attack-cycle systems (Fan of Blades, Blade Cascade, assists, or swap synergies).
-	bool SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight);
+	bool SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight, int32* CloneVolley=nullptr, int32* CloneConsecutive=nullptr);
 
 	UAnimMontage* GetAttackMontageForShadowClone() const { return AttackMontage; }
 

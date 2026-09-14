@@ -71,6 +71,8 @@ public:
 	void ApplyMetaSkillModifiers();
 	UUpgradeDefinition* FindUpgradeDefinition(FName Id) const;
 	UPlayerUpgradeComponent();
+	/** Only called by successful direct Samurai attack hits, never by proc damage. */
+	void HandleSamuraiDirectHit(class AEnemyBase* Enemy, float Damage, float HealthBeforeHit);
 	void CaptureRunState(FPlayerUpgradeRunState& OutState) const;
 	void RestoreRunState(const FPlayerUpgradeRunState& State);
 

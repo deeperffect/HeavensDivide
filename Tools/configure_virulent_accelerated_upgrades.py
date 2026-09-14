@@ -1,3 +1,4 @@
+raise RuntimeError('Legacy Ninja poison upgrades are retired. Use configure_ninja_builds.py.')
 import unreal
 
 

@@ -66,6 +66,7 @@ float UCharacterStatsComponent::GetFinalStat(ECharacterStatType Stat) const
 {
 	float FlatBonus = 0.0f;
 	float AdditivePercentBonus = 0.0f;
+	float MultiplicativeBonus = 1.0f;
 
 	for (const FCharacterStatModifier& Modifier : Modifiers)
 	{
@@ -78,13 +79,17 @@ float UCharacterStatsComponent::GetFinalStat(ECharacterStatType Stat) const
 		{
 			FlatBonus += Modifier.Value;
 		}
+		else if (Modifier.Operation == EStatModifierOperation::Multiply)
+		{
+			MultiplicativeBonus *= FMath::Max(0.0f, Modifier.Value);
+		}
 		else
 		{
 			AdditivePercentBonus += Modifier.Value;
 		}
 	}
 
-	return (GetBaseStat(Stat) + FlatBonus) * (1.0f + AdditivePercentBonus);
+	return (GetBaseStat(Stat) + FlatBonus) * (1.0f + AdditivePercentBonus) * MultiplicativeBonus;
 }
 
 int32 UCharacterStatsComponent::GetModifierCount() const

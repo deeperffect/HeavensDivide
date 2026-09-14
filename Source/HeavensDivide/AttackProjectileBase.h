@@ -24,6 +24,9 @@ class HEAVENSDIVIDE_API AAttackProjectileBase : public AActor
 {
 	GENERATED_BODY()
 	friend class FImpactFeedbackTest;
+ friend class FNinjaBuildsTest;
+ friend class ANinjaBuildProjectile;
+ friend class UNinjaBuildComponent;
 
 public:
 	AAttackProjectileBase();

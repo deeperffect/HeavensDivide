@@ -92,6 +92,7 @@ public:
 	/** Development shortcut: grant the four new ability builds for this run only. */
 	UFUNCTION(Exec)
 	void AbilityShowcase();
+ UFUNCTION(Exec) void NinjaBuildPreview(const FString& BuildName);
 	/** Preview one full family; branch 0 grants all three, 1-3 grants just that branch. */
 	UFUNCTION(Exec) void BuildPreview(const FString& FamilyId, int32 Branch = 0);
 	void BeginObjectiveChoiceInput(UWidget* FocusWidget);

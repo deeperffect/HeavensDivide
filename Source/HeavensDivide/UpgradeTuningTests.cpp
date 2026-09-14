@@ -24,32 +24,18 @@ bool FUpgradeTuningTest::RunTest(const FString&)
  auto* Samurai=World->SpawnActor<ASamuraiCharacter>(FVector::ZeroVector,FRotator::ZeroRotator,Params);Samurai->SetOwner(PC);
  auto* Enemy=World->SpawnActor<AEnemyBase>(FVector(500,0,0),FRotator::ZeroRotator,Params);
  Enemy->GetHealthComponent()->SetMaxHealthPreservePercent(100000);Enemy->GetHealthComponent()->RestoreCurrentHealth(100000);
- auto* Root=A->TuningDefinition(0);auto* Echo=A->TuningDefinition(0,0);
+ auto* Root=A->TuningDefinition(4);auto* Echo=A->TuningDefinition(4,0);
  if(!TestNotNull(TEXT("Editable starter loaded from saved pool"),Root)||!Echo){World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return false;}
  const auto SavedRoot=Root->BalanceParameters,SavedEcho=Echo->BalanceParameters;
  const auto SavedVFX=Root->Presentation;const auto SavedBranchVFX=Echo->Presentation;
- TestTrue(TEXT("Migration exposes starter balance"),Root->bHasRuntimeBalance&&Root->BalanceParameters.Contains(TEXT("Radius")));
- TestTrue(TEXT("Migration exposes branch balance"),Echo->BalanceParameters.Contains(TEXT("DamageMultiplier")));
- U->AcquireUpgrade(Root);
- Root->BalanceParameters.Add(TEXT("Radius"),260);
- TestFalse(TEXT("Enemy outside configured base radius cannot trigger Tempest"),A->ActivateAbility(0,Samurai));
- Root->BalanceParameters.Add(TEXT("Radius"),600);Root->BalanceParameters.Add(TEXT("Damage"),17);Root->BalanceParameters.Add(TEXT("Cooldown"),0.8f);
- const float Before=Enemy->GetHealthComponent()->GetCurrentHealth();
- TestTrue(TEXT("Editing radius expands acquisition and actual damage area"),A->ActivateAbility(0,Samurai));
- TestTrue(TEXT("Editing damage changes authoritative health loss"),FMath::IsNearlyEqual(Before-Enemy->GetHealthComponent()->GetCurrentHealth(),17*A->Power(Samurai),0.02f));
- TestEqual(TEXT("Editing cooldown changes recharge"),A->Cooldown(0),0.8f);
- A->GrantBuildPreview(TEXT("SteelTempest"),1);A->Pending.Reset();
- Echo->BalanceParameters.Add(TEXT("DamageMultiplier"),0.2f);Echo->BalanceParameters.Add(TEXT("Delay"),0.7f);
- const float BeforeEcho=Enemy->GetHealthComponent()->GetCurrentHealth();A->ActivateAbility(0,Samurai);
- TestEqual(TEXT("Razor Halo is scheduled once"),A->Pending.Num(),1);
- if(A->Pending.Num()==1)
- {
-  TestEqual(TEXT("Branch asset controls echo delay"),A->Pending[0].Remaining,0.7f);
-  TestTrue(TEXT("Branch asset controls echo fraction"),FMath::IsNearlyEqual(A->Pending[0].Damage,(BeforeEcho-Enemy->GetHealthComponent()->GetCurrentHealth())*0.2f,0.02f));
- }
+ TestTrue(TEXT("Migration exposes wave balance"),Root->bHasRuntimeBalance&&Root->BalanceParameters.Contains(TEXT("WaveWidth")));
+ U->AcquireUpgrade(Root);U->AcquireUpgrade(Echo);
+ Root->BalanceParameters.Add(TEXT("WaveWidth"),600);Root->BalanceParameters.Add(TEXT("WaveDamageMultiplier"),1.7f);
+ TestEqual(TEXT("Blade Wave reads editable width"),A->Tuning(4,TEXT("WaveWidth"),300),600.f);
+ TestEqual(TEXT("Blade Wave reads editable damage multiplier"),A->Tuning(4,TEXT("WaveDamageMultiplier"),0.65f),1.7f);
  A->Pending.Reset();A->BuildMarks.Reset();
  A->PreparationDamageMultiplier=2;A->PreparationDuration=9;
- A->RegisterFamilyHit(0,Enemy,20);const float BeforeReaction=Enemy->GetHealthComponent()->GetCurrentHealth();
+ A->RegisterFamilyHit(4,Enemy,20);const float BeforeReaction=Enemy->GetHealthComponent()->GetCurrentHealth();
  TestEqual(TEXT("Component setting controls universal preparation duration"),A->BuildMarks[0].Remaining,9.f);
  A->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy,true);
  TestTrue(TEXT("Component setting controls universal preparation payout"),FMath::IsNearlyEqual(BeforeReaction-Enemy->GetHealthComponent()->GetCurrentHealth(),40,0.01f));
@@ -57,7 +43,7 @@ bool FUpgradeTuningTest::RunTest(const FString&)
  auto* System=NewObject<UNiagaraSystem>(GetTransientPackage());
  Root->Presentation.PulseSystem=System;Root->Presentation.LocationOffset=FVector(10,20,30);Root->Presentation.AuthoredRadius=100;
  Root->Presentation.Scale=FVector(0.5f);Root->Presentation.LifetimeOverride=0.75f;
- auto* FX=A->FamilyAccent(0,FVector::ZeroVector,FVector(200,0,0),400,FLinearColor::White);
+ auto* FX=A->FamilyAccent(4,FVector::ZeroVector,FVector(200,0,0),400,FLinearColor::White);
  TestNotNull(TEXT("Configured VFX actor"),FX);
  if(FX)
  {
@@ -74,7 +60,7 @@ bool FUpgradeTuningTest::RunTest(const FString&)
   TestFalse(TEXT("Assigned Niagara replaces fallback by default"),FX->FindComponentByClass<UStaticMeshComponent>()->IsVisible());FX->Destroy();
  }
  Echo->Presentation.bOverrideFamilyVisuals=true;Echo->Presentation.Scale=FVector(3);
- TestTrue(TEXT("Owned branch can override the base presentation"),A->FamilyPresentation(0)==&Echo->Presentation);
+ TestTrue(TEXT("Owned branch can override the base presentation"),A->FamilyPresentation(4)==&Echo->Presentation);
  Root->BalanceParameters=SavedRoot;Echo->BalanceParameters=SavedEcho;Root->Presentation=SavedVFX;Echo->Presentation=SavedBranchVFX;
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }

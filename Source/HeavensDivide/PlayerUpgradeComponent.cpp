@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "PlayerUpgradeComponent.h"
+#include "BuildFamilyCatalog.h"
 #include "MetaSkillTree.h"
 
 #include "AutoAttackComponent.h"
@@ -16,6 +17,20 @@
 #include "SurvivorPlayerController.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "UpgradeDefinition.h"
+
+namespace
+{
+bool IsRetiredNinjaUpgrade(FName Id)
+{
+ static const TSet<FName> Retired = {
+  TEXT("Crossfire"), TEXT("ExecutionersKunai"), TEXT("FanOfBlades"), TEXT("NinjaProjectileBonus"),
+  TEXT("NinjaProjectilePierce"), TEXT("ChainExecution"), TEXT("BladeCascade"),
+  TEXT("ProjectileBounce"), TEXT("ProjectileSplit"),
+  TEXT("PotentVenom"), TEXT("VirulentStrain"), TEXT("HemotoxicReaction"), TEXT("AcceleratedVenom")
+ };
+ return Retired.Contains(Id);
+}
+}
 
 static TAutoConsoleVariable<int32> CVarHDLogPlayerUpgradeStats(
 	TEXT("hd.LogPlayerUpgradeStats"),
@@ -43,6 +58,8 @@ void UPlayerUpgradeComponent::CaptureRunState(FPlayerUpgradeRunState& OutState) 
 
 void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& State)
 {
+	// Clear the old snapshot's modifiers before installing a different stance or build.
+	for (const auto& Pair : AcquiredUpgradeDefinitions) ClearUpgradeModifiers(Pair.Value);
 	UpgradeLevels = State.Levels;
 	AccumulatedUpgradeMagnitudes = State.AccumulatedMagnitudes;
 	AcquiredUpgradeDefinitions = State.Definitions;
@@ -69,6 +86,7 @@ int32 UPlayerUpgradeComponent::GetUpgradeLevel(UUpgradeDefinition* Upgrade) cons
 
 int32 UPlayerUpgradeComponent::GetUpgradeLevelById(FName UpgradeId) const
 {
+ if (IsRetiredNinjaUpgrade(UpgradeId)) return 0;
 	if (UpgradeId.IsNone())
 	{
 		return 0;
@@ -89,7 +107,23 @@ bool UPlayerUpgradeComponent::HasUpgradeId(FName UpgradeId) const
 
 bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) const
 {
-	bool bMetaEligible = true;
+	if (Upgrade && (IsRetiredNinjaUpgrade(Upgrade->UpgradeId) || Upgrade->Category == EUpgradeCategory::NinjaTrial)) return false;
+	if (Upgrade && (Upgrade->Category == EUpgradeCategory::SamuraiTrial
+		|| Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::SamuraiCleaver)
+		|| Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::SamuraiDuelist)
+		|| Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::SamuraiDeathblow))) return false;
+	if (Upgrade)
+ {
+  for (const auto& Family : BuildFamilies)
+  {
+   if (Family.Available) continue;
+   if (Upgrade->BuildFamilyId == FName(Family.Id) || Upgrade->UpgradeId == FName(Family.Id)) return false;
+   for (const auto* Branch : Family.Branches) if (Upgrade->UpgradeId == FName(Branch)) return false;
+   for (const auto* Suffix : {TEXT("Power"), TEXT("Area"), TEXT("Haste")})
+    if (Upgrade->UpgradeId == FName(FString(Family.Id) + Suffix)) return false;
+  }
+ }
+ bool bMetaEligible = true;
 	if (Upgrade && Upgrade->Category == EUpgradeCategory::Synergy)
 	{
 		const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
@@ -376,6 +410,9 @@ bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCou
 
 bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
+	// Existing trial Blueprints now reward the current Samurai build pool.
+	if (Category == EUpgradeCategory::SamuraiTrial) Category = EUpgradeCategory::Samurai;
+	if (Category == EUpgradeCategory::NinjaTrial) Category = EUpgradeCategory::Ninja;
 	ClearCurrentOffer();
 	SelectedCategory = Category;
 	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
@@ -677,7 +714,7 @@ UUpgradeDefinition* UPlayerUpgradeComponent::GetAcquiredUpgradeWithSpecialEffect
 
 bool UPlayerUpgradeComponent::IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const
 {
-	return Upgrade && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0;
+	return Upgrade && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0 && !IsRetiredNinjaUpgrade(Upgrade->UpgradeId);
 }
 
 bool UPlayerUpgradeComponent::MeetsPrerequisites(const UUpgradeDefinition* Upgrade) const

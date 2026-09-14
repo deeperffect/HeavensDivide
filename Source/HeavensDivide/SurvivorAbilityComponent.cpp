@@ -188,107 +188,17 @@ void USurvivorAbilityComponent::Pulse(const FPendingPulse& P)
 }
 void USurvivorAbilityComponent::UpdateAbilities()
 {
- if(!Controller||!Upgrades) return;
+ if(!Controller||!Upgrades)return;
  if(!Controller->IsRunInProgress()||Controller->IsPlayerDead())
  {
-  Pending.Reset();ClearBuildFamilies();for(auto E:ActiveAccents) if(E.IsValid()) E->Destroy();ActiveAccents.Reset();return;
+  Pending.Reset();ClearBuildFamilies();for(auto E:ActiveAccents)if(E.IsValid())E->Destroy();ActiveAccents.Reset();return;
  }
- // Timers pause with the world. Already-cast fields retain their original character attribution across swaps.
- for(int32 i=Pending.Num()-1;i>=0;--i)
- {
-  FPendingPulse P=Pending[i];Pending.RemoveAtSwap(i);
-  if(P.bFollowOwner&&P.FollowOwner.IsValid()&&P.FollowOwner->GetCharacterMode()==ECharacterMode::Active) P.Position=P.FollowOwner->GetActorLocation();
-  if(P.FollowTarget.IsValid()&&!P.FollowTarget->IsDead()) P.Position=P.FollowTarget->GetActorLocation();
-  if(P.FieldVisual.IsValid()) P.FieldVisual->MoveAnchor(P.Position-FVector(0,0,70));
-  P.Remaining-=0.1f;
-  if(P.Remaining>0.001f){Pending.Add(P);continue;}
-  Pulse(P);
-  if(--P.Ticks<=0)
-  {
-   if(P.bFinalBurst){FPendingPulse Burst=P;Burst.Damage*=Tuning(3,TEXT("FinalDamageMultiplier"),3.0f,0);Burst.Radius*=Tuning(3,TEXT("FinalRadiusMultiplier"),1.25f,0);Burst.bPoison=false;Pulse(Burst);}
-   if(P.FieldVisual.IsValid()) P.FieldVisual->Destroy();
-  }
-  else {P.Remaining+=P.Interval;Pending.Add(P);}
- }
- if(!Controller->IsRunInProgress()||Controller->IsPlayerDead()) return;
- auto* Character=Controller->GetCharacterManager()?Controller->GetCharacterManager()->GetActiveCharacter():nullptr;
- UpdateBuildFamilies(Character);
- if(!IsValid(Character)||Character->GetCharacterMode()!=ECharacterMode::Active) return;
- const bool Samurai=Character->IsA<ASamuraiCharacter>();
- if(!Samurai&&!Character->IsA<ANinjaCharacter>()) return;
- for(int32 i=Samurai?0:2;i<(Samurai?2:4);++i)
- {
-  if(!Upgrades->HasUpgradeId(Families[i])) continue;
-  Cooldowns[i]=FMath::Max(0.0f,Cooldowns[i]-0.1f);
-  if(Cooldowns[i]<=0 && ActivateAbility(i,Character)) Cooldowns[i]=Cooldown(i);
- }
+ UpdateBuildFamilies(nullptr);
 }
 bool USurvivorAbilityComponent::ActivateAbility(int32 Index,ACharacterBase* Character)
 {
- const EPlayerAttackSource Source=Index<2?EPlayerAttackSource::Samurai:EPlayerAttackSource::Ninja;
- const FVector Origin=Character->GetActorLocation();
- const auto Spec=FamilySpec(Index);
- const float Area=1+Magnitude(Index,TEXT("Area"));
- const float Damage=Power(Character)*(1+Magnitude(Index,TEXT("Power")));
- const bool Evolved=Upgrades->HasUpgradeId(Evolutions[Index]);
- auto Targets=FindEnemies(Origin,Index==0?Spec.Radius*Area:Tuning(Index,TEXT("TargetRange"),1000),Source);
- if(Targets.IsEmpty()||Pending.Num()>24) return false;
- FPendingPulse P;P.Family=Index;P.Source=Source;P.Color=Colors[Index];
- if(Index==0)
- {
-  P.Position=Origin;P.Damage=Spec.Damage*Damage;P.Radius=Spec.Radius*Area;P.bBleed=Branch(0,1);Pulse(P);
-  if(Spec.Count>1){auto Repeat=P;Repeat.Ticks=Spec.Count-1;Repeat.Remaining=Repeat.Interval=Spec.Interval;Pending.Add(Repeat);}
-  if(Branch(0,2)){auto Remote=P;Remote.Position=FindCrowdCenter(Targets,P.Radius);Remote.Remaining=Tuning(0,TEXT("Delay"),0.3f,2);Remote.Damage*=Tuning(0,TEXT("DamageMultiplier"),0.5f,2);Pending.Add(Remote);}
-  if(Evolved){P.Remaining=Tuning(0,TEXT("Delay"),0.3f,0);P.Damage*=Tuning(0,TEXT("DamageMultiplier"),0.65f,0);Pending.Add(P);}return true;
- }
- if(Index==1)
- {
-  for(int32 i=0;i<Spec.Count && !Targets.IsEmpty();++i)
-  {
-   P.Position=FindCrowdCenter(Targets,Spec.Radius*Area);P.Damage=Spec.Damage*Damage;P.Radius=Spec.Radius*Area;P.bBleed=true;P.Remaining=Spec.Interval+i*Tuning(1,TEXT("StrikeStagger"),0.15f,0);P.bSkyStrike=true;
-   if(Branch(1,2))
-   {for(auto* E:Targets)if(FVector::DistSquared(E->GetActorLocation(),P.Position)<1){P.FollowTarget=E;break;}}
-   P.FieldVisual=FamilyAccent(Index,P.Position-FVector(0,0,70),P.Position,P.Radius,P.Color*0.35f,P.Remaining,false,-1,1);Pending.Add(P);
-   if(Branch(1,1)){auto Echo=P;Echo.Damage*=Tuning(1,TEXT("DamageMultiplier"),0.5f,1);Echo.Remaining+=Tuning(1,TEXT("Delay"),0.4f,1);Echo.FieldVisual.Reset();Pending.Add(Echo);}
-   Targets.RemoveAll([&P](const AEnemyBase* E){return FVector::DistSquared(E->GetActorLocation(),P.Position)<=FMath::Square(P.Radius);});
-  }return true;
- }
- if(Index==2)
- {
-  FVector From=Origin;TSet<AEnemyBase*> Visited;
-  const int32 Count=FMath::Min(FMath::Clamp(FMath::RoundToInt(Tuning(2,TEXT("MaximumTargets"),8.0f)),1,64),Spec.Count+Upgrades->GetUpgradeLevelById(TEXT("NightThreadArea"))/FMath::Max(1,FMath::RoundToInt(Tuning(2,TEXT("ReachRanksPerExtraTarget"),2.0f))));
-  for(int32 i=0;i<Count;++i)
-  {
-   if(!Controller->IsRunInProgress()||Controller->IsPlayerDead()) break;
-   auto Candidates=FindEnemies(From,i==0?Tuning(2,TEXT("TargetRange"),1000.0f):Spec.Radius*Area,Source);AEnemyBase* Target=nullptr;
-   for(auto* Candidate:Candidates) if(!Visited.Contains(Candidate))
-   {
-    if(!Target) Target=Candidate;
-    if(Candidate->HasStatus(EEnemyStatusEffect::Bleed)){Target=Candidate;break;}
-   }
-   if(!Target) break;
-   Visited.Add(Target);const FVector To=Target->GetActorLocation();FamilyAccent(Index,From,To,0,P.Color,0.25f,true);
-   if(Branch(2,2)){FBuildCast Line;Line.Family=2;Line.Damage=Spec.Damage*Damage;Line.HitEnemies.Add(Target);BuildLine(Line,From,To,Tuning(2,TEXT("LineWidth"),55.0f,2)*Area,Tuning(2,TEXT("DamageMultiplier"),0.4f,2));}
-   const bool bBleeding=Target->HasStatus(EEnemyStatusEffect::Bleed);
-   if(Target->ApplyPlayerDamage(Spec.Damage*Damage,Source))
-   {
-    NotifyPartnerHit(Source,Target);RegisterFamilyHit(2,Target,Spec.Damage*Damage);
-    if(!Target->IsDead()&&(bBleeding||Branch(2,1)||Upgrades->HasUpgradeId(TEXT("VenomousKunai"))))
-     ApplyConfiguredStatus(Index,Target,EEnemyStatusEffect::Poison,Source);
-   }
-   if(Evolved && !Target->IsDead())
-   {P.Position=To;P.Damage=Spec.Damage*Damage*Tuning(2,TEXT("DamageMultiplier"),0.5f,0);P.Radius=Tuning(2,TEXT("BurstRadius"),65.0f,0);P.Remaining=Tuning(2,TEXT("Delay"),0.25f,0);Pending.Add(P);}
-   From=To;
-  }return true;
- }
- // One live garden: recharge can finish early, but cannot stack fields indefinitely.
- for(const auto& Existing:Pending) if(Existing.bGarden) return false;
- P.Position=FindCrowdCenter(Targets,Spec.Radius*Area);P.Damage=Spec.Damage*Damage;P.Radius=Spec.Radius*Area;
- P.Ticks=Spec.Count;P.Remaining=Tuning(3,TEXT("InitialDelay"),0.1f);P.Interval=Spec.Interval;P.bFinalBurst=Evolved;
- P.bPoison=true;P.bGarden=true;P.bPush=Branch(3,2);
- if(Branch(3,1)){P.Position=Origin;P.bFollowOwner=true;P.FollowOwner=Character;}
- P.FieldVisual=FamilyAccent(Index,P.Position-FVector(0,0,70),P.Position,P.Radius,P.Color*0.6f,P.Remaining+(P.Ticks-1)*P.Interval);
- Pending.Add(P);return true;
+ // Retired automatic abilities cannot execute, including from old debug callers.
+ return false;
 }
 
 FVector USurvivorAbilityComponent::FindCrowdCenter(const TArray<AEnemyBase*>& Targets,float Radius) const
@@ -307,19 +217,7 @@ FVector USurvivorAbilityComponent::FindCrowdCenter(const TArray<AEnemyBase*>& Ta
 
 void USurvivorAbilityComponent::HandleSamuraiMeleeHit(FVector HitPosition)
 {
- if(!Controller||!Upgrades||!Controller->IsRunInProgress()||Controller->IsPlayerDead()) return;
- for(int32 i=Pending.Num()-1;i>=0;--i)
- {
-  const FPendingPulse Garden=Pending[i];
-  if(!Garden.bGarden||FVector::DistSquared(HitPosition,Garden.Position)>FMath::Square(Garden.Radius)) continue;
-  // Remove before dealing damage: death callbacks and subsequent hits cannot cash it twice.
-  Pending.RemoveAtSwap(i);
-  if(Garden.FieldVisual.IsValid()) Garden.FieldVisual->Destroy();
-  FPendingPulse Burst=Garden;Burst.Family=INDEX_NONE;Burst.VisualFamily=3;Burst.VisualStage=3;Burst.Source=EPlayerAttackSource::Samurai;
-  Burst.Damage=Garden.Damage*(Garden.Ticks+(Garden.bFinalBurst?Tuning(3,TEXT("FinalDamageMultiplier"),3.0f,0):0))*Tuning(3,TEXT("DetonationDamageMultiplier"),1.5f);
-  Burst.Radius*=Tuning(3,TEXT("DetonationRadiusMultiplier"),1.25f);Burst.bPoison=false;Burst.bBleed=true;Burst.Color=FLinearColor(3,1.4f,0.2f);
-  Pulse(Burst);
- }
+ // The retired Venom Garden detonation no longer exists.
 }
 
 bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase* Character)
@@ -356,7 +254,7 @@ bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase* Character)
     Enemy->ApplyAttackPushback(Origin,Source,AssistTune(TEXT("PushDistance"),65),AssistTune(TEXT("PushDuration"),0.15f));
    }
   }
-  // Assists prepare the field; only the actively controlled Samurai detonates it.
+  // Preserve the existing per-character assist hit limit.
   if(++Hits>=FMath::Clamp(FMath::RoundToInt(bSamurai?AssistTune(TEXT("SamuraiTargets"),12):AssistTune(TEXT("NinjaTargets"),5)),1,128)) break;
  }
  return true;

@@ -1,43 +1,4 @@
 {
-  "SteelTempest": {
-    "Damage": 24,
-    "Radius": 260,
-    "Cooldown": 4,
-    "Count": 1,
-    "Interval": 0.3,
-    "StatusStacks": 1
-  },
-  "Heavenfall": {
-    "Damage": 42,
-    "Radius": 280,
-    "Cooldown": 4,
-    "Count": 1,
-    "Interval": 0.5,
-    "TargetRange": 1000,
-    "StatusStacks": 1
-  },
-  "NightThread": {
-    "Damage": 25,
-    "Radius": 360,
-    "Cooldown": 3.5,
-    "Count": 3,
-    "TargetRange": 1000,
-    "MaximumTargets": 8,
-    "ReachRanksPerExtraTarget": 2,
-    "StatusStacks": 1
-  },
-  "VenomGarden": {
-    "Damage": 4,
-    "Radius": 340,
-    "Cooldown": 9,
-    "Count": 8,
-    "Interval": 1.1,
-    "TargetRange": 1000,
-    "InitialDelay": 0.1,
-    "DetonationDamageMultiplier": 1.5,
-    "DetonationRadiusMultiplier": 1.25,
-    "StatusStacks": 1
-  },
   "BladeWave": {
     "WaveWidth": 300,
     "WaveTravelDistance": 650,
@@ -50,120 +11,6 @@
     "WaveVFXAuthoredDuration": 0.18,
     "StatusStacks": 1
   },
-  "IronOrbit": {
-    "Damage": 7,
-    "Radius": 85,
-    "Cooldown": 6,
-    "Count": 20,
-    "Interval": 0.2,
-    "InitialDelay": 0.1,
-    "Lifetime": 8,
-    "TargetRange": 1200,
-    "BladeCount": 3,
-    "DegreesPerStep": 32,
-    "BladeSpacingDegrees": 120,
-    "OrbitRadius": 220,
-    "StatusStacks": 1
-  },
-  "WarBanner": {
-    "Damage": 10,
-    "Radius": 300,
-    "Cooldown": 7,
-    "Count": 4,
-    "Interval": 1,
-    "InitialDelay": 0.1,
-    "Lifetime": 8,
-    "TargetRange": 1200,
-    "StatusStacks": 1
-  },
-  "BloodMoon": {
-    "Damage": 18,
-    "Radius": 140,
-    "Cooldown": 5,
-    "Count": 4,
-    "Interval": 0.25,
-    "InitialDelay": 0.1,
-    "Lifetime": 8,
-    "TargetRange": 1200,
-    "PushDistance": 65,
-    "PushDuration": 0.15,
-    "StatusStacks": 1
-  },
-  "PhantomAmbush": {
-    "Damage": 25,
-    "Radius": 280,
-    "Cooldown": 5,
-    "Count": 2,
-    "Interval": 0.35,
-    "Lifetime": 8,
-    "TargetRange": 1200,
-    "WarningDelay": 0.35,
-    "SpawnRadius": 240,
-    "ConeHalfAngle": 75.52249,
-    "StatusStacks": 1
-  },
-  "CrimsonNeedle": {
-    "Damage": 40,
-    "Radius": 90,
-    "Cooldown": 4,
-    "Count": 1,
-    "InitialDelay": 0.1,
-    "Lifetime": 8,
-    "TargetRange": 1200,
-    "BleedDamageMultiplier": 1.5,
-    "StatusStacks": 1
-  },
-  "RavenSwarm": {
-    "Damage": 8,
-    "Radius": 100,
-    "Cooldown": 5.5,
-    "Count": 6,
-    "Interval": 0.5,
-    "InitialDelay": 0.1,
-    "Lifetime": 8,
-    "TargetRange": 1200,
-    "StatusStacks": 1
-  },
-  "RazorHalo": {
-    "Delay": 0.3,
-    "DamageMultiplier": 0.65
-  },
-  "StormEye": {
-    "StatusStacks": 1
-  },
-  "AdvancingStorm": {
-    "Delay": 0.3,
-    "DamageMultiplier": 0.5
-  },
-  "Starfall": {
-    "Count": 3,
-    "StrikeStagger": 0.15
-  },
-  "HeavenAftershock": {
-    "DamageMultiplier": 0.5,
-    "Delay": 0.4
-  },
-  "SeekingStar": {},
-  "BlackWeb": {
-    "DamageMultiplier": 0.5,
-    "BurstRadius": 65,
-    "Delay": 0.25
-  },
-  "VenomThread": {},
-  "CrossStitch": {
-    "LineWidth": 55,
-    "DamageMultiplier": 0.4
-  },
-  "WitheringGarden": {
-    "Count": 11,
-    "FinalDamageMultiplier": 3,
-    "FinalRadiusMultiplier": 1.25
-  },
-  "WanderingGarden": {},
-  "BriarGarden": {
-    "PushDistance": 45,
-    "PushDuration": 0.15
-  },
   "ReturningBlade": {
     "ReturnDamageMultiplier": 1
   },
@@ -175,60 +22,6 @@
   "SplinterWave": {
     "SplinterDamageMultiplier": 0.3,
     "SplinterRadius": 120
-  },
-  "CounterOrbit": {
-    "BladeCount": 4
-  },
-  "SatelliteBlades": {
-    "OrbitCount": 2,
-    "OuterOrbitSpacing": 140
-  },
-  "OrbitShrapnel": {
-    "StatusStacks": 1
-  },
-  "MarchingBanner": {},
-  "RallyingBanner": {
-    "SecondaryRadiusMultiplier": 1,
-    "SecondaryDamageMultiplier": 1
-  },
-  "BannerOfThorns": {
-    "StatusStacks": 1
-  },
-  "SecondMoon": {},
-  "RedTide": {
-    "SecondaryRadiusMultiplier": 1,
-    "SecondaryDamageMultiplier": 1
-  },
-  "MoonRecoil": {},
-  "ThirdShadow": {
-    "PhantomCount": 3
-  },
-  "LingeringShadow": {
-    "SlashCount": 2,
-    "EchoDamageMultiplier": 0.5
-  },
-  "AssassinsInk": {
-    "StatusStacks": 1
-  },
-  "TwinNeedles": {
-    "TargetCount": 2
-  },
-  "NeedleFan": {
-    "SplashRadiusMultiplier": 2,
-    "SplashDamageMultiplier": 0.5
-  },
-  "SepticNeedle": {
-    "StatusStacks": 1
-  },
-  "CarrionFlight": {
-    "RetargetRange": 600
-  },
-  "MurderOfCrows": {
-    "SplashDamageMultiplier": 0.5
-  },
-  "LastCry": {
-    "FinalRadiusMultiplier": 2,
-    "FinalDamageMultiplier": 3
   },
   "TagTeam": {
     "SamuraiDamage": 12,
@@ -245,5 +38,20 @@
     "SamuraiRadius": 600,
     "NinjaBonusProjectiles": 8,
     "NinjaFanAngle": 100
+  },
+  "BleedingEdge": {
+    "HitDamagePerTick": 0.1
+  },
+  "BloodTransfer": {
+    "TransferFraction": 0.5,
+    "Radius": 300,
+    "Targets": 5
+  },
+  "OverkillBurst": {
+    "Radius": 220,
+    "DamageMultiplier": 1
+  },
+  "WaveMultishot": {
+    "AnglePerWave": 8
   }
 }

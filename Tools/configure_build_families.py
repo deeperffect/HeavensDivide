@@ -1,4 +1,4 @@
-"""Author 11 complete build families from the checked-in design catalog; preserve unrelated upgrades."""
+"""Author available build families from the checked-in design catalog; preserve unrelated upgrades."""
 import unreal,json,shutil
 from pathlib import Path
 root=Path(unreal.Paths.project_dir()).resolve()
@@ -40,6 +40,7 @@ def configure(r,uid,title,desc,role,scale=None):
  return a
 created=[]
 for r in rows:
+ if not r.get('available',True):continue
  desc=r['description']
  if r['kind']!='Legacy':desc+=f" Base damage {r['damage']}; radius/width {r['radius']} cm; recharge {r['cooldown']}s."
  created.append(configure(r,r['id'],r['name'],desc,'Starter'))
@@ -48,8 +49,8 @@ for r in rows:
   uid='WideArc' if suffix=='WideArc' else r['id']+suffix
   label={'Power':'Force','Area':'Reach','WideArc':'Wide Arc','Haste':'Velocity' if r['id']=='BladeWave' else 'Rhythm'}[suffix]
   created.append(configure(r,uid,r['name']+': '+label,'Scale this ability independently.','Support',scale=suffix))
-assert len(created)==len(rows)*7
-assert len({str(a.get_editor_property('upgrade_id')) for a in created})==len(rows)*7
+assert len(created)==sum(r.get('available',True) for r in rows)*7
+assert len({str(a.get_editor_property('upgrade_id')) for a in created})==sum(r.get('available',True) for r in rows)*7
 path='/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController';backup(path)
 bp=unreal.load_asset(path);comp=unreal.get_default_object(bp.generated_class()).get_editor_property('player_upgrade_component')
 # Replace by ID, preventing duplicate offers if an older asset used the same ID elsewhere.
@@ -64,4 +65,6 @@ for uid,a in new_by_id.items():
  if uid not in seen:pool.append(a);seen.add(uid)
 comp.set_editor_property('upgrade_pool',pool)
 unreal.BlueprintEditorLibrary.compile_blueprint(bp);assert unreal.EditorAssetLibrary.save_loaded_asset(bp,False)
-unreal.log('BUILD_FAMILIES_ASSETS_PASS: 11 families, 33 branches, 33 scalables; '+str(len(pool))+' unique pool entries')
+unreal.log('BUILD_FAMILIES_ASSETS_PASS: Blade Wave: 1 family, 3 branches, 3 scalables; '+str(len(pool))+' unique pool entries')
+text_script=root/'Tools/shorten_samurai_descriptions.py'
+exec(compile(text_script.read_text(),str(text_script),'exec'),{'__name__':'__main__'})

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AttackProjectileBase.h"
+#include "NinjaBuildComponent.h"
 #include "SurvivorAbilityComponent.h"
 
 #include "AutoAttackComponent.h"
@@ -100,6 +101,7 @@ void AAttackProjectileBase::InitializeProjectile(
 	RemainingEnemyHits = FMath::Max(1, 1 + AdditionalPierceCount);
 	RemainingBounces = FMath::Max(0, InAdditionalBounceCount);
 	bCanTriggerSplit = InSplitUpgradeLevel > 0;
+ if(bCanTriggerSplit)SplitProjectileCount=2;
 	DamagedEnemies.Reset();
 
 	if (APawn* OwnerPawn = Cast<APawn>(InGameplayOwner))
@@ -212,7 +214,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			FeedbackLocation = SweepResult.ImpactPoint;
 			ImpactNormal = SweepResult.ImpactNormal;
 		}
-		const bool bDamageApplied = HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
+		const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
 		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
 		if (bDamageApplied && GameplayOwnerOwner)
 			if (auto* Abilities = GameplayOwnerOwner->FindComponentByClass<USurvivorAbilityComponent>()) Abilities->NotifyPartnerHit(AttackSource, HitEnemy);
@@ -250,8 +252,8 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			const FVector SplitImpactLocation = SweepResult.ImpactPoint.IsNearlyZero()
 				? HitEnemy->GetActorLocation()
 				: FVector(SweepResult.ImpactPoint);
-			TrySpawnSplitProjectiles(HitEnemy, SplitImpactLocation);
 			bCanTriggerSplit = false;
+			TrySpawnSplitProjectiles(HitEnemy, SplitImpactLocation);
 		}
 
 		if (ConsumeEnemyHit(HitEnemy))
@@ -473,7 +475,7 @@ void AAttackProjectileBase::SpawnSplitProjectile(const FVector& SpawnLocation, c
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	AAttackProjectileBase* Child = GetWorld()->SpawnActor<AAttackProjectileBase>(GetClass(), SpawnLocation + Direction * 20.0f, Direction.Rotation(), SpawnParameters);
 	if (!Child) return;
-	Child->InitializeProjectile(GameplayOwner, Direction, ProjectileDamage, ProjectileSpeed, TargetType, SourceTargetingRange,
+	Child->InitializeProjectile(GameplayOwner, Direction, ProjectileDamage * 0.5f, ProjectileSpeed, TargetType, SourceTargetingRange,
 		bCanTriggerExecutionersKunai, HitEnemy, true, AdditionalPierceCount, RemainingBounces, 0);
 	Child->DamagedEnemies = DamagedEnemies;
 	if (HitEnemy) Child->DamagedEnemies.Add(HitEnemy);

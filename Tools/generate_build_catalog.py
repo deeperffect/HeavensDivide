@@ -8,13 +8,13 @@ s+='''struct FBuildFamilySpec
 {
  const TCHAR* Id; const TCHAR* Owner; const TCHAR* Title; EBuildPattern Pattern;
  float Damage, Radius, Cooldown; int32 Count; float Interval;
- const TCHAR* Branches[3];
+ const TCHAR* Branches[3]; bool Available;
 };
 inline const FBuildFamilySpec BuildFamilies[] = {
 '''
 for r in rows:
  q=lambda x:'TEXT('+json.dumps(x)+')'
  def f(x):return str(float(x))+'f'
- s+=' { '+', '.join([q(r['id']),q(r['owner']),q(r['name']),'EBuildPattern::'+r['kind'],f(r['damage']),f(r['radius']),f(r['cooldown']),str(r['count']),f(r['interval']),'{'+','.join(q(b['id']) for b in r['branches'])+'}'])+' },\n'
+ s+=' { '+', '.join([q(r['id']),q(r['owner']),q(r['name']),'EBuildPattern::'+r['kind'],f(r['damage']),f(r['radius']),f(r['cooldown']),str(r['count']),f(r['interval']),'{'+','.join(q(b['id']) for b in r['branches'])+'}','true' if r.get('available',True) else 'false'])+' },\n'
 s+='};\ninline constexpr int32 BuildFamilyCount=UE_ARRAY_COUNT(BuildFamilies);\n'
 Path('Source/HeavensDivide/BuildFamilyCatalog.h').write_text(s)

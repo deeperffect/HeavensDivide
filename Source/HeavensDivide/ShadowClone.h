@@ -19,6 +19,7 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AShadowClone : public AActor
 {
 	GENERATED_BODY()
+ friend class FNinjaBuildsTest;
 
 public:
 	AShadowClone();
@@ -26,6 +27,9 @@ public:
 
 	// Called by the normal Ninja projectile montage notify when that montage is playing on this clone.
 	void HandleAttackProjectileNotify();
+ bool CompleteFangCycle();
+ float GetFangSpeedMultiplier() const;
+ int32 VolleyCount=0,ConsecutiveVolleys=0;
 
 	UPROPERTY(BlueprintAssignable, Category = "Shadow Clone|Events")
 	FOnShadowCloneEvent OnShadowCloneSpawned;
@@ -78,4 +82,5 @@ private:
 	FTimerHandle AttackTimer;
 	FTimerHandle LingerTimer;
 	FTimerHandle SafetyTimer;
+ TWeakObjectPtr<class ANinjaBuildProjectile> ReturningBlade;
 };

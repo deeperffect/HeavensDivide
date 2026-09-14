@@ -20,6 +20,7 @@ subjects = {
  'RavenSwarm': 'Black ravens with violet feather highlights spiral around a struggling shadow enemy, wings and ink scattering.',
 }
 for r in rows:
+    if not r.get('available',True):continue
     cards = [(r['id'], r['name'], 'Starter', r['description'])]
     cards += [(b['id'], b['name'], 'Branch', b['description']) for b in r['branches']]
     for s in r['scales']:
@@ -48,6 +49,6 @@ for r in rows:
                          texture='/Game/HeavensDivide/Blueprints/UI/BuildFamilyArt/T_' + uid,
                          file='Art/UpgradeCards/Generated/' + uid + '.png',
                          reference=str(out / 'References' / (ref + '.png')), prompt=prompt))
-assert len(jobs) == 77 and len({j['id'] for j in jobs}) == 77
+assert len(jobs) == 7 and len({j['id'] for j in jobs}) == 7
 (out / 'manifest.json').write_text(json.dumps(jobs, indent=2), encoding='utf-8')
-print('Prepared 77 artwork jobs')
+print('Prepared 7 artwork jobs')

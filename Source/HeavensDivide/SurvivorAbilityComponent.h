@@ -42,7 +42,7 @@ private:
  bool bIsBeam=false;
 };
 
-/** Independent automatic ability families. One 10 Hz scheduler per player. */
+/** Blade Wave hit effects, preparation and Tag Team assists. */
 UCLASS(ClassGroup=(Combat),meta=(BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API USurvivorAbilityComponent : public UActorComponent
 {

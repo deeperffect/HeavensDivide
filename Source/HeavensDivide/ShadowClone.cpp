@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "ShadowClone.h"
+#include "NinjaBuildComponent.h"
 
 #include "AutoAttackComponent.h"
 #include "Components/SceneComponent.h"
@@ -99,7 +100,23 @@ void AShadowClone::HandleAttackProjectileNotify()
 	if (bFinished || bAttackQuotaFinished || !bAttackInProgress || !SourceAttack.IsValid()) return;
 	bAttackInProgress = false;
 	const FVector Origin = GetActorTransform().TransformPosition(ProjectileOriginOffset);
-	if (!SourceAttack->SpawnShadowCloneVolley(Origin, AttackRange, bExtraProjectileOnRight))
+	auto* Build=SourceNinja.IsValid()?SourceNinja->FindComponentByClass<UNinjaBuildComponent>():nullptr;
+ bool Spawned=false;
+ if(Build&&Build->Has(TEXT("ReturningFang")))
+ {
+  ReturningBlade=Build->SpawnCloneFang(this,Origin);
+  if(ReturningBlade.IsValid())return; // The return, rather than the attack timer, completes this attack.
+ }
+ else if(Build&&Build->Has(TEXT("GreatShuriken")))
+ {
+  if(auto* Target=SourceAttack->FindAssistTargetNearLocation(Origin,AttackRange))
+  {
+   FVector Direction=Target->GetActorLocation()-Origin;Direction.Z=0;
+   Spawned=Build->SpawnShuriken(Origin,Direction,false)!=nullptr;
+  }
+ }
+ else Spawned=SourceAttack->SpawnShadowCloneVolley(Origin, AttackRange, bExtraProjectileOnRight, &VolleyCount, &ConsecutiveVolleys);
+ if (!Spawned)
 	{
 		GetWorldTimerManager().SetTimer(AttackTimer, this, &AShadowClone::BeginAttack, FMath::Max(0.01f, TargetRetryInterval), false);
 		return;
@@ -117,6 +134,16 @@ void AShadowClone::HandleAttackProjectileNotify()
 	const float NextAttackStartDelay = FMath::Max(0.01f, GetAttackInterval() - NextNotifyDelay);
 	GetWorldTimerManager().SetTimer(AttackTimer, this, &AShadowClone::BeginAttack, NextAttackStartDelay, false);
 }
+
+bool AShadowClone::CompleteFangCycle()
+{
+ if(bFinished||bAttackQuotaFinished)return false;
+ --RemainingAttacks;OnShadowCloneAttack.Broadcast(this,RemainingAttacks);
+ if(RemainingAttacks<=0){BeginFinalLinger();return false;}
+ return true;
+}
+float AShadowClone::GetFangSpeedMultiplier() const
+{return FMath::Max(1.f,BaseAttackInterval/GetAttackInterval());}
 
 void AShadowClone::BeginFinalLinger()
 {
@@ -165,6 +192,7 @@ void AShadowClone::FinishClone()
 
 void AShadowClone::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+ if(ReturningBlade.IsValid())ReturningBlade->Destroy();
 	GetWorldTimerManager().ClearTimer(AttackTimer);
 	GetWorldTimerManager().ClearTimer(SafetyTimer);
 	GetWorldTimerManager().ClearTimer(LingerTimer);
