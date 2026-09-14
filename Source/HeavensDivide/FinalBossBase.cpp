@@ -182,7 +182,7 @@ void AFinalBossBase::ChooseAttack()
 	if (!Player) return;
 
 	const float PlayerDistance = FVector::Dist2D(GetActorLocation(), Player->GetActorLocation());
-	TArray<EFinalBossAttack> Choices;
+	TArray<EFinalBossAttack, TInlineAllocator<4>> Choices;
 	for (const EFinalBossAttack Attack : { EFinalBossAttack::ForwardCleave, EFinalBossAttack::PointBlankAoE, EFinalBossAttack::LongDash, EFinalBossAttack::GroundPursuit })
 	{
 		if (IsAttackWithinStartDistance(Attack, PlayerDistance)) Choices.Add(Attack);

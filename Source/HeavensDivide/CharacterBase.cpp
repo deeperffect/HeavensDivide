@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "CharacterBase.h"
+#include "SwapPresentationComponent.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -21,6 +22,7 @@ ACharacterBase::ACharacterBase()
 	GetMesh()->SetupAttachment(VisualRoot);
 
 	CharacterStatsComponent = CreateDefaultSubobject<UCharacterStatsComponent>(TEXT("CharacterStatsComponent"));
+	SwapPresentation = CreateDefaultSubobject<USwapPresentationComponent>(TEXT("SwapPresentation"));
 }
 
 void ACharacterBase::BeginPlay()
@@ -47,7 +49,7 @@ void ACharacterBase::Tick(float DeltaSeconds)
 
 void ACharacterBase::MoveCharacter(FVector2D Input)
 {
-	if (CharacterMode != ECharacterMode::Active)
+    if (CharacterMode != ECharacterMode::Active || (SwapPresentation && SwapPresentation->IsBlockingAttacks()))
 	{
 		return;
 	}
@@ -143,6 +145,7 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 	}
 
 	OnCharacterModeChanged.Broadcast(OldMode, CharacterMode);
+	if(SwapPresentation) SwapPresentation->HandleModeChanged(CharacterMode);
 }
 
 UCharacterStatsComponent* ACharacterBase::GetCharacterStats() const
@@ -287,6 +290,13 @@ float ACharacterBase::GetLocalRightSpeed() const
 
 void ACharacterBase::UpdateMouseFacing(float DeltaSeconds)
 {
+	// Entrance movement follows the facing captured at arrival. Cursor/target
+	// steering must not turn the visual sideways while that montage still owns it.
+	if (SwapPresentation && SwapPresentation->IsBlockingAttacks())
+	{
+		return;
+	}
+
 	if (bIsDashing && bFaceDashDirection)
 	{
 		return;

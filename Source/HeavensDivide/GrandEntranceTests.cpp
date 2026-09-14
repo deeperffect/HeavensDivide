@@ -1,6 +1,8 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "AutoAttackComponent.h"
+#include "SwapPresentationComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "AttackProjectileBase.h"
 #include "SurvivorAbilityComponent.h"
 #include "SurvivorPlayerController.h"
@@ -44,6 +46,12 @@ bool FGrandEntranceTest::RunTest(const FString&)
  PC->bPlayerInitiatedSwapPending=true;PC->HandleCharacterSwapped(Ninja,Samurai);
  TestTrue(TEXT("Player swap arms incoming character"),Melee->bGrandEntranceReady);
  TestNotNull(TEXT("Pending enhancement resolves saved card tuning"),Melee->GetReadyGrandEntranceUpgrade());
+ auto* Feedback=Samurai->SwapPresentation.Get();
+ Feedback->bEnableSound=false;Feedback->bUseFallbackArrivalRing=false;Feedback->SwapFreezeDuration=0;
+ Feedback->bEnableNinjaArrivalDrop=false;Feedback->bEnableSamuraiWalkIn=false; // Isolate the upgrade from cosmetic arrival timing.
+ auto* OriginalOverlay=Samurai->GetMesh()->GetOverlayMaterial();
+ Feedback->PlayArrival();Feedback->TickComponent(.01f,LEVELTICK_All,nullptr);
+ TestEqual(TEXT("Grand Entrance never recolors arriving character"),Samurai->GetMesh()->GetOverlayMaterial(),OriginalOverlay);
  Melee->StopAutoAttack();TestTrue(TEXT("Canceled attack retains charge"),Melee->bGrandEntranceReady);
  Melee->bActiveAttackIsAssist=true;TestNull(TEXT("Assist cannot use enhancement"),Melee->GetReadyGrandEntranceUpgrade());Melee->bActiveAttackIsAssist=false;
  Melee->bDoubleCutFollowUpActive=true;TestNull(TEXT("Double Cut follow-up cannot use enhancement"),Melee->GetReadyGrandEntranceUpgrade());Melee->bDoubleCutFollowUpActive=false;
@@ -58,6 +66,8 @@ bool FGrandEntranceTest::RunTest(const FString&)
  TestTrue(TEXT("Enhanced swing deals full damage behind Samurai"),FMath::IsNearlyEqual(10000-Rear->GetHealthComponent()->GetCurrentHealth(),Damage,.02f));
  TestEqual(TEXT("Enhanced swing respects radius"),Far->GetHealthComponent()->GetCurrentHealth(),10000.f);
  TestFalse(TEXT("Swing spends exactly one charge"),Melee->bGrandEntranceReady);
+ Feedback->TickComponent(.01f,LEVELTICK_All,nullptr);
+ TestEqual(TEXT("Spending enhancement restores original overlay"),Samurai->GetMesh()->GetOverlayMaterial(),OriginalOverlay);
  const float RearAfter=Rear->GetHealthComponent()->GetCurrentHealth();
  Melee->PerformAttackTrace();TestEqual(TEXT("Duplicate notify cannot deal damage"),Rear->GetHealthComponent()->GetCurrentHealth(),RearAfter);
  Melee->bAttackNotifyConsumed=false;Melee->PerformAttackTrace();

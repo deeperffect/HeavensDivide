@@ -35,6 +35,10 @@ public:
 	bool MoveOwnerToNoSlide(const FVector& DesiredLocation, FHitResult& OutBlockingHit);
 
 private:
+	// Queries are consumed before moving the actor or starting the next sweep.
+	// Retaining capacity avoids allocating hit storage on every movement tick.
+	TArray<FHitResult> MovementQueryHits;
+
 	FVector PushbackDirection = FVector::ZeroVector;
 	float PushbackDistance = 0.0f;
 	float PushbackDuration = 0.0f;

@@ -37,8 +37,6 @@ bool FSurvivorAbilitiesTest::RunTest(const FString& Parameters)
   auto* Retired=NewObject<UUpgradeDefinition>();Retired->UpgradeId=BuildFamilies[i].Id;Retired->BuildFamilyId=BuildFamilies[i].Id;
   TestFalse(TEXT("Retired starter cannot be acquired even through a stale reference"),Upgrades->CanAcquireUpgrade(Retired));
   TestNull(TEXT("Retired starter absent from saved pool"),Upgrades->FindUpgradeDefinition(BuildFamilies[i].Id));
-  if(i<4)TestFalse(TEXT("Retired legacy ability cannot activate"),Ability->ActivateAbility(i,Samurai));
-  else TestFalse(TEXT("Retired expanded ability cannot activate"),Ability->ActivateBuildFamily(i,Samurai));
  }
  for(const auto* Id:{TEXT("BladeWave"),TEXT("BladeWavePower"),TEXT("WideArc"),TEXT("BladeWaveHaste"),TEXT("ReturningBlade"),TEXT("CrossingBlades"),TEXT("SplinterWave"),TEXT("GrandEntrance"),TEXT("TagTeam")})
   TestNotNull(TEXT("Attack upgrades remain in saved pool"),Upgrades->FindUpgradeDefinition(Id));
@@ -47,7 +45,6 @@ bool FSurvivorAbilitiesTest::RunTest(const FString& Parameters)
  const int32 Mastery=Upgrades->GetSamuraiMasteryPoints();PC->AbilityShowcase();
  TestEqual(TEXT("Preview remains idempotent"),Upgrades->GetSamuraiMasteryPoints(),Mastery);
  Ability->UpdateAbilities();
- TestTrue(TEXT("No automatic casts are scheduled"),Ability->Pending.IsEmpty()&&Ability->BuildCasts.IsEmpty());
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }
 #endif

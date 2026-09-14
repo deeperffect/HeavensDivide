@@ -38,14 +38,19 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
  FPlayerUpgradeRunState Empty;U->CaptureRunState(Empty);
  auto Card=[&](const TCHAR* Id){auto* C=U->FindUpgradeDefinition(Id);TestNotNull(Id,C);return C;};
  const TCHAR* Stances[]={TEXT("BloodStance"),TEXT("ExecutionStance"),TEXT("WaveStance")};
- const float DamageFactors[]={.7f,1.8f,1.25f},SpeedFactors[]={1.3f,.65f,1.25f},AreaFactors[]={1.35f,1.35f,.65f};
+ const auto Factor=[&](const TCHAR* Id,ECharacterStatType Stat)
+ {
+  float Value=1.f;
+  for(const auto& M:Card(Id)->StatModifiers)if(M.Target==EUpgradeStatTarget::Samurai&&M.CharacterStat==Stat&&M.Operation==EStatModifierOperation::Multiply)Value*=M.ValuePerLevel;
+  return Value;
+ };
  for(int32 i=0;i<3;++i)
  {
   U->RestoreRunState(Empty);
   TestTrue(TEXT("Acquire stance"),U->AcquireUpgrade(Card(Stances[i])));
-  TestTrue(TEXT("Correct damage tradeoff"),FMath::IsNearlyEqual(Stats->GetFinalDamageMultiplier(),DamageFactors[i]));
-  TestTrue(TEXT("Correct speed tradeoff"),FMath::IsNearlyEqual(Stats->GetFinalAttackSpeedMultiplier(),SpeedFactors[i]));
-  TestTrue(TEXT("Correct area tradeoff"),FMath::IsNearlyEqual(Stats->GetFinalAttackAreaMultiplier(),AreaFactors[i]));
+  TestTrue(TEXT("Correct damage tradeoff"),FMath::IsNearlyEqual(Stats->GetFinalDamageMultiplier(),Factor(Stances[i],ECharacterStatType::DamageMultiplier)));
+  TestTrue(TEXT("Correct speed tradeoff"),FMath::IsNearlyEqual(Stats->GetFinalAttackSpeedMultiplier(),Factor(Stances[i],ECharacterStatType::AttackSpeedMultiplier)));
+  TestTrue(TEXT("Correct area tradeoff"),FMath::IsNearlyEqual(Stats->GetFinalAttackAreaMultiplier(),Factor(Stances[i],ECharacterStatType::AttackAreaMultiplier)));
   TestEqual(TEXT("Samurai stance leaves Ninja unchanged"),Ninja->GetCharacterStats()->GetFinalDamageMultiplier(),1.f);
   for(int32 j=0;j<3;++j)TestFalse(TEXT("Only one stance per run"),U->CanAcquireUpgrade(Card(Stances[j])));
   TestTrue(TEXT("Bleed remains mixable"),U->CanAcquireUpgrade(Card(TEXT("BleedingEdge"))));
@@ -53,9 +58,9 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
   TestTrue(TEXT("Wave remains mixable"),U->CanAcquireUpgrade(Card(TEXT("BladeWave"))));
   U->AcquireUpgrade(Card(TEXT("SamuraiTempo")));
   const float Tempo=U->GetAccumulatedUpgradeMagnitude(TEXT("SamuraiTempo"));
-  TestTrue(TEXT("Speed scaling retains stance multiplier"),FMath::IsNearlyEqual(Stats->GetFinalAttackSpeedMultiplier(),SpeedFactors[i]*(1+Tempo)));
+  TestTrue(TEXT("Speed scaling retains stance multiplier"),FMath::IsNearlyEqual(Stats->GetFinalAttackSpeedMultiplier(),Factor(Stances[i],ECharacterStatType::AttackSpeedMultiplier)*(1+Tempo)));
   FPlayerUpgradeRunState Saved;U->CaptureRunState(Saved);U->RestoreRunState(Saved);
-  TestTrue(TEXT("Restoring stance does not stack modifiers"),FMath::IsNearlyEqual(Stats->GetFinalAttackSpeedMultiplier(),SpeedFactors[i]*(1+Tempo)));
+  TestTrue(TEXT("Restoring stance does not stack modifiers"),FMath::IsNearlyEqual(Stats->GetFinalAttackSpeedMultiplier(),Factor(Stances[i],ECharacterStatType::AttackSpeedMultiplier)*(1+Tempo)));
  }
  U->RestoreRunState(Empty);TestEqual(TEXT("Removing old snapshot clears stance"),Stats->GetFinalDamageMultiplier(),1.f);
  auto Spawn=[&](FVector Position,float Health){auto* E=World->SpawnActor<AEnemyBase>(Position,FRotator::ZeroRotator,Params);E->ConfigureObjectiveEnemy(Health,EPlayerAttackSource::Other,nullptr,FLinearColor::White);E->GetHealthComponent()->RestoreCurrentHealth(Health);FScriptDelegate Death;Death.BindUFunction(E,TEXT("HandleDeath"));E->GetHealthComponent()->OnDeath.AddUnique(Death);return E;};

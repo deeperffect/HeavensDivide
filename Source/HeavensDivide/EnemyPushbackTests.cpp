@@ -94,10 +94,6 @@ bool FEnemyPushbackTest::RunTest(const FString& Parameters)
 	Movement->StopMovement();
 	Enemy->SetActorLocation(TargetPosition);
 	Enemy->GetHealthComponent()->RestoreCurrentHealth(100);
-	Attack->ExecuteDeathblow(nullptr, TargetPosition - FVector(50, 0, 0), 10, EPlayerAttackSource::Samurai, false);
-	TestTrue(TEXT("Deathblow still damages target"), Enemy->GetHealthComponent()->GetCurrentHealth() < 100);
-	Movement->TickComponent(0.1f, LEVELTICK_All, nullptr);
-	TestTrue(TEXT("Deathblow does not push"), Enemy->GetActorLocation().Equals(TargetPosition, 0.01));
 	World->DestroyWorld(false);
 	return true;
 }

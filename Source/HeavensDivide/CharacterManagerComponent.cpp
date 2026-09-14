@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "CharacterManagerComponent.h"
+#include "SwapPresentationComponent.h"
 
 #include "CharacterBase.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -119,6 +120,7 @@ void UCharacterManagerComponent::SwapCharacter()
 			*GetNameSafe(NewCharacter));
 		return;
 	}
+	if(OldCharacter->SwapPresentation && OldCharacter->SwapPresentation->IsBlockingAttacks()) return;
 
 	bIsSwapInProgress = true;
 
@@ -129,6 +131,7 @@ void UCharacterManagerComponent::SwapCharacter()
 	NewCharacter->SetActorLocation(OldLocation, false, nullptr, ETeleportType::TeleportPhysics);
 	NewCharacter->SetVisualFacingRotation(OldVisualRotation);
 
+	if(NewCharacter->SwapPresentation) NewCharacter->SwapPresentation->PrepareArrival();
 	NewCharacter->SetCharacterMode(ECharacterMode::Active);
 
 	if (UCharacterMovementComponent* NewMovement = NewCharacter->GetCharacterMovement())
@@ -146,10 +149,16 @@ void UCharacterManagerComponent::SwapCharacter()
 		return;
 	}
 
+	// Possessing the other pawn calls UnPossessed(), which clears the old pawn's Owner.
+	// Both party members still belong to this player while inactive or assisting.
+	OldCharacter->SetOwner(OwningController);
+
 	ActiveCharacter = NewCharacter;
 	OwningController->SetCameraFollowTarget(NewCharacter);
 
 	OldCharacter->SetCharacterMode(ECharacterMode::Inactive);
+	if(OldCharacter->SwapPresentation) OldCharacter->SwapPresentation->PlayDeparture();
+	if(NewCharacter->SwapPresentation) NewCharacter->SwapPresentation->PlayArrival();
 
 	OnCharacterSwapped.Broadcast(OldCharacter, NewCharacter);
 	bIsSwapInProgress = false;

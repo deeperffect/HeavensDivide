@@ -79,6 +79,7 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 
 void UPlayerHUDWidget::NativeDestruct()
 {
+	ClearSwapPortraitPulse();
 	if (MinimapWidget) MinimapWidget->RemoveFromParent();
 	MinimapWidget = nullptr;
 	HideBossHealthBar();
@@ -128,6 +129,8 @@ void UPlayerHUDWidget::EnsureMinimapPresentation()
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	UpdateDamageFeedback(InDeltaTime);
+	UpdateSwapPortraitPulse(InDeltaTime);
 	UpdateRunTimerDisplay();
 
 	if (bDashRechargeProgressActive)
@@ -513,8 +516,10 @@ void UPlayerHUDWidget::HandlePlayerHealthChanged(float CurrentHealth, float MaxH
 
 void UPlayerHUDWidget::HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)
 {
+	ClearSwapPortraitPulse();
 	ActiveCharacterChanged.Broadcast(NewCharacter);
 	OnActiveCharacterChanged(NewCharacter);
+	StartSwapPortraitPulse(NewCharacter);
 }
 
 void UPlayerHUDWidget::HandlePlayerXPChanged(int32 CurrentXP, int32 XPToNextLevel, float XPPercent)
@@ -571,6 +576,7 @@ void UPlayerHUDWidget::BindCharacterHealth()
 	if (PlayerHealth)
 	{
 		PlayerHealth->OnHealthChanged.AddUniqueDynamic(this, &UPlayerHUDWidget::HandlePlayerHealthChanged);
+		PlayerHealth->OnDamaged.AddUniqueDynamic(this, &UPlayerHUDWidget::HandlePlayerDamaged);
 	}
 	else
 	{
@@ -580,11 +586,13 @@ void UPlayerHUDWidget::BindCharacterHealth()
 
 void UPlayerHUDWidget::UnbindCharacterHealth()
 {
+	DamageVignetteRemaining = 0.0f;
 	StopHealthChipChase();
 
 	if (PlayerHealth)
 	{
 		PlayerHealth->OnHealthChanged.RemoveDynamic(this, &UPlayerHUDWidget::HandlePlayerHealthChanged);
+		PlayerHealth->OnDamaged.RemoveDynamic(this, &UPlayerHUDWidget::HandlePlayerDamaged);
 	}
 
 	PlayerHealth = nullptr;

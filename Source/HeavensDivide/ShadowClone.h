@@ -20,6 +20,7 @@ class HEAVENSDIVIDE_API AShadowClone : public AActor
 {
 	GENERATED_BODY()
  friend class FNinjaBuildsTest;
+ friend class UAnimNotify_NinjaThrowSound;
 
 public:
 	AShadowClone();

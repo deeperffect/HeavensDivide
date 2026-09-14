@@ -71,18 +71,6 @@
     ]
   },
   {
-    "id": "Bloodhound",
-    "name": "Bloodhound",
-    "description": "Hitting a bleeding or poisoned enemy makes the next trip 50% faster.",
-    "art": "VenomousKunai",
-    "requires": [
-      "ReturningFang"
-    ],
-    "balance": {
-      "SpeedMultiplier": 1.5
-    }
-  },
-  {
     "id": "RelentlessFang",
     "name": "Relentless Fang",
     "description": "Consecutive outbound hits on one enemy gain +15% damage, up to +75%.",
@@ -105,16 +93,6 @@
     "name": "Focused Volley",
     "description": "65% tighter projectile spread.",
     "art": "MultipleStrikes",
-    "requires": [
-      "BarrageStance"
-    ],
-    "levels": 1
-  },
-  {
-    "id": "AlternatingFans",
-    "name": "Alternating Fans",
-    "description": "Volleys alternate 12 degrees left and right.",
-    "art": "Cascade",
     "requires": [
       "BarrageStance"
     ],

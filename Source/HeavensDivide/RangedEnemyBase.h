@@ -28,36 +28,35 @@ protected:
 	virtual void UpdateEnemyBehavior(float DeltaSeconds) override;
 	virtual bool ShouldSkipMovement() const override;
 	virtual void StopEnemyBehavior() override;
-	virtual void HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter) override;
 	virtual void HandleDeath() override;
 	virtual bool ShouldForceHighAnimationBudgetSignificance() const override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackRange = 800.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float AttackInterval = 2.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackDamage = 10.0f;
 	float PreBloodboundAttackDamage = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Projectile")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged|Projectile")
 	TSubclassOf<AAttackProjectileBase> ProjectileClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Projectile")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged|Projectile")
 	FName ProjectileSpawnSocket = TEXT("FireballSocket");
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Projectile", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged|Projectile", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float ProjectileSpeed = 1200.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Attack|Projectile")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged|Projectile")
 	FVector ProjectileSpawnOffset = FVector(80.0f, 0.0f, 60.0f);
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Attack")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Ranged")
 	bool bIsAttacking = false;
 
 	bool IsTargetInAttackRange() const;

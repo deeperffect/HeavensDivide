@@ -85,5 +85,21 @@
       "BleedingEdge",
       "VenomousKunai"
     ]
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaBloodhound",
+    "id": "Bloodhound",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": [
+      "ReturningFang"
+    ]
+  },
+  {
+    "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaAlternatingFans",
+    "id": "AlternatingFans",
+    "category": "<UpgradeCategory.NINJA: 1>",
+    "requires": [
+      "BarrageStance"
+    ]
   }
 ]

@@ -49,11 +49,11 @@ if not validate:
  assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in hashes.items()),'Retained tuning changed'
  (backup/'retained_asset_hashes.json').write_text(json.dumps(hashes,indent=2))
 actual={str(a.get_editor_property('upgrade_id')) for a in retained}
-assert len(actual)==len(retained)==57 and not ids.intersection(actual)
+assert len(actual)==len(retained)==55 and not ids.intersection(actual)
 assert {'ShadowStep','MultipleStrikes','AfterimageFrenzy'}.issubset(actual)
 for a in retained:
  required={str(v) for v in a.get_editor_property('prerequisite_upgrade_ids')}|{str(v.get_editor_property('upgrade_id')) for v in a.get_editor_property('prerequisite_requirements')}
  assert required.issubset(actual),(a.get_path_name(),required-actual)
 for path in paths:assert not unreal.EditorAssetLibrary.does_asset_exist(path),path
 assert str(growth.get_editor_property('display_name'))=='Growing Shuriken'
-unreal.log('NINJA_CLEANUP_OK: 12 retired cards removed; all 3 clone cards preserved; growth card updated; 57 unique cards; retained tuning unchanged')
+unreal.log('NINJA_CLEANUP_OK: 14 retired cards removed; all 3 clone cards preserved; growth card updated; 55 unique cards; retained tuning unchanged')

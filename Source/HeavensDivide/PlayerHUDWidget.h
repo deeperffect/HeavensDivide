@@ -18,6 +18,7 @@ class UBorder;
 class UProgressBar;
 class AFinalBossBase;
 class UMinimapWidget;
+class UImage;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDHealthUpdated, float, CurrentHealth, float, MaxHealth, float, HealthPercent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPlayerHUDActiveCharacterChanged, ACharacterBase*, NewActiveCharacter);
@@ -60,6 +61,8 @@ UCLASS(BlueprintType, Blueprintable)
 class HEAVENSDIVIDE_API UPlayerHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
+	friend class FPlayerDamageFeedbackTest;
+	friend class FSwapPresentationTest;
 
 public:
 	UFUNCTION(BlueprintCallable, Category = "Player HUD")
@@ -225,6 +228,25 @@ public:
 	FPlayerHUDSwapCooldownFinished SwapCooldownFinished;
 
 protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Swap Feedback") bool bEnableSwapPortraitPulse = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Swap Feedback") FName SamuraiPortraitName = TEXT("IMG_IconSamurai");
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Swap Feedback") FName NinjaPortraitName = TEXT("IMG_IconNinja");
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Swap Feedback", meta=(ClampMin="0.01")) float SwapPortraitDuration = .25f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Swap Feedback", meta=(ClampMin="1", ClampMax="2")) float SwapPortraitScale = 1.15f;
+	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
+		const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId,
+		const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Damage Feedback")
+	bool bEnableDamageVignette = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Damage Feedback", meta=(ClampMin="0.01", Units="s"))
+	float DamageVignetteDuration = 0.45f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Damage Feedback", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float DamageVignetteOpacity = 0.45f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Damage Feedback", meta=(ClampMin="0.01", ClampMax="0.45", ToolTip="Fraction of screen width/height covered by each edge fade."))
+	float DamageVignetteEdgeSize = 0.20f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Damage Feedback")
+	FLinearColor DamageVignetteColor = FLinearColor(0.8f, 0.015f, 0.025f, 1.0f);
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void NativeDestruct() override;
@@ -266,6 +288,17 @@ protected:
 	TObjectPtr<UTextBlock> RunTimerText;
 
 private:
+	void StartSwapPortraitPulse(ACharacterBase* Character);
+	void UpdateSwapPortraitPulse(float Delta);
+	void ClearSwapPortraitPulse();
+	TWeakObjectPtr<UImage> PulsingPortrait;
+	FVector2D OriginalPortraitScale = FVector2D(1,1);
+	FLinearColor OriginalPortraitColor = FLinearColor::White;
+	float PortraitPulseRemaining = 0;
+	UFUNCTION() void HandlePlayerDamaged(float DamageAmount, float CurrentHealth);
+	void UpdateDamageFeedback(float DeltaSeconds);
+	float GetDamageFeedbackOpacity() const;
+	float DamageVignetteRemaining = 0.0f;
 	void EnsureBossHealthPresentation();
 	UFUNCTION() void HandleBossHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent);
 	UFUNCTION()

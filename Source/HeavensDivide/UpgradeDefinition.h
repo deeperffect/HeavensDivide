@@ -140,16 +140,16 @@ public:
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Runtime VFX",meta=(ShowOnlyInnerProperties,EditCondition="bHasRuntimePresentation",EditConditionHides)) FUpgradePresentation Presentation;
  UFUNCTION(BlueprintPure, Category="Upgrade|Balance") float GetBalanceValue(FName Key,float Fallback) const
  { const float* Value=BalanceParameters.Find(Key);return Value&&FMath::IsFinite(*Value)?*Value:Fallback; }
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Identity")
 	FName UpgradeId = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Identity")
 	FText DisplayName;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade", meta = (MultiLine = true))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Identity", meta = (MultiLine = true))
 	FText Description;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Artwork")
 	TObjectPtr<UTexture2D> Icon;
 
 	/** Full 2:3 illustration used by the level-up upgrade-card presentation. */
@@ -198,45 +198,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Prerequisites")
 	TArray<FUpgradePrerequisiteRequirement> PrerequisiteRequirements;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Stats")
 	TArray<FUpgradeStatModifierDefinition> StatModifiers;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Effects")
 	TArray<EUpgradeSpecialEffect> SpecialEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Exclusivity", meta = (ToolTip = "Optional run-local exclusivity group. Once one upgrade in this group is acquired, other upgrades in the same group become ineligible."))
 	FName ExclusivityGroup = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of fired kunai required before Blade Cascade grants its bonus kunai."))
-	int32 BladeCascadeKunaiThreshold = 10;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Blade Cascade", meta = (ClampMin = "1", UIMin = "1", ToolTip = "Number of bonus kunai granted when Blade Cascade triggers."))
-	int32 BladeCascadeBonusKunai = 3;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Temporary attack speed multiplier bonus applied by Handoff after swapping. 0.4 means +40%."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Synergies|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Temporary attack speed multiplier bonus applied by Handoff after swapping. 0.4 means +40%."))
 	float HandoffAttackSpeedBonus = 0.4f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Duration in seconds for the temporary Handoff attack speed bonus after swapping."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Synergies|Handoff", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Duration in seconds for the temporary Handoff attack speed bonus after swapping."))
 	float HandoffDuration = 3.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Hemotoxic Reaction", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float HemotoxicReactionMultiplier = 1.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Hemotoxic Reaction", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
-	float HemotoxicReactionRadius = 900.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Virulent Strain", meta = (ClampMin = "1", UIMin = "1"))
-	int32 VirulentStrainThreshold = 5;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Virulent Strain", meta = (ClampMin = "0.0", UIMin = "0.0", Units = "cm"))
-	float VirulentStrainRadius = 350.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Virulent Strain", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float VirulentStrainDamageMultiplier = 0.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Accelerated Venom", meta = (ClampMin = "1.0", UIMin = "1.0"))
-	float AcceleratedVenomTickRateMultiplier = 2.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Afterimage Frenzy", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Ninja|Shadow Clone", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AfterimageFrenzyAttackSpeedBonus = 2.0f;
 };

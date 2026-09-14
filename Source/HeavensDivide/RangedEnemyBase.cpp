@@ -92,15 +92,6 @@ void ARangedEnemyBase::StopEnemyBehavior()
 	StopAttackTimer();
 }
 
-void ARangedEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)
-{
-	Super::HandlePlayerCharacterSwapped(OldCharacter, NewCharacter);
-
-	if (bIsAttacking)
-	{
-	}
-}
-
 void ARangedEnemyBase::HandleDeath()
 {
 	bIsAttacking = false;

@@ -54,6 +54,7 @@ class HEAVENSDIVIDE_API UMainMenuWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	friend class FKeybindSettingsTest;
+	friend class UTrialChoiceWidget;
 
 public:
 	UMainMenuWidget(const FObjectInitializer& ObjectInitializer);

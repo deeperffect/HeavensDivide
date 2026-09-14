@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AutoAttackComponent.h"
+#include "SwapPresentationComponent.h"
 #include "NinjaBuildComponent.h"
 #include "SurvivorAbilityComponent.h"
 
@@ -43,16 +44,7 @@ static TAutoConsoleVariable<int32> CVarHDDebugSamuraiTargeting(
 	0,
 	TEXT("Logs Samurai melee cluster target scoring when enabled."));
 
-static TAutoConsoleVariable<int32> CVarHDLogBladeCascade(
-	TEXT("hd.LogBladeCascade"),
-	0,
-	TEXT("Logs Blade Cascade progress, ready, and consumption events when enabled."));
 
-namespace AutoAttackMarkedForDeathUpgradeIds
-{
-	static const FName MarkedBlade(TEXT("MarkedBlade"));
-	static const FName BleedingEdge(TEXT("BleedingEdge"));
-}
 
 static UPlayerUpgradeComponent* GetPlayerUpgradesForAutoAttackMarkedForDeath(const UObject* WorldContextObject, const AActor* PlayerCharacter)
 {
@@ -135,7 +127,6 @@ void UAutoAttackComponent::StopAutoAttack()
 	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
-	bActiveAttackTriggersFanOfBlades = false;
 	bDoubleCutFollowUpActive = false;
 	bDoubleCutFollowUpPending = false;
 	ActiveAttackMontage = nullptr;
@@ -225,10 +216,7 @@ void UAutoAttackComponent::CaptureRunState(FAutoAttackRunState& OutState) const
 {
 	OutState.DoubleCutCounter = DoubleCutPrimaryAttackCounter;
 	OutState.bDoubleCutReady = bDoubleCutReady;
-	OutState.FanOfBladesCounter = FanOfBladesAttackCounter;
-	OutState.BladeCascadeProgress = BladeCascadeKunaiProgress;
 	OutState.CrossingBladesCounter = CrossingBladesAttackCounter;
-	OutState.bBladeCascadeReady = bBladeCascadeReady;
 	OutState.bGrandEntranceReady = bGrandEntranceReady;
 	OutState.bExtraProjectileOnRight = bNormalVolleyExtraProjectileOnRight;
 }
@@ -240,233 +228,9 @@ void UAutoAttackComponent::RestoreRunState(const FAutoAttackRunState& State)
 	DoubleCutPrimaryAttackCounter = State.DoubleCutCounter > DoubleCutThreshold
 		? DoubleCutThreshold - 1
 		: FMath::Clamp(State.DoubleCutCounter, 0, DoubleCutThreshold - 1);
-	FanOfBladesAttackCounter = FMath::Max(0, State.FanOfBladesCounter);
-	BladeCascadeKunaiProgress = FMath::Max(0, State.BladeCascadeProgress);
 	CrossingBladesAttackCounter = FMath::Max(0, State.CrossingBladesCounter);
-	bBladeCascadeReady = State.bBladeCascadeReady;
 	bGrandEntranceReady = State.bGrandEntranceReady;
 	bNormalVolleyExtraProjectileOnRight = State.bExtraProjectileOnRight;
-}
-
-bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
-{
-	if (!OwnerCharacter || !GetWorld())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AutoAttack trace skipped: owner/world invalid."));
-		return false;
-	}
-
-	if (bActiveAttackIsAssist && OwnerCharacter->GetOwner())
-		if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
-			return Abilities->ExecuteSetupAssist(OwnerCharacter);
-
-	if (bActiveAttackIsAssist && !ProjectileClass)
-	{
-		AEnemyBase* AssistTarget = CurrentAttackTarget.Get();
-		if (!AssistTarget || AssistTarget->IsDead() || !IsTargetInCurrentMeleeReach(AssistTarget))
-		{
-		AssistTarget = FindAssistTargetNearLocation(OwnerCharacter->GetActorLocation(), GetEffectiveTargetingRange());
-			CurrentAttackTarget = AssistTarget;
-		}
-
-		if (!AssistTarget || AssistTarget->IsDead() || !IsTargetInCurrentMeleeReach(AssistTarget))
-		{
-			return false;
-		}
-	}
-
-	FVector AttackForward = OwnerCharacter->GetVisualForwardVector();
-	AttackForward.Z = 0.0f;
-	if (!AttackForward.Normalize())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("AutoAttack trace skipped: visual forward invalid."));
-		return false;
-	}
-
-	const FVector AttackOrigin = OwnerCharacter->GetActorLocation();
-	const UUpgradeDefinition* GrandEntrance = GetReadyGrandEntranceUpgrade();
-	const FVector HitboxCenter = GrandEntrance ? AttackOrigin : AttackOrigin + AttackForward * AttackForwardOffset;
-	const float EffectiveAttackRadius = GrandEntrance ? GetGrandEntranceRadius(GrandEntrance) : GetEffectiveAttackRadius();
-	if (GrandEntrance)
-	{
-		// Spend only at the committed swing, including a legitimate swing that misses.
-		bGrandEntranceReady = false;
-		FActorSpawnParameters VisualParams;
-		VisualParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		if (auto* Visual = GetWorld()->SpawnActor<AAbilityAccent>(AttackOrigin-FVector(0,0,70), FRotator::ZeroRotator, VisualParams))
-			Visual->Initialize(AttackOrigin, EffectiveAttackRadius, FLinearColor(3,0.15f,0.5f), 0.4f, false, &GrandEntrance->Presentation);
-	}
-	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
-	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
-	const bool bCanApplyMarkedBlade = PlayerUpgrades && PlayerUpgrades->HasUpgradeId(AutoAttackMarkedForDeathUpgradeIds::MarkedBlade);
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(AutoAttackTrace), false, OwnerCharacter);
-	QueryParams.AddIgnoredActor(OwnerCharacter);
-
-	TArray<FHitResult> HitResults;
-	const FCollisionShape TraceShape = FCollisionShape::MakeSphere(EffectiveAttackRadius);
-	FCollisionObjectQueryParams ObjectQueryParams;
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
-	ObjectQueryParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
-	GetWorld()->SweepMultiByObjectType(
-		HitResults,
-		HitboxCenter,
-		HitboxCenter,
-		FQuat::Identity,
-		ObjectQueryParams,
-		TraceShape,
-		QueryParams);
-
-	TSet<AEnemyBase*> UniqueEnemies;
-	TArray<AEnemyBase*> HitEnemies;
-	const AActor* OwnerActor = OwnerCharacter->GetOwner();
-	const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
-	const bool bCanApplyBleed = AttackSource == EPlayerAttackSource::Samurai && PlayerUpgrades && PlayerUpgrades->HasUpgradeId(AutoAttackMarkedForDeathUpgradeIds::BleedingEdge);
-	for (const FHitResult& HitResult : HitResults)
-	{
-		AActor* HitActor = HitResult.GetActor();
-		if (!HitActor || HitActor == OwnerCharacter || HitActor->GetOwner() == OwnerActor)
-		{
-			continue;
-		}
-
-		AEnemyBase* HitEnemy = Cast<AEnemyBase>(HitActor);
-		if (!HitEnemy || HitEnemy->IsDead() || UniqueEnemies.Contains(HitEnemy))
-		{
-			continue;
-		}
-
-		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
-		if (!EnemyHealth || EnemyHealth->IsDead())
-		{
-			continue;
-		}
-		if (!HitEnemy->CanReceivePlayerDamage(AttackSource))
-		{
-			continue;
-		}
-
-		UniqueEnemies.Add(HitEnemy);
-		HitEnemies.Add(HitEnemy);
-	}
-
-	AEnemyBase* PrimaryTarget = nullptr;
-	float BestAlignment = -FLT_MAX;
-	float BestDistanceSquared = FLT_MAX;
-	constexpr float AlignmentTieTolerance = 0.0001f;
-	constexpr float DistanceTieToleranceSquared = 1.0f;
-	for (AEnemyBase* Candidate : HitEnemies)
-	{
-		FVector ToCandidate = Candidate->GetActorLocation() - AttackOrigin;
-		ToCandidate.Z = 0.0f;
-		const float DistanceSquared = ToCandidate.SizeSquared();
-		const float Alignment = ToCandidate.Normalize() ? FVector::DotProduct(AttackForward, ToCandidate) : 1.0f;
-		const bool bBetterAlignment = Alignment > BestAlignment + AlignmentTieTolerance;
-		const bool bAlignmentTied = FMath::Abs(Alignment - BestAlignment) <= AlignmentTieTolerance;
-		const bool bNearer = DistanceSquared < BestDistanceSquared - DistanceTieToleranceSquared;
-		const bool bDistanceTied = FMath::Abs(DistanceSquared - BestDistanceSquared) <= DistanceTieToleranceSquared;
-		const bool bStableNameWins = bDistanceTied && PrimaryTarget
-			&& Candidate->GetPathName().Compare(PrimaryTarget->GetPathName(), ESearchCase::CaseSensitive) < 0;
-		if (!PrimaryTarget || bBetterAlignment || (bAlignmentTied && (bNearer || bStableNameWins)))
-		{
-			PrimaryTarget = Candidate;
-			BestAlignment = Alignment;
-			BestDistanceSquared = DistanceSquared;
-		}
-	}
-
-	const ESamuraiTechnique ActiveTechnique = GetActiveSamuraiTechnique();
-	const float ResolvedPrimaryDamage = ActiveTechnique == ESamuraiTechnique::Duelist
-		? ResolveDuelistPrimaryDamage(PrimaryTarget, EffectiveAttackDamage)
-		: EffectiveAttackDamage;
-	LastResolvedPrimaryAttackDamage = ResolvedPrimaryDamage;
-	const float SecondaryDamage = GrandEntrance ? EffectiveAttackDamage : EffectiveAttackDamage * FMath::Clamp(SecondaryTargetDamageMultiplier, 0.0f, 1.0f);
-	float PrimaryHealthBeforeHit = 0.0f;
-	FVector PrimaryDeathLocation = FVector::ZeroVector;
-	bool bPrimaryKilled = false;
-	bool bHitSomething = false;
-	TArray<FVector> SuccessfulHitPositions;
-	const auto ApplyMeleeImpact = [&](AEnemyBase* Enemy, float Damage)
-	{
-		FVector Location, Normal;
-		Enemy->GetImpactContact(AttackOrigin, Location, Normal);
-		const float HealthBeforeHit = Enemy->GetHealthComponent() ? Enemy->GetHealthComponent()->GetCurrentHealth() : 0.f;
-		const bool bApplied = Enemy->ApplyPlayerDamage(Damage, AttackSource);
-		if (bApplied)
-		{
-			if (!bActiveAttackIsAssist && PlayerUpgrades) const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)->HandleSamuraiDirectHit(Enemy, Damage, HealthBeforeHit);
-			if (ShouldApplySamuraiPushback()) Enemy->ApplyAttackPushback(AttackOrigin, AttackSource, SamuraiPushbackDistance, SamuraiPushbackDuration);
-			bHitSomething = true;
-			SuccessfulHitPositions.Add(Enemy->GetActorLocation());
-			if (OwnerCharacter->GetOwner())
-				if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>()) Abilities->NotifyPartnerHit(AttackSource, Enemy);
-			UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, Location, Normal, false);
-		}
-		return bApplied;
-	};
-
-	if (PrimaryTarget)
-	{
-		if (UHealthComponent* PrimaryHealth = PrimaryTarget->GetHealthComponent(); PrimaryHealth && !PrimaryHealth->IsDead())
-		{
-			PrimaryHealthBeforeHit = PrimaryHealth->GetCurrentHealth();
-			PrimaryDeathLocation = PrimaryTarget->GetActorLocation();
-			const bool bDamageApplied = ApplyMeleeImpact(PrimaryTarget, ResolvedPrimaryDamage);
-			bPrimaryKilled = PrimaryHealth->IsDead();
-			if (bDamageApplied && !bPrimaryKilled && bCanApplyBleed) PrimaryTarget->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource, false, ResolvedPrimaryDamage);
-			if (bCanApplyMarkedBlade) PrimaryTarget->ApplyMark();
-		}
-	}
-
-	if (bPrimaryKilled)
-	{
-		if (ActiveTechnique == ESamuraiTechnique::Cleaver)
-		{
-			ExecuteCleaverChain(PrimaryTarget, PrimaryDeathLocation, FMath::Max(0.0f, ResolvedPrimaryDamage - PrimaryHealthBeforeHit), AttackSource);
-		}
-		else if (ActiveTechnique == ESamuraiTechnique::Deathblow)
-		{
-			ExecuteDeathblow(PrimaryTarget, PrimaryDeathLocation, ResolvedPrimaryDamage, AttackSource, bCanApplyMarkedBlade);
-		}
-		else if (ActiveTechnique == ESamuraiTechnique::Duelist)
-		{
-			if (DuelistTarget.Get() == PrimaryTarget)
-			{
-				ResetDuelistState();
-			}
-		}
-	}
-
-	for (AEnemyBase* HitEnemy : HitEnemies)
-	{
-		if (!HitEnemy || HitEnemy == PrimaryTarget) continue;
-		UHealthComponent* EnemyHealth = HitEnemy->GetHealthComponent();
-		if (!EnemyHealth || EnemyHealth->IsDead()) continue;
-		const bool bDamageApplied = ApplyMeleeImpact(HitEnemy, SecondaryDamage);
-		if (bDamageApplied && !EnemyHealth->IsDead() && bCanApplyBleed) HitEnemy->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed, const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades), AttackSource, false, SecondaryDamage);
-		if (bCanApplyMarkedBlade) HitEnemy->ApplyMark();
-	}
-
-	if (!bActiveAttackIsAssist && AttackSource == EPlayerAttackSource::Samurai && OwnerCharacter->GetOwner())
-		if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
-			for (const FVector& Position : SuccessfulHitPositions) Abilities->HandleSamuraiMeleeHit(Position);
-
-	if (bHitSomething && ImpactSound && !ImpactFeedback.HitSound)
-	{
-		UGameplayStatics::PlaySound2D(GetWorld(), ImpactSound);
-	}
-	if (bHitSomething && AttackSource == EPlayerAttackSource::Samurai && ImpactFeedback.bEnableCameraShake)
-		UImpactFeedbackLibrary::PlayGameplayCameraShake(this, ImpactFeedback.CameraShakeClass, ImpactFeedback.CameraShakeScale);
-
-	if (bDebugAttackTrace)
-	{
-		const FColor DebugColor = HitEnemies.Num() > 0 ? FColor::Red : FColor::Cyan;
-		constexpr float DebugDuration = 1.5f;
-		DrawDebugLine(GetWorld(), AttackOrigin, HitboxCenter, DebugColor, false, DebugDuration, 0, 4.0f);
-		DrawDebugSphere(GetWorld(), HitboxCenter, EffectiveAttackRadius, 24, DebugColor, false, DebugDuration, 0, 4.0f);
-	}
-
-	return true;
 }
 
 void UAutoAttackComponent::SpawnAutoAttackProjectile()
@@ -482,11 +246,7 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
-	if (bActiveAttackIsAssist && OwnerCharacter->GetOwner())
-		if (auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
-			{ Abilities->ExecuteSetupAssist(OwnerCharacter); return; }
-
- if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>();B&&B->ReplaceVolley(ActiveAttackDirection))return;
+ if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>();B&&B->ReplaceVolley(bActiveAttackIsAssist && CurrentAttackTarget.IsValid() ? GetEnemyAimLocation(CurrentAttackTarget.Get())-OwnerCharacter->GetActorLocation() : ActiveAttackDirection,bActiveAttackIsAssist))return;
 	if (!ProjectileClass)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Projectile spawn skipped: ProjectileClass invalid."));
@@ -497,12 +257,16 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 	const float EffectiveProjectileSpeed = GetEffectiveProjectileSpeed();
 	const float EffectiveAttackDamage = GetEffectiveAttackDamage();
 	const int32 NormalProjectileCount = GetEffectiveProjectileCount();
-	int32 EffectiveProjectileCount = ConsumeBladeCascadeBonusForNormalVolley(NormalProjectileCount);
+	int32 EffectiveProjectileCount = NormalProjectileCount;
 	const int32 EffectiveProjectilePierceBonus = GetEffectiveProjectilePierceBonus();
 
 	AEnemyBase* PrimaryTarget = nullptr;
 	FVector BaseDirection = FVector::ZeroVector;
-	if (IsCursorTargetingEnabledForNormalAttack())
+	if (bActiveAttackIsAssist && CurrentAttackTarget.IsValid())
+	{
+		BaseDirection=(GetEnemyAimLocation(CurrentAttackTarget.Get())-SpawnLocation).GetSafeNormal2D();
+	}
+	else if (IsCursorTargetingEnabledForNormalAttack())
 	{
 		BaseDirection = ActiveAttackDirection;
 		BaseDirection.Z = 0.0f;
@@ -533,7 +297,15 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		VolleySpacing = FMath::Clamp(GrandEntrance->GetBalanceValue(TEXT("NinjaFanAngle"),100),0.f,180.f) / FMath::Max(1,EffectiveProjectileCount-1);
 		bGrandEntranceReady = false;
 	}
- if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>())B->ModifyVolley(BaseDirection,EffectiveProjectileCount,VolleySpacing);
+ if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>())
+ {
+  if(bActiveAttackIsAssist)
+  {
+   int32 Volley=B->VolleyCount, Consecutive=B->ConsecutiveVolleys;
+   B->ModifyVolleyWithCounters(BaseDirection,EffectiveProjectileCount,VolleySpacing,Volley,Consecutive);
+  }
+  else B->ModifyVolley(BaseDirection,EffectiveProjectileCount,VolleySpacing);
+ }
 	BuildCenteredProjectileSpreadDirections(BaseDirection, EffectiveProjectileCount, VolleySpacing, bNormalVolleyExtraProjectileOnRight, VolleyDirections);
 	if (EffectiveProjectileCount % 2 == 0) bNormalVolleyExtraProjectileOnRight = !bNormalVolleyExtraProjectileOnRight;
 
@@ -573,13 +345,12 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		DrawDebugSphere(GetWorld(), SpawnLocation, 24.0f, 12, FColor::Yellow, false, DebugDuration, 0, 3.0f);
 	}
 
-	RegisterNinjaAttackForFanOfBlades(SpawnLocation, EffectiveAttackDamage, EffectiveProjectileSpeed, EffectiveProjectilePierceBonus);
 
 	CurrentAttackTarget.Reset();
 	OwnerCharacter->ClearFacingOverride();
 }
 
-void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount, bool bRegisterAttackCycle)
+void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount)
 {
 	if (!OwnerCharacter || !ProjectileClass || !GetWorld())
 	{
@@ -603,6 +374,7 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		return;
 	}
 
+	Projectile->bAssistProjectile=bActiveAttackIsAssist;
 	Projectile->InitializeProjectile(
 		OwnerCharacter,
 		ProjectileDirection,
@@ -610,21 +382,18 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 		Speed,
 		EProjectileTargetType::Enemies,
 		GetEffectiveTargetingRange(),
-		true,
 		nullptr,
 		true,
 		AdditionalPierceCount,
 		GetEffectiveProjectileBounceBonus(),
 		GetEffectiveProjectileSplitBonus());
 
-	if (bRegisterAttackCycle)
-	{
-		RegisterKunaiFired();
-	}
 }
 
 bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight, int32* CloneVolley, int32* CloneConsecutive)
 {
+    // Clone notifies may overlap a Tag Team animation on their source Ninja.
+    TGuardValue<bool> CloneSourceGuard(bActiveAttackIsAssist,false);
 	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass || !GetWorld() || IsOwningPlayerDead())
 	{
 		return false;
@@ -652,7 +421,7 @@ bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, 
 	int32 Spawned = 0;
 	for (const FVector& Direction : VolleyDirections)
 	{
-		SpawnProjectileInstance(SpawnLocation, Direction, Damage, Speed, Pierce, false);
+		SpawnProjectileInstance(SpawnLocation, Direction, Damage, Speed, Pierce);
 		++Spawned;
 	}
  return Spawned > 0;
@@ -673,55 +442,6 @@ void UAutoAttackComponent::BuildCenteredProjectileSpreadDirections(const FVector
 		FVector Direction = BaseDirection.RotateAngleAxis(static_cast<float>(Step) * Spacing, FVector::UpVector);
 		Direction.Z = 0.0f;
 		if (Direction.Normalize()) OutDirections.Add(Direction);
-	}
-}
-
-void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
-{
-	ASamuraiCharacter* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
-	UPlayerUpgradeComponent* Upgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, Samurai);
-	if (!Samurai || !Upgrades || !Upgrades->HasUpgradeId(TEXT("BladeWave")) || !BladeWaveClass || !GetWorld()) return;
-
-	auto* FamilyComponent=Samurai->GetOwner()?Samurai->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>():nullptr;
-	const auto Tune=[FamilyComponent](FName Key,float Default,int32 Slot=-1){return FamilyComponent?FamilyComponent->Tuning(4,Key,Default,Slot):Default;};
-	FVector Forward = Samurai->GetVisualForwardVector();
-	if (bActiveAttackIsAssist)
-	{
-		if (AEnemyBase* AssistTarget = CurrentAttackTarget.Get(); AssistTarget && !AssistTarget->IsDead())
-		{
-			Forward = AssistTarget->GetActorLocation() - Samurai->GetActorLocation();
-		}
-	}
-	Forward.Z = 0.0f;
-	if (!Forward.Normalize()) return;
-	const float WideArc = FMath::Max(0.0f, Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("WideArc")));
-	const float AreaMultiplier = AttackRadius > KINDA_SMALL_NUMBER ? GetEffectiveAttackRadius() / AttackRadius : 1.0f;
-	const float WaveWidth = Tune(TEXT("WaveWidth"),BladeWaveBaseWidth) * FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc);
-	const float WaveDamage = FMath::Max(0.0f, ResolvedPrimaryDamage) * Tune(TEXT("WaveDamageMultiplier"),BladeWaveDamageMultiplier) * (1.0f + WideArc) * (1.0f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWavePower")));
-	const bool bReturns = Upgrades->HasUpgradeId(TEXT("ReturningBlade"));
-	const bool bCrossing = Upgrades->HasUpgradeId(TEXT("CrossingBlades"));
-	++CrossingBladesAttackCounter;
-	const bool bTriple = bCrossing && CrossingBladesAttackCounter % FMath::Max(1,FMath::RoundToInt(Tune(TEXT("AttackFrequency"),3,1))) == 0;
-	const float SideAngle=Tune(TEXT("SideAngle"),CrossingBladeSideAngle,1);
-	const int32 BonusWaves = FMath::Clamp(Upgrades->GetUpgradeLevelById(TEXT("WaveMultishot")),0,3);
-    const int32 WaveCount = FMath::Clamp((bTriple ? FMath::RoundToInt(Tune(TEXT("WaveCount"),3,1)) : 1) + BonusWaves,1,16);
-    const auto* Multishot = Upgrades->FindUpgradeDefinition(TEXT("WaveMultishot"));
-    const float ExtraAngle = FMath::Max(0.f, Multishot ? Multishot->GetBalanceValue(TEXT("AnglePerWave"),8.f) : 8.f);
-    const float FanHalfAngle = bTriple ? SideAngle : ExtraAngle * BonusWaves * 0.5f;
-	for (int32 Index = 0; Index < WaveCount; ++Index)
-	{
-		const float Angle = WaveCount>1 ? FMath::Lerp(-FanHalfAngle,FanHalfAngle,static_cast<float>(Index)/(WaveCount-1)) : 0.0f;
-		const FVector Direction = Forward.RotateAngleAxis(Angle, FVector::UpVector);
-		const FVector SpawnLocation = Samurai->GetActorLocation() + Direction * Tune(TEXT("SpawnForwardOffset"),80) + FVector(0.0f, 0.0f,Tune(TEXT("SpawnHeightOffset"),60));
-		FActorSpawnParameters Params;
-		Params.Owner = Samurai;
-		Params.Instigator = Samurai;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		if (ASamuraiBladeWave* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(BladeWaveClass, SpawnLocation, Direction.Rotation(), Params))
-		{
-			Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth, Tune(TEXT("WaveTravelDistance"),BladeWaveTravelDistance), Tune(TEXT("WaveSpeed"),BladeWaveSpeed) * (1.0f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWaveHaste"))), bReturns,
-				FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc));
-		}
 	}
 }
 
@@ -1020,6 +740,7 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 
 bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 {
+	if(OwnerCharacter && OwnerCharacter->SwapPresentation && OwnerCharacter->SwapPresentation->IsBlockingAttacks()) return false;
 	if (bIsAttacking)
 	{
 		return false;
@@ -1078,7 +799,6 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 	bIsAttacking = true;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = !bUpdateNormalCooldown;
-	bActiveAttackTriggersFanOfBlades = WillNextNinjaAttackTriggerFanOfBlades();
 	ActiveAttackMontage = MontageToPlay;
 	ApplyAttackWeaponVisualScale();
 	if (bUpdateNormalCooldown)
@@ -1100,10 +820,6 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 
 UAnimMontage* UAutoAttackComponent::GetMontageForNextAttack() const
 {
-	if (WillNextNinjaAttackTriggerFanOfBlades() && FanOfBladesAttackMontage)
-	{
-		return FanOfBladesAttackMontage;
-	}
 
 	return AttackMontage;
 }
@@ -1181,7 +897,6 @@ void UAutoAttackComponent::HandleAttackMontageEnded(UAnimMontage* Montage, bool 
 	bIsAttacking = false;
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = false;
-	bActiveAttackTriggersFanOfBlades = false;
 	ActiveAttackMontage = nullptr;
 	CurrentAttackTarget.Reset();
 	if (OwnerCharacter)
@@ -1258,6 +973,7 @@ bool UAutoAttackComponent::StartTargetedAttack()
 
 bool UAutoAttackComponent::CanStartAttackNow() const
 {
+	if(OwnerCharacter && OwnerCharacter->SwapPresentation && OwnerCharacter->SwapPresentation->IsBlockingAttacks()) return false;
 	const UWorld* World = GetWorld();
 	if (!World)
 	{
@@ -1326,450 +1042,6 @@ bool UAutoAttackComponent::TryConsumeAttackNotify()
 
 	bAttackNotifyConsumed = true;
 	return true;
-}
-
-void UAutoAttackComponent::RegisterDoubleCutPrimaryAttack()
-{
-	if (!GetWorld() || DoubleCutPrimaryAttackCount <= 0)
-	{
-		return;
-	}
-
-	// Progress and ownership are independent. A stored proc remains owned while
-	// later legitimate primaries begin progress toward the following proc.
-	++DoubleCutPrimaryAttackCounter;
-	if (DoubleCutPrimaryAttackCounter < DoubleCutPrimaryAttackCount)
-	{
-		return;
-	}
-
-	if (bDoubleCutReady)
-	{
-		DoubleCutPrimaryAttackCounter = DoubleCutPrimaryAttackCount - 1;
-		return;
-	}
-	DoubleCutPrimaryAttackCounter = 0;
-	bDoubleCutReady = true;
-}
-
-bool UAutoAttackComponent::HasDoubleCutUpgrade() const
-{
-	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
-	{
-		return false;
-	}
-
-	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
-	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::DoubleCut) > 0;
-}
-
-bool UAutoAttackComponent::HasFanOfBladesUpgrade() const
-{
-	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass)
-	{
-		return false;
-	}
-
-	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
-	return PlayerUpgrades && PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::FanOfBlades) > 0;
-}
-
-bool UAutoAttackComponent::WillNextNinjaAttackTriggerFanOfBlades() const
-{
-	return HasFanOfBladesUpgrade()
-		&& FanOfBladesAttackInterval > 0
-		&& FanOfBladesAttackCounter + 1 >= FanOfBladesAttackInterval;
-}
-
-void UAutoAttackComponent::RegisterNinjaAttackForFanOfBlades(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount)
-{
-	if (!HasFanOfBladesUpgrade())
-	{
-		return;
-	}
-
-	const int32 SafeTriggerInterval = FMath::Max(1, FanOfBladesAttackInterval);
-	++FanOfBladesAttackCounter;
-	if (!bActiveAttackTriggersFanOfBlades && FanOfBladesAttackCounter < SafeTriggerInterval)
-	{
-		return;
-	}
-
-	FanOfBladesAttackCounter = 0;
-	SpawnFanOfBladesVolley(SpawnLocation, Damage, Speed, AdditionalPierceCount);
-}
-
-void UAutoAttackComponent::SpawnFanOfBladesVolley(const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount)
-{
-	TArray<AEnemyBase*> TargetCandidates;
-	FindEnemyTargetsSorted(TargetCandidates);
-	const int32 SafeProjectileCount = FMath::Max(1, FanOfBladesProjectileCount);
-	if (TargetCandidates.IsEmpty())
-	{
-		for (int32 ProjectileIndex = 0; ProjectileIndex < SafeProjectileCount; ++ProjectileIndex)
-		{
-			const float AngleDegrees = (360.0f * static_cast<float>(ProjectileIndex)) / static_cast<float>(SafeProjectileCount);
-			const FVector ProjectileDirection = FRotator(0.0f, AngleDegrees, 0.0f).Vector();
-			SpawnProjectileInstance(SpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
-		}
-		return;
-	}
-
-	const int32 AssignedTargetCount = FMath::Min(TargetCandidates.Num(), SafeProjectileCount);
-	TArray<int32> ProjectilesPerTarget;
-	ProjectilesPerTarget.Init(0, AssignedTargetCount);
-	for (int32 ProjectileIndex = 0; ProjectileIndex < SafeProjectileCount; ++ProjectileIndex)
-	{
-		++ProjectilesPerTarget[ProjectileIndex % AssignedTargetCount];
-	}
-
-	for (int32 TargetIndex = 0; TargetIndex < AssignedTargetCount; ++TargetIndex)
-	{
-		AEnemyBase* AssignedTarget = TargetCandidates[TargetIndex];
-		if (!AssignedTarget || AssignedTarget->IsDead())
-		{
-			continue;
-		}
-
-		const int32 AssignedProjectileCount = ProjectilesPerTarget[TargetIndex];
-		if (AssignedProjectileCount > 1)
-		{
-			SpawnFanOfBladesConvergenceGroup(AssignedTarget, AssignedProjectileCount, SpawnLocation, Damage, Speed, AdditionalPierceCount);
-			continue;
-		}
-
-		FVector ProjectileDirection = GetEnemyAimLocation(AssignedTarget) - SpawnLocation;
-		ProjectileDirection.Z = 0.0f;
-		if (!ProjectileDirection.Normalize())
-		{
-			ProjectileDirection = OwnerCharacter ? OwnerCharacter->GetVisualForwardVector() : FVector::ForwardVector;
-			ProjectileDirection.Z = 0.0f;
-			ProjectileDirection.Normalize();
-		}
-		SpawnProjectileInstance(SpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
-	}
-}
-
-void UAutoAttackComponent::SpawnFanOfBladesConvergenceGroup(AEnemyBase* Target, int32 AssignedProjectileCount, const FVector& SpawnLocation, float Damage, float Speed, int32 AdditionalPierceCount)
-{
-	if (!Target || Target->IsDead() || AssignedProjectileCount <= 0)
-	{
-		return;
-	}
-
-	const FVector TargetLocation = GetEnemyAimLocation(Target);
-	FVector BaseDirection = TargetLocation - SpawnLocation;
-	BaseDirection.Z = 0.0f;
-	if (!BaseDirection.Normalize())
-	{
-		BaseDirection = OwnerCharacter ? OwnerCharacter->GetVisualForwardVector() : FVector::ForwardVector;
-		BaseDirection.Z = 0.0f;
-		if (!BaseDirection.Normalize())
-		{
-			BaseDirection = FVector::ForwardVector;
-		}
-	}
-
-	const FVector RightVector = FVector::CrossProduct(FVector::UpVector, BaseDirection).GetSafeNormal();
-	const float TargetDistance = FVector::Dist2D(SpawnLocation, TargetLocation);
-	const float LargestOffsetStep = 0.5f * static_cast<float>(AssignedProjectileCount - 1);
-	const float DistanceLimitedSpacing = LargestOffsetStep > KINDA_SMALL_NUMBER
-		? (TargetDistance * 0.25f) / LargestOffsetStep
-		: FanSingleTargetSpreadSpacing;
-	const float EffectiveSpacing = FMath::Min(FMath::Max(0.0f, FanSingleTargetSpreadSpacing), DistanceLimitedSpacing);
-
-	for (int32 ProjectileIndex = 0; ProjectileIndex < AssignedProjectileCount; ++ProjectileIndex)
-	{
-		const float OffsetStep = static_cast<float>(ProjectileIndex) - LargestOffsetStep;
-		const FVector ProjectileSpawnLocation = SpawnLocation + RightVector * (OffsetStep * EffectiveSpacing);
-		FVector ProjectileDirection = TargetLocation - ProjectileSpawnLocation;
-		ProjectileDirection.Z = 0.0f;
-		if (!ProjectileDirection.Normalize())
-		{
-			ProjectileDirection = BaseDirection;
-		}
-		SpawnProjectileInstance(ProjectileSpawnLocation, ProjectileDirection, Damage, Speed, AdditionalPierceCount);
-	}
-}
-
-const UUpgradeDefinition* UAutoAttackComponent::GetBladeCascadeUpgrade() const
-{
-	if (!OwnerCharacter || !OwnerCharacter->IsA<ANinjaCharacter>() || !ProjectileClass)
-	{
-		return nullptr;
-	}
-
-	const UPlayerUpgradeComponent* PlayerUpgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
-	if (!PlayerUpgrades || PlayerUpgrades->GetSpecialEffectLevel(EUpgradeSpecialEffect::BladeCascade) <= 0)
-	{
-		return nullptr;
-	}
-
-	return PlayerUpgrades->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::BladeCascade);
-}
-
-int32 UAutoAttackComponent::ConsumeBladeCascadeBonusForNormalVolley(int32 NormalProjectileCount)
-{
-	const UUpgradeDefinition* BladeCascadeUpgrade = GetBladeCascadeUpgrade();
-	if (!BladeCascadeUpgrade || !bBladeCascadeReady)
-	{
-		return NormalProjectileCount;
-	}
-
-	const int32 SafeBonusKunai = FMath::Max(1, BladeCascadeUpgrade->BladeCascadeBonusKunai);
-	bBladeCascadeReady = false;
-	const int32 FinalProjectileCount = NormalProjectileCount + SafeBonusKunai;
-
-	if (CVarHDLogBladeCascade.GetValueOnGameThread() != 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Blade Cascade CONSUMED: normal=%d bonus=%d final=%d"),
-			NormalProjectileCount,
-			SafeBonusKunai,
-			FinalProjectileCount);
-	}
-
-	return FinalProjectileCount;
-}
-
-void UAutoAttackComponent::RegisterKunaiFired()
-{
-	const UUpgradeDefinition* BladeCascadeUpgrade = GetBladeCascadeUpgrade();
-	if (!BladeCascadeUpgrade)
-	{
-		return;
-	}
-
-	const int32 SafeThreshold = FMath::Max(1, BladeCascadeUpgrade->BladeCascadeKunaiThreshold);
-	++BladeCascadeKunaiProgress;
-
-	if (BladeCascadeKunaiProgress >= SafeThreshold)
-	{
-		if (!bBladeCascadeReady)
-		{
-			BladeCascadeKunaiProgress -= SafeThreshold;
-			bBladeCascadeReady = true;
-			if (CVarHDLogBladeCascade.GetValueOnGameThread() != 0)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Blade Cascade READY"));
-			}
-			return;
-		}
-
-		BladeCascadeKunaiProgress = SafeThreshold - 1;
-	}
-
-	if (CVarHDLogBladeCascade.GetValueOnGameThread() != 0)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Blade Cascade: %d/%d"), BladeCascadeKunaiProgress, SafeThreshold);
-	}
-}
-
-bool UAutoAttackComponent::WillNextSamuraiAttackTriggerDoubleCut() const
-{
-	return HasDoubleCutUpgrade() && (bDoubleCutReady
-		|| (DoubleCutPrimaryAttackCount > 0
-		&& DoubleCutPrimaryAttackCounter + 1 >= DoubleCutPrimaryAttackCount));
-}
-
-bool UAutoAttackComponent::AcquireDoubleCutFollowUpTarget()
-{
-	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>())
-	{
-		CurrentAttackTarget.Reset();
-		return false;
-	}
-
-	if (IsCursorTargetingEnabledForNormalAttack())
-	{
-		FVector CursorDirection;
-		if (!ResolveCursorAttackDirection(CursorDirection))
-		{
-			return false;
-		}
-
-		CurrentAttackTarget.Reset();
-		ActiveAttackDirection = CursorDirection;
-		const FVector FacingTarget = OwnerCharacter->GetActorLocation() + CursorDirection * FMath::Max(100.0f, GetEffectiveTargetingRange());
-		OwnerCharacter->SetFacingOverrideTarget(FacingTarget);
-		OwnerCharacter->SetVisualFacingRotation(FRotator(0.0f, CursorDirection.Rotation().Yaw, 0.0f));
-		return true;
-	}
-
-	AEnemyBase* TargetEnemy = FindNearestEnemyTarget();
-	if (!TargetEnemy || TargetEnemy->IsDead())
-	{
-		CurrentAttackTarget.Reset();
-		if (OwnerCharacter)
-		{
-			OwnerCharacter->ClearFacingOverride();
-		}
-		return false;
-	}
-
-	CurrentAttackTarget = TargetEnemy;
-	const FVector AimLocation = GetEnemyAimLocation(TargetEnemy);
-	FVector ToTarget = AimLocation - OwnerCharacter->GetActorLocation();
-	ToTarget.Z = 0.0f;
-	if (!ToTarget.Normalize())
-	{
-		CurrentAttackTarget.Reset();
-		return false;
-	}
-
-	OwnerCharacter->SetFacingOverrideTarget(AimLocation);
-	OwnerCharacter->SetVisualFacingRotation(FRotator(0.0f, ToTarget.Rotation().Yaw, 0.0f));
-	return true;
-}
-
-bool UAutoAttackComponent::StartDoubleCutFollowUp()
-{
-	if (!bDoubleCutReady || !CanExecuteAttackInCurrentMode() || !OwnerCharacter || OwnerCharacter->IsDashing()
-		|| !OwnerCharacter->IsA<ASamuraiCharacter>() || ProjectileClass)
-	{
-		return false;
-	}
-
-	if (!AcquireDoubleCutFollowUpTarget())
-	{
-		return false;
-	}
-
-	UAnimMontage* FollowUpMontage = DoubleCutMontage ? DoubleCutMontage.Get() : AttackMontage.Get();
-	if (!FollowUpMontage) return false;
-
-	ACharacter* OwnerAsCharacter = Cast<ACharacter>(GetOwner());
-	USkeletalMeshComponent* MeshComponent = OwnerAsCharacter ? OwnerAsCharacter->GetMesh() : nullptr;
-	UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr;
-	if (!AnimInstance)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Double Cut skipped: AnimInstance invalid on %s."), *GetNameSafe(OwnerCharacter));
-		return false;
-	}
-
-	const float PlayResult = AnimInstance->Montage_Play(FollowUpMontage, CalculateAttackMontagePlayRate(FollowUpMontage));
-	if (PlayResult <= 0.0f)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Double Cut montage failed to play on %s."), *GetNameSafe(OwnerCharacter));
-		return false;
-	}
-
-	FOnMontageEnded MontageEndedDelegate;
-	MontageEndedDelegate.BindUObject(this, &UAutoAttackComponent::HandleDoubleCutMontageEnded);
-	AnimInstance->Montage_SetEndDelegate(MontageEndedDelegate, FollowUpMontage);
-
-	bIsAttacking = true;
-	bAttackNotifyConsumed = false;
-	bActiveAttackIsAssist = false;
-	bDoubleCutFollowUpActive = true;
-	ActiveAttackMontage = FollowUpMontage;
-	ApplyAttackWeaponVisualScale();
-	return true;
-}
-
-bool UAutoAttackComponent::ConsumePendingDoubleCutFollowUp()
-{
-	if (!bDoubleCutFollowUpPending)
-	{
-		return false;
-	}
-
-	bDoubleCutFollowUpPending = false;
-	bAttackNotifyConsumed = false;
-	bActiveAttackIsAssist = false;
-	ActiveAttackSequence = 0;
-	return StartDoubleCutFollowUp();
-}
-
-void UAutoAttackComponent::HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (!bDoubleCutFollowUpActive || Montage != ActiveAttackMontage)
-	{
-		return;
-	}
-
-	bIsAttacking = false;
-	bAttackNotifyConsumed = false;
-	bActiveAttackIsAssist = false;
-	bDoubleCutFollowUpActive = false;
-	ActiveAttackMontage = nullptr;
-	CurrentAttackTarget.Reset();
-	if (OwnerCharacter)
-	{
-		OwnerCharacter->ClearFacingOverride();
-	}
-	RestoreAttackWeaponVisualScale();
-}
-
-bool UAutoAttackComponent::ShouldApplySamuraiPushback() const
-{
-	// Checked before the primary strike increments its counter: includes the strike
-	// that earns Double Cut as well as a previously stored ready proc.
-	return bDoubleCutFollowUpActive || bActiveAttackIsAssist || !WillNextSamuraiAttackTriggerDoubleCut();
-}
-
-USceneComponent* UAutoAttackComponent::ResolveWeaponVisualComponent()
-{
-	if (IsValid(WeaponVisualComponent))
-	{
-		return WeaponVisualComponent;
-	}
-
-	ASamuraiCharacter* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
-	if (!Samurai || WeaponVisualComponentName.IsNone())
-	{
-		return nullptr;
-	}
-
-	TArray<USceneComponent*> SceneComponents;
-	Samurai->GetComponents<USceneComponent>(SceneComponents);
-	for (USceneComponent* SceneComponent : SceneComponents)
-	{
-		if (IsValid(SceneComponent) && SceneComponent->GetFName() == WeaponVisualComponentName)
-		{
-			WeaponVisualComponent = SceneComponent;
-			return WeaponVisualComponent;
-		}
-	}
-
-	return nullptr;
-}
-
-void UAutoAttackComponent::ApplyAttackWeaponVisualScale()
-{
-	if (!OwnerCharacter || !OwnerCharacter->IsA<ASamuraiCharacter>() || ProjectileClass)
-	{
-		return;
-	}
-
-	USceneComponent* ScaleRoot = ResolveWeaponVisualComponent();
-	const UCharacterStatsComponent* CharacterStats = OwnerCharacter->GetCharacterStats();
-	if (!ScaleRoot || !CharacterStats)
-	{
-		return;
-	}
-
-	if (!bAttackWeaponVisualScaleApplied)
-	{
-		OriginalWeaponVisualComponentRelativeScale = ScaleRoot->GetRelativeScale3D();
-		bAttackWeaponVisualScaleApplied = true;
-	}
-
-	const float AreaMultiplier = CharacterStats->GetFinalAttackAreaMultiplier();
-	ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualComponentRelativeScale * AreaMultiplier);
-}
-
-void UAutoAttackComponent::RestoreAttackWeaponVisualScale()
-{
-	if (!bAttackWeaponVisualScaleApplied)
-	{
-		return;
-	}
-
-	if (USceneComponent* ScaleRoot = ResolveWeaponVisualComponent())
-	{
-		ScaleRoot->SetRelativeScale3D(OriginalWeaponVisualComponentRelativeScale);
-	}
-	bAttackWeaponVisualScaleApplied = false;
 }
 
 float UAutoAttackComponent::GetEffectiveAttackInterval() const
@@ -1858,153 +1130,6 @@ int32 UAutoAttackComponent::GetEffectiveProjectilePierceBonus() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
 	return CharacterStats ? CharacterStats->GetFinalProjectilePierceBonus() : 0;
-}
-
-ESamuraiTechnique UAutoAttackComponent::GetActiveSamuraiTechnique() const
-{
-	// Retired techniques never activate, including in an older run snapshot.
-	return ESamuraiTechnique::None;
-}
-
-float UAutoAttackComponent::ResolveDuelistPrimaryDamage(AEnemyBase* PrimaryTarget, float BasePrimaryDamage)
-{
-	if (!PrimaryTarget)
-	{
-		return BasePrimaryDamage;
-	}
-
-	if (bDoubleCutFollowUpActive)
-	{
-		const int32 AppliedStacks = DuelistTarget.Get() == PrimaryTarget ? DuelistStackCount : 0;
-		return BasePrimaryDamage * (1.0f + FMath::Max(0.0f, DuelistDamagePerStack) * AppliedStacks);
-	}
-
-	AEnemyBase* PreviousTarget = DuelistTarget.Get();
-	if (PreviousTarget != PrimaryTarget)
-	{
-		DuelistTarget = PrimaryTarget;
-		DuelistStackCount = 0;
-		OnDuelistTargetChanged.Broadcast(PreviousTarget, PrimaryTarget);
-		OnDuelistStackChanged.Broadcast(DuelistStackCount);
-	}
-	else
-	{
-		if (DuelistStackCount < MAX_int32)
-		{
-			++DuelistStackCount;
-		}
-		OnDuelistStackChanged.Broadcast(DuelistStackCount);
-	}
-
-	return BasePrimaryDamage * (1.0f + FMath::Max(0.0f, DuelistDamagePerStack) * DuelistStackCount);
-}
-
-void UAutoAttackComponent::ResetDuelistState()
-{
-	AEnemyBase* PreviousTarget = DuelistTarget.Get();
-	DuelistTarget.Reset();
-	DuelistStackCount = 0;
-	if (PreviousTarget) OnDuelistTargetChanged.Broadcast(PreviousTarget, nullptr);
-	OnDuelistStackChanged.Broadcast(0);
-}
-
-void UAutoAttackComponent::ExecuteCleaverChain(AEnemyBase* OriginalPrimaryTarget, const FVector& OriginLocation, float RemainingDamage, EPlayerAttackSource AttackSource)
-{
-	if (!GetWorld() || RemainingDamage <= KINDA_SMALL_NUMBER) return;
-
-	TSet<AEnemyBase*> VisitedTargets;
-	if (OriginalPrimaryTarget) VisitedTargets.Add(OriginalPrimaryTarget);
-	FVector FromLocation = OriginLocation;
-	const int32 SafeTargetLimit = FMath::Max(1, MaxCleaverChainTargets);
-	for (int32 ChainIndex = 0; ChainIndex < SafeTargetLimit && RemainingDamage > KINDA_SMALL_NUMBER; ++ChainIndex)
-	{
-		AEnemyBase* Target = FindCleaverTarget(FromLocation, VisitedTargets, AttackSource);
-		if (!Target) break;
-		UHealthComponent* Health = Target->GetHealthComponent();
-		if (!Health || Health->IsDead()) break;
-
-		VisitedTargets.Add(Target);
-		const float HealthBeforeHit = Health->GetCurrentHealth();
-		const FVector TargetLocation = Target->GetActorLocation();
-		OnCleaverTransfer.Broadcast(FromLocation, TargetLocation, RemainingDamage);
-		if (!Target->ApplyPlayerDamage(RemainingDamage, AttackSource)) break;
-		if (ShouldApplySamuraiPushback()) Target->ApplyAttackPushback(FromLocation, AttackSource, SamuraiPushbackDistance, SamuraiPushbackDuration);
-		if (!Health->IsDead()) break;
-
-		RemainingDamage = FMath::Max(0.0f, RemainingDamage - HealthBeforeHit);
-		FromLocation = TargetLocation;
-	}
-}
-
-AEnemyBase* UAutoAttackComponent::FindCleaverTarget(const FVector& SearchLocation, const TSet<AEnemyBase*>& VisitedTargets, EPlayerAttackSource AttackSource) const
-{
-	if (!GetWorld() || CleaverChainRadius <= 0.0f) return nullptr;
-	TArray<FOverlapResult> Results;
-	FCollisionObjectQueryParams ObjectParams;
-	ObjectParams.AddObjectTypesToQuery(ECC_Pawn);
-	ObjectParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(CleaverChainTargeting), false, OwnerCharacter);
-	if (OwnerCharacter) QueryParams.AddIgnoredActor(OwnerCharacter);
-	GetWorld()->OverlapMultiByObjectType(Results, SearchLocation, FQuat::Identity, ObjectParams,
-		FCollisionShape::MakeSphere(CleaverChainRadius), QueryParams);
-
-	AEnemyBase* BestTarget = nullptr;
-	float BestDistanceSquared = TNumericLimits<float>::Max();
-	for (const FOverlapResult& Result : Results)
-	{
-		AEnemyBase* Candidate = Cast<AEnemyBase>(Result.GetActor());
-		if (!Candidate || Candidate->IsDead() || VisitedTargets.Contains(Candidate)
-			|| Candidate->GetRequiredPlayerAttackSource() != EPlayerAttackSource::Other
-			|| !Candidate->CanReceivePlayerDamage(AttackSource)) continue;
-		const UHealthComponent* Health = Candidate->GetHealthComponent();
-		const float DistanceSquared = FVector::DistSquared(SearchLocation, Candidate->GetActorLocation());
-		if (Health && !Health->IsDead() && DistanceSquared <= FMath::Square(CleaverChainRadius) && DistanceSquared < BestDistanceSquared)
-		{
-			BestTarget = Candidate;
-			BestDistanceSquared = DistanceSquared;
-		}
-	}
-	return BestTarget;
-}
-
-void UAutoAttackComponent::ExecuteDeathblow(AEnemyBase* DeadPrimaryTarget, const FVector& OriginLocation, float ResolvedPrimaryDamage, EPlayerAttackSource AttackSource, bool bApplyMarkedBlade)
-{
-	if (!GetWorld() || ResolvedPrimaryDamage <= 0.0f) return;
-	const UCharacterStatsComponent* Stats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
-	const float AreaMultiplier = Stats ? Stats->GetFinalAttackAreaMultiplier() : 1.0f;
-	const float Radius = FMath::Max(0.0f, DeathblowBaseRadius) * FMath::Max(0.0f, AreaMultiplier);
-	const float Damage = ResolvedPrimaryDamage * FMath::Max(0.0f, DeathblowDamageMultiplier);
-	OnDeathblowTriggered.Broadcast(OriginLocation, Radius, Damage);
-	if (DeathblowVFX)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, DeathblowVFX, OriginLocation, FRotator::ZeroRotator);
-	}
-	if (Radius <= 0.0f || Damage <= 0.0f) return;
-
-	TArray<FOverlapResult> Results;
-	FCollisionObjectQueryParams ObjectParams;
-	ObjectParams.AddObjectTypesToQuery(ECC_Pawn);
-	ObjectParams.AddObjectTypesToQuery(ECC_GameTraceChannel1);
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(DeathblowTargets), false, OwnerCharacter);
-	if (OwnerCharacter) QueryParams.AddIgnoredActor(OwnerCharacter);
-	if (DeadPrimaryTarget) QueryParams.AddIgnoredActor(DeadPrimaryTarget);
-	GetWorld()->OverlapMultiByObjectType(Results, OriginLocation, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), QueryParams);
-
-	TSet<AEnemyBase*> DamagedTargets;
-	for (const FOverlapResult& Result : Results)
-	{
-		AEnemyBase* Candidate = Cast<AEnemyBase>(Result.GetActor());
-		if (!Candidate || Candidate == DeadPrimaryTarget || Candidate->IsDead() || DamagedTargets.Contains(Candidate)
-			|| Candidate->GetRequiredPlayerAttackSource() != EPlayerAttackSource::Other
-			|| !Candidate->CanReceivePlayerDamage(AttackSource)) continue;
-		UHealthComponent* Health = Candidate->GetHealthComponent();
-		if (!Health || Health->IsDead()) continue;
-		DamagedTargets.Add(Candidate);
-		if (Candidate->ApplyPlayerDamage(Damage, AttackSource))
-		{
-			if (bApplyMarkedBlade) Candidate->ApplyMark();
-		}
-	}
 }
 
 int32 UAutoAttackComponent::GetEffectiveProjectileBounceBonus() const

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SurvivorPlayerController.h"
+#include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
 
 #include "CharacterBase.h"
@@ -448,6 +449,7 @@ bool ASurvivorPlayerController::CanDash() const
 	const ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
 	return ActiveCharacter
 		&& ActiveCharacter->GetCharacterMode() == ECharacterMode::Active
+		&& (!ActiveCharacter->SwapPresentation || !ActiveCharacter->SwapPresentation->IsBlockingAttacks())
 		&& HasDashCharge();
 }
 
@@ -756,49 +758,12 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 		if (auto* Attack = NewCharacter->FindComponentByClass<UAutoAttackComponent>()) Attack->ArmGrandEntranceAfterSwap();
 	ApplySharedMoveSpeedToParty();
 	SetCameraFollowTarget(NewCharacter);
-	if (bWasPlayerInitiatedSwap) TryTriggerHemotoxicReaction(NewCharacter);
 }
 
 void ASurvivorPlayerController::Aim(const FInputActionValue& Value)
 {
 	if (bIsPlayerDead || bLevelUpSelectionActive || IsAutoTargetingEnabled()) return;
 	ApplyControllerAimInput(Value.Get<FVector2D>());
-}
-
-void ASurvivorPlayerController::TryTriggerHemotoxicReaction(ACharacterBase* NewCharacter)
-{
-	if (!NewCharacter || !PlayerUpgradeComponent || !GetWorld()) return;
-	const UUpgradeDefinition* Upgrade = PlayerUpgradeComponent->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::HemotoxicReaction);
-	if (!Upgrade) return;
-
-	const float Radius = FMath::Max(0.0f, Upgrade->HemotoxicReactionRadius);
-	const float Multiplier = FMath::Max(0.0f, Upgrade->HemotoxicReactionMultiplier);
-	FCollisionObjectQueryParams ObjectTypes;
-	ObjectTypes.AddObjectTypesToQuery(ECC_Pawn);
-	ObjectTypes.AddObjectTypesToQuery(ECC_GameTraceChannel1);
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(HemotoxicReaction), false, NewCharacter);
-	TArray<FOverlapResult> Overlaps;
-	GetWorld()->OverlapMultiByObjectType(Overlaps, NewCharacter->GetActorLocation(), FQuat::Identity, ObjectTypes, FCollisionShape::MakeSphere(Radius), QueryParams);
-
-	TSet<AEnemyBase*> Processed;
-	for (const FOverlapResult& Overlap : Overlaps)
-	{
-		AEnemyBase* Enemy = Cast<AEnemyBase>(Overlap.GetActor());
-		if (!Enemy || Enemy->IsDead() || Processed.Contains(Enemy)) continue;
-		Processed.Add(Enemy);
-		UEnemyStatusEffectComponent* Statuses = Enemy->GetStatusEffectComponent();
-		if (!Statuses || !Statuses->HasStatus(EEnemyStatusEffect::Bleed) || !Statuses->HasStatus(EEnemyStatusEffect::Poison)) continue;
-
-		const int32 BleedStacks = Statuses->GetStatusStacks(EEnemyStatusEffect::Bleed);
-		const int32 PoisonStacks = Statuses->GetStatusStacks(EEnemyStatusEffect::Poison);
-		const float RemainingDamage = Statuses->CalculateRemainingStatusDamage(EEnemyStatusEffect::Bleed)
-			+ Statuses->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison);
-		const float ReactionDamage = RemainingDamage * Multiplier;
-		Statuses->ConsumeStatus(EEnemyStatusEffect::Bleed);
-		Statuses->ConsumeStatus(EEnemyStatusEffect::Poison);
-		if (ReactionDamage <= 0.0f || !Enemy->ApplyPlayerDamage(ReactionDamage, EPlayerAttackSource::Other)) continue;
-		OnHemotoxicReactionTriggered.Broadcast(Enemy, Enemy->GetActorLocation(), ReactionDamage, BleedStacks, PoisonStacks);
-	}
 }
 
 void ASurvivorPlayerController::HandlePlayerDeath()
@@ -818,6 +783,8 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 
 void ASurvivorPlayerController::StopRunGameplay(bool bPlayDeathPresentation)
 {
+	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
+		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
 	DestroyAllShadowClones();
 	if (RunTimeSource)
 	{
@@ -914,6 +881,8 @@ bool ASurvivorPlayerController::ForceNinjaActive()
 
 void ASurvivorPlayerController::PresentGameOver(float FinalRunTimeSeconds)
 {
+	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
+		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
 	if (bGameOverPresented) return;
 	bGameOverPresented = true;
 	if (UWorld* World = GetWorld()) UGameplayStatics::SetGlobalTimeDilation(World, 0.0f);
@@ -933,6 +902,8 @@ void ASurvivorPlayerController::PresentGameOver(float FinalRunTimeSeconds)
 
 void ASurvivorPlayerController::PresentVictory()
 {
+	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
+		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
 	if (VictoryWidget || RunEndState != ERunEndState::Victory) return;
 	if (UWorld* World = GetWorld()) UGameplayStatics::SetGlobalTimeDilation(World, 0.0f);
 	VictoryWidget = VictoryWidgetClass ? CreateWidget<UVictoryWidget>(this, VictoryWidgetClass) : nullptr;
@@ -1289,6 +1260,8 @@ bool ASurvivorPlayerController::EnsureLevelUpWidget()
 
 void ASurvivorPlayerController::PauseForLevelUpSelection()
 {
+	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
+		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
 	if (UWorld* World = GetWorld())
 	{
 		if (!bLevelUpTimeDilationApplied)

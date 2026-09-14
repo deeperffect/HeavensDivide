@@ -7,6 +7,7 @@
 #include "AutoAttackComponent.h"
 #include "SamuraiCharacter.h"
 #include "NinjaCharacter.h"
+#include "NinjaBuildComponent.h"
 #include "EnemyStatusEffectComponent.h"
 #include "HealthComponent.h"
 #include "Engine/Engine.h"
@@ -63,7 +64,7 @@ bool FBuildFamiliesTest::RunTest(const FString&)
    TestTrue(TEXT("Runtime recognizes branch asset"),Ability->Branch(f,b));
   }
   // Every ability family shares one baseline preparation and payout.
-  Ability->BuildMarks.Reset();Ability->Pending.Reset();
+  Ability->BuildMarks.Reset();
   for(auto* E:Enemies) E->GetStatusEffectComponent()->ClearAllStatuses();
   Ability->RegisterFamilyHit(f,Enemies[12],20);
   const auto Own=FCString::Strcmp(S.Owner,TEXT("Samurai"))==0?EPlayerAttackSource::Samurai:EPlayerAttackSource::Ninja;
@@ -80,13 +81,13 @@ bool FBuildFamiliesTest::RunTest(const FString&)
   TestTrue(TEXT("Consumption cannot pay twice"),FMath::IsNearlyEqual(BeforePrepare-Enemies[12]->GetHealthComponent()->GetCurrentHealth(),12,0.03f));
   for(auto* E:Enemies) TestFalse(TEXT("Prepare invents no Bleed or Poison"),E->HasStatus(EEnemyStatusEffect::Bleed)||E->HasStatus(EEnemyStatusEffect::Poison));
   TestTrue(TEXT("Normal hits never prepare enemies"),Ability->BuildMarks.IsEmpty());
-  Ability->Pending.Reset();
+
   const float Before=Enemies[12]->GetHealthComponent()->GetCurrentHealth();Ability->BladeWaveImpact(Enemies[12],20,true);
   TestTrue(TEXT("Splinter Wave adds real Bleed damage"),Enemies[12]->GetHealthComponent()->GetCurrentHealth()<Before&&Enemies[12]->HasStatus(EEnemyStatusEffect::Bleed));
  }
  TestEqual(TEXT("One Samurai family"),Counts[0],1);TestEqual(TEXT("No Ninja ability families"),Counts[1],0);TestEqual(TEXT("Seven Blade Wave cards"),Ids.Num(),7);
  // Shared preparation, expiration, assist selection and status spread.
- Upgrades->RestoreRunState(Empty);Ability->ClearBuildFamilies();Ability->Pending.Reset();
+ Upgrades->RestoreRunState(Empty);Ability->ClearBuildFamilies();
  for(auto* E:Enemies){E->GetStatusEffectComponent()->ClearAllStatuses();E->GetHealthComponent()->RestoreCurrentHealth(100000);}
  Ability->RegisterFamilyHit(4,Enemies[24],20);
  Ability->RegisterFamilyHit(4,Enemies[24],30);
@@ -143,12 +144,15 @@ bool FBuildFamiliesTest::RunTest(const FString&)
  TestTrue(TEXT("Lethal assist spreads pre-hit status snapshot"),Enemies[23]->HasStatus(EEnemyStatusEffect::Bleed));
  TestFalse(TEXT("Absent Poison is not invented by Prepare"),Enemies[23]->HasStatus(EEnemyStatusEffect::Poison));
  Ninja->SetCharacterMode(ECharacterMode::Inactive);
- USurvivorAbilityComponent::FBuildCast Lane;Lane.Family=4;
- Ability->ClearBuildFamilies();Ability->Pending.Reset();
+ Ability->ClearBuildFamilies();
+ Ability->RegisterFamilyHit(4,Enemies[23],20);
+ TestTrue(TEXT("Stance assist victim is prepared"),Ability->HasTriggerablePreparation(EPlayerAttackSource::Ninja,Enemies[23]));
+ Ninja->FindComponentByClass<UNinjaBuildComponent>()->Hit(Enemies[23],10,false,true);
+ TestFalse(TEXT("Stance projectile assist consumes Prepare after Ninja becomes inactive"),Ability->HasTriggerablePreparation(EPlayerAttackSource::Ninja,Enemies[23]));
  auto* EndState=FindFProperty<FEnumProperty>(ASurvivorPlayerController::StaticClass(),TEXT("RunEndState"));
  EndState->GetUnderlyingProperty()->SetIntPropertyValue(EndState->ContainerPtrToValuePtr<void>(PC),static_cast<int64>(ERunEndState::Victory));
- Ability->BuildCasts.Add(Lane);Ability->UpdateAbilities();
- TestTrue(TEXT("Run end clears expanded ability work and reactions"),Ability->BuildCasts.IsEmpty()&&Ability->BuildMarks.IsEmpty());
+ Ability->RegisterFamilyHit(4,Enemies[23],20);Ability->UpdateAbilities();
+ TestTrue(TEXT("Run end clears preparation"),Ability->BuildMarks.IsEmpty());
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }
 #endif

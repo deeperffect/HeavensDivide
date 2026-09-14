@@ -17,7 +17,6 @@ class HEAVENSDIVIDE_API ABossGroundTelegraph : public AActor
 
 public:
 	ABossGroundTelegraph();
-	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
 	void InitializeTelegraph(ASurvivorPlayerController* InPlayerController, float InRadius, float InDuration, float InDamage, UMaterialInterface* InMaterial);

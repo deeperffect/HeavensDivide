@@ -36,7 +36,6 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSwapCooldownFinished);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnTwinSoulRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnSamuraiTrialRewardCompleted);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNinjaTrialRewardCompleted);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(FOnHemotoxicReactionTriggered, AEnemyBase*, Enemy, FVector, Location, float, Damage, int32, ConsumedBleedStacks, int32, ConsumedPoisonStacks);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerShadowCloneSpawned, AShadowClone*, ShadowClone);
 
 UENUM(BlueprintType)
@@ -210,8 +209,6 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Player|Rewards")
 	FOnNinjaTrialRewardCompleted OnNinjaTrialRewardCompleted;
 
-	UPROPERTY(BlueprintAssignable, Category = "Player|Synergy|Hemotoxic Reaction")
-	FOnHemotoxicReactionTriggered OnHemotoxicReactionTriggered;
 
 	UPROPERTY(BlueprintAssignable, Category = "Player|Dash", meta = (ToolTip = "Broadcast when a player dash successfully starts."))
 	FOnPlayerDash OnDashStarted;
@@ -387,7 +384,6 @@ protected:
 	void StartRestoredBossArenaCombat();
 	UFUNCTION()
 	void HandleCharacterSwapped(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter);
-	void TryTriggerHemotoxicReaction(ACharacterBase* NewCharacter);
 	UFUNCTION()
 	void HandlePlayerDeath();
 	UFUNCTION()

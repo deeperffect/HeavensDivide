@@ -8,5 +8,5 @@
 ANinjaCharacter::ANinjaCharacter()
 {
 	AutoAttackComponent = CreateDefaultSubobject<UAutoAttackComponent>(TEXT("AutoAttackComponent"));
- CreateDefaultSubobject<UNinjaBuildComponent>(TEXT("NinjaBuildComponent"));
+	NinjaBuildComponent = CreateDefaultSubobject<UNinjaBuildComponent>(TEXT("NinjaBuildComponent"));
 }

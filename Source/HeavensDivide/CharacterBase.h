@@ -9,6 +9,7 @@
 class USceneComponent;
 class UAnimMontage;
 class UCharacterStatsComponent;
+class USwapPresentationComponent;
 
 UENUM(BlueprintType)
 enum class ECharacterMode : uint8
@@ -26,6 +27,8 @@ class HEAVENSDIVIDE_API ACharacterBase : public ACharacter
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Presentation")
+	TObjectPtr<USwapPresentationComponent> SwapPresentation;
 	ACharacterBase();
 
 	virtual void Tick(float DeltaSeconds) override;
@@ -37,6 +40,7 @@ public:
 	void SetCharacterMode(ECharacterMode NewMode);
 	ECharacterMode GetCharacterMode() const;
 	FRotator GetVisualFacingRotation() const;
+	USceneComponent* GetVisualRoot() const { return VisualRoot; }
 	FVector GetVisualForwardVector() const;
 	void SetVisualFacingRotation(FRotator NewRotation);
 	void StopPlayerGameplay();

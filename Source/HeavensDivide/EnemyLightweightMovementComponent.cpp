@@ -154,7 +154,8 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 		}
 	}
 
-	TArray<FHitResult> MoveHits;
+	TArray<FHitResult>& MoveHits = MovementQueryHits;
+	MoveHits.Reset();
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyLightweightMovement_PrimarySweep);
 	const bool bHasMoveHits = Owner->GetWorld()
 		&& Owner->GetWorld()->SweepMultiByChannel(
@@ -188,7 +189,8 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 			SlideLocation.Z = SpawnZ;
 
 			FHitResult SlideHit;
-			TArray<FHitResult> SlideHits;
+			TArray<FHitResult>& SlideHits = MovementQueryHits;
+			SlideHits.Reset();
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_EnemyLightweightMovement_SlideSweep);
 			const bool bHasSlideHits = Owner->GetWorld()
 				&& Owner->GetWorld()->SweepMultiByChannel(
@@ -312,7 +314,8 @@ bool UEnemyLightweightMovementComponent::MoveOwnerToNoSlide(const FVector& Desir
 
 	const FVector StartLocation = Owner->GetActorLocation();
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyCommittedMovement), false, Owner);
-	TArray<FHitResult> MoveHits;
+	TArray<FHitResult>& MoveHits = MovementQueryHits;
+	MoveHits.Reset();
 	const bool bHasMoveHits = World->SweepMultiByChannel(
 		MoveHits,
 		StartLocation,

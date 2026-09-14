@@ -33,7 +33,7 @@ bool FUpgradeTuningTest::RunTest(const FString&)
  Root->BalanceParameters.Add(TEXT("WaveWidth"),600);Root->BalanceParameters.Add(TEXT("WaveDamageMultiplier"),1.7f);
  TestEqual(TEXT("Blade Wave reads editable width"),A->Tuning(4,TEXT("WaveWidth"),300),600.f);
  TestEqual(TEXT("Blade Wave reads editable damage multiplier"),A->Tuning(4,TEXT("WaveDamageMultiplier"),0.65f),1.7f);
- A->Pending.Reset();A->BuildMarks.Reset();
+ A->BuildMarks.Reset();
  A->PreparationDamageMultiplier=2;A->PreparationDuration=9;
  A->RegisterFamilyHit(4,Enemy,20);const float BeforeReaction=Enemy->GetHealthComponent()->GetCurrentHealth();
  TestEqual(TEXT("Component setting controls universal preparation duration"),A->BuildMarks[0].Remaining,9.f);

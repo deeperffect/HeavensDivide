@@ -23,7 +23,7 @@ namespace
 bool IsRetiredNinjaUpgrade(FName Id)
 {
  static const TSet<FName> Retired = {
-  TEXT("Crossfire"), TEXT("ExecutionersKunai"), TEXT("FanOfBlades"), TEXT("NinjaProjectileBonus"),
+  TEXT("Bloodhound"), TEXT("AlternatingFans"), TEXT("Crossfire"), TEXT("ExecutionersKunai"), TEXT("FanOfBlades"), TEXT("NinjaProjectileBonus"),
   TEXT("NinjaProjectilePierce"), TEXT("ChainExecution"), TEXT("BladeCascade"),
   TEXT("ProjectileBounce"), TEXT("ProjectileSplit"),
   TEXT("PotentVenom"), TEXT("VirulentStrain"), TEXT("HemotoxicReaction"), TEXT("AcceleratedVenom")

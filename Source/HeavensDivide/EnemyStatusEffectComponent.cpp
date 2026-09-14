@@ -19,8 +19,6 @@ namespace StatusUpgradeIds
 	static const FName DeepCuts(TEXT("DeepCuts"));
 	static const FName VenomousKunai(TEXT("VenomousKunai"));
 	static const FName PotentVenom(TEXT("PotentVenom"));
-	static const FName VirulentStrain(TEXT("VirulentStrain"));
-	static const FName AcceleratedVenom(TEXT("AcceleratedVenom"));
 }
 
 UEnemyStatusEffectComponent::UEnemyStatusEffectComponent()
@@ -40,7 +38,6 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 	FEnemyDamageStatusState& State = GetState(Status);
 	const int32 PreviousStacks = State.Stacks;
 	State.SourceUpgrades = SourceUpgrades;
-	EnsureUpgradeListener(SourceUpgrades);
 	// Statuses have no gameplay stack cap. Saturate only at int32's technical limit
 	// so malformed input can never wrap the authoritative count negative.
 	const int32 AddedStacks = Status == EEnemyStatusEffect::Bleed && !bIntrinsicStatus && ApplyingHitDamage > 0
@@ -104,11 +101,7 @@ const FEnemyDamageStatusState& UEnemyStatusEffectComponent::GetState(EEnemyStatu
 float UEnemyStatusEffectComponent::GetTickInterval(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? BleedTickInterval : PoisonTickInterval; }
 float UEnemyStatusEffectComponent::GetEffectiveTickInterval(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const
 {
-	const float BaseInterval = GetTickInterval(Status);
-	if (Status != EEnemyStatusEffect::Poison || !HasStatus(EEnemyStatusEffect::Bleed)) return BaseInterval;
-	const UPlayerUpgradeComponent* Upgrades = State.SourceUpgrades.Get();
-	const UUpgradeDefinition* Upgrade = Upgrades ? Upgrades->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::AcceleratedVenom) : nullptr;
-	return Upgrade ? BaseInterval / FMath::Max(1.0f, Upgrade->AcceleratedVenomTickRateMultiplier) : BaseInterval;
+	return GetTickInterval(Status);
 }
 float UEnemyStatusEffectComponent::GetDuration(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? BleedDuration : PoisonDuration; }
 
@@ -125,16 +118,6 @@ void UEnemyStatusEffectComponent::RefreshPoisonTickRate()
 	PoisonState.ActiveTickInterval = NewInterval;
 	GetWorld()->GetTimerManager().SetTimer(PoisonState.TickTimer, TickDelegate, NewInterval, true,
 		FMath::Max(KINDA_SMALL_NUMBER, NormalizedPhaseRemaining * NewInterval));
-}
-
-void UEnemyStatusEffectComponent::EnsureUpgradeListener(UPlayerUpgradeComponent* Upgrades)
-{
-	if (Upgrades) Upgrades->OnUpgradeAcquired.AddUniqueDynamic(this, &UEnemyStatusEffectComponent::HandleSourceUpgradeAcquired);
-}
-
-void UEnemyStatusEffectComponent::HandleSourceUpgradeAcquired(UUpgradeDefinition* Upgrade, int32 NewLevel)
-{
-	if (Upgrade && Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::AcceleratedVenom)) RefreshPoisonTickRate();
 }
 
 float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const
@@ -187,12 +170,7 @@ void UEnemyStatusEffectComponent::TickStatus(EEnemyStatusEffect Status)
     State.TransferredDamageRemaining = FMath::Max(0.f, State.TransferredDamageRemaining - TransferTick);
     // Spend this tick before damage can invoke death and transfer the remaining budget.
     State.RemainingDuration -= State.ActiveTickInterval > KINDA_SMALL_NUMBER ? State.ActiveTickInterval : GetTickInterval(Status);
-	const int32 StacksAtTick = State.Stacks;
-	const bool bApplied = Enemy->ApplyStatusDamage(Damage, Source);
-	if (bApplied && !Enemy->IsDead() && Status == EEnemyStatusEffect::Poison)
-	{
-		TryTriggerVirulentStrain(Enemy, Upgrades, StacksAtTick, Damage);
-	}
+	Enemy->ApplyStatusDamage(Damage, Source);
 
 	if (Enemy->IsDead() || State.RemainingDuration <= KINDA_SMALL_NUMBER) ClearStatus(Status);
 }
@@ -201,7 +179,6 @@ void UEnemyStatusEffectComponent::ClearStatus(EEnemyStatusEffect Status)
 {
 	FEnemyDamageStatusState& State = GetState(Status);
 	const bool bWasActive = State.Stacks > 0;
-	UPlayerUpgradeComponent* SourceUpgrades = State.SourceUpgrades.Get();
 	if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(State.TickTimer);
 	State.Stacks = 0;
 	State.BleedBaseStackWeight = State.BleedHitBonusPerTick = State.TransferredDamageRemaining = 0.f;
@@ -210,33 +187,4 @@ void UEnemyStatusEffectComponent::ClearStatus(EEnemyStatusEffect Status)
 	State.SourceUpgrades.Reset();
 	if (bWasActive) OnStatusStacksChanged.Broadcast(Status, 0);
 	if (Status == EEnemyStatusEffect::Bleed) RefreshPoisonTickRate();
-	if (BleedState.Stacks <= 0 && PoisonState.Stacks <= 0 && SourceUpgrades)
-	{
-		SourceUpgrades->OnUpgradeAcquired.RemoveDynamic(this, &UEnemyStatusEffectComponent::HandleSourceUpgradeAcquired);
-	}
-}
-
-void UEnemyStatusEffectComponent::TryTriggerVirulentStrain(AEnemyBase* SourceEnemy, UPlayerUpgradeComponent* Upgrades, int32 PoisonStacks, float ResolvedPoisonTickDamage)
-{
-	const UUpgradeDefinition* Upgrade = Upgrades ? Upgrades->GetAcquiredUpgradeWithSpecialEffect(EUpgradeSpecialEffect::VirulentStrain) : nullptr;
-	if (!Upgrade || !SourceEnemy || PoisonStacks < FMath::Max(1, Upgrade->VirulentStrainThreshold) || !GetWorld()) return;
-	const float Radius = FMath::Max(0.0f, Upgrade->VirulentStrainRadius);
-	const float PulseDamage = ResolvedPoisonTickDamage * FMath::Max(0.0f, Upgrade->VirulentStrainDamageMultiplier);
-	if (Radius <= 0.0f || PulseDamage <= 0.0f) return;
-	FCollisionObjectQueryParams ObjectTypes;
-	ObjectTypes.AddObjectTypesToQuery(ECC_Pawn);
-	ObjectTypes.AddObjectTypesToQuery(ECC_GameTraceChannel1);
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(VirulentStrain), false, SourceEnemy);
-	Params.AddIgnoredActor(SourceEnemy);
-	TArray<FOverlapResult> Overlaps;
-	GetWorld()->OverlapMultiByObjectType(Overlaps, SourceEnemy->GetActorLocation(), FQuat::Identity, ObjectTypes, FCollisionShape::MakeSphere(Radius), Params);
-	TSet<AEnemyBase*> Damaged;
-	for (const FOverlapResult& Overlap : Overlaps)
-	{
-		AEnemyBase* Target = Cast<AEnemyBase>(Overlap.GetActor());
-		if (!Target || Target == SourceEnemy || Target->IsDead() || Damaged.Contains(Target)) continue;
-		Damaged.Add(Target);
-		Target->ApplyStatusDamage(PulseDamage, EPlayerAttackSource::Ninja);
-	}
-	OnVirulentStrainPulse.Broadcast(SourceEnemy, SourceEnemy->GetActorLocation(), Radius, PulseDamage, PoisonStacks);
 }

@@ -33,40 +33,40 @@ protected:
 	virtual void HandleDeath() override;
 	virtual bool ShouldForceHighAnimationBudgetSignificance() const override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Melee Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackRange = 150.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Melee Attack", meta = (ClampMin = "0.01", UIMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float AttackInterval = 1.5f; // Existing start-to-start cooldown; preserve authored balance.
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Melee Attack", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackDamage = 10.0f;
 	float PreBloodboundAttackDamage = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Melee Attack", meta=(ClampMin="0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee", meta=(ClampMin="0"))
 	float AttackWindup = 0.20f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Melee Attack", meta=(ClampMin="0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee", meta=(ClampMin="0"))
 	float AttackRecovery = 0.25f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Melee Attack|Presentation")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee|Presentation")
 	bool bUseProceduralAttackMotion = true;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Melee Attack|Presentation", meta=(ClampMin="0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee|Presentation", meta=(ClampMin="0"))
 	float AttackLungeDistance = 30.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Melee Attack|Presentation", meta=(ClampMin="0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee|Presentation", meta=(ClampMin="0"))
 	float AttackLungeOutDuration = 0.06f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat|Melee Attack|Presentation", meta=(ClampMin="0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee|Presentation", meta=(ClampMin="0"))
 	float AttackLungeReturnDuration = 0.12f;
 
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Melee Attack", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
 	float AttackHitRadius = 75.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Melee Attack", meta = (AdvancedDisplay))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (AdvancedDisplay))
 	float AttackHitForwardOffset = 90.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat|Melee Attack", meta = (AdvancedDisplay))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (AdvancedDisplay))
 	bool bDebugAttackHit = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat|Melee Attack", meta = (AdvancedDisplay))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (AdvancedDisplay))
 	bool bIsAttacking = false;
 
 	bool IsTargetInAttackRange() const;

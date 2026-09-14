@@ -191,7 +191,7 @@ public:
 	void LogEnemyDebugState(const TCHAR* Context) const;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Enemy|Components")
 	TObjectPtr<UEnemyDeathComponent> EnemyDeathComponent;
 
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Death", meta=(ClampMin="0.0"))
@@ -200,25 +200,25 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enemy|Rewards", meta = (ToolTip = "Category used by centralized enemy-death drop systems. Set elite enemy Blueprint defaults to Elite; final bosses set this automatically."))
 	EEnemyDropCategory DropCategory = EEnemyDropCategory::Normal;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Health component that stores this enemy's current/max health and broadcasts death."))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components", meta = (ToolTip = "Health component that stores this enemy's current/max health and broadcasts death."))
 	TObjectPtr<UHealthComponent> HealthComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "World-space widget component used for the enemy health bar."))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components", meta = (ToolTip = "World-space widget component used for the enemy health bar."))
 	TObjectPtr<UWidgetComponent> HealthBarWidgetComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "World-space widget component shown while this enemy is Marked for Death."))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components", meta = (ToolTip = "World-space widget component shown while this enemy is Marked for Death."))
 	TObjectPtr<UWidgetComponent> MarkIndicatorWidgetComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
 	TObjectPtr<UWidgetComponent> BleedStatusWidgetComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
 	TObjectPtr<UWidgetComponent> PoisonStatusWidgetComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Custom lightweight movement component used instead of CharacterMovement for enemy movement."))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components", meta = (ToolTip = "Custom lightweight movement component used instead of CharacterMovement for enemy movement."))
 	TObjectPtr<UEnemyLightweightMovementComponent> LightweightMovementComponent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
 	TObjectPtr<UEnemyStatusEffectComponent> StatusEffectComponent;
 
 	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Status icons now use the health bar anchor and screen-space spacing."))
@@ -227,26 +227,26 @@ protected:
 	UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use StatusIndicatorSpacing instead."))
 	FVector PoisonStatusIndicatorRelativeLocation = FVector(0.0f, 0.0f, 40.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ClampMin="0.0", ToolTip="Screen-space gap between the Bleed and Poison icons."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ClampMin="0.0", ToolTip="Screen-space gap between the Bleed and Poison icons."))
 	float StatusIndicatorSpacing = 4.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ClampMin="0.0", ToolTip="Screen-space gap between the health bar top and status icons."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ClampMin="0.0", ToolTip="Screen-space gap between the health bar top and status icons."))
 	float StatusIndicatorHealthBarGap = 4.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Status")
 	FVector2D StatusIndicatorDrawSize = FVector2D(36.0f, 36.0f);
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ToolTip="Optional Bleed icon. Empty uses the red B placeholder."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ToolTip="Optional Bleed icon. Empty uses the red B placeholder."))
 	TObjectPtr<UTexture2D> BleedStatusIcon;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="UI|Status", meta=(ToolTip="Optional Poison icon. Empty uses the green P placeholder."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ToolTip="Optional Poison icon. Empty uses the green P placeholder."))
 	TObjectPtr<UTexture2D> PoisonStatusIcon;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Status")
 	bool bShowStatusStackCountAtOne = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Status", meta=(ClampMin="6", ClampMax="32", ToolTip="Font size of the stack numbers on Bleed and Poison icons. Lower values make the numbers smaller. Multi-digit counts shrink automatically, down to size 6."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Status", meta=(ClampMin="6", ClampMax="32", ToolTip="Font size of the stack numbers on Bleed and Poison icons. Lower values make the numbers smaller. Multi-digit counts shrink automatically, down to size 6."))
 	int32 StatusStackFontSize = 7;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (ToolTip = "Optional attached Niagara aura used while this enemy is Bloodbound."))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components", meta = (ToolTip = "Optional attached Niagara aura used while this enemy is Bloodbound."))
 	TObjectPtr<UNiagaraComponent> BloodboundNiagaraComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals", meta = (ToolTip = "Optional lightweight persistent Niagara aura. It stays inactive until this enemy becomes Bloodbound."))
@@ -273,97 +273,97 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Bloodbound Visuals")
 	FName BloodboundMaterialEmissiveParameterName = TEXT("BloodboundEmissiveStrength");
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Widget class used for this enemy's health bar. Leave empty to hide health bars for this enemy type."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI", meta = (ToolTip = "Widget class used for this enemy's health bar. Leave empty to hide health bars for this enemy type."))
 	TSubclassOf<UEnemyHealthBarWidget> HealthBarWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AdvancedDisplay, ToolTip = "Vertical offset above the enemy for the health bar widget."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI", meta = (AdvancedDisplay, ToolTip = "Vertical offset above the enemy for the health bar widget."))
 	float HealthBarHeightOffset = 120.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (AdvancedDisplay, ToolTip = "Draw size of the enemy health bar widget."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI", meta = (AdvancedDisplay, ToolTip = "Draw size of the enemy health bar widget."))
 	FVector2D HealthBarDrawSize = FVector2D(120.0f, 12.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark", meta = (ToolTip = "Widget class shown above this enemy while it is Marked for Death. Leave empty to disable the visual indicator."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Mark", meta = (ToolTip = "Widget class shown above this enemy while it is Marked for Death. Leave empty to disable the visual indicator."))
 	TSubclassOf<UEnemyMarkIndicatorWidget> MarkIndicatorWidgetClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark", meta = (ToolTip = "Relative location of the Mark indicator widget above the enemy. Increase Z to move it higher."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Mark", meta = (ToolTip = "Relative location of the Mark indicator widget above the enemy. Increase Z to move it higher."))
 	FVector MarkIndicatorRelativeLocation = FVector(0.0f, 0.0f, 150.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark", meta = (ToolTip = "Draw size of the Mark indicator widget in screen-facing widget space."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Mark", meta = (ToolTip = "Draw size of the Mark indicator widget in screen-facing widget space."))
 	FVector2D MarkIndicatorDrawSize = FVector2D(32.0f, 32.0f);
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI|Mark", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Extra scale applied to the Mark indicator widget component."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Mark", meta = (ClampMin = "0.01", UIMin = "0.01", ToolTip = "Extra scale applied to the Mark indicator widget component."))
 	float MarkIndicatorScale = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (AdvancedDisplay, ToolTip = "Registers this enemy with Unreal's Animation Budget Allocator so large crowds can reduce animation cost."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Animation Budget", meta = (AdvancedDisplay, ToolTip = "Registers this enemy with Unreal's Animation Budget Allocator so large crowds can reduce animation cost."))
 	bool bUseAnimationBudgetAllocator = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.1", UIMin = "0.1", AdvancedDisplay, ToolTip = "Per-enemy animation budget target in milliseconds used when configuring animation budgeting."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Animation Budget", meta = (ClampMin = "0.1", UIMin = "0.1", AdvancedDisplay, ToolTip = "Per-enemy animation budget target in milliseconds used when configuring animation budgeting."))
 	float AnimationBudgetMs = 2.5f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0", FormerlySerializedAs = "AnimationBudgetNeverSkipDistance", AdvancedDisplay, ToolTip = "Enemies within this distance from the active player are treated as high significance and should not aggressively skip animation."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0", FormerlySerializedAs = "AnimationBudgetNeverSkipDistance", AdvancedDisplay, ToolTip = "Enemies within this distance from the active player are treated as high significance and should not aggressively skip animation."))
 	float AnimationBudgetHighSignificanceDistance = 600.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Distance at which enemy animation significance falls to its lowest value for budgeting."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Animation Budget", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Distance at which enemy animation significance falls to its lowest value for budgeting."))
 	float AnimationBudgetMaxSignificanceDistance = 3500.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation Budget", meta = (AdvancedDisplay, ToolTip = "Uses fixed skeletal mesh bounds for enemies when helpful for animation budgeting/culling stability."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Animation Budget", meta = (AdvancedDisplay, ToolTip = "Uses fixed skeletal mesh bounds for enemies when helpful for animation budgeting/culling stability."))
 	bool bUseFixedSkelBoundsForEnemies = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Enemy movement speed used by the lightweight movement system."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Enemy movement speed used by the lightweight movement system."))
 	float MoveSpeed = 300.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Distance from the target where this enemy stops moving closer."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Distance from the target where this enemy stops moving closer."))
 	float StopDistance = 150.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (AdvancedDisplay, ToolTip = "Adds a small deterministic spread bias so enemies do not all choose the exact same direct chase line."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Crowd Spread", meta = (AdvancedDisplay, ToolTip = "Adds a small deterministic spread bias so enemies do not all choose the exact same direct chase line."))
 	bool bUseCrowdSpread = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0", AdvancedDisplay, ToolTip = "Strength of each enemy's stable sideways crowd spread bias. 0 disables spread; 1 is strongest."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Crowd Spread", meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0", AdvancedDisplay, ToolTip = "Strength of each enemy's stable sideways crowd spread bias. 0 disables spread; 1 is strongest."))
 	float CrowdSpreadStrength = 0.45f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Crowd Spread", meta = (AdvancedDisplay, ToolTip = "Draws/logs crowd spread behavior for debugging this enemy's movement direction."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Crowd Spread", meta = (AdvancedDisplay, ToolTip = "Draws/logs crowd spread behavior for debugging this enemy's movement direction."))
 	bool bDebugCrowdSpread = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (AdvancedDisplay, ToolTip = "Enables lightweight enemy separation so crowds try to keep space between nearby enemies."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Separation", meta = (AdvancedDisplay, ToolTip = "Enables lightweight enemy separation so crowds try to keep space between nearby enemies."))
 	bool bUseEnemySeparation = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Radius used to search for nearby enemies that should push this enemy away."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Radius used to search for nearby enemies that should push this enemy away."))
 	float SeparationRadius = 160.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Strength of the separation push away from nearby enemies."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Strength of the separation push away from nearby enemies."))
 	float SeparationStrength = 0.55f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Maximum amount the separation steering can contribute to final movement direction."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Separation", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Maximum amount the separation steering can contribute to final movement direction."))
 	float MaxSeparationContribution = 0.75f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Separation", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay, ToolTip = "Seconds between separation queries for this enemy. Higher values are cheaper but less responsive."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Separation", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay, ToolTip = "Seconds between separation queries for this enemy. Higher values are cheaper but less responsive."))
 	float SeparationUpdateInterval = 0.2f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Rotation", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Maximum yaw rotation speed, in degrees per second, when turning toward the current target."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Rotation", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Maximum yaw rotation speed, in degrees per second, when turning toward the current target."))
 	float EnemyRotationSpeed = 720.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay, ToolTip = "Seconds between enemy behavior updates such as target chasing decisions. Higher values are cheaper but less responsive."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement", meta = (ClampMin = "0.01", UIMin = "0.01", AdvancedDisplay, ToolTip = "Seconds between enemy behavior updates such as target chasing decisions. Higher values are cheaper but less responsive."))
 	float BehaviorUpdateInterval = 0.1f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "How long this enemy must be blocked before trying the lightweight NavMesh path fallback. 0 allows immediate fallback."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "How long this enemy must be blocked before trying the lightweight NavMesh path fallback. 0 allows immediate fallback."))
 	float PathFallbackBlockedTime = 0.18f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.1", UIMin = "0.1", AdvancedDisplay, ToolTip = "Minimum seconds between path requests while this enemy is using obstacle fallback."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Path Fallback", meta = (ClampMin = "0.1", UIMin = "0.1", AdvancedDisplay, ToolTip = "Minimum seconds between path requests while this enemy is using obstacle fallback."))
 	float PathFallbackRepathInterval = 0.75f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "1.0", UIMin = "1.0", AdvancedDisplay, ToolTip = "Distance from a path waypoint at which the enemy advances to the next waypoint."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Path Fallback", meta = (ClampMin = "1.0", UIMin = "1.0", AdvancedDisplay, ToolTip = "Distance from a path waypoint at which the enemy advances to the next waypoint."))
 	float PathWaypointAcceptanceRadius = 125.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Target movement distance that forces the fallback path to refresh."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Target movement distance that forces the fallback path to refresh."))
 	float PathTargetRepathDistance = 300.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.05", UIMin = "0.05", AdvancedDisplay, ToolTip = "Seconds between cheap direct-path checks while using obstacle fallback."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Path Fallback", meta = (ClampMin = "0.05", UIMin = "0.05", AdvancedDisplay, ToolTip = "Seconds between cheap direct-path checks while using obstacle fallback."))
 	float DirectPathCheckInterval = 0.12f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Minimum target distance before this enemy is allowed to use the obstacle path fallback."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Path Fallback", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Minimum target distance before this enemy is allowed to use the obstacle path fallback."))
 	float MinPathFallbackTargetDistance = 400.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement|Path Fallback", meta = (AdvancedDisplay, ToolTip = "NavMesh projection extent used when requesting lightweight obstacle fallback paths."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Movement|Path Fallback", meta = (AdvancedDisplay, ToolTip = "NavMesh projection extent used when requesting lightweight obstacle fallback paths."))
 	FVector PathFallbackProjectionExtent = FVector(250.0f, 250.0f, 500.0f);
 
 	UPROPERTY(BlueprintReadOnly, Category = "Enemy", meta = (ToolTip = "Current actor this enemy is trying to chase or attack. Usually the active player character."))
@@ -487,7 +487,6 @@ protected:
 	void RequestEnemyMovement(const FVector& WorldDirection);
 	void StopEnemyMovement();
 	void DisableNativeCharacterMovement();
-	bool IsEnemyAnimationProfilingDisabled() const;
 	void UpdateAnimationProfilingState();
 	void InitializeAnimationBudgeting();
 	void UpdateAnimationBudgetSignificance();
@@ -542,7 +541,6 @@ protected:
 	float PathFallbackRequestJitter = 0.0f;
 	bool bHasDesiredMovementDirection = false;
 	bool bAnimationDisabledForProfiling = false;
-	bool bCachedAnimationProfilingDisabled = false;
 	bool bAnimationBudgetInitialized = false;
 	bool bExperiencePickupSpawned = false;
 };

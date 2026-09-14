@@ -118,7 +118,7 @@ bool FImpactFeedbackTest::RunTest(const FString& Parameters)
 	Ninja->SetOwner(PC);
 	AAttackProjectileBase* Projectile = World->SpawnActor<AAttackProjectileBase>();
 	Projectile->InitializeProjectile(Ninja, FVector::ForwardVector, 10.0f, 1000.0f,
-		EProjectileTargetType::Enemies, 0.0f, false, nullptr, true, 1);
+		EProjectileTargetType::Enemies, 0.0f, nullptr, true, 1);
 	FHitResult Hit;
 	for (int32 Index = 0; Index < 2; ++Index)
 	{

@@ -26,11 +26,6 @@ ABossGroundTelegraph::ABossGroundTelegraph()
 	if (Cylinder.Succeeded()) TelegraphVisual->SetStaticMesh(Cylinder.Object);
 }
 
-void ABossGroundTelegraph::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void ABossGroundTelegraph::InitializeTelegraph(ASurvivorPlayerController* InPlayerController, float InRadius, float InDuration, float InDamage, UMaterialInterface* InMaterial)
 {
 	PlayerController = InPlayerController;

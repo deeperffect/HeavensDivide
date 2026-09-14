@@ -46,11 +46,11 @@ if not validate:
     assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==digest for p,digest in preserved.items())
     backup.mkdir(parents=True,exist_ok=True);(backup/'preserved_card_hashes.json').write_text(json.dumps(preserved,indent=2))
 pool=list(comp.get_editor_property('upgrade_pool'));ids=[str(a.get_editor_property('upgrade_id')) for a in pool if a]
-assert len(ids)==len(pool)==len(set(ids))==57
+assert len(ids)==len(pool)==len(set(ids))==55
 for r in rows:
     assert ids.count(r['id'])==1
     a=unreal.load_asset(folder+'/DA_Upgrade_Ninja'+r['id'])
     assert a.get_editor_property('card_artwork') and a.get_editor_property('icon')
     assert set(str(k) for k in a.get_editor_property('prerequisite_upgrade_ids')).issubset(ids)
     if r.get('stance'):assert str(a.get_editor_property('exclusivity_group'))=='NinjaWeaponStance'
-unreal.log('NINJA_BUILDS_OK: 20 cards, 3 exclusive stances, 57 unique pool entries; existing card tuning preserved')
+unreal.log('NINJA_BUILDS_OK: 18 cards, 3 exclusive stances, 55 unique pool entries; existing card tuning preserved')

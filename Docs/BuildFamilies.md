@@ -1,6 +1,8 @@
 # Build families
 
-Combat now uses normal autoattacks and **Blade Wave**, which launches from Samurai's normal melee attacks. The saved upgrade pool contains **57 unique cards**, including 20 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
+See [Combat architecture](CombatArchitecture.md) for source ownership, Blueprint settings, and cleanup verification.
+
+Combat now uses normal autoattacks and **Blade Wave**, which launches from Samurai's normal melee attacks. The saved upgrade pool contains **55 unique cards**, including 18 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
 
 The ten automatic ability families and their 70 starter, branch, scaling and evolution cards are retired. They cannot appear in offers, be acquired through stale references, or run through the old automatic cast scheduler.
 
@@ -71,7 +73,6 @@ Three Rare stance cards replace or modify Ninja's normal attack. Choose one per 
 ### Returning Fang
 
 - **Cutting Return:** the returning blade also damages enemies along its path.
-- **Bloodhound:** hitting a bleeding or poisoned target boosts the next throw's travel speed by 50%; does not grant either status.
 - **Relentless Fang:** repeated hits against the same enemy build up to 75% bonus damage.
 - **Final Pursuit:** a killing hit seeks one additional nearby enemy before returning.
 
@@ -79,9 +80,8 @@ Swapping away retrieves the blade without relaunching. The ordinary attack timer
 
 ### Barrage
 
-- **Focused Volley:** tighten the projectile fan.
+- **Focused Volley:** tighten the projectile fan. Separate projectiles can already damage the same enemy, with or without this upgrade.
 - **Forking Projectiles:** on impact, a projectile forks into two shots dealing 50% damage each. Forked shots cannot fork again. Requires Barrage; clone volleys also fork.
-- **Alternating Fans:** alternate the volley angle to sweep a wider region.
 - **Crescendo:** gain another temporary projectile every three attacks. Fire the capped volley, then restart the buildup. Dashing and swapping preserve progress. Five ranks; the cap starts at 5 and increases by 2 per additional rank (5/7/9/11/13). Edit `BaseCap`, `CapPerRank` and `AttacksPerProjectile` on its data asset.
 - **Needle Rain:** every fourth volley fires twice as many main-fan projectiles.
 
@@ -103,6 +103,8 @@ Direct Ninja projectile hits embed a fragment **before damage resolves**, so eve
 The old Ninja cards are retired, except **Shadow Step**, **Multiple Strikes** and **Afterimage Frenzy**, which retain Shadow Clone and its upgrades. **Venomous Kunai** is restored as a standalone card: Ninja attacks apply Poison, including all three weapons and clone attacks. The other old poison upgrades remain retired. The removed cards cover the old projectile bonus, bounce/pierce/split, Fan of Blades, Blade Cascade, execution branches and poison scaling upgrades. Hemotoxic Reaction and Accelerated Venom are also retired alongside the retired poison scaling upgrades. Shared Marked Blade remains available. Ninja trial rewards now offer current Ninja cards for every stance. None of the new Ninja attacks applies universal Prepare.
 
 ## Prepare and Tag Team
+
+Ninja's Tag Team attack uses her equipped stance and attack upgrades: Great Shuriken throws a shuriken, Returning Fang makes one outbound/return trip, and Barrage fires its upgraded projectile volley. Assist projectiles retain their source after the animation ends and can consume Prepare on impact. Assists do not spend Grand Entrance or advance the active Ninja's Crescendo counters. Both characters retain their normal materials during arrivals and assists; the swap color is reserved for the departure afterimage.
 
 Blade Wave hits prepare surviving enemies for **6 seconds**. Normal attack hits and assists do not apply Prepare. Further wave hits refresh the mark and stored hit damage.
 
@@ -156,7 +158,7 @@ During a run in a non-shipping build, switch to Ninja and enter one of these con
 
 Each route preview grants its stance, its branch cards and the Embedded Blades package at one rank. Switching previews replaces the new Ninja build cards while preserving other acquired upgrades. Clear removes the new Ninja cards. These commands affect only the current run.
 
-`Tools/ninja_build_upgrades.json` defines the 20 cards. `Tools/configure_ninja_builds.py` creates missing cards and updates the controller pool while preserving existing card tuning; `-ValidateNinjaBuilds` validates without writing. Cards reuse existing Ninja illustrations. Fang and scattered kunai reuse the original Ninja projectile Blueprint visuals, trails and impact sound. The giant shuriken retains its spinning mesh visual.
+`Tools/ninja_build_upgrades.json` defines the 18 cards. `Tools/configure_ninja_builds.py` creates missing cards and updates the controller pool while preserving existing card tuning; `-ValidateNinjaBuilds` validates without writing. Cards reuse existing Ninja illustrations. Fang and scattered kunai reuse the original Ninja projectile Blueprint visuals, trails and impact sound. The giant shuriken retains its spinning mesh visual.
 
 `NinjaBuildComponent` implements the weapons and fragments. `HeavensDivide.Combat.NinjaBuilds` exercises the saved Ninja Blueprint, real volley spawning, timer-independent Fang returns, repeated shuriken hits, growth with distance, lethal-hit fragments, stance exclusivity and preview switching.
 
@@ -179,3 +181,11 @@ Open `/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaGreatShuriken` and edit
 `Tools/restore_ninja_poison.py` restores the original poison starter from the cleanup backup and re-adds it to the saved pool, preserving other card tuning.
 
 `Tools/update_barrage_upgrades.py` replaces Crossfire (both side and rear shots) with Forking Projectiles and updates Crescendo. Other saved card tuning is preserved.
+
+### Shuriken mesh
+
+In `BP_Ninja`, select `NinjaBuildComponent` and open **Ninja Builds > Shuriken**. Assign **Shuriken Mesh** to use a custom static mesh for normal attacks, Tag Team, and Shadow Clones. Leave it empty for the existing placeholder. Author the mesh flat in XY with its pivot at the center; it spins around Z. The mesh fits the attack radius and grows with Wide Orbit. **Shuriken Mesh Scale** adjusts only its appearance, not hit detection. Materials come from the assigned mesh.
+
+Ninja Tag Team hits apply poison only when **Venomous Kunai** is acquired, including Great Shuriken, Returning Fang, and regular projectile assists. Prepare can still spread poison already on an enemy.
+`Shuriken Hit Sound` in the same component category overrides impact audio for giant shurikens from normal attacks, Tag Team, and clones. Empty uses the normal projectile hit sound; kunai, Returning Fang, and scattered fragments keep their existing audio.
+`Shuriken Throw Sound` in **Ninja Builds > Shuriken** replaces the sound on the Ninja attack montage when Great Shuriken is equipped, including Tag Team and clones. Empty retains the authored montage sound. Normal kunai still use the sound assigned to the **Ninja Throw Sound** notify in `AM_AutoAttackNinja`; its timing, volume, and pitch are preserved.
