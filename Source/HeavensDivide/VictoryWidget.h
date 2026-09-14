@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "MenuPromptWidget.h"
 #include "VictoryWidget.generated.h"
 
 class UButton;
 class UVerticalBox;
 
 UCLASS(BlueprintType, Blueprintable)
-class HEAVENSDIVIDE_API UVictoryWidget : public UUserWidget
+class HEAVENSDIVIDE_API UVictoryWidget : public UMenuPromptWidget
 {
 	GENERATED_BODY()
 
@@ -20,7 +20,6 @@ protected:
 
 private:
 	void BuildVictoryScreen();
-	UButton* AddActionButton(UVerticalBox* Parent, const FText& Label, FName WidgetName);
 	void PrepareForTravel();
 
 	UFUNCTION() void HandleNewRun();

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "MenuPromptWidget.h"
 #include "GameOverWidget.generated.h"
 
 class ASurvivorPlayerController;
@@ -11,7 +11,7 @@ class UButton;
 class UTextBlock;
 
 UCLASS(BlueprintType, Blueprintable)
-class HEAVENSDIVIDE_API UGameOverWidget : public UUserWidget
+class HEAVENSDIVIDE_API UGameOverWidget : public UMenuPromptWidget
 {
 	GENERATED_BODY()
 
@@ -24,7 +24,6 @@ protected:
 
 private:
 	void BuildGameOverScreen();
-	UButton* AddActionButton(class UVerticalBox* Parent, const FText& Label, FName WidgetName);
 	void NormalizeTimeForTravel();
 
 	UFUNCTION()

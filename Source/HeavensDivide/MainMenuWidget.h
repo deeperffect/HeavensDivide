@@ -54,7 +54,8 @@ class HEAVENSDIVIDE_API UMainMenuWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	friend class FKeybindSettingsTest;
-	friend class UTrialChoiceWidget;
+    friend class FPauseMenuTest;
+	friend class UMenuPromptWidget;
 
 public:
 	UMainMenuWidget(const FObjectInitializer& ObjectInitializer);
@@ -76,6 +77,7 @@ public:
 	void RefreshCollection();
 	void PreviewCollectionUpgrade(UUpgradeDefinition* Definition, bool bCommitSelection);
 	void ApplyKeyBinding(FName Action,FInputChord Key);
+	void OpenInRunSettings(FSimpleDelegate OnClosed);
 
 protected:
 	virtual void NativeOnInitialized() override;
@@ -88,6 +90,8 @@ protected:
 
 private:
 	void BuildMenu();
+	bool bInRunSettings = false;
+	FSimpleDelegate InRunSettingsClosed;
 	class UBorder* BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer = nullptr, FVector2D PageSize = FVector2D(1030.0f, 780.0f), bool bAllowUpscaling = false);
 	void AddSecondaryPageDivider(class UVerticalBox* Panel);
 	class UVerticalBox* BuildCollectionPanel();
@@ -385,6 +389,9 @@ private:
 	void HandleSettings();
 	UFUNCTION()
 	void HandleAutoTargetingChanged(bool bIsChecked);
+    UFUNCTION() void HandleMasterVolumeChanged(float Value);
+    UPROPERTY() TObjectPtr<class USlider> MasterVolumeSlider;
+    UPROPERTY() TObjectPtr<UTextBlock> MasterVolumeValueText;
 	UFUNCTION() void HandleCameraShakeChanged(float Value);
 	UPROPERTY() TObjectPtr<class USlider> CameraShakeSlider;
 	UPROPERTY() TObjectPtr<UTextBlock> CameraShakeValueText;

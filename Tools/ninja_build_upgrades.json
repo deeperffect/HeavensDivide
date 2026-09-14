@@ -224,5 +224,31 @@
     "requires": [
       "BarrageStance"
     ]
+  },
+  {
+    "id": "HeavyShuriken",
+    "name": "Heavy Shuriken",
+    "description": "Shuriken travels 20% slower per rank.",
+    "art": "ShadowStep",
+    "requires": [
+      "GreatShuriken"
+    ],
+    "levels": 3,
+    "balance": {
+      "SpeedReductionPerRank": 0.2
+    }
+  },
+  {
+    "id": "LingeringShuriken",
+    "name": "Lingering Shuriken",
+    "description": "+30% shuriken lifetime per rank.",
+    "art": "KunaisBounce",
+    "requires": [
+      "GreatShuriken"
+    ],
+    "levels": 3,
+    "balance": {
+      "LifetimeBonusPerRank": 0.3
+    }
   }
 ]

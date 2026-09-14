@@ -2,7 +2,7 @@
 
 See [Combat architecture](CombatArchitecture.md) for source ownership, Blueprint settings, and cleanup verification.
 
-Combat now uses normal autoattacks and **Blade Wave**, which launches from Samurai's normal melee attacks. The saved upgrade pool contains **55 unique cards**, including 18 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
+Combat now uses normal autoattacks and **Blade Wave**, which launches from Samurai's normal melee attacks. The saved upgrade pool contains **57 unique cards**, including 20 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
 
 The ten automatic ability families and their 70 starter, branch, scaling and evolution cards are retired. They cannot appear in offers, be acquired through stale references, or run through the old automatic cast scheduler.
 
@@ -91,6 +91,10 @@ Swapping away retrieves the blade without relaunching. The ordinary attack timer
 - **Grinding Halt:** briefly slow the blade when it reaches a tougher enemy, allowing more contact hits.
 - **Growing Shuriken (`WideOrbit`):** grow while travelling, reaching double size after 1,000 cm. Both visual size and hit radius grow; the normal flight lifetime is unchanged. The internal ID is retained for compatibility.
 - **Breaking Wheel:** scatter six smaller blades when the shuriken expires.
+- **Heavy Shuriken:** 20% less travel speed per rank, up to 3 ranks (80% / 64% / 51.2% of base speed).
+- **Lingering Shuriken:** +30% lifetime per rank, up to 3 ranks (+30% / +60% / +90%).
+
+Both require Great Shuriken and affect player, Tag Team, and clone shurikens. Tune `SpeedReductionPerRank` and `LifetimeBonusPerRank` on their respective upgrade DAs. Existing Great Shuriken `TravelSpeed` and `Lifetime` remain the base values.
 
 ### Embedded Blades
 

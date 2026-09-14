@@ -30,6 +30,8 @@ class HEAVENSDIVIDE_API UNinjaBuildComponent : public UActorComponent
     bool IsActive() const;
     bool IsRunning() const;
     float Tune(FName Id, FName Key, float Default) const;
+    float GetShurikenTravelSpeed() const;
+    float GetShurikenLifetime() const;
     TArray<AEnemyBase *> Targets(FVector Position, float Radius) const;
     TArray<AEnemyBase *> Sweep(FVector Start, FVector End, float Radius) const;
     AEnemyBase *Nearest(FVector Position, float Radius, AEnemyBase *Ignore = nullptr) const;

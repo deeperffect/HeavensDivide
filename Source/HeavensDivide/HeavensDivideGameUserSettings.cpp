@@ -1,6 +1,7 @@
 #include "HeavensDivideGameUserSettings.h"
 
 #include "Engine/Engine.h"
+#include "Misc/App.h"
 
 TArray<FName> UHeavensDivideGameUserSettings::GetBindableActions()
 {
@@ -64,4 +65,23 @@ void UHeavensDivideGameUserSettings::SetAutoTargetingEnabled(bool bEnabled)
 
 	bAutoTargetingEnabled = bEnabled;
 	SaveSettings();
+}
+
+void UHeavensDivideGameUserSettings::LoadSettings(bool bForceReload)
+{
+    Super::LoadSettings(bForceReload);
+    FApp::SetVolumeMultiplier(GetMasterVolume());
+}
+
+void UHeavensDivideGameUserSettings::ApplyNonResolutionSettings()
+{
+    Super::ApplyNonResolutionSettings();
+    FApp::SetVolumeMultiplier(GetMasterVolume());
+}
+
+void UHeavensDivideGameUserSettings::SetMasterVolume(float Volume)
+{
+    MasterVolume = FMath::IsFinite(Volume) ? FMath::Clamp(Volume, 0.f, 1.f) : 1.f;
+    FApp::SetVolumeMultiplier(MasterVolume);
+    SaveSettings();
 }

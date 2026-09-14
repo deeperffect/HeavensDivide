@@ -216,6 +216,20 @@ bool UNinjaBuildComponent::ReplaceVolley(FVector Direction, bool bAssist)
     if(auto* P=SpawnShuriken(Ninja()->GetActorLocation() + Direction * 65 + FVector(0, 0, 50), Direction, !bAssist)) P->bAssistProjectile=bAssist;
     return true;
 }
+float UNinjaBuildComponent::GetShurikenTravelSpeed() const
+{
+    const int32 Rank = Upgrades() ? Upgrades()->GetUpgradeLevelById(TEXT("HeavyShuriken")) : 0;
+    const float Reduction = FMath::Clamp(Tune(TEXT("HeavyShuriken"), TEXT("SpeedReductionPerRank"), .2f), 0.f, .95f);
+    return FMath::Max(1.f, Tune(TEXT("GreatShuriken"), TEXT("TravelSpeed"), 900.f) * FMath::Pow(1.f - Reduction, Rank));
+}
+
+float UNinjaBuildComponent::GetShurikenLifetime() const
+{
+    const int32 Rank = Upgrades() ? Upgrades()->GetUpgradeLevelById(TEXT("LingeringShuriken")) : 0;
+    return FMath::Max(.01f, Tune(TEXT("GreatShuriken"), TEXT("Lifetime"), 2.5f)) *
+        (1.f + Rank * FMath::Max(0.f, Tune(TEXT("LingeringShuriken"), TEXT("LifetimeBonusPerRank"), .3f)));
+}
+
 ANinjaBuildProjectile *UNinjaBuildComponent::SpawnShuriken(FVector Position, FVector Direction, bool bUseGrandEntrance)
 {
     auto *A = Attack();
@@ -231,7 +245,7 @@ ANinjaBuildProjectile *UNinjaBuildComponent::SpawnShuriken(FVector Position, FVe
         A->bGrandEntranceReady = false;
     }
     P->Damage = A->GetEffectiveAttackDamage();
-    P->Speed = FMath::Max(1.f, Tune(TEXT("GreatShuriken"), TEXT("TravelSpeed"), 900.f));
+    P->Speed = GetShurikenTravelSpeed();
     P->Direction = Direction.GetSafeNormal();
     P->Radius = FMath::Clamp(Tune(TEXT("GreatShuriken"), TEXT("Radius"), 95) *
                                  (1 + Extra * Tune(TEXT("GreatShuriken"), TEXT("CountSize"), .12f)),

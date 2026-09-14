@@ -166,7 +166,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
     else
     {
         if (Kind == ENinjaProjectileKind::GreatShuriken &&
-            Age >= B->Tune(TEXT("GreatShuriken"), TEXT("Lifetime"), 2.5f))
+            Age >= B->GetShurikenLifetime())
         {
             Finish();
             return;

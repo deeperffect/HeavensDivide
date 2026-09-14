@@ -80,8 +80,8 @@ void UMainMenuWidget::NativeOnInitialized()
 void UMainMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-	StartBackgroundMedia();
-	ShowMainPanel();
+	if (bInRunSettings) ShowSettingsPanel();
+	else { StartBackgroundMedia(); ShowMainPanel(); }
 }
 
 void UMainMenuWidget::NativeDestruct()
@@ -683,6 +683,26 @@ UVerticalBox* UMainMenuWidget::BuildGeneralSettingsPanel()
 	CameraShakeValueText->SetColorAndOpacity(FSlateColor(SecondaryHeadingColor));
 	ShakeRow->AddChildToHorizontalBox(CameraShakeValueText)->SetPadding(FMargin(12, 0, 0, 0));
 	CameraShakeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::HandleCameraShakeChanged);
+	UHorizontalBox* VolumeRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CameraVolumeRow"));
+	Panel->AddChildToVerticalBox(VolumeRow)->SetPadding(FMargin(0, 6, 0, 28));
+	UTextBlock* VolumeLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	VolumeLabel->SetText(FText::FromString(TEXT("Master Volume")));
+	VolumeLabel->SetFont(LabelFont);
+	VolumeLabel->SetColorAndOpacity(FSlateColor(SecondaryBodyColor));
+	VolumeRow->AddChildToHorizontalBox(VolumeLabel)->SetPadding(FMargin(0, 0, 28, 0));
+	MasterVolumeSlider = WidgetTree->ConstructWidget<USlider>(USlider::StaticClass(), TEXT("MasterVolumeSlider"));
+	MasterVolumeSlider->SetMinValue(0.0f);
+	MasterVolumeSlider->SetMaxValue(1.0f);
+	MasterVolumeSlider->SetStepSize(0.01f);
+	MasterVolumeSlider->SetToolTipText(FText::FromString(TEXT("Overall game audio volume. 0% mutes all game sounds.")));
+	UHorizontalBoxSlot* VolumeSliderSlot = VolumeRow->AddChildToHorizontalBox(MasterVolumeSlider);
+	VolumeSliderSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	VolumeSliderSlot->SetVerticalAlignment(VAlign_Center);
+	MasterVolumeValueText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+	MasterVolumeValueText->SetFont(LabelFont);
+	MasterVolumeValueText->SetColorAndOpacity(FSlateColor(SecondaryHeadingColor));
+	VolumeRow->AddChildToHorizontalBox(MasterVolumeValueText)->SetPadding(FMargin(12, 0, 0, 0));
+	MasterVolumeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::HandleMasterVolumeChanged);
 	AddMenuButton(Panel,FText::FromString(TEXT("KEYBINDS")),TEXT("KeybindSettingsButton"))->OnClicked.AddDynamic(this,&UMainMenuWidget::HandleKeybindSettings);
 	RefreshAutoTargetingSetting();
 	return Panel;
@@ -692,11 +712,21 @@ void UMainMenuWidget::RefreshAutoTargetingSetting()
 {
 	const UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
 	const bool bEnabled = !Settings || Settings->IsAutoTargetingEnabled();
+    const float Volume = Settings ? Settings->GetMasterVolume() : 1.f;
+    if (MasterVolumeSlider) MasterVolumeSlider->SetValue(Volume);
+    if (MasterVolumeValueText) MasterVolumeValueText->SetText(FText::AsPercent(Volume));
 	const float ShakeIntensity = Settings ? Settings->GetCameraShakeIntensity() : 1.0f;
 	if (CameraShakeSlider) CameraShakeSlider->SetValue(ShakeIntensity);
 	if (CameraShakeValueText) CameraShakeValueText->SetText(FText::AsPercent(ShakeIntensity));
 	if (AutoTargetingCheckBox) AutoTargetingCheckBox->SetIsChecked(bEnabled);
 	if (AutoTargetingStateText) AutoTargetingStateText->SetText(FText::FromString(bEnabled ? TEXT("ON") : TEXT("OFF")));
+}
+
+void UMainMenuWidget::HandleMasterVolumeChanged(float Value)
+{
+    if (auto* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
+        Settings->SetMasterVolume(Value);
+    if (MasterVolumeValueText) MasterVolumeValueText->SetText(FText::AsPercent(Value));
 }
 
 void UMainMenuWidget::HandleCameraShakeChanged(float Value)
@@ -989,6 +1019,7 @@ void UMainMenuWidget::RefreshMenuEntryPresentation(float DeltaTime)
 
 void UMainMenuWidget::ShowMainPanel()
 {
+	if (bInRunSettings) { InRunSettingsClosed.ExecuteIfBound(); return; }
 	SetSkillTreeVisible(false);
 	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->RetrySkillReward();
 	SetResetConfirmationVisible(false);
@@ -1007,6 +1038,28 @@ void UMainMenuWidget::ShowCollectionPanel()
 	SetCollectionVisible(true);
 	RefreshCollection();
 	if (CollectionTileButtons.Num() > 0 && CollectionTileButtons[0]) CollectionTileButtons[0]->SetUserFocus(GetOwningPlayer());
+}
+
+void UMainMenuWidget::OpenInRunSettings(FSimpleDelegate OnClosed)
+{
+    bInRunSettings = true;
+    InRunSettingsClosed = OnClosed;
+    if (auto* Root = Cast<UOverlay>(WidgetTree->RootWidget))
+        for (auto* Child : Root->GetAllChildren())
+            Child->SetVisibility(Child == SettingsPopupOverlay ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+    if (auto* Background = Cast<UBorder>(GetWidgetFromName(TEXT("MenuBackgroundFallback"))))
+    {
+        Background->SetBrushColor(FLinearColor(.005f, .008f, .014f, .82f));
+        Background->SetVisibility(ESlateVisibility::HitTestInvisible);
+        if (auto* BackgroundSlot = Cast<UOverlaySlot>(Background->Slot))
+        {
+            BackgroundSlot->SetHorizontalAlignment(HAlign_Fill);
+            BackgroundSlot->SetVerticalAlignment(VAlign_Fill);
+        }
+    }
+    if (SettingsPopupOverlay)
+        if (auto* PageSlot = Cast<UOverlaySlot>(SettingsPopupOverlay->Slot)) PageSlot->SetPadding(FMargin(32));
+    ShowSettingsPanel();
 }
 
 void UMainMenuWidget::ShowSettingsPanel()

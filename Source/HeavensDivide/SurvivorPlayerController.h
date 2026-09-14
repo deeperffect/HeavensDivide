@@ -60,6 +60,7 @@ private:
 	friend class FMetaSkillTreeTest;
 	friend class FGrandEntranceTest;
 	friend class FKeybindSettingsTest;
+    friend class FPauseMenuTest;
 	void HandleCameraShakeIntensityChanged(float Intensity);
 	TWeakObjectPtr<class UCameraShakeBase> ActiveGameplayShake;
 	float ActiveGameplayShakeBaseScale = 0.0f;
@@ -87,6 +88,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
+    void TogglePauseMenu();
+    void ResumePausedRun();
+    void ReturnToMenuFromPause();
+    bool IsPauseMenuOpen() const { return PauseMenu != nullptr; }
 	bool IsRunInProgress() const { return RunEndState == ERunEndState::Playing; }
 	/** Development shortcut: grant the four new ability builds for this run only. */
 	UFUNCTION(Exec)
@@ -378,6 +383,8 @@ protected:
 	void Aim(const FInputActionValue& Value);
 	void Interact();
 	void ConfigureInputMode();
+    void ClosePauseMenu();
+    UPROPERTY(Transient) TObjectPtr<class UPauseMenuWidget> PauseMenu;
 	void InitializePlayerCameraRig();
 	void InitializePlayerHUD();
 	void ResolveRunTimeSource();

@@ -14,6 +14,12 @@ class HEAVENSDIVIDE_API UHeavensDivideGameUserSettings : public UGameUserSetting
 	GENERATED_BODY()
 
 public:
+    virtual void LoadSettings(bool bForceReload = false) override;
+    virtual void ApplyNonResolutionSettings() override;
+    UFUNCTION(BlueprintPure, Category="Settings|Audio")
+    float GetMasterVolume() const { return FMath::IsFinite(MasterVolume) ? FMath::Clamp(MasterVolume, 0.f, 1.f) : 1.f; }
+    UFUNCTION(BlueprintCallable, Category="Settings|Audio")
+    void SetMasterVolume(float Volume);
 	FOnKeybindingsChanged OnKeybindingsChanged;
 	static TArray<FName> GetBindableActions();
 	static FKey GetDefaultBinding(FName Action);
@@ -35,6 +41,7 @@ public:
 	void SetAutoTargetingEnabled(bool bEnabled);
 
 private:
+    UPROPERTY(Config) float MasterVolume = 1.f;
 	UPROPERTY(Config) TMap<FName,FKey> KeybindOverrides;
 	UPROPERTY(Config) float CameraShakeIntensity = 1.0f;
 	UPROPERTY(Config)

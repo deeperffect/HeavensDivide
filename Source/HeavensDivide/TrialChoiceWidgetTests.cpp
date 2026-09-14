@@ -1,6 +1,10 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "TrialChoiceWidget.h"
+#include "GameOverWidget.h"
+#include "VictoryWidget.h"
+#include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "MainMenuWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
@@ -24,11 +28,30 @@ bool FTrialChoiceLayoutTest::RunTest(const FString&)
     auto* Player = NewObject<ULocalPlayer>(GEngine);
     Player->SetControllerId(0);
     PC->SetPlayer(Player);
-    auto* Choice = CreateWidget<UTrialChoiceWidget>(PC);
-    if (TestNotNull(TEXT("Trial chooser builds"), Choice))
+    auto* DeathClass = LoadClass<UGameOverWidget>(nullptr, TEXT("/Game/HeavensDivide/Blueprints/UI/WBP_GameOver.WBP_GameOver_C"));
+    TestNotNull(TEXT("Saved death screen class"), DeathClass);
+    for (UClass* Class : {UTrialChoiceWidget::StaticClass(), DeathClass ? DeathClass : UGameOverWidget::StaticClass(), UVictoryWidget::StaticClass()})
+    {
+    auto* Choice = CreateWidget<UUserWidget>(PC, Class);
+    if (TestNotNull(TEXT("Menu-styled prompt builds"), Choice))
     {
         Choice->TakeWidget();
-        auto* Background = Cast<UImage>(Choice->GetWidgetFromName(TEXT("TrialChoiceBackground")));
+        const bool bTrial = Choice->IsA<UTrialChoiceWidget>();
+        const bool bDeath = Choice->IsA<UGameOverWidget>();
+        for (const TCHAR* Name : {bTrial ? TEXT("SamuraiTrialButton") : bDeath ? TEXT("RestartRunButton") : TEXT("NewRunButton"), bTrial ? TEXT("NinjaTrialButton") : TEXT("MainMenuButton")})
+        {
+            auto* Button = Cast<UButton>(Choice->GetWidgetFromName(Name));
+            if (TestNotNull(TEXT("Action button exists"), Button))
+                TestTrue(TEXT("Action retains its click handler"), Button->OnClicked.IsBound());
+        }
+        if (auto* Death = Cast<UGameOverWidget>(Choice))
+        {
+            Death->InitializeGameOver(nullptr, 125.f);
+            auto* Time = Cast<UTextBlock>(Death->GetWidgetFromName(TEXT("FinalRunTimeText")));
+            if (TestNotNull(TEXT("Death screen keeps run time"), Time))
+                TestEqual(TEXT("Final run time updates"), Time->GetText().ToString(), FString(TEXT("02:05")));
+        }
+        auto* Background = Cast<UImage>(Choice->GetWidgetFromName(TEXT("MenuPromptBackground")));
         auto* MenuClass = LoadClass<UMainMenuWidget>(nullptr, TEXT("/Game/HeavensDivide/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C"));
         if (TestNotNull(TEXT("Background image exists"), Background) && TestNotNull(TEXT("Authored menu exists"), MenuClass))
         {
@@ -62,6 +85,7 @@ bool FTrialChoiceLayoutTest::RunTest(const FString&)
                 TestTrue(TEXT("Panel art participates in visible layout"), bFound);
             }
         }
+    }
     }
     World->DestroyWorld(false);
     GEngine->DestroyWorldContext(World);

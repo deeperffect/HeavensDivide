@@ -181,7 +181,7 @@ bool FNinjaBuildsTest::RunTest(const FString&)
  const auto SavedBalance=ShurikenCard->BalanceParameters;ShurikenCard->BalanceParameters.Add(TEXT("TravelSpeed"),321.f);
  Clone=MakeClone();const int32 BladeCount=B->Projectiles.Num();Clone->HandleAttackProjectileNotify();
  TestTrue(TEXT("Clone emits shuriken"),B->Projectiles.Num()>BladeCount&&B->Projectiles.Last()->Kind==ENinjaProjectileKind::GreatShuriken);
- TestEqual(TEXT("Clone shuriken uses editable travel speed"),B->Projectiles.Last()->Speed,321.f);Clone->Destroy();
+ TestEqual(TEXT("Clone shuriken uses editable travel speed"),B->Projectiles.Last()->Speed,B->GetShurikenTravelSpeed());Clone->Destroy();
  auto* ThrowNotify=NewObject<UAnimNotify_NinjaThrowSound>();
  auto* NormalThrow=NewObject<USoundWave>();auto* ShurikenThrow=NewObject<USoundWave>();
  ThrowNotify->Sound=NormalThrow;B->ShurikenThrowSound=ShurikenThrow;
@@ -190,7 +190,7 @@ bool FNinjaBuildsTest::RunTest(const FString&)
  B->ShurikenThrowSound=nullptr;
  TestTrue(TEXT("Empty shuriken throw override retains montage sound"),ThrowNotify->ResolveSound(N)==NormalThrow);
  auto* SpeedBlade=B->SpawnShuriken(FVector::ZeroVector,FVector::ForwardVector,false);
- TestEqual(TEXT("Player shuriken uses same editable travel speed"),SpeedBlade->Speed,321.f);
+ TestEqual(TEXT("Player shuriken uses same editable travel speed"),SpeedBlade->Speed,B->GetShurikenTravelSpeed());
  ShurikenCard->BalanceParameters=SavedBalance;
  B->ShurikenMesh=LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
  B->ShurikenMeshScale=1.25f;
@@ -265,6 +265,31 @@ bool FNinjaBuildsTest::RunTest(const FString&)
    }
   }
   A->bActiveAttackIsAssist=false;
+ }
+ PC->NinjaBuildPreview(TEXT("Clear"));
+ auto* Heavy=U->FindUpgradeDefinition(TEXT("HeavyShuriken"));
+ auto* Lingering=U->FindUpgradeDefinition(TEXT("LingeringShuriken"));
+ if(TestNotNull(TEXT("Heavy Shuriken is in the saved pool"),Heavy)&&TestNotNull(TEXT("Lingering Shuriken is in the saved pool"),Lingering))
+ {
+  TestFalse(TEXT("Heavy Shuriken requires its stance"),U->CanAcquireUpgrade(Heavy));
+  TestFalse(TEXT("Lingering Shuriken requires its stance"),U->CanAcquireUpgrade(Lingering));
+  Grant(TEXT("GreatShuriken"));
+  const float BaseSpeed=B->GetShurikenTravelSpeed(),BaseLifetime=B->GetShurikenLifetime();
+  for(int32 Rank=1;Rank<=3;++Rank)
+  {
+   TestTrue(TEXT("Speed upgrade acquires another rank"),Grant(TEXT("HeavyShuriken")));
+   TestTrue(TEXT("Lifetime upgrade acquires another rank"),Grant(TEXT("LingeringShuriken")));
+   TestTrue(TEXT("Speed reduction stacks multiplicatively"),FMath::IsNearlyEqual(B->GetShurikenTravelSpeed(),BaseSpeed*FMath::Pow(.8f,Rank)));
+   TestTrue(TEXT("Lifetime bonus stacks additively"),FMath::IsNearlyEqual(B->GetShurikenLifetime(),BaseLifetime*(1+.3f*Rank)));
+  }
+  TestFalse(TEXT("Heavy Shuriken stops at three ranks"),U->CanAcquireUpgrade(Heavy));
+  TestFalse(TEXT("Lingering Shuriken stops at three ranks"),U->CanAcquireUpgrade(Lingering));
+  auto* Blade=B->SpawnShuriken(FVector(10000,10000,0),FVector::ForwardVector,false);
+  TestEqual(TEXT("Spawned shuriken uses upgraded speed"),Blade->Speed,B->GetShurikenTravelSpeed());
+  Blade->Age=BaseLifetime+.01f;Blade->Tick(0);
+  TestFalse(TEXT("Upgraded shuriken survives original lifetime"),Blade->IsActorBeingDestroyed());
+  Blade->Age=B->GetShurikenLifetime()+.01f;Blade->Tick(0);
+  TestTrue(TEXT("Upgraded shuriken expires at extended lifetime"),Blade->IsActorBeingDestroyed());
  }
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }

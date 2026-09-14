@@ -214,6 +214,7 @@ void ASurvivorPlayerController::BuildRuntimeKeyMappings(const UHeavensDivideGame
 
 void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    ClosePauseMenu();
 	if(const auto* InputPlayer=GetLocalPlayer())if(auto* Subsystem=InputPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 		if(RuntimeMappingContext)Subsystem->RemoveMappingContext(RuntimeMappingContext);
 	if (UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
@@ -521,6 +522,11 @@ void ASurvivorPlayerController::ApplyDamageToPlayer(float DamageAmount)
 void ASurvivorPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
+    if (InputComponent)
+    {
+        auto& PauseBinding = InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ASurvivorPlayerController::TogglePauseMenu);
+        PauseBinding.bExecuteWhenPaused = true;
+    }
 
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
 	if (EnhancedInputComponent && MoveAction)
@@ -783,6 +789,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 
 void ASurvivorPlayerController::StopRunGameplay(bool bPlayDeathPresentation)
 {
+    ClosePauseMenu();
 	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
 		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
 	DestroyAllShadowClones();
