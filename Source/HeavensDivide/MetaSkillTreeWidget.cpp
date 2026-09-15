@@ -2,6 +2,7 @@
 #include "MetaSkillTree.h"
 #include "SMetaSkillMap.h"
 #include "MainMenuWidget.h"
+#include "MenuInkStyle.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
@@ -41,9 +42,7 @@ UMetaSkillTreeWidget::UMetaSkillTreeWidget(const FObjectInitializer& ObjectIniti
  VerticalDividerBrush.ImageSize=FVector2D(6,600);
  FSlateBrush Normal;
  Normal.DrawAs=ESlateBrushDrawType::NoDrawType;
- FSlateBrush Hover;
- Hover.SetResourceObject(Ink.Object);
- Hover.ImageSize=FVector2D(300,56);
+ FSlateBrush Hover = MenuInkStyle::MakeBrush(Ink.Object);
  Hover.TintColor=FLinearColor::White;
  MenuActionStyle.SetNormal(Normal).SetHovered(Hover).SetPressed(Hover).SetDisabled(Normal)
   .SetNormalForeground(Paper).SetHoveredForeground(FLinearColor::Black).SetPressedForeground(FLinearColor::Black)
@@ -61,6 +60,10 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
 {
  if(MenuOwner.IsValid()) PanelBrush.SetResourceObject(MenuOwner->GetPageBackgroundTexture());
  SetIsFocusable(true);
+ const UMainMenuWidget* MenuStyle = MenuOwner.IsValid() ? MenuOwner.Get() : GetDefault<UMainMenuWidget>();
+ const FVector2D FooterSize = MenuStyle->GetFooterButtonSize();
+ const FSlateFontInfo FooterFont = MenuStyle->GetMenuButtonFont().Size > 0
+  ? MenuStyle->GetMenuButtonFont() : MenuFont(24, true);
  const auto Meta=[this]() -> USynergyMetaProgressionSubsystem* {return GetGameInstance()?GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>():nullptr;};
  const auto Node=[this]() {return MetaSkillTree::Find(Selected);};
  TSharedRef<SMetaSkillMap> Map=SNew(SMetaSkillMap)
@@ -68,6 +71,11 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
   .OnSelected_Lambda([this](FName Id){Selected=Id;Message.Empty();bConfirmRefund=false;});
 
  TSharedPtr<SButton> LearnButton;
+ SAssignNew(LearnButton,SButton).ButtonStyle(&MenuActionStyle).ContentPadding(MenuInkStyle::ContentPadding(FText::FromString(TEXT("LEARN / 999999 EMBERS")), MenuFont(14,true))).HAlign(HAlign_Center)
+   .IsEnabled_Lambda([this,Meta](){return Meta()&&Meta()->GetSkillPurchaseBlock(Selected).IsEmpty();})
+   .OnClicked_Lambda([this,Meta,Map](){if(auto* M=Meta())Message=M->PurchaseSkill(Selected)?TEXT("Learned. Active in every new run."):TEXT("Could not save. No Soul Embers were spent; try again.");bConfirmRefund=false;Map->Refresh();return FReply::Handled();})
+   [SNew(STextBlock).Font(MenuFont(14,true)).ColorAndOpacity(FSlateColor::UseForeground())
+    .Text_Lambda([this,Meta](){const int32 Cost=Meta()?Meta()->GetSkillCost(Selected):0;return FText::FromString(Cost>0?FString::Printf(TEXT("LEARN   /   %d EMBERS"),Cost):TEXT("FULLY LEARNED"));})];
  TSharedRef<SVerticalBox> Inspector=SNew(SVerticalBox)
   +SVerticalBox::Slot().AutoHeight().Padding(0,26,0,18)
   [SNew(STextBlock).Font(MenuFont(11)).ColorAndOpacity(Ember)
@@ -91,12 +99,6 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
   +SVerticalBox::Slot().FillHeight(1)
   [SNew(STextBlock).Font(MenuFont(13)).ColorAndOpacity(Ember).WrapTextAt(290)
    .Text_Lambda([this,Meta](){return FText::FromString(!Message.IsEmpty()?Message:Meta()?Meta()->GetSkillPurchaseBlock(Selected):TEXT("Progression unavailable."));})]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,12,0,10)
-  [SAssignNew(LearnButton,SButton).ButtonStyle(&MenuActionStyle).ContentPadding(16).HAlign(HAlign_Center)
-   .IsEnabled_Lambda([this,Meta](){return Meta()&&Meta()->GetSkillPurchaseBlock(Selected).IsEmpty();})
-   .OnClicked_Lambda([this,Meta,Map](){if(auto* M=Meta())Message=M->PurchaseSkill(Selected)?TEXT("Learned. Active in every new run."):TEXT("Could not save. No Soul Embers were spent; try again.");bConfirmRefund=false;Map->Refresh();return FReply::Handled();})
-   [SNew(STextBlock).Font(MenuFont(14,true)).ColorAndOpacity(FSlateColor::UseForeground())
-    .Text_Lambda([this,Meta](){const int32 Cost=Meta()?Meta()->GetSkillCost(Selected):0;return FText::FromString(Cost>0?FString::Printf(TEXT("LEARN   /   %d EMBERS"),Cost):TEXT("FULLY LEARNED"));})]]
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,24)
   [SNew(STextBlock).Text(FText::FromString(TEXT("One rank opens the next node.\nYour choices can be refunded in full."))).Font(MenuFont(11)).ColorAndOpacity(Muted).WrapTextAt(290)];
 
@@ -132,18 +134,20 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
     [SNew(STextBlock).Text(FText::FromString(TEXT("Scroll: zoom   /   Drag: pan   /   Arrows or D-pad: select   /   Enter or A: learn"))).Font(MenuFont(9)).ColorAndOpacity(Muted)]
    ]]
     // Keep page actions below the artwork, within the responsive page bounds.
-    +SVerticalBox::Slot().AutoHeight().Padding(76,14,76,0)
+    +SVerticalBox::Slot().AutoHeight().Padding(76,24,76,0)
     [SNew(SHorizontalBox)
      +SHorizontalBox::Slot().AutoWidth().Padding(0,0,18,0)
-     [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(22,12)).OnClicked_Lambda([this](){CloseTree();return FReply::Handled();})[SNew(STextBlock).Font(MenuFont(13,true)).Text(FText::FromString(TEXT("BACK"))).ColorAndOpacity(FSlateColor::UseForeground())]]
+     [LearnButton.ToSharedRef()]
      +SHorizontalBox::Slot().AutoWidth()
-     [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(18,12))
-      .OnClicked_Lambda([this,Meta,Map](){if(!bConfirmRefund){bConfirmRefund=true;Message=TEXT("Refund every skill for its full paid cost? Select CONFIRM REFUND, or select a node to cancel.");}else{if(auto* M=Meta())Message=M->RefundSkills()?TEXT("All skill costs refunded."):TEXT("Could not save refund. Your skills are unchanged.");bConfirmRefund=false;Map->Refresh();}return FReply::Handled();})
-      [SNew(STextBlock).Font(MenuFont(13,true)).ColorAndOpacity(FSlateColor::UseForeground()).Text_Lambda([this](){return FText::FromString(bConfirmRefund?TEXT("CONFIRM REFUND"):TEXT("REFUND SKILLS"));})]]
+     [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(MenuInkStyle::ContentPadding(FText::FromString(TEXT("RESET VIEW")), MenuFont(13,true))).OnClicked_Lambda([Map](){Map->ResetView();return FReply::Handled();})[SNew(STextBlock).Font(MenuFont(13,true)).Text(FText::FromString(TEXT("RESET VIEW"))).ColorAndOpacity(FSlateColor::UseForeground())]]
      +SHorizontalBox::Slot().FillWidth(1)
      [SNew(SBox)]
+     +SHorizontalBox::Slot().AutoWidth().Padding(0,0,18,0)
+     [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(0).OnClicked_Lambda([this](){CloseTree();return FReply::Handled();})[SNew(SBox).MinDesiredWidth(FMath::Max(60.0f, FooterSize.X)).MinDesiredHeight(FMath::Max(1.0f, FooterSize.Y)).VAlign(VAlign_Center).Padding(MenuInkStyle::ContentPadding(FText::FromString(TEXT("BACK")), FooterFont))[SNew(STextBlock).Font(FooterFont).Text(FText::FromString(TEXT("BACK"))).ColorAndOpacity(FSlateColor::UseForeground())]]]
      +SHorizontalBox::Slot().AutoWidth()
-     [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(16,12)).OnClicked_Lambda([Map](){Map->ResetView();return FReply::Handled();})[SNew(STextBlock).Font(MenuFont(13,true)).Text(FText::FromString(TEXT("RESET VIEW"))).ColorAndOpacity(FSlateColor::UseForeground())]]]
+     [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(0)
+      .OnClicked_Lambda([this,Meta,Map](){if(!bConfirmRefund){bConfirmRefund=true;Message=TEXT("Refund every skill for its full paid cost? Select CONFIRM REFUND, or select a node to cancel.");}else{if(auto* M=Meta())Message=M->RefundSkills()?TEXT("All skill costs refunded."):TEXT("Could not save refund. Your skills are unchanged.");bConfirmRefund=false;Map->Refresh();}return FReply::Handled();})
+      [SNew(SBox).MinDesiredWidth(FMath::Max(60.0f, FooterSize.X)).MinDesiredHeight(FMath::Max(1.0f, FooterSize.Y)).VAlign(VAlign_Center).Padding(MenuInkStyle::ContentPadding(FText::FromString(TEXT("CONFIRM REFUND")), FooterFont))[SNew(STextBlock).Font(FooterFont).ColorAndOpacity(FSlateColor::UseForeground()).Text_Lambda([this](){return FText::FromString(bConfirmRefund?TEXT("CONFIRM REFUND"):TEXT("REFUND SKILLS"));})]]]]
    ]
   ]
  ];

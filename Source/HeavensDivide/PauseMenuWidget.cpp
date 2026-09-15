@@ -23,7 +23,7 @@ void UPauseMenuWidget::NativeOnInitialized()
     auto AddAction = [&](const TCHAR* Label, const TCHAR* Name)
     {
         auto* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
-        Stack->AddChildToVerticalBox(Row)->SetHorizontalAlignment(HAlign_Center);
+        PromptActions->AddChildToVerticalBox(Row)->SetHorizontalAlignment(HAlign_Center);
         return AddPromptButton(Row, FText::FromString(Label), Name);
     };
     ResumeButton = AddAction(TEXT("RESUME"), TEXT("ResumeButton"));

@@ -25,7 +25,7 @@ void UVictoryWidget::BuildVictoryScreen()
         AddPromptText(Stack, TEXT("SoulEmberReward"), FText::FromString(FString::Printf(TEXT("+%d SOUL EMBERS%s"),
             Meta->GetLastSkillRunReward(), Meta->HasPendingSkillReward() ? TEXT(" (save pending)") : TEXT(""))), true, 24);
     auto* Actions = WidgetTree->ConstructWidget<UHorizontalBox>();
-    Stack->AddChildToVerticalBox(Actions);
+    PromptActions->AddChildToVerticalBox(Actions);
     NewRunButton = AddPromptButton(Actions, FText::FromString(TEXT("NEW RUN")), TEXT("NewRunButton"));
     auto* MenuButton = AddPromptButton(Actions, FText::FromString(TEXT("MAIN MENU")), TEXT("MainMenuButton"));
     NewRunButton->OnClicked.AddDynamic(this, &UVictoryWidget::HandleNewRun);

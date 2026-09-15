@@ -1,6 +1,7 @@
 #include "MenuPromptWidget.h"
 
 #include "MainMenuWidget.h"
+#include "MenuInkStyle.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/Texture2D.h"
 #include "Components/Image.h"
@@ -46,10 +47,16 @@ UVerticalBox* UMenuPromptWidget::BuildPromptPanel(FName TitleName, const FText& 
 	ScalerSlot->SetPadding(FMargin(32.0f));
 	USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>();
 	Size->SetWidthOverride(PanelSize.X);
-	Size->SetHeightOverride(PanelSize.Y);
 	Scaler->SetContent(Size);
+	UVerticalBox* PageStack = WidgetTree->ConstructWidget<UVerticalBox>();
+	Size->SetContent(PageStack);
+	USizeBox* ArtSize = WidgetTree->ConstructWidget<USizeBox>();
+	ArtSize->SetHeightOverride(PanelSize.Y);
 	UOverlay* PanelLayers = WidgetTree->ConstructWidget<UOverlay>();
-	Size->SetContent(PanelLayers);
+	ArtSize->SetContent(PanelLayers);
+	PageStack->AddChildToVerticalBox(ArtSize);
+	PromptActions = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PromptActions"));
+	PageStack->AddChildToVerticalBox(PromptActions)->SetPadding(FMargin(0, 24, 0, 0));
 	UBorder* Fallback = WidgetTree->ConstructWidget<UBorder>();
 	Fallback->SetBrushColor(Style->SettingsPopupBackgroundColor);
 	Fallback->SetVisibility(Style->CollectionPanelTexture ? ESlateVisibility::Collapsed : ESlateVisibility::HitTestInvisible);
@@ -100,21 +107,19 @@ UButton* UMenuPromptWidget::AddPromptButton(UHorizontalBox* Parent, const FText&
 	Style.SetNormal(Empty); Style.SetHovered(Empty); Style.SetPressed(Empty); Style.SetDisabled(Empty);
 	Button->SetStyle(Style);
 	USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>();
-	Size->SetWidthOverride(340.0f);
-	Size->SetHeightOverride(52.0f);
+	Size->SetMinDesiredWidth(340.0f);
+	Size->SetMinDesiredHeight(52.0f);
 	UOverlay* Layers = WidgetTree->ConstructWidget<UOverlay>();
 	Size->SetContent(Layers);
 	USizeBox* InkSize = WidgetTree->ConstructWidget<USizeBox>();
-	InkSize->SetHeightOverride(100.0f);
 	InkSize->SetVisibility(ESlateVisibility::HitTestInvisible);
 	UOverlaySlot* InkSlot = Layers->AddChildToOverlay(InkSize);
 	InkSlot->SetHorizontalAlignment(HAlign_Fill);
-	InkSlot->SetVerticalAlignment(VAlign_Center);
+	InkSlot->SetVerticalAlignment(VAlign_Fill);
 	UImage* Ink = WidgetTree->ConstructWidget<UImage>();
-	Ink->SetBrushFromTexture(Menu->InkBrushTexture, true);
+	Ink->SetBrush(MenuInkStyle::MakeBrush(Menu->InkBrushTexture));
 	Ink->SetOpacity(0.0f);
 	Ink->SetRenderTransformPivot(FVector2D(0.0f, 0.5f));
-	Ink->SetRenderScale(FVector2D(0.84f, 1.0f));
 	InkSize->SetContent(Ink);
 	UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>();
 	Text->SetText(Label);
@@ -127,7 +132,7 @@ UButton* UMenuPromptWidget::AddPromptButton(UHorizontalBox* Parent, const FText&
 	UOverlaySlot* LabelSlot = Layers->AddChildToOverlay(Text);
 	LabelSlot->SetHorizontalAlignment(HAlign_Fill);
 	LabelSlot->SetVerticalAlignment(VAlign_Center);
-	LabelSlot->SetPadding(FMargin(18, 0));
+	LabelSlot->SetPadding(MenuInkStyle::ContentPadding(Label, Font));
 	Button->AddChild(Size);
 	ChoiceButtons.Add(Button);
 	ChoiceInk.Add(Ink);
@@ -164,7 +169,6 @@ void UMenuPromptWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTim
 		Reveal = FMath::FInterpConstantTo(Reveal, bHighlighted ? 1.0f : 0.0f, InDeltaTime,
 			1.0f / FMath::Max(0.05f, Style->InkRevealDuration));
 		ChoiceInk[Index]->SetOpacity(Style->InkBrushTexture ? Reveal : 0.0f);
-		ChoiceInk[Index]->SetRenderScale(FVector2D(FMath::Lerp(0.84f, 1.0f, Reveal), 1.0f));
 		const FLinearColor Highlight = Style->InkBrushTexture ? FLinearColor(0.01f, 0.01f, 0.01f) : Style->SecondaryHeadingColor;
 		ChoiceLabels[Index]->SetColorAndOpacity(FMath::Lerp(FLinearColor(0.72f, 0.73f, 0.75f), Highlight, Reveal));
 	}

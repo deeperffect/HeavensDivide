@@ -17,7 +17,7 @@ void UTrialChoiceWidget::BuildChoiceScreen()
     if (!Stack) return;
 
 	UHorizontalBox* Choices = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("TrialChoices"));
-	Stack->AddChildToVerticalBox(Choices);
+	PromptActions->AddChildToVerticalBox(Choices);
 	SamuraiButton = AddPromptButton(Choices, FText::FromString(TEXT("SAMURAI TRIAL")), TEXT("SamuraiTrialButton"));
 	UButton* NinjaButton = AddPromptButton(Choices, FText::FromString(TEXT("NINJA TRIAL")), TEXT("NinjaTrialButton"));
 	SamuraiButton->OnClicked.AddDynamic(this, &UTrialChoiceWidget::HandleSamuraiSelected);

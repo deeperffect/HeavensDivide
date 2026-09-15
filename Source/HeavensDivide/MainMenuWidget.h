@@ -60,6 +60,8 @@ class HEAVENSDIVIDE_API UMainMenuWidget : public UUserWidget
 public:
 	UMainMenuWidget(const FObjectInitializer& ObjectInitializer);
 	UTexture2D* GetPageBackgroundTexture() const { return CollectionPanelTexture; }
+	FVector2D GetFooterButtonSize() const { return CollectionBackButtonSize; }
+	const FSlateFontInfo& GetMenuButtonFont() const { return MenuButtonFont; }
 	UFUNCTION(BlueprintCallable, Category = "Main Menu")
 	void ShowMainPanel();
 	UFUNCTION(BlueprintCallable, Category = "Main Menu") void ShowSkillTree();

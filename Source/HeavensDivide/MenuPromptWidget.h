@@ -17,6 +17,7 @@ public:
     UMenuPromptWidget(const FObjectInitializer& ObjectInitializer);
 protected:
     UVerticalBox* BuildPromptPanel(FName TitleName, const FText& Heading, FVector2D PanelSize = FVector2D(900, 500));
+    UPROPERTY(Transient) TObjectPtr<UVerticalBox> PromptActions;
     UButton* AddPromptButton(UHorizontalBox* Parent, const FText& Label, FName Name);
     UTextBlock* AddPromptText(UVerticalBox* Parent, FName Name, const FText& Text, bool bEmphasis = false, float BottomPadding = 20);
     virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;

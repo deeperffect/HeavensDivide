@@ -63,6 +63,10 @@ bool FTrialChoiceLayoutTest::RunTest(const FString&)
             for (FVector2D Viewport : {FVector2D(1920, 1080), FVector2D(640, 360)})
             {
                 bool bFound = false;
+                bool bFoundActions = false;
+                FVector2D ArtStart, ArtEnd, ActionsStart, ActionsEnd;
+                auto* Actions = Choice->GetWidgetFromName(TEXT("PromptActions"));
+                if (!TestNotNull(TEXT("Prompt has an external action area"), Actions)) continue;
                 TFunction<void(TSharedRef<SWidget>, const FGeometry&)> Inspect;
                 Inspect = [&](TSharedRef<SWidget> Widget, const FGeometry& Geometry)
                 {
@@ -72,9 +76,17 @@ bool FTrialChoiceLayoutTest::RunTest(const FString&)
                         const FVector2D Size = Geometry.GetLocalSize();
                         const FVector2D Center = Geometry.LocalToAbsolute(Size * 0.5f);
                         TestTrue(TEXT("Panel art has visible area"), Size.X > 100 && Size.Y > 100);
-                        TestTrue(TEXT("Panel art is centered in the viewport"), Center.Equals(Viewport * 0.5f, 1.0f));
+                        TestTrue(TEXT("Panel art is horizontally centered"), FMath::IsNearlyEqual(Center.X, Viewport.X * 0.5, 1.0));
                         const FVector2D End = Geometry.LocalToAbsolute(Size);
+                        ArtStart = Geometry.LocalToAbsolute(FVector2D::ZeroVector);
+                        ArtEnd = End;
                         TestTrue(TEXT("Panel fits inside viewport"), End.X <= Viewport.X && End.Y <= Viewport.Y);
+                    }
+                    if (Widget == Actions->GetCachedWidget())
+                    {
+                        bFoundActions = true;
+                        ActionsStart = Geometry.LocalToAbsolute(FVector2D::ZeroVector);
+                        ActionsEnd = Geometry.LocalToAbsolute(Geometry.GetLocalSize());
                     }
                     FArrangedChildren Children(EVisibility::Visible);
                     Widget->ArrangeChildren(Geometry, Children);
@@ -83,6 +95,10 @@ bool FTrialChoiceLayoutTest::RunTest(const FString&)
                 };
                 Inspect(Root, FGeometry::MakeRoot(Viewport, FSlateLayoutTransform()));
                 TestTrue(TEXT("Panel art participates in visible layout"), bFound);
+                TestTrue(TEXT("Actions participate in visible layout"), bFoundActions);
+                TestTrue(TEXT("Actions sit below the artwork with a gap"), ActionsStart.Y > ArtEnd.Y);
+                TestTrue(TEXT("Actions fit inside viewport"), ActionsStart.X >= 0 && ActionsEnd.X <= Viewport.X + 1 && ActionsEnd.Y <= Viewport.Y + 1);
+                TestTrue(TEXT("Complete prompt is vertically centered"), FMath::IsNearlyEqual((ArtStart.Y + ActionsEnd.Y) * 0.5, Viewport.Y * 0.5, 1.0));
             }
         }
     }

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MainMenuWidget.h"
+#include "MenuInkStyle.h"
 #include "MetaSkillTreeWidget.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -213,11 +214,6 @@ void UMainMenuWidget::BuildMenu()
 		PageSlot->SetVerticalAlignment(VAlign_Fill);
 		PageSlot->SetPadding(FMargin(410.0f, 24.0f, 24.0f, 24.0f));
 	};
-	CollectionOverlay = BuildSecondaryPageFrame(BuildCollectionPanel(), TEXT("CollectionOverlay"),
-		CollectionPageOffset, CollectionContentPadding, FLinearColor(0.008f, 0.010f, 0.016f, 0.94f), nullptr,
-		FVector2D(1440.0f, 920.0f), true);
-	AttachPage(CollectionOverlay);
-	SetCollectionVisible(false);
 
 	// Share the collection page's reserved navigation column and responsive bounds.
 	SkillTreeOverlay = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("SkillTreeOverlay"));
@@ -233,18 +229,24 @@ void UMainMenuWidget::BuildMenu()
 		UButton* Button = AddMenuButton(ButtonBox, Label, Name);
 		if (USizeBox* ButtonSize = Cast<USizeBox>(Button->GetChildAt(0)))
 		{
-			ButtonSize->SetWidthOverride(FMath::Max(60.0f, CollectionBackButtonSize.X));
-			ButtonSize->SetHeightOverride(FMath::Max(1.0f, CollectionBackButtonSize.Y));
+			ButtonSize->SetMinDesiredWidth(FMath::Max(60.0f, CollectionBackButtonSize.X));
+			ButtonSize->SetMinDesiredHeight(FMath::Max(1.0f, CollectionBackButtonSize.Y));
 		}
 		Footer->AddChildToHorizontalBox(ButtonBox)->SetPadding(FMargin(12.0f, 0.0f, 0.0f, 0.0f));
 		return Button;
 	};
+	UHorizontalBox* CollectionActions = WidgetTree->ConstructWidget<UHorizontalBox>();
+	AddFooterButton(CollectionActions, FText::FromString(TEXT("BACK")), TEXT("CollectionBackButton"))
+		->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
+	CollectionOverlay = BuildSecondaryPageFrame(BuildCollectionPanel(), TEXT("CollectionOverlay"),
+		CollectionPageOffset, CollectionContentPadding, FLinearColor(0.008f, 0.010f, 0.016f, 0.94f), CollectionActions,
+		FVector2D(1440.0f, 920.0f), true);
+	AttachPage(CollectionOverlay);
+	SetCollectionVisible(false);
 	UHorizontalBox* SettingsActions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	SettingsActions->SetRenderTranslation(SecondaryButtonsOffset);
 	UButton* SettingsBack = AddFooterButton(SettingsActions, FText::FromString(TEXT("BACK")), TEXT("SettingsBackButton"));
 	SettingsBack->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
 	UHorizontalBox* ResetActions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	ResetActions->SetRenderTranslation(SecondaryButtonsOffset);
 	UButton* CancelButton = AddFooterButton(ResetActions, FText::FromString(TEXT("CANCEL")), TEXT("CancelResetButton"));
 	UButton* ConfirmButton = AddFooterButton(ResetActions, FText::FromString(TEXT("RESET")), TEXT("ConfirmResetButton"));
 	CancelButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleCancelReset);
@@ -297,7 +299,6 @@ UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageNa
 	PageScale->SetStretchDirection(bAllowUpscaling ? EStretchDirection::Both : EStretchDirection::DownOnly);
 	USizeBox* PageDesignSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), NAME_None);
 	PageDesignSize->SetWidthOverride(PageSize.X);
-	PageDesignSize->SetHeightOverride(PageSize.Y + (Footer ? 24.0f + FMath::Max(1.0f, CollectionBackButtonSize.Y) : 0.0f));
 	UOverlay* PageArtLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), NAME_None);
 	if (Footer)
 	{
@@ -310,10 +311,11 @@ UBorder* UMainMenuWidget::BuildSecondaryPageFrame(UWidget* Content, FName PageNa
 		PageStack->AddChildToVerticalBox(ArtSize);
 		UVerticalBoxSlot* FooterSlot = PageStack->AddChildToVerticalBox(Footer);
 		FooterSlot->SetHorizontalAlignment(HAlign_Right);
-		FooterSlot->SetPadding(FMargin(0.0f, 14.0f, ContentPadding.Right, 0.0f));
+		FooterSlot->SetPadding(FMargin(0.0f, 24.0f, ContentPadding.Right, 0.0f));
 	}
 	else
 	{
+		PageDesignSize->SetHeightOverride(PageSize.Y);
 		PageDesignSize->SetContent(PageArtLayers);
 	}
 	UBorder* PageFallback = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), NAME_None);
@@ -499,19 +501,6 @@ UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
 	CollectionDetailStats = MakeText(TEXT("CollectionDetailStats"), TEXT(""), CollectionStatsFontSize, FLinearColor(0.68f,0.70f,0.76f));
 	CollectionDetailStats->SetAutoWrapText(true); DetailStack->AddChildToVerticalBox(CollectionDetailStats);
 
-	UButton* BackButton = AddMenuButton(Panel, FText::FromString(TEXT("BACK")), TEXT("CollectionBackButton"));
-	BackButton->SetRenderTranslation(CollectionBackButtonOffset);
-	BackButton->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleBack);
-	if (USizeBox* BackSize = Cast<USizeBox>(BackButton->GetChildAt(0)))
-	{
-		BackSize->SetWidthOverride(FMath::Max(60.0f, CollectionBackButtonSize.X));
-		BackSize->SetHeightOverride(FMath::Max(1.0f, CollectionBackButtonSize.Y));
-	}
-	if (UVerticalBoxSlot* BackSlot = Cast<UVerticalBoxSlot>(BackButton->Slot))
-	{
-		BackSlot->SetHorizontalAlignment(HAlign_Right);
-		BackSlot->SetPadding(FMargin(0.0f, 14.0f, 0.0f, 0.0f));
-	}
 	return Panel;
 }
 
@@ -580,9 +569,9 @@ UVerticalBox* UMainMenuWidget::BuildKeybindPanel()
   Selector->InitializeBinding(this,Actions[Index]);
   FTextBlockStyle TextStyle=Selector->GetTextStyle();TextStyle.SetFont(BodyFont);TextStyle.SetColorAndOpacity(SecondaryHeadingColor);Selector->SetTextStyle(TextStyle);
   FButtonStyle Style=Selector->GetButtonStyle();FSlateBrush Normal;Normal.DrawAs=ESlateBrushDrawType::NoDrawType;
-  FSlateBrush Ink;Ink.SetResourceObject(InkBrushTexture);Ink.DrawAs=InkBrushTexture?ESlateBrushDrawType::Image:ESlateBrushDrawType::NoDrawType;
-  Style.SetNormal(Normal);Style.SetHovered(Ink);Style.SetPressed(Ink);Selector->SetButtonStyle(Style);Selector->SetMargin(FMargin(12,4));
-  auto* Size=WidgetTree->ConstructWidget<USizeBox>();Size->SetWidthOverride(300);Size->SetHeightOverride(42);Size->SetContent(Selector);Row->AddChildToHorizontalBox(Size);
+  FSlateBrush Ink = MenuInkStyle::MakeBrush(InkBrushTexture);
+  Style.SetNormal(Normal);Style.SetHovered(Ink);Style.SetPressed(Ink);Selector->SetButtonStyle(Style);Selector->SetMargin(MenuInkStyle::ContentPadding());
+  auto* Size=WidgetTree->ConstructWidget<USizeBox>();Size->SetMinDesiredWidth(300);Size->SetMinDesiredHeight(42);Size->SetContent(Selector);Row->AddChildToHorizontalBox(Size);
   KeybindSelectors.Add(Selector);
  }
  KeybindStatus=WidgetTree->ConstructWidget<UTextBlock>();KeybindStatus->SetFont(BodyFont);KeybindStatus->SetColorAndOpacity(SecondaryBodyColor);KeybindStatus->SetAutoWrapText(true);
@@ -929,21 +918,19 @@ UButton* UMainMenuWidget::AddMenuButton(UVerticalBox* Parent, const FText& Label
 	Button->SetStyle(TextButtonStyle);
 
 	USizeBox* EntrySize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-	EntrySize->SetWidthOverride(340.0f);
-	EntrySize->SetHeightOverride(52.0f);
+	EntrySize->SetMinDesiredWidth(340.0f);
+	EntrySize->SetMinDesiredHeight(52.0f);
 	UOverlay* EntryLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
 	EntrySize->SetContent(EntryLayers);
 	USizeBox* InkSize = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-	InkSize->SetHeightOverride(100.0f);
 	InkSize->SetVisibility(ESlateVisibility::HitTestInvisible);
 	UOverlaySlot* InkSlot = EntryLayers->AddChildToOverlay(InkSize);
 	InkSlot->SetHorizontalAlignment(HAlign_Fill);
-	InkSlot->SetVerticalAlignment(VAlign_Center);
+	InkSlot->SetVerticalAlignment(VAlign_Fill);
 	UImage* InkImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
-	InkImage->SetBrushFromTexture(InkBrushTexture, true);
+	InkImage->SetBrush(MenuInkStyle::MakeBrush(InkBrushTexture));
 	InkImage->SetOpacity(0.0f);
 	InkImage->SetRenderTransformPivot(FVector2D(0.0f, 0.5f));
-	InkImage->SetRenderScale(FVector2D(0.84f, 1.0f));
 	InkImage->SetVisibility(ESlateVisibility::HitTestInvisible);
 	InkSize->SetContent(InkImage);
 	UTextBlock* LabelText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
@@ -956,7 +943,7 @@ UButton* UMainMenuWidget::AddMenuButton(UVerticalBox* Parent, const FText& Label
 	UOverlaySlot* LabelSlot = EntryLayers->AddChildToOverlay(LabelText);
 	LabelSlot->SetHorizontalAlignment(HAlign_Left);
 	LabelSlot->SetVerticalAlignment(VAlign_Center);
-	LabelSlot->SetPadding(FMargin(18.0f, 0.0f));
+	LabelSlot->SetPadding(MenuInkStyle::ContentPadding(Label, ButtonFont));
 	Button->AddChild(EntrySize);
 	UVerticalBoxSlot* ButtonSlot = Parent->AddChildToVerticalBox(Button);
 	ButtonSlot->SetPadding(FMargin(0.0f, 2.0f));
@@ -1006,7 +993,6 @@ void UMainMenuWidget::RefreshMenuEntryPresentation(float DeltaTime)
 		if (MenuEntryBrushImages.IsValidIndex(Index) && MenuEntryBrushImages[Index])
 		{
 			MenuEntryBrushImages[Index]->SetOpacity(InkBrushTexture ? Reveal : 0.0f);
-			MenuEntryBrushImages[Index]->SetRenderScale(FVector2D(FMath::Lerp(0.84f, 1.0f, Reveal), 1.0f));
 		}
 		if (MenuEntryLabels.IsValidIndex(Index) && MenuEntryLabels[Index])
 		{

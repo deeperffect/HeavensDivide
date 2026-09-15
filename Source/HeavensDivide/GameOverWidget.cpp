@@ -30,7 +30,7 @@ void UGameOverWidget::BuildGameOverScreen()
         AddPromptText(Stack, TEXT("SoulEmberReward"), FText::FromString(FString::Printf(TEXT("+%d SOUL EMBERS%s"),
             Meta->GetLastSkillRunReward(), Meta->HasPendingSkillReward() ? TEXT(" (save pending)") : TEXT(""))), true, 24);
     auto* Actions = WidgetTree->ConstructWidget<UHorizontalBox>();
-    Stack->AddChildToVerticalBox(Actions);
+    PromptActions->AddChildToVerticalBox(Actions);
     RestartRunButton = AddPromptButton(Actions, FText::FromString(TEXT("RESTART RUN")), TEXT("RestartRunButton"));
     auto* MenuButton = AddPromptButton(Actions, FText::FromString(TEXT("MAIN MENU")), TEXT("MainMenuButton"));
     RestartRunButton->OnClicked.AddDynamic(this, &UGameOverWidget::HandleRestartRun);
