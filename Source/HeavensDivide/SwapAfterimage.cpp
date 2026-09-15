@@ -49,7 +49,7 @@ void ASwapAfterimage::Initialize(ACharacterBase* Source, UMaterialInterface* Mat
 void ASwapAfterimage::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-    AdvanceVisual(AnimatedMesh ? static_cast<float>(FApp::GetDeltaTime()) : DeltaSeconds);
+    AdvanceVisual(AnimatedMesh || bRealTimeFade ? static_cast<float>(FApp::GetDeltaTime()) : DeltaSeconds);
 }
 
 void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
@@ -72,6 +72,10 @@ void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
         const float Alpha = FMath::Clamp(Age / FMath::Max(.01f, DepartureDuration), 0.f, 1.f);
         SetActorLocation(FMath::Lerp(PortalStart, PortalEnd, Alpha * Alpha));
         if (Alpha >= 1.f) { Destroy(); return; }
+        if (TrailDuration > 0 && Alpha >= .3f && TrailCount < 4 && Age - LastTrailAge >= .055f)
+        {
+            SpawnTrailSnapshot(); LastTrailAge = Age; ++TrailCount;
+        }
     }
     if(AnimatedMesh && !bDepartureFinished && Age>=DepartureDuration)
     {
@@ -81,8 +85,29 @@ void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
             for(int32 Slot=0;Slot<Mesh->GetNumMaterials();++Slot) Mesh->SetMaterial(Slot,FadeMaterial);
     }
     const float Fade=AnimatedMesh ? FMath::Clamp((Lifetime-Age)/FMath::Max(.01f,Lifetime-DepartureDuration),0.f,1.f) : FMath::Clamp(1-Age/Lifetime,0.f,1.f);
-    if (FadeMaterial) FadeMaterial->SetScalarParameterValue(TEXT("Opacity"), .65f * FMath::Square(Fade));
+    if (FadeMaterial) FadeMaterial->SetScalarParameterValue(TEXT("Opacity"), (bRealTimeFade ? .35f : .65f) * FMath::Square(Fade));
     if(Age>=Lifetime) Destroy();
+}
+
+void ASwapAfterimage::SpawnTrailSnapshot()
+{
+    if (!AnimatedMesh || !FadeMaterial || !GetWorld()) return;
+    FActorSpawnParameters Params; Params.Owner = GetOwner();
+    auto* Trail = GetWorld()->SpawnActor<ASwapAfterimage>(GetActorLocation(),GetActorRotation(),Params);
+    if (!Trail) return;
+    Trail->Lifetime = TrailDuration;
+    Trail->bRealTimeFade = true;
+    Trail->FadeMaterial = UMaterialInstanceDynamic::Create(FadeMaterial,Trail);
+    Trail->FadeMaterial->SetScalarParameterValue(TEXT("Opacity"),.35f);
+    auto* Pose = NewObject<UPoseableMeshComponent>(Trail);
+    Pose->SetupAttachment(Trail->GetRootComponent());
+    Pose->SetSkinnedAssetAndUpdate(AnimatedMesh->GetSkeletalMeshAsset());
+    Pose->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    Pose->SetCastShadow(false);
+    Pose->RegisterComponent();
+    Pose->SetWorldTransform(AnimatedMesh->GetComponentTransform());
+    Pose->CopyPoseFromSkeletalComponent(AnimatedMesh);
+    for (int32 Slot=0;Slot<Pose->GetNumMaterials();++Slot) Pose->SetMaterial(Slot,Trail->FadeMaterial);
 }
 
 bool ASwapAfterimage::InitializeDeparture(ACharacterBase* Source,UMaterialInterface* Material,FLinearColor Color,

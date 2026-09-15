@@ -32,6 +32,25 @@ bool FSwapPortalAnimationTest::RunTest(const FString&)
         Portal->AdvancePresentation(1);
         TestTrue(TEXT("A long frame completes closing and cleans up"),Portal->IsActorBeingDestroyed());
     }
+    auto* Accent=World->SpawnActor<ASwapPortal>();
+    Accent->FullScale=FVector(2,3,4);
+    Accent->HoldDuration=1;
+    Accent->ClosingDuration=.2f;
+    Accent->ConfigurePolish(.12f,nullptr,0);
+    Accent->AdvancePresentation(1.02f);
+    TestTrue(TEXT("Polished close briefly expands before squeezing"),Accent->GetActorScale3D().Y>3.f);
+    Accent->AdvancePresentation(.06f);
+    TestTrue(TEXT("Expansion reaches the full configured 12 percent"),FMath::IsNearlyEqual(Accent->GetActorScale3D().Y,3.f*1.12f,.001f));
+    Accent->AdvancePresentation(.13f);
+    TestTrue(TEXT("Expansion does not extend the configured lifetime"),Accent->IsActorBeingDestroyed());
+    auto* Early=World->SpawnActor<ASwapPortal>();
+    Early->HoldDuration=1;Early->ClosingDuration=.2f;
+    Early->ConfigurePolish(0,nullptr,0,-.25f);
+    Early->AdvancePresentation(.7f);
+    TestFalse(TEXT("Burst waits for configured early time"),Early->bCloseBurstPlayed);
+    Early->AdvancePresentation(.06f);
+    TestTrue(TEXT("Negative offset triggers burst before closing"),Early->bCloseBurstPlayed);
+    TestFalse(TEXT("Early burst does not end portal"),Early->IsActorBeingDestroyed());
     World->DestroyWorld(false);GEngine->DestroyWorldContext(World);
     return true;
 }

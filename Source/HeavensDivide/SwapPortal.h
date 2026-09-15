@@ -17,7 +17,14 @@ public:
     void Initialize(UNiagaraSystem* System, float Duration, float OpenDuration = .15f,
         float CloseDuration = .18f, EAxis::Type SqueezeAxis = EAxis::Y, USoundBase* Sound = nullptr, float Volume = 1.f);
     virtual void Tick(float DeltaSeconds) override;
+    void ConfigurePolish(float Expansion, UNiagaraSystem* Burst, float SoundDelay, float BurstTimeOffset = 0);
 private:
+    UPROPERTY() TObjectPtr<UNiagaraSystem> CloseBurst;
+    UPROPERTY() TObjectPtr<USoundBase> PendingSound;
+    float CloseExpansion = 0, SoundDelaySeconds = 0, SoundVolume = 1;
+    float BurstOffset = 0;
+    bool bCloseBurstPlayed = false;
+    void PlayPendingSound();
     friend class FSwapPortalAnimationTest;
     void AdvancePresentation(float Delta);
     UPROPERTY() TObjectPtr<UNiagaraComponent> Effect;

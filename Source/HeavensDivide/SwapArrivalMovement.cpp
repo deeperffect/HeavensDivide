@@ -5,6 +5,7 @@
 void USwapPresentationComponent::StartArrivalMovement()
 {
     ResetArrivalMovement();
+    PlayedWalkKicks.Reset();
     auto* Character=Cast<ACharacterBase>(GetOwner());
     if(!Character || !Character->GetVisualRoot()) return;
     bArrivalWalking=Character->IsA<ASamuraiCharacter>();
@@ -37,7 +38,16 @@ void USwapPresentationComponent::UpdateArrivalMovement(float Delta)
     if(!bArrivalMovementActive) return;
     ArrivalMovementElapsed+=FMath::Max(0.f,Delta);
     const float Alpha=FMath::Clamp(ArrivalMovementElapsed/ActiveMovementDuration,0.f,1.f);
-    if(Alpha>=1.f) { ResetArrivalMovement(); return; }
+    if (bArrivalWalking)
+    {
+        bool bStepDue = false;
+        for (int32 Index=0; Index<SamuraiWalkKickTimes.Num(); ++Index)
+            if (!PlayedWalkKicks.Contains(Index) && Alpha >= FMath::Clamp(SamuraiWalkKickTimes[Index],0.f,1.f))
+            { PlayedWalkKicks.Add(Index); bStepDue = true; }
+        // A hitch may cross multiple steps; never stack several kicks in one frame.
+        if (bStepDue) PlayArrivalImpact(true);
+    }
+    if(Alpha>=1.f) { ResetArrivalMovement(); PlayArrivalImpact(); return; }
     if(auto* Character=Cast<ACharacterBase>(GetOwner()))
         if(Character->GetVisualRoot())
             Character->GetVisualRoot()->SetRelativeLocation(ArrivalBaseLocation+ArrivalStartOffset*(1.f-(bArrivalWalking ? Alpha : Alpha*Alpha)));

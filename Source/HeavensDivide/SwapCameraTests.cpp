@@ -76,6 +76,45 @@ bool FSwapCameraTest::RunTest(const FString&)
         TestTrue(TEXT("Natural freeze expiry allows the slow camera return"),Rig->bSwapFocusActive);
         Character->SwapPresentation->FinishSwapFreeze();
         TestFalse(TEXT("Explicit arrival cancellation restores camera"),Rig->bSwapFocusActive);
+        Rig->StartArrivalKick(7,.16f);
+        TestTrue(TEXT("Arrival kick has a finite presentation duration"),Rig->ArrivalKickDuration>0);
+        Rig->StopSwapFocus();
+        TestEqual(TEXT("Cancellation clears kick even after zoom has ended"),Rig->ArrivalKickDuration,0.f);
+        // Exercise the actual movement-completion callback for both characters,
+        // including Samurai's arrival after the normal zoom has finished.
+        Character->SwapPresentation->bEnableArrivalImpact=true;
+        Character->SwapPresentation->StartArrivalMovement();
+        Character->SwapPresentation->UpdateArrivalMovement(10.f);
+        TestTrue(TEXT("Completing arrival starts the camera kick"),Rig->ArrivalKickDuration>0);
+        const FVector CameraBase=Rig->Camera->GetRelativeLocation();
+        Rig->ArrivalKickStrength=8.f; // Isolate motion from the user's shake preference.
+        Rig->CameraBoom->bEnableCameraLag=true;
+        Rig->UpdateArrivalKick(.06f);
+        TestTrue(TEXT("Arrival kick directly moves camera despite spring-arm lag"),Rig->Camera->GetRelativeLocation().Z<CameraBase.Z);
+        Rig->UpdateArrivalKick(1.f);
+        TestTrue(TEXT("Kick restores exact camera-relative transform"),Rig->Camera->GetRelativeLocation().Equals(CameraBase));
+        Rig->StartSwapFocus();
+        Rig->StartArrivalKick(8,.24f);
+        Rig->UpdateSwapFocus(10.f);
+        TestTrue(TEXT("Natural zoom completion preserves an active landing kick"),Rig->ArrivalKickDuration>0);
+        Rig->StopSwapFocus();
+        TestTrue(TEXT("Explicit cancellation restores camera offset"),Rig->Camera->GetRelativeLocation().Equals(CameraBase));
+        if (Character->IsA<ASamuraiCharacter>())
+        {
+            auto* Feedback=Character->SwapPresentation.Get();
+            Feedback->SamuraiWalkKickTimes={.25f,.65f};
+            Feedback->StartArrivalMovement();
+            const float Duration=Feedback->ActiveMovementDuration;
+            Feedback->UpdateArrivalMovement(Duration*.3f);
+            TestEqual(TEXT("First footstep fires during walk"),Feedback->PlayedWalkKicks.Num(),1);
+            Rig->StopSwapFocus();
+            Feedback->UpdateArrivalMovement(Duration*.4f);
+            TestEqual(TEXT("Second footstep fires during walk"),Feedback->PlayedWalkKicks.Num(),2);
+            TestTrue(TEXT("Second footstep starts another kick"),Rig->ArrivalKickDuration>0);
+            Rig->StopSwapFocus();
+            Feedback->UpdateArrivalMovement(Duration);
+            TestEqual(TEXT("No extra end kick with walk footsteps configured"),Rig->ArrivalKickDuration,0.f);
+        }
     }
     World->DestroyWorld(false);GEngine->DestroyWorldContext(World);
     return true;

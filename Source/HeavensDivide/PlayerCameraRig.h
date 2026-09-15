@@ -21,7 +21,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	void StartSwapFocus();
-	void StopSwapFocus();
+	void StopSwapFocus(bool bCancelArrivalKick = true);
+	void StartArrivalKick(float Strength, float Duration);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Swap Focus") bool bEnableSwapFocus = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Swap Focus", meta=(ClampMin="0", ClampMax="0.5")) float SwapZoomAmount = .18f;
@@ -47,6 +48,10 @@ protected:
 private:
 	friend class FSwapCameraTest;
 	void UpdateSwapFocus(float RealDelta);
+	float ArrivalKickAge = 0, ArrivalKickDuration = 0, ArrivalKickStrength = 0;
+	FVector ArrivalKickBaseLocation = FVector::ZeroVector;
+	void UpdateArrivalKick(float RealDelta);
+	void StopArrivalKick();
 	bool bSwapFocusActive = false;
 	float SwapFocusElapsed = 0;
 	float OriginalFOV = 90;

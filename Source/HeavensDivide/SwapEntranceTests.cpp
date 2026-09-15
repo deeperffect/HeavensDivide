@@ -3,6 +3,7 @@
 #include "SwapPresentationComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/AnimNotifies/AnimNotify_PlaySound.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
@@ -94,6 +95,25 @@ bool FSwapEntranceTest::RunTest(const FString&)
             Feedback->FinishSwapFreeze();
         }
     }
+    // A sound notify placed on a montage must survive cosmetic scrubbing.
+    auto* SoundClass=LoadClass<ACharacterBase>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Ninja.BP_Ninja_C"));
+    auto* SoundCharacter=World->SpawnActor<ACharacterBase>(SoundClass);
+    auto* SoundFeedback=SoundCharacter->SwapPresentation.Get();
+    auto* SoundMontage=DuplicateObject<UAnimMontage>(LoadObject<UAnimMontage>(nullptr,
+        TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/Montages/Ninja/AM_NinjaSwapArrival")),SoundCharacter);
+    SoundMontage->Notifies.Reset();
+    FAnimNotifyEvent& SoundEvent=SoundMontage->Notifies.AddDefaulted_GetRef();
+    SoundEvent.Notify=NewObject<UAnimNotify_PlaySound>(SoundMontage);
+    SoundEvent.Link(SoundMontage,SoundMontage->GetPlayLength()*.25f);
+    SoundFeedback->EntranceMontage=SoundMontage;
+    SoundFeedback->bEnableSound=true;SoundFeedback->bPlayEntranceSoundNotifies=true;
+    SoundFeedback->StartEntrance();
+    TestEqual(TEXT("Audio notify does not fire early"),SoundFeedback->PlayedEntranceSounds.Num(),0);
+    SoundFeedback->UpdateEntrance(SoundFeedback->EntranceRemaining*.5f);
+    TestEqual(TEXT("Audio notify fires when crossed"),SoundFeedback->PlayedEntranceSounds.Num(),1);
+    SoundFeedback->UpdateEntrance(.001f);
+    TestEqual(TEXT("Audio notify fires only once"),SoundFeedback->PlayedEntranceSounds.Num(),1);
+    SoundFeedback->StopEntrance();
     World->DestroyWorld(false);GEngine->DestroyWorldContext(World);
     return true;
 }

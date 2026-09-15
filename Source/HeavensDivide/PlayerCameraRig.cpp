@@ -8,6 +8,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "SwapPresentationComponent.h"
 #include "Misc/App.h"
+#include "HeavensDivideGameUserSettings.h"
 
 APlayerCameraRig::APlayerCameraRig()
 {
@@ -46,6 +47,36 @@ void APlayerCameraRig::Tick(float DeltaSeconds)
 	{
 		SetActorLocation(FollowTarget->GetActorLocation());
 	}
+	UpdateArrivalKick(static_cast<float>(FApp::GetDeltaTime()));
+}
+
+void APlayerCameraRig::StartArrivalKick(float Strength, float Duration)
+{
+	if (!Camera) return;
+	if (ArrivalKickDuration <= 0) ArrivalKickBaseLocation = Camera->GetRelativeLocation();
+	Camera->SetRelativeLocation(ArrivalKickBaseLocation);
+	const auto* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+	ArrivalKickStrength = FMath::Max(0.f, Strength) * (Settings ? Settings->GetCameraShakeIntensity() : 1.f);
+	ArrivalKickAge = 0;
+	ArrivalKickDuration = FMath::Max(.01f, Duration);
+}
+
+void APlayerCameraRig::UpdateArrivalKick(float RealDelta)
+{
+	if (ArrivalKickDuration <= 0) return;
+	if (!IsValid(FollowTarget) || !Camera) { StopArrivalKick(); return; }
+	ArrivalKickAge += FMath::Max(0.f, RealDelta);
+	const float Alpha = FMath::Clamp(ArrivalKickAge / ArrivalKickDuration, 0.f, 1.f);
+	if (Alpha >= 1.f) { StopArrivalKick(); return; }
+	// Offset the camera after spring-arm lag, so short impacts remain visible.
+	const float Offset = ArrivalKickStrength * FMath::Sin(PI * Alpha) * (1.f - Alpha);
+	Camera->SetRelativeLocation(ArrivalKickBaseLocation - FVector(0,0,Offset));
+}
+
+void APlayerCameraRig::StopArrivalKick()
+{
+	if (ArrivalKickDuration > 0 && Camera) Camera->SetRelativeLocation(ArrivalKickBaseLocation);
+	ArrivalKickDuration = 0;
 }
 
 void APlayerCameraRig::SetFollowTarget(ACharacterBase* NewFollowTarget)
@@ -90,7 +121,7 @@ void APlayerCameraRig::UpdateSwapFocus(float RealDelta)
 	SwapFocusElapsed+=FMath::Max(0.f,RealDelta);
 	const float In=FMath::Max(.01f,SwapZoomInDuration);
 	const float Out=FMath::Max(.01f,SwapZoomOutDuration);
-	if(SwapFocusElapsed>=In+Out) { StopSwapFocus(); return; }
+	if(SwapFocusElapsed>=In+Out) { StopSwapFocus(false); return; }
 	const bool bZoomingIn=SwapFocusElapsed<In;
 	const float Alpha=FMath::Clamp(bZoomingIn ? SwapFocusElapsed/In : (SwapFocusElapsed-In)/Out,0.f,1.f);
 	const float Smooth=Alpha*Alpha*(3.f-2.f*Alpha);
@@ -109,8 +140,9 @@ void APlayerCameraRig::UpdateSwapFocus(float RealDelta)
 	SetActorLocation(FMath::Lerp(Anchor,Visual,Weight));
 }
 
-void APlayerCameraRig::StopSwapFocus()
+void APlayerCameraRig::StopSwapFocus(bool bCancelArrivalKick)
 {
+	if (bCancelArrivalKick) StopArrivalKick();
 	if(!bSwapFocusActive) return;
 	bSwapFocusActive=false;
 	Camera->SetFieldOfView(OriginalFOV);

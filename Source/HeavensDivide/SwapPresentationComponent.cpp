@@ -79,9 +79,11 @@ void USwapPresentationComponent::PlayDeparture()
                 const FTransform Transform(Basis * DeparturePortalRotation.Quaternion(), PortalLocation, DeparturePortalScale);
                 if (auto* Portal = GetWorld()->SpawnActor<ASwapPortal>(ASwapPortal::StaticClass(), Transform, Params))
                 {
+                    Portal->ConfigurePolish(PortalCloseExpansion, PortalCloseBurst, PortalSoundDelay, PortalBurstTimeOffset);
                     Portal->Initialize(DeparturePortal, DepartureMontage->GetPlayLength()
                         / FMath::Max(.01f, DeparturePlayRate * DepartureMontage->RateScale) + FMath::Max(0.f, PortalLingerDuration), PortalOpenDuration, PortalCloseDuration, PortalSqueezeAxis, bEnableSound ? DeparturePortalSound.Get() : nullptr, SoundVolume);
                     Ghost->SetPortalDestination(Destination);
+                    if (bEnableDepartureTrail) Ghost->EnablePortalTrail(DepartureTrailLifetime);
                 }
             }
         }
@@ -183,8 +185,35 @@ void USwapPresentationComponent::SpawnArrivalPortal()
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
     if (auto* Portal = GetWorld()->SpawnActor<ASwapPortal>(ASwapPortal::StaticClass(), Transform, Params))
     {
+        Portal->ConfigurePolish(PortalCloseExpansion, PortalCloseBurst, PortalSoundDelay, PortalBurstTimeOffset);
         ArrivalPortalActor = Portal;
         Portal->Initialize(ArrivalPortal, (bArrivalMovementActive ? ActiveMovementDuration : FMath::Max(.01f, EntranceRemaining))
             + FMath::Max(0.f, PortalLingerDuration), PortalOpenDuration, PortalCloseDuration, PortalSqueezeAxis, bEnableSound ? ArrivalPortalSound.Get() : nullptr, SoundVolume);
     }
+}
+
+void USwapPresentationComponent::PlayArrivalImpact(bool bWalkingStep)
+{
+    auto* Character = Cast<ACharacterBase>(GetOwner());
+    if (!bEnabled || !Character || Character->GetCharacterMode() != ECharacterMode::Active) return;
+    const bool bNinja = Character->IsA<ANinjaCharacter>();
+    if (!bWalkingStep && bEnableArrivalImpact && ArrivalImpactVFX)
+    {
+        FActorSpawnParameters Params; Params.Owner = Character;
+        const FTransform Transform(Character->GetActorRotation(), Character->GetActorLocation()+VFXOffset,
+            FVector(FMath::Max(.01f,ArrivalImpactScale)));
+        if (auto* Impact = GetWorld()->SpawnActor<ASwapPortal>(ASwapPortal::StaticClass(),Transform,Params))
+            Impact->Initialize(ArrivalImpactVFX,.65f,0,0);
+    }
+    if (auto* PC = Cast<APlayerController>(Character->GetController()))
+        if (PC->IsLocalController())
+        {
+            if (bEnableArrivalImpact && (bNinja || bWalkingStep || SamuraiWalkKickTimes.IsEmpty()))
+                if (auto* Rig = Cast<APlayerCameraRig>(PC->GetViewTarget()))
+                    if (Rig->GetFollowTarget() == Character)
+                        Rig->StartArrivalKick(bNinja ? NinjaArrivalKick : SamuraiArrivalKick,bNinja ? .16f : .24f);
+            if (!bWalkingStep && bEnableSwapRumble && ArrivalRumbleIntensity > 0)
+                PC->PlayDynamicForceFeedback(FMath::Clamp(ArrivalRumbleIntensity,0.f,1.f),bNinja ? .10f : .16f,
+                    true,true,true,true,EDynamicForceFeedbackAction::Start);
+        }
 }

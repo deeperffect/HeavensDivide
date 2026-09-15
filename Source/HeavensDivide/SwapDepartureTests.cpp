@@ -92,7 +92,19 @@ bool FSwapDepartureTest::RunTest(const FString&)
             const FVector Destination=Start+FVector(Name==TEXT("Ninja") ? 180.f : -180.f,0,0);
             const FVector GameplayLocation=Source->GetActorLocation();
             PortalCopy->SetPortalDestination(Destination);
+            PortalCopy->EnablePortalTrail(.16f);
             PortalCopy->AdvanceVisual(PortalCopy->DepartureDuration*.5f);
+            TestEqual(TEXT("A long frame emits one trail sample without a burst of copies"),PortalCopy->TrailCount,1);
+            int32 TrailSamples=0;
+            for(TActorIterator<ASwapAfterimage> It(World);It;++It)
+                if(It->bRealTimeFade && !It->IsActorBeingDestroyed())
+                {
+                    ++TrailSamples;
+                    TestFalse(TEXT("Trail samples have no collision"),It->GetActorEnableCollision());
+                    It->AdvanceVisual(.2f);
+                    TestTrue(TEXT("Trail samples expire independently"),It->IsActorBeingDestroyed());
+                }
+            TestEqual(TEXT("Portal dash produces a visible trail actor"),TrailSamples,1);
             TestTrue(TEXT("Portal dash advances toward its destination"),PortalCopy->GetActorLocation().Equals(FMath::Lerp(Start,Destination,.25f),.01f));
             TestTrue(TEXT("Portal dash leaves gameplay position unchanged"),Source->GetActorLocation().Equals(GameplayLocation));
             PortalCopy->AdvanceVisual(PortalCopy->DepartureDuration);

@@ -18,7 +18,12 @@ public:
         UAnimMontage* Montage, float PlayRate, float FadeDuration = .2f);
     virtual void Tick(float DeltaSeconds) override;
     void SetPortalDestination(const FVector& Destination) { PortalStart = GetActorLocation(); PortalEnd = Destination; bPortalDash = true; }
+    void EnablePortalTrail(float Duration) { TrailDuration = FMath::Clamp(Duration, .01f, .5f); }
 private:
+    void SpawnTrailSnapshot();
+    float TrailDuration = 0, LastTrailAge = 0;
+    int32 TrailCount = 0;
+    bool bRealTimeFade = false;
     bool bPortalDash = false;
     FVector PortalStart = FVector::ZeroVector, PortalEnd = FVector::ZeroVector;
     friend class FSwapDepartureTest;

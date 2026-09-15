@@ -5,10 +5,12 @@
 #include "Animation/Skeleton.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Animation/AnimNotifies/AnimNotify_PlaySound.h"
 
 void USwapPresentationComponent::StartEntrance()
 {
     StopEntrance();
+    PlayedEntranceSounds.Reset();
     auto* Character=Cast<ACharacterBase>(GetOwner());
     auto* Mesh=Character ? Character->GetMesh() : nullptr;
     if(!Mesh || !EntranceMontage || EntranceMontage->HasRootMotion() || EntranceMontage->IsValidAdditive()
@@ -59,6 +61,17 @@ void USwapPresentationComponent::UpdateEntrance(float RealDelta)
     Anim->UpdateMontageWeightForTimeSkip(FMath::Max(.01f,EntranceMontage->BlendIn.GetBlendTime()));
     Mesh->TickAnimation(0.f,false);
     Mesh->RefreshBoneTransforms();
+    if (bEnableSound && bPlayEntranceSoundNotifies)
+        for (int32 Index=0; Index<EntranceMontage->Notifies.Num(); ++Index)
+        {
+            const FAnimNotifyEvent& Event = EntranceMontage->Notifies[Index];
+            if (!PlayedEntranceSounds.Contains(Index) && Event.GetTriggerTime() <= EntrancePosition)
+                if (auto* Sound = Cast<UAnimNotify_PlaySound>(Event.Notify))
+                {
+                    PlayedEntranceSounds.Add(Index);
+                    Sound->Notify(Mesh, EntranceMontage, FAnimNotifyEventReference(&Event, EntranceMontage));
+                }
+        }
     UpdateEntranceWeaponDraw();
 }
 

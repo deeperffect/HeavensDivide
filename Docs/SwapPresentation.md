@@ -161,3 +161,33 @@ Portal opening/closing uses an eased horizontal squeeze in real seconds. **Porta
 `Tools/fix_swap_portal_material_time.py` follows the assigned portal systems' dependencies and switches their material Time nodes and implicit Panner/Rotator clocks to real time. This fixes material motion freezing during swap world dilation; Niagara simulation already has real-time compensation. It preserves explicit animation input connections and writes a change report to `Saved/SwapPortalMaterialTime.json`. Re-run it after assigning a different portal whose materials still use game time. Shared materials also use real time wherever else those same materials appear.
 
 Swap audio comes only from Arrival Portal Sound and Departure Portal Sound. The legacy knife-swish, knife-draw/sword-swing defaults and Arrival Sound accent no longer play; their old Blueprint properties are deprecated. Enable Sound and Sound Volume still control the portal sounds.
+
+## Swap polish controls
+
+Each character's **Swap Presentation ? Swap | Polish** now supplies:
+
+- **Portal Close Expansion**: a small width overshoot before squeezing shut; zero disables it. It stays within the existing close duration.
+- **Enable Departure Trail / Departure Trail Lifetime**: up to four low-opacity body silhouettes during a portal dash. They use the existing ghost material and expire in real time. No new asset is needed.
+- **Enable Arrival Impact / Ninja Arrival Kick / Samurai Arrival Kick**: a short downward camera pulse when visual movement completes. Ninja is sharper; Samurai is softer and longer. The camera-shake accessibility setting scales or disables these kicks.
+- **Enable Swap Rumble / Arrival Rumble Intensity**: one short arrival pulse for the local controller.
+- **Portal Sound Delay**: delay the existing portal sound without adding another sound layer. Keep it shorter than the portal lifetime.
+- **Arrival Impact VFX / Arrival Impact Scale**: optional dust/landing Niagara, using VFX Offset for placement, with a .65-second lifetime. Assign separately on Ninja and Samurai.
+- **Portal Close Burst**: optional Niagara sparks at the start of closing, using the portal transform and full scale, with a .6-second lifetime.
+
+Restart the editor after compiling. Existing portal assignments and placement remain intact. Preview both directions and reduce kicks, trails, or close expansion to taste. For optional FX, choose short one-shot systems with no embedded audio. The default polish needs no new art. A custom rim-brightening/crossing effect and pre-opening animation staging are not part of this pass; no additional gameplay delay or control lock was introduced.
+
+### Visible expansion and landing kick
+
+Portal Close Expansion now has a separate expansion phase (first 40% of closing), followed by the squeeze. The value is the actual peak extra width: `0.25` reaches 125% width; range 0–1. Use Portal Close Duration around 0.25–0.35 seconds when previewing the expansion. Zero preserves the plain squeeze.
+
+Arrival kicks now offset the camera component after spring-arm lag, rather than briefly moving the lagged rig. Natural zoom completion does not cancel an ongoing kick. Cancellation and target changes restore the exact camera-relative location. Camera Shake Intensity still scales the effect; Enable Arrival Impact must be on. Return exaggerated test values (such as 80000) to single-digit strengths before previewing.
+
+Portal Close Burst is optional finishing particles, not the portal system itself: choose a short one-shot spark spray, inward energy puff, or small shock ring, without audio. It spawns when closing begins, at the portal transform/full scale, and is removed after 0.6 seconds. Leave it empty to use only the portal's expansion/squeeze.
+
+### Footstep and burst timing
+
+**Samurai Walk Kick Times** defaults to `0.25, 0.65`: two camera kicks at 25% and 65% of the actual walking duration. Adjust those entries to match foot plants; no third kick plays at the end. An empty array restores the end kick. Timing follows montage playback speed, and cancellation resets the sequence.
+
+**Play Entrance Sound Notifies** allows standard Play Sound notifies authored directly on the entrance montage, including Ninja's arrival. Enable Sound must also be enabled. Each sound fires once when its montage timestamp is crossed; gameplay notifies stay suppressed. This is intentionally authored montage audio in addition to the portal slots, not the removed fallback weapon sounds.
+
+**Portal Burst Time Offset** is in real seconds relative to closing start: `-0.2` fires 0.2 seconds earlier, `0` at closing start, and positive values later. Timing is clamped to the portal lifetime. If a Niagara burst has an internal start delay, use a negative offset or shorten that delay in the effect. The burst still has a 0.6-second lifetime from spawn.

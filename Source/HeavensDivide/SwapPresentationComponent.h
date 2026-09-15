@@ -56,6 +56,21 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<UNiagaraSystem> DeparturePortal;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<USoundBase> ArrivalPortalSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<USoundBase> DeparturePortalSound;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0", ClampMax="1", ToolTip="Extra width before squeezing: 0.25 expands to 125%. Uses the first 40% of Portal Close Duration.")) float PortalCloseExpansion = .12f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish") TObjectPtr<UNiagaraSystem> PortalCloseBurst;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(Units="s", ToolTip="Relative to closing start. Negative fires earlier; positive later. Clamped to the portal's lifetime.")) float PortalBurstTimeOffset = 0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0", ClampMax="1", ToolTip="Fractions of the Samurai walk duration at which to kick the camera. Empty restores a single kick at the end.")) TArray<float> SamuraiWalkKickTimes = { .25f, .65f };
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound", meta=(ToolTip="Play standard Play Sound notifies placed on the entrance montage. Gameplay notifies remain suppressed.")) bool bPlayEntranceSoundNotifies = true;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0", Units="s")) float PortalSoundDelay = 0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish") bool bEnableDepartureTrail = true;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0.01", Units="s")) float DepartureTrailLifetime = .16f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish") bool bEnableArrivalImpact = true;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0", Units="cm")) float NinjaArrivalKick = 7;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0", Units="cm")) float SamuraiArrivalKick = 4;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish") TObjectPtr<UNiagaraSystem> ArrivalImpactVFX;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0.01")) float ArrivalImpactScale = 1;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish") bool bEnableSwapRumble = true;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Polish", meta=(ClampMin="0", ClampMax="1")) float ArrivalRumbleIntensity = .25f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ClampMin="0", Units="s")) float PortalOpenDuration = .15f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ClampMin="0", Units="s")) float PortalCloseDuration = .18f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ToolTip="The horizontal axis in the Niagara asset's local space, before your rotation correction.")) TEnumAsByte<EAxis::Type> PortalSqueezeAxis = EAxis::Y;
@@ -91,8 +106,12 @@ public:
     FLinearColor GetPresentationColor() const;
 private:
     void SpawnArrivalPortal();
+    void PlayArrivalImpact(bool bWalkingStep = false);
+    TSet<int32> PlayedWalkKicks;
+    TSet<int32> PlayedEntranceSounds;
     TWeakObjectPtr<class ASwapPortal> ArrivalPortalActor;
     friend class FSwapFreezeTest;
+    friend class FSwapCameraTest;
     friend class FSwapEntranceTest;
     friend class FSwapWeaponDrawTest;
     void StartEntranceWeaponDraw();
