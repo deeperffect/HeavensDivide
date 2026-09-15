@@ -52,12 +52,28 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Afterimage") TObjectPtr<UMaterialInterface> GhostMaterial;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") TObjectPtr<UNiagaraSystem> DepartureVFX;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") TObjectPtr<UNiagaraSystem> ArrivalVFX;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<UNiagaraSystem> ArrivalPortal;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<UNiagaraSystem> DeparturePortal;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<USoundBase> ArrivalPortalSound;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<USoundBase> DeparturePortalSound;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ClampMin="0", Units="s")) float PortalOpenDuration = .15f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ClampMin="0", Units="s")) float PortalCloseDuration = .18f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ToolTip="The horizontal axis in the Niagara asset's local space, before your rotation correction.")) TEnumAsByte<EAxis::Type> PortalSqueezeAxis = EAxis::Y;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ToolTip="Local offset from the visual arrival start. Ninja's portal faces down; Samurai's faces forward.")) FVector ArrivalPortalOffset = FVector::ZeroVector;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") FRotator ArrivalPortalRotation = FRotator::ZeroRotator;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") FVector ArrivalPortalScale = FVector(1);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ToolTip="Local offset from the departure dash destination.")) FVector DeparturePortalOffset = FVector::ZeroVector;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") FRotator DeparturePortalRotation = FRotator::ZeroRotator;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") FVector DeparturePortalScale = FVector(1);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ClampMin="0", Units="cm", ToolTip="Cosmetic dash distance when a departure portal and valid departure montage are assigned. Ninja moves forward; Samurai backward.")) float PortalDepartureDistance = 180;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ClampMin="0", Units="s", ToolTip="Keep portals visible this long after the visual movement completes.")) float PortalLingerDuration = .2f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") FVector VFXOffset = FVector(0,0,-80);
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX", meta=(ClampMin="0.01")) float VFXScale = 1;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") bool bUseFallbackArrivalRing = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound") bool bEnableSound = true;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound") TObjectPtr<USoundBase> SwapWhoosh;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound") TObjectPtr<USoundBase> ArrivalSound;
+    // Retained for loading older Blueprints; portal slots are the only swap audio.
+    UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Arrival Portal Sound and Departure Portal Sound.")) TObjectPtr<USoundBase> SwapWhoosh;
+    UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Arrival Portal Sound.")) TObjectPtr<USoundBase> ArrivalSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound", meta=(ClampMin="0", ClampMax="2")) float SoundVolume = .65f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ToolTip="Optional full-body, in-place montage. Plays exclusively to its final frame; gameplay notifies and root motion are not used.")) TObjectPtr<UAnimMontage> EntranceMontage;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage's Rate Scale. The freeze duration does not accelerate or truncate the entrance.")) float EntrancePlayRate = 1;
@@ -74,6 +90,8 @@ public:
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Assists preserve original materials.")) bool bGhostAssist = false;
     FLinearColor GetPresentationColor() const;
 private:
+    void SpawnArrivalPortal();
+    TWeakObjectPtr<class ASwapPortal> ArrivalPortalActor;
     friend class FSwapFreezeTest;
     friend class FSwapEntranceTest;
     friend class FSwapWeaponDrawTest;
@@ -114,8 +132,6 @@ private:
     bool bSwapFreezeActive = false;
     bool bArrivalPending = false;
     TArray<TWeakObjectPtr<UNiagaraComponent>> FreezeEffects;
-    UPROPERTY() TObjectPtr<USoundBase> DefaultSamuraiSound;
-    UPROPERTY() TObjectPtr<USoundBase> DefaultNinjaSound;
     void ClearReady();
     void StopEntrance();
     void SpawnEffect(UNiagaraSystem* System);

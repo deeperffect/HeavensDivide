@@ -1,5 +1,6 @@
 #include "SwapPresentationComponent.h"
 #include "SwapAfterimage.h"
+#include "SwapPortal.h"
 #include "AutoAttackComponent.h"
 #include "NinjaCharacter.h"
 #include "SurvivorAbilityComponent.h"
@@ -7,11 +8,9 @@
 #include "Animation/AnimMontage.h"
 #include "Components/MeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Kismet/GameplayStatics.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Containers/Ticker.h"
 #include "GameFramework/WorldSettings.h"
@@ -26,11 +25,6 @@ USwapPresentationComponent::USwapPresentationComponent()
     PrimaryComponentTick.bStartWithTickEnabled = false;
     static ConstructorHelpers::FObjectFinder<UMaterialInterface> Ghost(TEXT("/Game/HeavensDivide/Materials/M_SwapGhost"));
     GhostMaterial = Ghost.Object;
-    static ConstructorHelpers::FObjectFinder<USoundBase> Whoosh(TEXT("/Game/Assets/Sounds/Ninja/freesound_community-knife-swish-1-82559"));
-    SwapWhoosh = Whoosh.Object;
-    static ConstructorHelpers::FObjectFinder<USoundBase> SamuraiSound(TEXT("/Game/Assets/Sounds/Samurai/Swing1"));
-    static ConstructorHelpers::FObjectFinder<USoundBase> NinjaSound(TEXT("/Game/Assets/Sounds/Ninja/freesound_community-knife-draw-48223"));
-    DefaultSamuraiSound=SamuraiSound.Object; DefaultNinjaSound=NinjaSound.Object;
 }
 FLinearColor USwapPresentationComponent::GetPresentationColor() const
 {
@@ -73,6 +67,23 @@ void USwapPresentationComponent::PlayDeparture()
                 if(bEnableAfterimage && !Ghost->IsActorBeingDestroyed()) Ghost->Initialize(Character,GhostMaterial,GetPresentationColor(),AfterimageDuration);
                 else Ghost->Destroy();
             }
+            else if (DeparturePortal)
+            {
+                FVector Facing = Character->GetVisualRoot()->GetForwardVector().GetSafeNormal2D();
+                if (Facing.IsNearlyZero()) Facing = Character->GetActorForwardVector();
+                const FVector Direction = Character->IsA<ANinjaCharacter>() ? Facing : -Facing;
+                const FVector Destination = Ghost->GetActorLocation() + Direction * FMath::Max(0.f, PortalDepartureDistance);
+                const FQuat Basis = Direction.Rotation().Quaternion();
+                const FVector PortalLocation = Character->GetVisualRoot()->GetComponentLocation()
+                    + Direction * FMath::Max(0.f, PortalDepartureDistance) + Basis.RotateVector(DeparturePortalOffset);
+                const FTransform Transform(Basis * DeparturePortalRotation.Quaternion(), PortalLocation, DeparturePortalScale);
+                if (auto* Portal = GetWorld()->SpawnActor<ASwapPortal>(ASwapPortal::StaticClass(), Transform, Params))
+                {
+                    Portal->Initialize(DeparturePortal, DepartureMontage->GetPlayLength()
+                        / FMath::Max(.01f, DeparturePlayRate * DepartureMontage->RateScale) + FMath::Max(0.f, PortalLingerDuration), PortalOpenDuration, PortalCloseDuration, PortalSqueezeAxis, bEnableSound ? DeparturePortalSound.Get() : nullptr, SoundVolume);
+                    Ghost->SetPortalDestination(Destination);
+                }
+            }
         }
     }
     SpawnEffect(DepartureVFX);
@@ -93,15 +104,9 @@ void USwapPresentationComponent::PlayArrival()
     if(!ArrivalVFX && bUseFallbackArrivalRing)
         if(auto* Ring=GetWorld()->SpawnActor<AAbilityAccent>(Character->GetActorLocation()+VFXOffset,FRotator::ZeroRotator))
             Ring->Initialize(FVector::ZeroVector,110*VFXScale,GetPresentationColor(),.25f,false);
-    if(bEnableSound)
-    {
-        if(SwapWhoosh) UGameplayStatics::PlaySoundAtLocation(this,SwapWhoosh,Character->GetActorLocation(),SoundVolume);
-        USoundBase* Accent=ArrivalSound;
-        if(!Accent) Accent=Cast<ANinjaCharacter>(Character) ? DefaultNinjaSound.Get() : DefaultSamuraiSound.Get();
-        if(Accent) UGameplayStatics::PlaySoundAtLocation(this,Accent,Character->GetActorLocation(),SoundVolume*.65f);
-    }
     StartEntrance();
     StartArrivalMovement();
+    SpawnArrivalPortal();
     if(bSwapFreezeActive)
         if(auto* Controller=Cast<APlayerController>(Character->GetController()))
             if(Controller->IsLocalController())
@@ -125,6 +130,7 @@ void USwapPresentationComponent::ClearReady()
 }
 void USwapPresentationComponent::HandleModeChanged(ECharacterMode Mode)
 {
+    if (Mode != ECharacterMode::Active && ArrivalPortalActor.IsValid()) ArrivalPortalActor->Destroy();
     if(Mode!=ECharacterMode::Active) { FinishSwapFreeze(); ClearReady(); StopEntrance(); SetComponentTickEnabled(false); }
 }
 void USwapPresentationComponent::TickComponent(float Delta,ELevelTick Type,FActorComponentTickFunction* Function)
@@ -158,6 +164,27 @@ void USwapPresentationComponent::TickComponent(float Delta,ELevelTick Type,FActo
 }
 void USwapPresentationComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
+    if (ArrivalPortalActor.IsValid()) ArrivalPortalActor->Destroy();
     FinishSwapFreeze(); ClearReady(); StopEntrance();
     Super::EndPlay(Reason);
+}
+
+void USwapPresentationComponent::SpawnArrivalPortal()
+{
+    if (ArrivalPortalActor.IsValid()) ArrivalPortalActor->Destroy();
+    auto* Character = Cast<ACharacterBase>(GetOwner());
+    if (!ArrivalPortal || !Character || !Character->GetVisualRoot()) return;
+    const FVector Facing = Character->GetVisualRoot()->GetForwardVector().GetSafeNormal2D();
+    const FQuat Basis = (Character->IsA<ANinjaCharacter>() ? FVector::DownVector : Facing).Rotation().Quaternion();
+    const FTransform Transform(Basis * ArrivalPortalRotation.Quaternion(),
+        Character->GetVisualRoot()->GetComponentLocation() + Basis.RotateVector(ArrivalPortalOffset), ArrivalPortalScale);
+    FActorSpawnParameters Params;
+    Params.Owner = Character;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    if (auto* Portal = GetWorld()->SpawnActor<ASwapPortal>(ASwapPortal::StaticClass(), Transform, Params))
+    {
+        ArrivalPortalActor = Portal;
+        Portal->Initialize(ArrivalPortal, (bArrivalMovementActive ? ActiveMovementDuration : FMath::Max(.01f, EntranceRemaining))
+            + FMath::Max(0.f, PortalLingerDuration), PortalOpenDuration, PortalCloseDuration, PortalSqueezeAxis, bEnableSound ? ArrivalPortalSound.Get() : nullptr, SoundVolume);
+    }
 }

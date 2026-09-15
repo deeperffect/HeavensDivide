@@ -2,11 +2,53 @@
 #include "NiagaraSystem.h"
 #if WITH_EDITOR
 #include "NiagaraEmitterHandle.h"
+#include "NiagaraEmitter.h"
 #include "NiagaraEmitterBase.h"
 #include "Stateless/NiagaraStatelessDistribution.h"
 #include "UObject/UnrealType.h"
 #include "UObject/UObjectHash.h"
+#include "Materials/MaterialExpression.h"
 #endif
+
+bool USwapVFXSetupLibrary::IsMaterialInputConnected(UObject* Object, FName InputName)
+{
+#if WITH_EDITOR
+    if (auto* Expression = Cast<UMaterialExpression>(Object))
+    {
+        for (FExpressionInputIterator It{Expression}; It; ++It)
+            if (Expression->GetInputName(It.Index) == InputName)
+                return It->Expression != nullptr;
+    }
+#endif
+    return true; // Unknown inputs must never overwrite an authored connection.
+}
+
+int32 USwapVFXSetupLibrary::PreparePortalLocalSpace(UNiagaraSystem* System)
+{
+    int32 Changed = 0;
+#if WITH_EDITOR
+    if (System)
+    {
+        for (const auto& Handle : System->GetEmitterHandles())
+            if (auto* Data = Handle.GetEmitterData())
+                if (!Data->bLocalSpace)
+                {
+                    System->Modify();
+                    Handle.GetEmitterBase()->Modify();
+                    Data->bLocalSpace = true;
+                    Handle.GetEmitterBase()->PostEditChange();
+                    ++Changed;
+                }
+        if (Changed > 0)
+        {
+            System->PostEditChange();
+            System->RequestCompile(true);
+            System->WaitForCompilationComplete(true, false);
+        }
+    }
+#endif
+    return Changed;
+}
 
 TArray<UObject*> USwapVFXSetupLibrary::GetEmitters(UNiagaraSystem* System)
 {

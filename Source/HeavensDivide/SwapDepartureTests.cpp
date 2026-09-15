@@ -34,6 +34,9 @@ bool FSwapDepartureTest::RunTest(const FString&)
         Montage->RateScale=1;
         Source->SwapPresentation->DepartureMontage=Montage;
         Source->SwapPresentation->DeparturePlayRate=1;
+        // This section verifies the legacy fade; portal movement is tested below.
+        // Do not inherit portal assignments from the user's saved Blueprint tuning.
+        Source->SwapPresentation->DeparturePortal=nullptr;
         Source->SetCharacterMode(ECharacterMode::Inactive);
         Source->SwapPresentation->PlayDeparture();
         ASwapAfterimage* Copy=nullptr;
@@ -81,6 +84,21 @@ bool FSwapDepartureTest::RunTest(const FString&)
             TestTrue(TEXT("Slow departure cleans up after fade"),RateCopy->IsActorBeingDestroyed());
         }
         World->GetWorldSettings()->SetTimeDilation(1.f);
+        auto* PortalCopy=World->SpawnActor<ASwapAfterimage>();
+        if(TestTrue(TEXT("Portal departure initializes"),PortalCopy->InitializeDeparture(Source,
+            Source->SwapPresentation->GhostMaterial,Source->SwapPresentation->GetPresentationColor(),Montage,1.f,.2f)))
+        {
+            const FVector Start=PortalCopy->GetActorLocation();
+            const FVector Destination=Start+FVector(Name==TEXT("Ninja") ? 180.f : -180.f,0,0);
+            const FVector GameplayLocation=Source->GetActorLocation();
+            PortalCopy->SetPortalDestination(Destination);
+            PortalCopy->AdvanceVisual(PortalCopy->DepartureDuration*.5f);
+            TestTrue(TEXT("Portal dash advances toward its destination"),PortalCopy->GetActorLocation().Equals(FMath::Lerp(Start,Destination,.25f),.01f));
+            TestTrue(TEXT("Portal dash leaves gameplay position unchanged"),Source->GetActorLocation().Equals(GameplayLocation));
+            PortalCopy->AdvanceVisual(PortalCopy->DepartureDuration);
+            TestTrue(TEXT("Portal dash reaches exact destination"),PortalCopy->GetActorLocation().Equals(Destination,.01f));
+            TestTrue(TEXT("Departure disappears at portal instead of fading outside it"),PortalCopy->IsActorBeingDestroyed());
+        }
     }
     World->DestroyWorld(false);GEngine->DestroyWorldContext(World);
     return true;

@@ -12,7 +12,7 @@ A successful swap starts a configurable 0.5-second presentation freeze. World si
 
 - A snapshot of the outgoing character and its static-mesh equipment fades over 0.20 seconds.
 - The incoming character gets a short Niagara burst: violet smoke for Ninja and a red-black ink slash for Samurai. Clearing Arrival VFX restores the 0.25-second fallback ring.
-- An existing swish sound plays with a character-specific accent. These are temporary choices from the game's sound library.
+- Only the assigned arrival/departure portal sounds play during the swap.
 - The incoming HUD portrait enlarges to 115%, brightens and settles over 0.25 seconds.
 - Grand Entrance can show the optional Ready VFX while its enhanced attack is ready. It never changes character or weapon materials.
 - Tag Team characters retain their original materials throughout the assist. Ninja uses her equipped Returning Fang, Great Shuriken or projectile volley; an assist Fang completes one outbound/return cycle.
@@ -55,8 +55,8 @@ If the editor was open during this C++ build, restart it first so the new native
 | VFX Offset | World-space offset from the character actor origin; default Z −80 places the effect near the feet |
 | VFX Scale | Uniform Niagara scale and fallback-ring radius multiplier |
 | Use Fallback Arrival Ring | Turn off the ring when you want no arrival visual and have no Niagara assigned |
-| Sound → Swap Whoosh | Shared transition sound, set separately on each character if desired |
-| Sound → Arrival Sound | Character accent; accepts Sound Wave, Sound Cue or MetaSound Source through SoundBase |
+| Portals → Arrival Portal Sound | Plays once when the arrival portal appears |
+| Portals → Departure Portal Sound | Plays once when the departure portal appears |
 | Sound Volume / Enable Sound | Overall swap-sound level and switch |
 | Animation → Entrance Montage | Optional montage matching that character's skeleton |
 | Entrance Play Rate | Actual real-time speed multiplier, combined with the montage asset Rate Scale. 1 is normal speed and 0.5 is half speed when the asset Rate Scale is 1 |
@@ -66,7 +66,7 @@ If the editor was open during this C++ build, restart it first so the new native
 
 For example, create your custom assets under `Content/HeavensDivide/VFX/Swap/` and `Content/HeavensDivide/Audio/Swap/`, then drag them into these fields. Their folder is your choice; the component references are what matter.
 
-Leaving **Arrival Sound** empty uses `/Game/Assets/Sounds/Samurai/Swing1` for Samurai and `/Game/Assets/Sounds/Ninja/freesound_community-knife-draw-48223` for Ninja. **Swap Whoosh** defaults to `/Game/Assets/Sounds/Ninja/freesound_community-knife-swish-1-82559`. Disable Sound to silence both layers.
+Empty portal sound slots are silent. There are no fallback whoosh or weapon sounds. **Enable Sound** and **Sound Volume** control the assigned portal sounds.
 
 ## Niagara setup
 
@@ -145,3 +145,19 @@ Test both directions while moving, attacking, dashing, and with Grand Entrance a
 The swap-freeze build and six focused combat/presentation checks passed. `HeavensDivide.ImpactFeedback.SwapFreeze` verifies the saved Ninja entrance montage starts and advances during the freeze, activation/direct attacks are blocked, the first frame cannot fast-forward the animation, cooldowns remain intact, and expiry/mode changes/teardown restore world and mesh speed. Restart the editor after the native build before testing the updated swap behavior.
 
 The editor build passed. The 12 existing combat/upgrade/damage-feedback tests passed, as did the new `HeavensDivide.ImpactFeedback.SwapPresentation` test and a rerun of Grand Entrance. Coverage includes readiness glow creation/removal, ghost material restoration, afterimage expiry/collision, portrait restoration, and unchanged player position/collision.
+
+## Optional swap portals
+
+On each character Blueprint, select **Swap Presentation ? Swap | Portals** and assign **Arrival Portal** and **Departure Portal** Niagara systems. Both slots default to empty; existing swaps are preserved until assigned. Ninja and Samurai can use different systems.
+
+Arrival portals spawn at the visual drop/walk start: Ninja faces down, Samurai faces forward. Departure portals spawn at the cosmetic dash destination: Ninja moves forward and Samurai backward. A departure portal requires a compatible Departure Montage and the existing Ghost Material. The gameplay character and collision do not move with the departure copy.
+
+The default portal normal is local +X. Use the separate Arrival/Departure Portal Rotation corrections for assets authored on another axis. Offsets use the automatically oriented portal frame; scales are independent. Portal Departure Distance sets the dash distance; Portal Linger Duration keeps the effect alive briefly after the movement. Effects run through swap slowdown and are destroyed after their real-time lifetime. Assign looping systems if the portal must remain open through a long montage. Appearance, scale and the exact crossing point need an editor preview with your selected assets.
+
+Portal opening/closing uses an eased horizontal squeeze in real seconds. **Portal Open Duration**, **Portal Close Duration**, and **Portal Squeeze Axis** control it; the axis is in the Niagara asset's own local space. The close duration is added after movement plus linger, so closing never cuts off the departure dash. Your configured scale is restored at full opening. Niagara emitters must use local space for existing particles to follow component scaling.
+
+**Arrival Portal Sound** and **Departure Portal Sound** each play once when that portal spawns, using the existing Enable Sound and Sound Volume controls. Empty slots are silent.
+
+`Tools/fix_swap_portal_material_time.py` follows the assigned portal systems' dependencies and switches their material Time nodes and implicit Panner/Rotator clocks to real time. This fixes material motion freezing during swap world dilation; Niagara simulation already has real-time compensation. It preserves explicit animation input connections and writes a change report to `Saved/SwapPortalMaterialTime.json`. Re-run it after assigning a different portal whose materials still use game time. Shared materials also use real time wherever else those same materials appear.
+
+Swap audio comes only from Arrival Portal Sound and Departure Portal Sound. The legacy knife-swish, knife-draw/sword-swing defaults and Arrival Sound accent no longer play; their old Blueprint properties are deprecated. Enable Sound and Sound Volume still control the portal sounds.

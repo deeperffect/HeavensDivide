@@ -67,6 +67,12 @@ void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
         }
     }
     Age += DeltaSeconds;
+    if (bPortalDash && AnimatedMesh)
+    {
+        const float Alpha = FMath::Clamp(Age / FMath::Max(.01f, DepartureDuration), 0.f, 1.f);
+        SetActorLocation(FMath::Lerp(PortalStart, PortalEnd, Alpha * Alpha));
+        if (Alpha >= 1.f) { Destroy(); return; }
+    }
     if(AnimatedMesh && !bDepartureFinished && Age>=DepartureDuration)
     {
         bDepartureFinished=true;

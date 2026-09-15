@@ -21,4 +21,8 @@ public:
     // Lightweight Niagara enums are not exposed by UE's Python wrappers.
     UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")
     static bool SetPropertyText(UObject* Object, FName Property, const FString& Value);
+    UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")
+    static bool IsMaterialInputConnected(UObject* Expression, FName InputName);
+    UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")
+    static int32 PreparePortalLocalSpace(UNiagaraSystem* System);
 };

@@ -1,4 +1,5 @@
 #include "SwapPresentationComponent.h"
+#include "SwapPortal.h"
 #include "AutoAttackComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Containers/Ticker.h"
@@ -61,6 +62,7 @@ bool USwapPresentationComponent::UpdateSwapFreeze(float RealDelta)
 
 void USwapPresentationComponent::FinishSwapFreeze(bool bCancelEntrance)
 {
+    if (bCancelEntrance && ArrivalPortalActor.IsValid()) ArrivalPortalActor->Destroy();
     bArrivalPending=false;
     if(bCancelEntrance) StopEntrance();
     if(bCancelEntrance)

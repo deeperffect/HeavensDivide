@@ -17,7 +17,10 @@ public:
     bool InitializeDeparture(ACharacterBase* Source, UMaterialInterface* Material, FLinearColor Color,
         UAnimMontage* Montage, float PlayRate, float FadeDuration = .2f);
     virtual void Tick(float DeltaSeconds) override;
+    void SetPortalDestination(const FVector& Destination) { PortalStart = GetActorLocation(); PortalEnd = Destination; bPortalDash = true; }
 private:
+    bool bPortalDash = false;
+    FVector PortalStart = FVector::ZeroVector, PortalEnd = FVector::ZeroVector;
     friend class FSwapDepartureTest;
     void AdvanceVisual(float DeltaSeconds);
     UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> FadeMaterial;
