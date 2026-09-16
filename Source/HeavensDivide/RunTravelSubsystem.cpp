@@ -1,6 +1,7 @@
 #include "RunTravelSubsystem.h"
 
 #include "CharacterManagerComponent.h"
+#include "ComboAbilityComponent.h"
 #include "ExperienceComponent.h"
 #include "HealthComponent.h"
 #include "NinjaCharacter.h"
@@ -22,6 +23,7 @@ bool URunTravelSubsystem::CaptureFromController(ASurvivorPlayerController* Contr
 		Snapshot.CurrentXP = XP->GetCurrentXP();
 		Snapshot.CurrentLevel = XP->GetCurrentLevel();
 	}
+	if (auto* Combo = Controller->FindComponentByClass<UComboAbilityComponent>()) Snapshot.Combo = Combo->GetCombo();
 	Snapshot.CurrentDashCharges = Controller->GetCurrentDashCharges();
 	Snapshot.ExpectedMaxDashCharges = Controller->GetMaxDashCharges();
 	if (UCharacterManagerComponent* Party = Controller->GetCharacterManager())
@@ -49,6 +51,7 @@ bool URunTravelSubsystem::RestoreToController(ASurvivorPlayerController* Control
 		if (Party->GetSamurai()) if (UAutoAttackComponent* Attack = Party->GetSamurai()->FindComponentByClass<UAutoAttackComponent>()) Attack->RestoreRunState(Snapshot.SamuraiAttack);
 		if (Party->GetNinja()) if (UAutoAttackComponent* Attack = Party->GetNinja()->FindComponentByClass<UAutoAttackComponent>()) Attack->RestoreRunState(Snapshot.NinjaAttack);
 	}
+	if (auto* Combo = Controller->FindComponentByClass<UComboAbilityComponent>()) Combo->RestoreCombo(Snapshot.Combo);
 	Controller->RestoreRunTravelDashCharges(Snapshot.CurrentDashCharges);
 	if (UHealthComponent* Health = Controller->GetPlayerHealthComponent()) Health->RestoreCurrentHealth(Snapshot.CurrentHealth);
 	UE_LOG(LogTemp, Log, TEXT("[BossGate] Restored run: Time=%.1f HP=%.1f/%.1f Level=%d XP=%d Upgrades=%d Dash=%d/%d Active=%s"), Snapshot.RunTimeSeconds, Controller->GetPlayerHealthComponent() ? Controller->GetPlayerHealthComponent()->GetCurrentHealth() : 0.0f, Controller->GetPlayerHealthComponent() ? Controller->GetPlayerHealthComponent()->GetMaxHealth() : 0.0f, Snapshot.CurrentLevel, Snapshot.CurrentXP, Snapshot.Upgrades.Levels.Num(), Controller->GetCurrentDashCharges(), Controller->GetMaxDashCharges(), Snapshot.bNinjaActive ? TEXT("Ninja") : TEXT("Samurai"));

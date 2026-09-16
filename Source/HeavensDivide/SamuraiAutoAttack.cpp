@@ -198,9 +198,6 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
                 Enemy->ApplyAttackPushback(AttackOrigin, AttackSource, SamuraiPushbackDistance,
                                            SamuraiPushbackDuration);
             bHitSomething = true;
-            if (OwnerCharacter->GetOwner())
-                if (auto *Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
-                    Abilities->NotifyPartnerHit(AttackSource, Enemy);
             UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, Location, Normal, false);
         }
         return bApplied;

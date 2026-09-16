@@ -39,6 +39,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Healing Pickup|Effects")
 	TObjectPtr<UNiagaraSystem> PickupBurstFX;
 
+	/** Scale applied to the pickup burst when it spawns. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Healing Pickup|Effects", meta=(ClampMin="0.01"))
+	FVector PickupBurstScale = FVector(1.0f);
+
+	/** Niagara simulation speed: 1 is normal, 2 is twice as fast, 0.5 is half speed. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Healing Pickup|Effects", meta=(ClampMin="0.01"))
+	float PickupBurstPlaybackSpeed = 1.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Healing Pickup|Effects")
 	TObjectPtr<UMaterialInterface> HealOverlayMaterial;
 

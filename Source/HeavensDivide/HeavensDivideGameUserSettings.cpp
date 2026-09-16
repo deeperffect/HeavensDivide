@@ -5,7 +5,7 @@
 
 TArray<FName> UHeavensDivideGameUserSettings::GetBindableActions()
 {
-	return {TEXT("MoveForward"),TEXT("MoveBackward"),TEXT("MoveLeft"),TEXT("MoveRight"),TEXT("Swap"),TEXT("Dash"),TEXT("Interact")};
+	return {TEXT("MoveForward"),TEXT("MoveBackward"),TEXT("MoveLeft"),TEXT("MoveRight"),TEXT("Swap"),TEXT("Dash"),TEXT("Interact"),TEXT("ComboAbility")};
 }
 
 FKey UHeavensDivideGameUserSettings::GetDefaultBinding(FName Action)
@@ -17,6 +17,7 @@ FKey UHeavensDivideGameUserSettings::GetDefaultBinding(FName Action)
 	if(Action==TEXT("Swap"))return EKeys::RightMouseButton;
 	if(Action==TEXT("Dash"))return EKeys::SpaceBar;
 	if(Action==TEXT("Interact"))return EKeys::E;
+	if(Action==TEXT("ComboAbility"))return EKeys::Q;
 	return EKeys::Invalid;
 }
 
@@ -70,6 +71,18 @@ void UHeavensDivideGameUserSettings::SetAutoTargetingEnabled(bool bEnabled)
 void UHeavensDivideGameUserSettings::LoadSettings(bool bForceReload)
 {
     Super::LoadSettings(bForceReload);
+    // Older saves may already use Q. Give the newly introduced action a free key.
+    const FName ComboAction(TEXT("ComboAbility"));
+    const auto IsOccupied = [this, ComboAction](FKey Key) {
+        for (FName Action : GetBindableActions())
+            if (Action != ComboAction && GetKeyBinding(Action) == Key) return true;
+        return false;
+    };
+    if (IsOccupied(GetKeyBinding(ComboAction)))
+    {
+        for (FKey Candidate : {EKeys::Q, EKeys::F, EKeys::R, EKeys::T, EKeys::Y, EKeys::U, EKeys::I, EKeys::O})
+            if (!IsOccupied(Candidate)) { KeybindOverrides.Add(ComboAction, Candidate); break; }
+    }
     FApp::SetVolumeMultiplier(GetMasterVolume());
 }
 

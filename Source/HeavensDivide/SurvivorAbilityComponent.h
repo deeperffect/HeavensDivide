@@ -51,7 +51,7 @@ class HEAVENSDIVIDE_API AAbilityAccent : public AActor
     bool bIsBeam = false;
 };
 
-/** Blade Wave hit effects, preparation and Tag Team assists. */
+/** Blade Wave hit effects and Tag Team assists. */
 UCLASS(ClassGroup = (Combat), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API USurvivorAbilityComponent : public UActorComponent
 {
@@ -59,6 +59,7 @@ class HEAVENSDIVIDE_API USurvivorAbilityComponent : public UActorComponent
     GENERATED_BODY()
     friend class FSurvivorAbilitiesTest;
     friend class FBuildFamiliesTest;
+    friend class FTagTeamRegressionTest;
     friend class FUpgradeTuningTest;
 
   public:
@@ -67,11 +68,6 @@ class HEAVENSDIVIDE_API USurvivorAbilityComponent : public UActorComponent
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
     // Called by the existing attack notify path, never by swap or passive pulses.
     bool ExecuteSetupAssist(ACharacterBase *Character);
-    bool HasTriggerablePreparation(EPlayerAttackSource Source, const AEnemyBase *Enemy) const;
-    void PrioritizePreparedTargets(EPlayerAttackSource Source, TArray<AEnemyBase *> &Targets) const;
-    void NotifyPartnerHit(EPlayerAttackSource Source, AEnemyBase *Enemy, bool bAssistHit = false,
-                          uint8 StatusBeforeHit = 255);
-    void RegisterFamilyHit(int32 Family, AEnemyBase *Enemy, float Damage);
     void BladeWaveImpact(AEnemyBase *Enemy, float Damage, bool bSplinter);
     void GrantBuildPreview(FString FamilyId, int32 Branch = 0);
     float Tuning(int32 Family, FName Key, float Fallback, int32 Slot = -1) const;
@@ -82,26 +78,9 @@ class HEAVENSDIVIDE_API USurvivorAbilityComponent : public UActorComponent
     AAbilityAccent *FamilyAccent(int32 Family, FVector Position, FVector End, float Radius, FLinearColor Color,
                                  float Duration = 0.35f, bool bBeam = false, int32 Slot = -1, int32 Stage = 0);
 
-    UPROPERTY(EditAnywhere, Category = "Synergies|Prepare", meta = (ClampMin = "0.1"))
-    float PreparationDuration = 6.0f;
-    UPROPERTY(EditAnywhere, Category = "Synergies|Prepare", meta = (ClampMin = "0.0"))
-    float PreparationDamageMultiplier = 0.6f;
-    UPROPERTY(EditAnywhere, Category = "Synergies|Prepare", meta = (ClampMin = "0.0"))
-    float PreparationSpreadRadius = 300.0f;
-
   private:
-    struct FBuildMark
-    {
-        TWeakObjectPtr<AEnemyBase> Enemy;
-        EPlayerAttackSource Source = EPlayerAttackSource::Other;
-        float Damage = 0, Remaining = 6;
-    };
-    void UpdateBuildFamilies(ACharacterBase *Character);
     bool Branch(int32 Family, int32 Index) const;
     float BuildMagnitude(int32 Family, const TCHAR *Suffix) const;
-    void ClearBuildFamilies();
-    TArray<FBuildMark> BuildMarks;
-    bool bResolvingReaction = false;
     void UpdateAbilities();
     TArray<AEnemyBase *> FindEnemies(FVector Position, float Radius, EPlayerAttackSource Source) const;
     AAbilityAccent *Accent(FVector Position, FVector End, float Radius, FLinearColor Color, float Duration = 0.35f,

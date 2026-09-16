@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "ComboAbilityComponent.h"
 #include "CharacterBase.generated.h"
 
 class USceneComponent;
@@ -27,6 +28,9 @@ class HEAVENSDIVIDE_API ACharacterBase : public ACharacter
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability") FComboAbilitySettings ComboAbility;
+	UPROPERTY(Transient, BlueprintReadOnly, Category="Combo Ability") bool bComboAbilityActive = false;
+	UFUNCTION(BlueprintNativeEvent, Category="Combo Ability") void ExecuteComboAbility(float Radius, float Damage);
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Presentation")
 	TObjectPtr<USwapPresentationComponent> SwapPresentation;
 	ACharacterBase();

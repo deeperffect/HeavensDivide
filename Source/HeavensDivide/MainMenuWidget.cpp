@@ -558,7 +558,7 @@ UVerticalBox* UMainMenuWidget::BuildKeybindPanel()
  auto* Help=WidgetTree->ConstructWidget<UTextBlock>();Help->SetFont(BodyFont);Help->SetColorAndOpacity(SecondaryBodyColor);
  Help->SetText(FText::FromString(TEXT("Keyboard & mouse. Select a binding, then press a key. Esc cancels.")));Help->SetAutoWrapText(true);
  Panel->AddChildToVerticalBox(Help)->SetPadding(FMargin(0,0,0,16));
- const TCHAR* Labels[]={TEXT("Move Forward"),TEXT("Move Backward"),TEXT("Move Left"),TEXT("Move Right"),TEXT("Swap Character"),TEXT("Dash"),TEXT("Interact")};
+ const TCHAR* Labels[]={TEXT("Move Forward"),TEXT("Move Backward"),TEXT("Move Left"),TEXT("Move Right"),TEXT("Swap Character"),TEXT("Dash"),TEXT("Interact"),TEXT("Combo Ability")};
  const auto Actions=UHeavensDivideGameUserSettings::GetBindableActions();KeybindSelectors.Reset();
  for(int32 Index=0;Index<Actions.Num();++Index)
  {

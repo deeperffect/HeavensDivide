@@ -246,6 +246,16 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
 		return;
 	}
 
+	// A heavy Samurai swing can kill the selected enemy during Ninja's wind-up.
+	// Resolve a live target again before any stance launches its projectile.
+	if (bActiveAttackIsAssist)
+	{
+		AEnemyBase* Target = CurrentAttackTarget.Get();
+		if (!Target || Target->IsDead() || !Target->CanReceivePlayerDamage(EPlayerAttackSource::Ninja)
+			|| FVector::DistSquared2D(Target->GetActorLocation(), OwnerCharacter->GetActorLocation()) > FMath::Square(GetEffectiveTargetingRange()))
+			CurrentAttackTarget = FindAssistTarget();
+		if (!CurrentAttackTarget.IsValid()) return;
+	}
  if(auto* B=GetOwner()->FindComponentByClass<UNinjaBuildComponent>();B&&B->ReplaceVolley(bActiveAttackIsAssist && CurrentAttackTarget.IsValid() ? GetEnemyAimLocation(CurrentAttackTarget.Get())-OwnerCharacter->GetActorLocation() : ActiveAttackDirection,bActiveAttackIsAssist))return;
 	if (!ProjectileClass)
 	{
@@ -454,15 +464,6 @@ AEnemyBase* UAutoAttackComponent::FindAssistTargetNearLocation(const FVector& Se
 {
 	TArray<AEnemyBase*> SortedTargets;
 	FindEnemyTargetsSortedFromLocation(SearchLocation, SearchRadius, SortedTargets);
-	if (OwnerCharacter && OwnerCharacter->GetOwner())
-	{
-		if (const auto* Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
-		{
-			const auto Source = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
-			Abilities->PrioritizePreparedTargets(Source, SortedTargets);
-			if (!SortedTargets.IsEmpty() && Abilities->HasTriggerablePreparation(Source, SortedTargets[0])) return SortedTargets[0];
-		}
-	}
 	if (!ProjectileClass)
 	{
 		return FindBestMeleeTarget(SearchLocation, SearchRadius);
@@ -778,6 +779,7 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 	const bool bProspectiveDoubleCutPrimary = bUpdateNormalCooldown
 		&& !ProjectileClass
 		&& OwnerCharacter
+		&& !OwnerCharacter->bComboAbilityActive
 		&& OwnerCharacter->IsA<ASamuraiCharacter>()
 		&& WillNextSamuraiAttackTriggerDoubleCut();
 	const float ActualPlayRate = NormalCalculatedPlayRate
@@ -973,6 +975,7 @@ bool UAutoAttackComponent::StartTargetedAttack()
 
 bool UAutoAttackComponent::CanStartAttackNow() const
 {
+	if (OwnerCharacter && OwnerCharacter->bComboAbilityActive) return false;
 	if(OwnerCharacter && OwnerCharacter->SwapPresentation && OwnerCharacter->SwapPresentation->IsBlockingAttacks()) return false;
 	const UWorld* World = GetWorld();
 	if (!World)
@@ -987,6 +990,7 @@ bool UAutoAttackComponent::CanExecuteAttackInCurrentMode() const
 {
 	return bAutoAttackEnabled
 		&& OwnerCharacter
+		&& !OwnerCharacter->bComboAbilityActive
 		&& !IsOwningPlayerDead()
 		&& (OwnerCharacter->GetCharacterMode() == ECharacterMode::Active || OwnerCharacter->GetCharacterMode() == ECharacterMode::Assisting)
 		&& GetWorld();
@@ -1396,6 +1400,7 @@ bool UAutoAttackComponent::CanAutoAttack() const
 {
 	return bAutoAttackEnabled
 		&& OwnerCharacter
+		&& !OwnerCharacter->bComboAbilityActive
 		&& !IsOwningPlayerDead()
 		&& OwnerCharacter->GetCharacterMode() == ECharacterMode::Active
 		&& GetWorld();

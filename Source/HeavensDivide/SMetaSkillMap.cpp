@@ -278,20 +278,16 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
 			Glyph({{.85,-1},{.75,.4},{.2,.9},{-.5,.75},{-.8,.2},{-.6,-.4},{.85,-1},{-.75,.95}});
 			Glyph({{-.3,.4},{-.55,-.05}});Glyph({{.15,-.05},{.5,.05}});
 		}
-		else if(Effect.Contains(TEXT("Damage"))||Effect==TEXT("Reaction"))
+		else if(Effect.Contains(TEXT("Damage")))
 		{
 			Glyph({{.8,-1},{.65,-.45},{-.45,.7},{-.7,.45},{.45,-.65},{.8,-1}});
 			Glyph({{-.8,.2},{-.2,.8}});Glyph({{-.55,.55},{-.95,.95}});
-			if(Effect==TEXT("Damage")||Effect==TEXT("Reaction"))Glyph({{-.9,-.95},{-.55,-.85},{.8,.6},{.55,.85},{-.85,-.55},{-.9,-.95}});
+			if(Effect==TEXT("Damage"))Glyph({{-.9,-.95},{-.55,-.85},{.8,.6},{.55,.85},{-.85,-.55},{-.9,-.95}});
 		}
 		else if(Effect==TEXT("Swap"))
 		{
 			Arc(P,12,-145,10,Ink,1.7f,5);Arc(P,12,35,190,Ink,1.7f,5);
 			Glyph({{.6,-.3},{.87,.12},{1.15,-.25}});Glyph({{-.6,.3},{-.87,-.12},{-1.15,.25}});
-		}
-		else if(Effect==TEXT("Preparation"))
-		{
-			Arc(P,13,0,360,Ink,1.7f,5);Glyph({{0,-.7},{0,0},{.5,.3}});Glyph({{-.3,-1.15},{.3,-1.15}});
 		}
 		else if(Effect==TEXT("Pickup"))
 		{

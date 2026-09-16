@@ -39,7 +39,11 @@ void APlayerCameraRig::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if(bSwapFocusActive)
+	if(UpdateAbilityCamera(static_cast<float>(FApp::GetDeltaTime())))
+	{
+		// Ability framing owns tracking until its return blend completes.
+	}
+	else if(bSwapFocusActive)
 	{
 		UpdateSwapFocus(static_cast<float>(FApp::GetDeltaTime()));
 	}
@@ -81,7 +85,7 @@ void APlayerCameraRig::StopArrivalKick()
 
 void APlayerCameraRig::SetFollowTarget(ACharacterBase* NewFollowTarget)
 {
-	if(FollowTarget!=NewFollowTarget) StopSwapFocus();
+	if(FollowTarget!=NewFollowTarget) { StopAbilityCamera(); StopSwapFocus(); }
 	if(IsValid(FollowTarget) && FollowTarget->SwapPresentation)
 		RemoveTickPrerequisiteComponent(FollowTarget->SwapPresentation);
 	FollowTarget = NewFollowTarget;
@@ -101,6 +105,7 @@ ACharacterBase* APlayerCameraRig::GetFollowTarget() const
 
 void APlayerCameraRig::StartSwapFocus()
 {
+	StopAbilityCamera();
 	StopSwapFocus();
 	if(!bEnableSwapFocus || !IsValid(FollowTarget) || !Camera || !CameraBoom) return;
 	OriginalFOV=Camera->FieldOfView;
@@ -155,6 +160,7 @@ void APlayerCameraRig::StopSwapFocus(bool bCancelArrivalKick)
 
 void APlayerCameraRig::EndPlay(const EEndPlayReason::Type Reason)
 {
+	StopAbilityCamera();
 	StopSwapFocus();
 	Super::EndPlay(Reason);
 }

@@ -8,8 +8,10 @@ Open **Settings → Keybinds** in the main menu. Select a binding, then press a 
 | Swap character | Right mouse button |
 | Dash | Space |
 | Interact | E |
+| Combo ability (full meter) | Q |
 
 Controller mappings remain unchanged. Escape and the console key are reserved. Automatic attacks do not require an attack key.
+Combo ability additionally uses the gamepad left face button. See [Combo abilities](ComboAbilities.md) for tuning.
 
 The subpage shares the existing settings frame, background texture, heading/body fonts, colors and ink-button artwork. Its content scrolls when necessary.
 

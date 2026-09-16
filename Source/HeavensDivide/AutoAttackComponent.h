@@ -63,6 +63,7 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 	friend class FEnemyPushbackTest;
 	friend class FGrandEntranceTest;
 	friend class FSamuraiBuildsTest;
+	friend class FTagTeamRegressionTest;
  friend class UNinjaBuildComponent;
  friend class ANinjaBuildProjectile;
  friend class FNinjaBuildsTest;

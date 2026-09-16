@@ -38,7 +38,6 @@ void USurvivorAbilityComponent::BeginPlay()
 void USurvivorAbilityComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
     GetWorld()->GetTimerManager().ClearTimer(Scheduler);
-    ClearBuildFamilies();
     for (auto Effect : ActiveAccents)
         if (Effect.IsValid())
             Effect->Destroy();
@@ -115,14 +114,12 @@ void USurvivorAbilityComponent::UpdateAbilities()
         return;
     if (!Controller->IsRunInProgress() || Controller->IsPlayerDead())
     {
-        ClearBuildFamilies();
         for (auto E : ActiveAccents)
             if (E.IsValid())
                 E->Destroy();
         ActiveAccents.Reset();
         return;
     }
-    UpdateBuildFamilies(nullptr);
 }
 bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase *Character)
 {
@@ -142,7 +139,6 @@ bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase *Character)
     int32 Hits = 0;
     auto Targets = FindEnemies(
         Origin, bSamurai ? AssistTune(TEXT("SamuraiRange"), 420) : AssistTune(TEXT("NinjaRange"), 1000), Source);
-    PrioritizePreparedTargets(Source, Targets);
     for (auto *Enemy : Targets)
     {
         if (!Controller->IsRunInProgress() || Controller->IsPlayerDead())
@@ -153,22 +149,18 @@ bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase *Character)
             FVector::DotProduct(Forward, Direction) <
                 FMath::Cos(FMath::DegreesToRadians(AssistTune(TEXT("ConeHalfAngle"), 69.51268f))))
             continue;
-        // Death clears statuses, so snapshot them before the successful assist hit.
-        const uint8 StatusBeforeHit = (Enemy->HasStatus(EEnemyStatusEffect::Bleed) ? 1 : 0) |
-                                      (Enemy->HasStatus(EEnemyStatusEffect::Poison) ? 2 : 0);
         if (!Enemy->ApplyPlayerDamage(
                 (bSamurai ? AssistTune(TEXT("SamuraiDamage"), 12) : AssistTune(TEXT("NinjaDamage"), 10)) *
                     Power(Character),
                 Source))
             continue;
-        NotifyPartnerHit(Source, Enemy, true, StatusBeforeHit);
         Accent(Origin, Position, 0, bSamurai ? Colors[0] : Colors[3], 0.3f, true,
                Definition ? &Definition->Presentation : nullptr);
         if (!Enemy->IsDead())
         {
-            if (bSamurai || Upgrades->HasUpgradeId(TEXT("VenomousKunai")))
+            if (Upgrades->HasUpgradeId(bSamurai ? TEXT("BleedingEdge") : TEXT("VenomousKunai")))
                 Enemy->GetStatusEffectComponent()->ApplyStatus(
-                    bSamurai ? EEnemyStatusEffect::Bleed : EEnemyStatusEffect::Poison, Upgrades, Source, bSamurai);
+                    bSamurai ? EEnemyStatusEffect::Bleed : EEnemyStatusEffect::Poison, Upgrades, Source);
             if (bSamurai)
             {
                 if (Upgrades->HasUpgradeId(TEXT("MarkedBlade")))

@@ -47,7 +47,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	Meta->CurrentSave->UnlockedSynergyUpgradeIds.Add(TEXT("Synergy.TestLegacy"));
 	TestFalse(TEXT("Unknown node cannot be purchased"),Meta->PurchaseSkill(TEXT("Missing")));
 	TestFalse(TEXT("Prerequisites enforced"),Meta->PurchaseSkill(TEXT("Steel.Edge")));
-	TestEqual(TEXT("32 authored passives"),MetaSkillTree::Nodes().Num(),32);
+	TestEqual(TEXT("28 authored passives"),MetaSkillTree::Nodes().Num(),28);
 	TSet<FName> Seen;
 	for (const FMetaSkillNode& N : MetaSkillTree::Nodes())
 	{
@@ -58,16 +58,16 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 		for (int32 Rank=0;Rank<N.MaxRank;++Rank) TestTrue(TEXT("Legal rank purchase"),Meta->PurchaseSkill(N.Id));
 		TestFalse(TEXT("Rank cap enforced"),Meta->PurchaseSkill(N.Id));
 	}
-	TestEqual(TEXT("Complete tree costs 1600 Embers"),Meta->GetSoulEmbers(),400);
+	TestEqual(TEXT("Complete tree costs 1330 Embers"),Meta->GetSoulEmbers(),670);
 	TestTrue(TEXT("Swap speed totals 30 percent"),FMath::IsNearlyEqual(Meta->GetSkillBonus(TEXT("Swap")),.3f));
 	Meta->LoadMetaProgression();
-	TestEqual(TEXT("Wallet survives disk reload"),Meta->GetSoulEmbers(),400);
+	TestEqual(TEXT("Wallet survives disk reload"),Meta->GetSoulEmbers(),670);
 	TestEqual(TEXT("Capstone survives disk reload"),Meta->GetSkillRank(TEXT("Bond.Unity")),1);
 	TestTrue(TEXT("Legacy discoveries preserved"),Meta->IsSynergyUpgradeUnlocked(TEXT("Synergy.TestLegacy")));
 	Meta->bSimulateSaveFailure = true;
 	TestFalse(TEXT("Failed refund reports failure"),Meta->RefundSkills());
 	TestEqual(TEXT("Failed refund restores ranks"),Meta->GetSkillRank(TEXT("Bond.Unity")),1);
-	TestEqual(TEXT("Failed refund restores wallet"),Meta->GetSoulEmbers(),400);
+	TestEqual(TEXT("Failed refund restores wallet"),Meta->GetSoulEmbers(),670);
 	Meta->bSimulateSaveFailure = false;
 	TestTrue(TEXT("Full refund"),Meta->RefundSkills());
 	TestEqual(TEXT("Exact paid cost returned"),Meta->GetSoulEmbers(),2000);
@@ -89,7 +89,20 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	TestEqual(TEXT("Reward bounded"),MetaSkillTree::RunReward(100000,true),140);
 	// Simulate an old profile; migration must not reset existing discoveries.
 	Meta->CurrentSave->SaveVersion=2;Meta->SaveMetaProgression();Meta->LoadMetaProgression();
-	TestEqual(TEXT("Migration upgrades schema"),Meta->CurrentSave->SaveVersion,3);
+	TestEqual(TEXT("Migration upgrades schema"),Meta->CurrentSave->SaveVersion,4);
+	auto* RetiredSave = NewObject<UHeavensDivideMetaSaveGame>();
+	RetiredSave->SoulEmbers = 100; RetiredSave->SkillEmbersSpent = 30;
+	RetiredSave->SkillRanks.Add(TEXT("Bond.Memory"), 2);
+	RetiredSave->SkillRanks.Add(TEXT("Root.Gather"), 1);
+	RetiredSave->SkillRanks.Add(TEXT("Root.Step"), 1);
+	MetaSkillTree::Sanitize(*RetiredSave);
+	TestEqual(TEXT("Retired Prepare ranks are refunded"), RetiredSave->SoulEmbers, 115);
+	TestEqual(TEXT("Refund removes only retired spending"), RetiredSave->SkillEmbersSpent, 15);
+	TestEqual(TEXT("Existing valid skills survive"), RetiredSave->SkillRanks.Num(), 2);
+	MetaSkillTree::Sanitize(*RetiredSave);
+	TestEqual(TEXT("Retired rank refund is idempotent"), RetiredSave->SoulEmbers, 115);
+	for (const auto* Id : {TEXT("Bond.Memory"), TEXT("Bond.Strike"), TEXT("Bond.Echo"), TEXT("Bond.Reaction")})
+		TestNull(TEXT("Prepare passives removed from catalog"), MetaSkillTree::Find(Id));
 	TestTrue(TEXT("Migration retains discoveries"),Meta->IsSynergyUpgradeUnlocked(TEXT("Synergy.TestLegacy")));
 	Meta->CurrentSave->SkillRanks.Add(TEXT("Unknown"),999);
 	Meta->CurrentSave->SkillRanks.Add(TEXT("Steel.Edge"),999);
@@ -143,20 +156,6 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	const float WithoutPoison=Status->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison);
 	TestTrue(TEXT("Poison passive reaches status damage"),WithoutPoison>0 && FMath::IsNearlyEqual(WithPoison/WithoutPoison,1.3f));
 	Meta->RefreshSkillBonuses();
-	auto* Ability=PC->FindComponentByClass<USurvivorAbilityComponent>();
-	Ability->Controller=PC;Ability->Upgrades=Upgrades;
-	const int32 Family=4; // Blade Wave retains its stable runtime catalog index.
-	const auto& Spec=BuildFamilies[Family];
-	auto* Starter=LoadObject<UUpgradeDefinition>(nullptr,*FString::Printf(TEXT("/Game/HeavensDivide/Upgrades/%s/DA_Upgrade_%s%s"),Spec.Owner,Spec.Owner,Spec.Id));
-	TestTrue(TEXT("Acquire family for reaction test"),Upgrades->AcquireUpgrade(Starter));
-	Ability->RegisterFamilyHit(Family,Enemy,20);
-	TestTrue(TEXT("Preparation gets three bonus seconds"),Ability->BuildMarks.Num()==1 && FMath::IsNearlyEqual(Ability->BuildMarks[0].Remaining,Ability->PreparationDuration+3));
-	const float Before=Enemy->GetHealthComponent()->GetCurrentHealth();
-	Ability->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy,true);
-	const float Expected=20*Ability->PreparationDamageMultiplier*1.3f;
-	TestTrue(TEXT("Partner reaction receives damage passive"),FMath::IsNearlyEqual(Before-Enemy->GetHealthComponent()->GetCurrentHealth(),Expected,.01f));
-	Ability->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy,true);
-	TestTrue(TEXT("Passive does not bypass duplicate reaction guard"),FMath::IsNearlyEqual(Before-Enemy->GetHealthComponent()->GetCurrentHealth(),Expected,.01f));
 	// Construct Slate graph without needing a local player or modifying project assets.
 	auto* Tree=CreateWidget<UMetaSkillTreeWidget>(GI);
 	TestTrue(TEXT("Skill tree Slate graph builds"),Tree->TakeWidget()->GetVisibility().IsVisible());

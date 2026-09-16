@@ -120,6 +120,7 @@ void UCharacterManagerComponent::SwapCharacter()
 			*GetNameSafe(NewCharacter));
 		return;
 	}
+	if (OldCharacter->bComboAbilityActive) return;
 	if(OldCharacter->SwapPresentation && OldCharacter->SwapPresentation->IsBlockingAttacks()) return;
 
 	bIsSwapInProgress = true;

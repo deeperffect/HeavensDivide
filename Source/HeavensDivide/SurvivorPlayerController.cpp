@@ -3,6 +3,7 @@
 #include "SurvivorPlayerController.h"
 #include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
+#include "ComboAbilityComponent.h"
 
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
@@ -100,6 +101,9 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
 	SurvivorAbilities = CreateDefaultSubobject<USurvivorAbilityComponent>(TEXT("SurvivorAbilities"));
 	InactiveCharacterAssistComponent = CreateDefaultSubobject<UInactiveCharacterAssistComponent>(TEXT("InactiveCharacterAssistComponent"));
+	ComboAbilities = CreateDefaultSubobject<UComboAbilityComponent>(TEXT("ComboAbilities"));
+	ComboAbilityAction = CreateDefaultSubobject<UInputAction>(TEXT("IA_ComboAbility_Runtime"));
+	ComboAbilityAction->ValueType = EInputActionValueType::Boolean;
 	InteractAction = CreateDefaultSubobject<UInputAction>(TEXT("IA_Interact_Runtime"));
 	InteractAction->ValueType = EInputActionValueType::Boolean;
 	AimAction = CreateDefaultSubobject<UInputAction>(TEXT("IA_Aim_Runtime"));
@@ -196,6 +200,8 @@ void ASurvivorPlayerController::BuildRuntimeKeyMappings(const UHeavensDivideGame
  EnsureMapping(SwapAction,EKeys::Gamepad_FaceButton_Top);
  EnsureMapping(InteractAction,EKeys::Gamepad_FaceButton_Bottom);
  EnsureMapping(InteractAction,EKeys::E);
+ EnsureMapping(ComboAbilityAction,EKeys::Q);
+ EnsureMapping(ComboAbilityAction,EKeys::Gamepad_FaceButton_Left);
  EnsureMapping(AimAction,EKeys::Gamepad_Right2D);
  for(int32 Index=0;Index<RuntimeMappingContext->GetMappings().Num();++Index)
  {
@@ -205,6 +211,7 @@ void ASurvivorPlayerController::BuildRuntimeKeyMappings(const UHeavensDivideGame
   if(Mapping.Action==SwapAction)Binding=TEXT("Swap");
   else if(Mapping.Action==DashAction)Binding=TEXT("Dash");
   else if(Mapping.Action==InteractAction)Binding=TEXT("Interact");
+  else if(Mapping.Action==ComboAbilityAction)Binding=TEXT("ComboAbility");
   else if(Mapping.Action==MoveAction)
    for(FName Direction:{FName(TEXT("MoveForward")),FName(TEXT("MoveBackward")),FName(TEXT("MoveLeft")),FName(TEXT("MoveRight"))})
     if(Mapping.Key==UHeavensDivideGameUserSettings::GetDefaultBinding(Direction)){Binding=Direction;break;}
@@ -336,6 +343,7 @@ bool ASurvivorPlayerController::CanSwap() const
 	return !bIsPlayerDead
 		&& !bIsDashing
 		&& !bLevelUpSelectionActive
+		&& !(ComboAbilities && ComboAbilities->IsAbilityActive())
 		&& !bSwapLocked
 		&& bCanSwap
 		&& CharacterManager
@@ -442,7 +450,7 @@ bool ASurvivorPlayerController::TryDash()
 
 bool ASurvivorPlayerController::CanDash() const
 {
-	if (bIsPlayerDead || bIsDashing || bLevelUpSelectionActive || !GetWorld())
+	if (bIsPlayerDead || bIsDashing || bLevelUpSelectionActive || !GetWorld() || (ComboAbilities && ComboAbilities->IsAbilityActive()))
 	{
 		return false;
 	}
@@ -545,6 +553,8 @@ void ASurvivorPlayerController::SetupInputComponent()
 	{
 		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::Dash);
 	}
+	if (EnhancedInputComponent && ComboAbilityAction)
+		EnhancedInputComponent->BindAction(ComboAbilityAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::ActivateComboAbility);
 	if (EnhancedInputComponent && InteractAction)
 	{
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ASurvivorPlayerController::Interact);
@@ -628,6 +638,11 @@ void ASurvivorPlayerController::Dash(const FInputActionValue& Value)
 {
 	if (bLevelUpSelectionActive) return;
 	TryDash();
+}
+
+void ASurvivorPlayerController::ActivateComboAbility()
+{
+	if (ComboAbilities) ComboAbilities->TryActivateAbility();
 }
 
 void ASurvivorPlayerController::Interact()

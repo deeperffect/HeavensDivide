@@ -8,6 +8,7 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Materials/MaterialInterface.h"
@@ -92,7 +93,12 @@ void AHealingPickup::HandlePickupOverlap(UPrimitiveComponent* OverlappedComponen
 	const FVector PickupLocation = GetActorLocation();
 	if (PickupBurstFX)
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, PickupBurstFX, PickupLocation, GetActorRotation());
+		if (UNiagaraComponent* Burst = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this, PickupBurstFX, PickupLocation, GetActorRotation(), PickupBurstScale, true, false))
+		{
+			Burst->SetCustomTimeDilation(FMath::Max(0.01f, PickupBurstPlaybackSpeed));
+			Burst->Activate();
+		}
 	}
 	if (HealOverlayMaterial && PlayerCharacter->GetMesh())
 	{

@@ -25,4 +25,7 @@ public:
     static bool IsMaterialInputConnected(UObject* Expression, FName InputName);
     UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")
     static int32 PreparePortalLocalSpace(UNiagaraSystem* System);
+
+    UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")
+    static bool PreparePickupBurstScale(UNiagaraSystem* System);
 };

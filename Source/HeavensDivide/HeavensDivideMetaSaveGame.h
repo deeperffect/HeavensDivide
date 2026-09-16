@@ -13,7 +13,7 @@ class HEAVENSDIVIDE_API UHeavensDivideMetaSaveGame : public USaveGame
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
-	int32 SaveVersion = 3;
+	int32 SaveVersion = 4;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
 	TArray<FName> UnlockedSynergyUpgradeIds;

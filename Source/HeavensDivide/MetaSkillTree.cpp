@@ -40,15 +40,11 @@ const TArray<FMetaSkillNode>& MetaSkillTree::Nodes()
 		Add(TEXT("Shadow.Pierce"), TEXT("Through the Veil"), TEXT("Ninja basic projectiles pierce one additional enemy."), 2,3,0,TEXT("Shadow.Power"),TEXT("Pierce"),1,1);
 		Add(TEXT("Shadow.Twin"), TEXT("Twin Fangs"), TEXT("+1 Ninja basic projectile."), 2,3,1,TEXT("Shadow.Toxin"),TEXT("Projectile"),1,1);
 		Add(TEXT("Bond.Flow"), TEXT("Crossing Souls"), TEXT("+5% swap recharge speed per rank."), 3,0,0,TEXT("Root.Strength"),TEXT("Swap"),.05f);
-		Add(TEXT("Bond.Memory"), TEXT("Lingering Intent"), TEXT("Universal Prepare lasts +0.5 seconds per rank."), 3,0,1,TEXT("Root.Step"),TEXT("Preparation"),.5f);
-		Add(TEXT("Bond.Strike"), TEXT("Answered Challenge"), TEXT("+5% Prepare bonus damage per rank."), 3,1,0,TEXT("Bond.Flow"),TEXT("Reaction"),.05f);
-		Add(TEXT("Bond.Relay"), TEXT("Seamless Relay"), TEXT("+5% swap recharge speed per rank."), 3,1,1,TEXT("Bond.Memory"),TEXT("Swap"),.05f);
-		Add(TEXT("Bond.Echo"), TEXT("Unbroken Promise"), TEXT("Universal Prepare lasts +0.5 seconds per rank."), 3,2,0,TEXT("Bond.Strike"),TEXT("Preparation"),.5f);
-		Add(TEXT("Bond.Reaction"), TEXT("Converging Blades"), TEXT("+5% Prepare bonus damage per rank."), 3,2,1,TEXT("Bond.Relay"),TEXT("Reaction"),.05f);
-		Add(TEXT("Bond.Unity"), TEXT("Two Souls, One Will"), TEXT("+8% damage for both characters."), 3,3,0,TEXT("Bond.Echo"),TEXT("Damage"),.08f,1);
-		Add(TEXT("Bond.Rhythm"), TEXT("Heaven Undivided"), TEXT("+8% basic attack speed for both characters."), 3,3,1,TEXT("Bond.Reaction"),TEXT("Attack"),.08f,1);
-		Result[30].Prerequisites.Append({FName(TEXT("Steel.Power")), FName(TEXT("Shadow.Power"))});
-		Result[31].Prerequisites.Append({FName(TEXT("Steel.Wounds")), FName(TEXT("Shadow.Toxin"))});
+		Add(TEXT("Bond.Relay"), TEXT("Seamless Relay"), TEXT("+5% swap recharge speed per rank."), 3,1,1,TEXT("Root.Step"),TEXT("Swap"),.05f);
+		Add(TEXT("Bond.Unity"), TEXT("Two Souls, One Will"), TEXT("+8% damage for both characters."), 3,3,0,TEXT("Bond.Flow"),TEXT("Damage"),.08f,1);
+		Add(TEXT("Bond.Rhythm"), TEXT("Heaven Undivided"), TEXT("+8% basic attack speed for both characters."), 3,3,1,TEXT("Bond.Relay"),TEXT("Attack"),.08f,1);
+		Result[26].Prerequisites.Append({FName(TEXT("Steel.Power")), FName(TEXT("Shadow.Power"))});
+		Result[27].Prerequisites.Append({FName(TEXT("Steel.Wounds")), FName(TEXT("Shadow.Toxin"))});
 		for (FMetaSkillNode& N : Result)
 		{
 			if (N.Effect == TEXT("Health")) N.SharedStat = ESharedPlayerStatType::MaxHealthMultiplier;
@@ -113,6 +109,20 @@ void MetaSkillTree::Sanitize(UHeavensDivideMetaSaveGame& Save)
 {
 	Save.SoulEmbers = FMath::Max(0, Save.SoulEmbers);
 	Save.SkillEmbersSpent = FMath::Max(0, Save.SkillEmbersSpent);
+	// Refund retired Prepare passives once, keeping all surviving purchases.
+	const TPair<FName, int32> Retired[] = {
+		{TEXT("Bond.Memory"), 5}, {TEXT("Bond.Strike"), 10},
+		{TEXT("Bond.Echo"), 15}, {TEXT("Bond.Reaction"), 15}};
+	int32 RefundAmount = 0;
+	for (const auto& Node : Retired)
+	{
+		const int32 Ranks = FMath::Clamp(Save.SkillRanks.FindRef(Node.Key), 0, 3);
+		RefundAmount += Node.Value * Ranks * (Ranks + 1) / 2;
+		Save.SkillRanks.Remove(Node.Key);
+	}
+	RefundAmount = FMath::Min(RefundAmount, Save.SkillEmbersSpent);
+	Save.SkillEmbersSpent -= RefundAmount;
+	Save.SoulEmbers = static_cast<int32>(FMath::Min<int64>(MAX_int32, int64(Save.SoulEmbers) + RefundAmount));
 	for (auto It = Save.SkillRanks.CreateIterator(); It; ++It)
 	{
 		const FMetaSkillNode* N = Find(It.Key());

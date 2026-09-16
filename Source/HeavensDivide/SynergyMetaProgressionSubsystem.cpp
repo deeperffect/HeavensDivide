@@ -16,7 +16,7 @@
 namespace SynergyMetaProgression
 {
 	static const FString SaveSlotName(TEXT("HeavensDivide_MetaProgression"));
-	static constexpr int32 CurrentSaveVersion = 3;
+	static constexpr int32 CurrentSaveVersion = 4;
 	static constexpr int32 TwinSoulCompletionsPerDiscovery = 3;
 	static const FName DefaultUnlockedIds[] =
 	{

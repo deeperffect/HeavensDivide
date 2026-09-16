@@ -12,11 +12,11 @@ The map is native Slate vector drawing, so circles, connectors and symbols stay 
 
 ## Progression
 
-- 32 nodes, 80 ranks, four paths: Shared Roots, Way of Steel, Way of Shadow and Twin Soul Bond.
+- 28 nodes, 68 ranks, four paths: Shared Roots, Way of Steel, Way of Shadow and Twin Soul Bond.
 - One rank in every prerequisite opens its child; maxing a parent is optional. All nodes can eventually be learned.
 - Each completed 30 seconds of run time awards one Soul Ember at defeat or victory. Victory adds 20. A 10-minute defeat earns 20; a 15-minute victory earns 50. Quitting a live run does not bank a reward.
 - Rewards use the existing run clock, including boss-arena travel. Existing terminal run guards prevent repeated death/victory callbacks from paying twice. Invalid time is rejected; survival rewards cap at 120 Embers, plus the victory bonus.
-- Tier base prices are 5 / 10 / 15 / 20. A rank costs base price times the new rank. Tiers 1-3 have three ranks per node; the last tier has one. The full tree costs 1,600 Embers.
+- Tier base prices are 5 / 10 / 15 / 20. A rank costs base price times the new rank. Tiers 1-3 have three ranks per node; the last tier has one. The full tree costs 1,330 Embers.
 - Purchase and refund APIs reject gameplay controllers, including post-defeat screens: return to the main menu to change progression.
 - Existing family starters, combinable branches, scalable run cards, mastery, and synergy discovery remain separate. This pass adds passives rather than retroactively locking available content.
 
@@ -68,25 +68,21 @@ Values below are per rank unless the node has one rank. Character direct damage 
 | Node | Effect | Ranks | Prerequisite (one rank each) |
 | --- | --- | --- | --- |
 | Crossing Souls | +5% swap recharge speed per rank. | 3 | Inner Fire |
-| Lingering Intent | Universal Prepare lasts +0.5 seconds per rank. | 3 | Pilgrim's Step |
-| Answered Challenge | +5% Prepare bonus damage per rank. | 3 | Crossing Souls |
-| Seamless Relay | +5% swap recharge speed per rank. | 3 | Lingering Intent |
-| Unbroken Promise | Universal Prepare lasts +0.5 seconds per rank. | 3 | Answered Challenge |
-| Converging Blades | +5% Prepare bonus damage per rank. | 3 | Seamless Relay |
-| Two Souls, One Will | +8% damage for both characters. | 1 | Unbroken Promise, Mountain Splitter, Assassin's Patience |
-| Heaven Undivided | +8% basic attack speed for both characters. | 1 | Converging Blades, Unclosing Wounds, Black Lotus |
+| Seamless Relay | +5% swap recharge speed per rank. | 3 | Pilgrim's Step |
+| Two Souls, One Will | +8% damage for both characters. | 1 | Crossing Souls, Mountain Splitter, Assassin's Patience |
+| Heaven Undivided | +8% basic attack speed for both characters. | 1 | Seamless Relay, Unclosing Wounds, Black Lotus |
 
 ## Stacking and runtime behavior
 
 Bonuses with the same effect add across tree nodes. Shared and character stat bonuses use Add Flat on existing multiplier stats. Full investment gives +27% max health, +17% shared damage, +14% shared basic attack speed, +6% movement speed, +44% pickup radius and one extra dash charge. Each character receives +24% direct damage and +17% basic attack speed. Samurai gains +30% basic melee area scale; Ninja gains +18% basic projectile speed, one projectile and one pierce. Bleed and Poison each gain a separate 30% multiplier.
 
-Swap cooldown is `base / (1 + swap bonus)`: a 3-second cooldown becomes approximately 2.31 seconds at +30% recharge speed. The timer and HUD use the same effective duration. Universal Prepare lasts up to three additional seconds; Prepare bonus damage gains a separate 30% multiplier. Only the opposite character’s Tag Team assist can consume Prepare. Consumption cannot recurse.
+Swap cooldown is `base / (1 + swap bonus)`: a 3-second cooldown becomes approximately 2.31 seconds at +30% recharge speed. The timer and HUD use the same effective duration. Prepare and its four passives are removed. Loading an older profile refunds their purchased ranks once and preserves the remaining skills.
 
 Stats are rebuilt using stable `MetaSkill.<node ID>` modifier IDs. Modifier replacement is atomic and skips identical values, preventing temporary stat drops and dash refills during rebuilds. Passive effects are cached when progression changes; status ticks and family hits use constant-time lookups. No new per-frame gameplay work is added.
 
 ## Saving and maintenance
 
-The existing `HeavensDivide_MetaProgression` save advances to version 3. Old synergy unlocks and Twin Soul discovery progress survive migration; older saves begin with an empty tree and wallet. Node IDs are permanent save identifiers. Invalid ranks are clamped and unknown/orphaned nodes removed on load. Refunds use the recorded actual expenditure, independent of subsequent balance price edits.
+The existing `HeavensDivide_MetaProgression` save advances to version 4. Old synergy unlocks and Twin Soul discovery progress survive migration; pre-skill-tree saves begin with an empty tree and wallet. Version 3 profiles retain their remaining skills and receive the retired Prepare skill refunds. Node IDs are permanent save identifiers. Invalid ranks are clamped and unknown/orphaned nodes removed on load. Refunds use the recorded actual expenditure, independent of subsequent balance price edits.
 
 Purchases and refunds revert their in-memory changes if saving fails. Failed run rewards remain pending in the game instance and retry when the main menu opens. They cannot survive exiting the application before a successful save. Reset Progress now explicitly includes skills and currency.
 
@@ -94,8 +90,8 @@ Purchases and refunds revert their in-memory changes if saving fails. Failed run
 - `SynergyMetaProgressionSubsystem`: transactional purchases/refunds, wallet, migration and cached effects.
 - `MetaSkillTreeWidget`: native Slate graph, details, purchases and refunds, opened by `MainMenuWidget`.
 - `PlayerUpgradeComponent`: shared and character passive modifiers.
-- `SurvivorPlayerController`, `EnemyStatusEffectComponent`, `SurvivorBuildFamilies`: rewards, swap timing, statuses and reactions.
-- `MetaSkillTreeTests.cpp`: catalog, disk persistence, rollback, reward retry, migration, runtime stats, status/reaction damage and tree construction. Tests use disposable `Automation_` save slots, never the player's progression slot.
+- `SurvivorPlayerController`, `EnemyStatusEffectComponent`, `SurvivorBuildFamilies`: rewards, swap timing, statuses.
+- `MetaSkillTreeTests.cpp`: catalog, disk persistence, rollback, reward retry, migration, runtime stats, status damage and tree construction. Tests use disposable `Automation_` save slots, never the player's progression slot.
 
 This is an initial balance pass. Assess progression speed and combat difficulty in playtests before changing the node prices or magnitudes.
 

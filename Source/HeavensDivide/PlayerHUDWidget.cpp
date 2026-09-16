@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "PlayerHUDWidget.h"
+#include "ComboAbilityComponent.h"
+#include "HeavensDivideGameUserSettings.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "CharacterBase.h"
@@ -21,6 +23,8 @@
 #include "SurvivorPlayerController.h"
 #include "RunTravelSubsystem.h"
 #include "TimerManager.h"
+
+void UpdatePlayerActionHUD(UPlayerHUDWidget& HUD);
 
 void UPlayerHUDWidget::NativeConstruct()
 {
@@ -74,7 +78,10 @@ void UPlayerHUDWidget::InitializeFromPlayerController(ASurvivorPlayerController*
 	BindDashState();
 	BindSwapCooldownState();
 	EnsureMinimapPresentation();
+	EnsureComboPresentation();
+	UpdateComboPresentation();
 	BroadcastInitialState();
+    UpdatePlayerActionHUD(*this);
 }
 
 void UPlayerHUDWidget::NativeDestruct()
@@ -129,6 +136,7 @@ void UPlayerHUDWidget::EnsureMinimapPresentation()
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
+	UpdateComboPresentation();
 	UpdateDamageFeedback(InDeltaTime);
 	UpdateSwapPortraitPulse(InDeltaTime);
 	UpdateRunTimerDisplay();
@@ -153,6 +161,7 @@ void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 		}
 	}
 
+    UpdatePlayerActionHUD(*this);
 	if (!bHealthChipChasing)
 	{
 		return;

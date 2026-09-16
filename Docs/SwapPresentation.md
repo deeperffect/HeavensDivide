@@ -11,7 +11,7 @@ A successful swap starts a configurable 0.5-second presentation freeze. World si
 - Both arrivals move only the visual root and attached mesh/weapons; the capsule, camera target and actor position are unchanged. The original visual offset is restored on completion or cancellation.
 
 - A snapshot of the outgoing character and its static-mesh equipment fades over 0.20 seconds.
-- The incoming character gets a short Niagara burst: violet smoke for Ninja and a red-black ink slash for Samurai. Clearing Arrival VFX restores the 0.25-second fallback ring.
+- The incoming character gets a short Niagara burst: violet smoke for Ninja and a red-black ink slash for Samurai. Clearing Arrival VFX disables that burst; no fallback ring is spawned.
 - Only the assigned arrival/departure portal sounds play during the swap.
 - The incoming HUD portrait enlarges to 115%, brightens and settles over 0.25 seconds.
 - Grand Entrance can show the optional Ready VFX while its enhanced attack is ready. It never changes character or weapon materials.
@@ -51,7 +51,7 @@ If the editor was open during this C++ build, restart it first so the new native
 | Afterimage → Enable Afterimage / Afterimage Duration | Departure snapshot and fade time |
 | Ghost Material | `Content/HeavensDivide/Materials/M_SwapGhost`; used only for the departure afterimage |
 | VFX → Departure VFX | Optional **Niagara System** at the outgoing character's position |
-| VFX → Arrival VFX | Optional **Niagara System** at the incoming character's position; replaces the fallback ring |
+| VFX → Arrival VFX | Optional **Niagara System** at the incoming character's position; leave empty for no arrival burst |
 | VFX Offset | World-space offset from the character actor origin; default Z −80 places the effect near the feet |
 | VFX Scale | Uniform Niagara scale and fallback-ring radius multiplier |
 | Use Fallback Arrival Ring | Turn off the ring when you want no arrival visual and have no Niagara assigned |

@@ -24,6 +24,9 @@ public:
     void FinishSwapFreeze(bool bCancelEntrance = true);
     bool IsBlockingAttacks() const { return bArrivalPending || bSwapFreezeActive || EntranceRemaining > 0 || bArrivalMovementActive; }
     bool IsSwapFreezeActive() const { return bSwapFreezeActive; }
+    // Reuse the swap's real-time freeze without playing arrival/departure presentation.
+    bool StartAbilityFreeze(float Duration = .5f, float EaseInDuration = .12f);
+    void RegisterFreezeEffect(UNiagaraComponent* Effect);
     void HandleModeChanged(ECharacterMode Mode);
     virtual void TickComponent(float Delta, ELevelTick Type, FActorComponentTickFunction* Function) override;
     virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -84,7 +87,8 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals", meta=(ClampMin="0", Units="s", ToolTip="Keep portals visible this long after the visual movement completes.")) float PortalLingerDuration = .2f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") FVector VFXOffset = FVector(0,0,-80);
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX", meta=(ClampMin="0.01")) float VFXScale = 1;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") bool bUseFallbackArrivalRing = true;
+    // Retained for loading existing assets; swap arrivals no longer spawn a fallback ring.
+    UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Fallback arrival ring removed. Use Arrival VFX for an optional effect.")) bool bUseFallbackArrivalRing = false;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound") bool bEnableSound = true;
     // Retained for loading older Blueprints; portal slots are the only swap audio.
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Arrival Portal Sound and Departure Portal Sound.")) TObjectPtr<USoundBase> SwapWhoosh;
@@ -141,6 +145,7 @@ private:
     float FreezeTotalDuration = 0;
     float ActiveFreezeEaseInDuration = 0;
     void StartSwapFreeze();
+    void StartFreeze(float Duration, float EaseInDuration);
     bool UpdateSwapFreeze(float RealDelta);
     void UpdateFreezeAnimationRate(float GameDelta, float RealDelta);
     FTSTicker::FDelegateHandle FreezeTicker;

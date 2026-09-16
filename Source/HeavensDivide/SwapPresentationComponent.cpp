@@ -39,14 +39,7 @@ void USwapPresentationComponent::SpawnEffect(UNiagaraSystem* System)
     if(Effect)
     {
         Effect->SetVariableLinearColor(TEXT("User.SwapColor"), GetPresentationColor());
-        if(bSwapFreezeActive)
-        {
-            Effect->SetForceSolo(true);
-            // World dilation may have changed midway through this frame.
-            Effect->SetCustomTimeDilation(1.f);
-            Effect->AddTickPrerequisiteComponent(this);
-            FreezeEffects.Add(Effect);
-        }
+        RegisterFreezeEffect(Effect);
         Effect->Activate();
     }
 }
@@ -103,9 +96,6 @@ void USwapPresentationComponent::PlayArrival()
     if(auto* Anim=Character->GetMesh()->GetAnimInstance()) Anim->Montage_Stop(0.f);
     StartSwapFreeze();
     SpawnEffect(ArrivalVFX);
-    if(!ArrivalVFX && bUseFallbackArrivalRing)
-        if(auto* Ring=GetWorld()->SpawnActor<AAbilityAccent>(Character->GetActorLocation()+VFXOffset,FRotator::ZeroRotator))
-            Ring->Initialize(FVector::ZeroVector,110*VFXScale,GetPresentationColor(),.25f,false);
     StartEntrance();
     StartArrivalMovement();
     SpawnArrivalPortal();

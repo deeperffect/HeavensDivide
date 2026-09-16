@@ -205,11 +205,8 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			FeedbackLocation = SweepResult.ImpactPoint;
 			ImpactNormal = SweepResult.ImpactNormal;
 		}
-		const uint8 StatusBefore=(HitEnemy->HasStatus(EEnemyStatusEffect::Bleed)?1:0)|(HitEnemy->HasStatus(EEnemyStatusEffect::Poison)?2:0);
 		const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
 		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
-		if (bDamageApplied && GameplayOwnerOwner)
-			if (auto* Abilities = GameplayOwnerOwner->FindComponentByClass<USurvivorAbilityComponent>()) Abilities->NotifyPartnerHit(AttackSource, HitEnemy,bAssistProjectile,StatusBefore);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
 		{

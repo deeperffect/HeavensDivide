@@ -2,6 +2,8 @@
 
 See [Combat architecture](CombatArchitecture.md) for source ownership, Blueprint settings, and cleanup verification.
 
+The shared [combo meter and character abilities](ComboAbilities.md) add **Tornado** for Samurai and **Thousand Cuts** for Ninja, activated with **Q** at full charge. Swaps and Tag Team fill the meter; these abilities do not require upgrade cards.
+
 Combat now uses normal autoattacks and **Blade Wave**, which launches from Samurai's normal melee attacks. The saved upgrade pool contains **57 unique cards**, including 20 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
 
 The ten automatic ability families and their 70 starter, branch, scaling and evolution cards are retired. They cannot appear in offers, be acquired through stale references, or run through the old automatic cast scheduler.
@@ -20,7 +22,7 @@ These are multiplicative factors applied after additive stat upgrades. A 35% att
 
 ### Blood: fast crowd coverage
 
-Start with **Bleeding Edge**. Normal melee and Blade Wave hits apply Bleed; each stack contributes its base Bleed damage plus **10% of its applying hit's damage per tick**. The hit contribution is captured when applied and already includes attack damage scaling. Deep Cuts and Bleed meta bonuses scale the resulting damage. Intrinsic assists and status spreads retain their base-stack behavior.
+Start with **Bleeding Edge**. Normal melee and Blade Wave hits apply Bleed; each stack contributes its base Bleed damage plus **10% of its applying hit's damage per tick**. The hit contribution is captured when applied and already includes attack damage scaling. Deep Cuts and Bleed meta bonuses scale the resulting damage. Samurai assists require Bleeding Edge and retain base-stack damage.
 
 - **Bloodletting (`Bloodletting`)**: +1 Bleed stack per direct melee/wave hit per rank, up to 3 ranks. Requires Bleeding Edge.
 - **Blood Transfer (`BloodTransfer`)**: on a bleeding enemy's death, distribute **50% of its remaining Bleed damage** evenly among up to **5** nearest valid enemies within **300 cm**, scaling with Samurai area. Requires Bleeding Edge. Works on deaths from direct hits, status ticks or other damage.
@@ -33,7 +35,7 @@ Transfers retain the source's remaining duration and add no free base-stack dama
 
 **Overkill Burst (`OverkillBurst`)** is a separate, mixable Rare starter. Direct normal melee and Blade Wave kills explode for their excess damage within **220 cm**, scaling with Samurai area. A hit dealing 150 damage to a 40-HP enemy creates a 110-damage explosion. Exact kills with no overkill create no explosion.
 
-Assists, Bleed, explosion kills and other proc damage cannot start an explosion. Each directly killed melee target can produce its own burst. Explosion damage respects enemy source restrictions and does not apply Bleed or Prepare.
+Assists, Bleed, explosion kills and other proc damage cannot start an explosion. Each directly killed melee target can produce its own burst. Explosion damage respects enemy source restrictions and does not apply Bleed.
 
 - **Expanding Ruin (`BurstRadius`)**: +12/18/25% explosion radius per Common/Rare/Epic rank, up to 5 ranks. Requires Overkill Burst.
 - Continue scaling with **Heavy Blade**, Samurai area and **Double Cut**. Double Cut's committed follow-up is another normal attack and can create its own overkill burst.
@@ -106,15 +108,13 @@ Direct Ninja projectile hits embed a fragment **before damage resolves**, so eve
 
 The old Ninja cards are retired, except **Shadow Step**, **Multiple Strikes** and **Afterimage Frenzy**, which retain Shadow Clone and its upgrades. **Venomous Kunai** is restored as a standalone card: Ninja attacks apply Poison, including all three weapons and clone attacks. The other old poison upgrades remain retired. The removed cards cover the old projectile bonus, bounce/pierce/split, Fan of Blades, Blade Cascade, execution branches and poison scaling upgrades. Hemotoxic Reaction and Accelerated Venom are also retired alongside the retired poison scaling upgrades. Shared Marked Blade remains available. Ninja trial rewards now offer current Ninja cards for every stance. None of the new Ninja attacks applies universal Prepare.
 
-## Prepare and Tag Team
+## Tag Team
 
-Ninja's Tag Team attack uses her equipped stance and attack upgrades: Great Shuriken throws a shuriken, Returning Fang makes one outbound/return trip, and Barrage fires its upgraded projectile volley. Assist projectiles retain their source after the animation ends and can consume Prepare on impact. Assists do not spend Grand Entrance or advance the active Ninja's Crescendo counters. Both characters retain their normal materials during arrivals and assists; the swap color is reserved for the departure afterimage.
+Ninja's Tag Team attack uses her equipped stance and attack upgrades: Great Shuriken throws a shuriken, Returning Fang makes one outbound/return trip, and Barrage fires its upgraded projectile volley. Assist projectiles retain their source after the animation ends. Assists do not spend Grand Entrance or advance the active Ninja's Crescendo counters. Both characters retain their normal materials during arrivals and assists; the swap color is reserved for the departure afterimage.
 
-Blade Wave hits prepare surviving enemies for **6 seconds**. Normal attack hits and assists do not apply Prepare. Further wave hits refresh the mark and stored hit damage.
+Prepare has been removed: Blade Wave no longer marks targets, and assists grant no reaction bonus damage or status spreading. The four Prepare skill-tree passives are retired; their paid ranks are refunded on profile load, while surviving skills remain connected.
 
-The inactive Ninja's **Tag Team assist** consumes Samurai's preparation once, dealing **60% of the preparing hit's damage** as bonus damage to that enemy. It spreads one stack of each Bleed/Poison status already present to other enemies within **300 cm**, respecting status source restrictions. Absent statuses are never created. This still works when the assist kills the prepared enemy.
-
-Active-character attacks, including attacks after swapping, cannot consume Prepare. Tag Team prioritizes prepared targets within its normal targeting limits. Bonus damage and status spread cannot recursively consume Prepare. Preparation and Reaction meta bonuses continue to affect duration and damage. Shared Prepare settings remain on the SurvivorAbility component.
+Ninja selects targets around her upcoming assist position beside the active Samurai. At the throw notify, she selects a new target if the original one has died or left range. Samurai assists apply Bleed only with Bleeding Edge; Ninja assists apply Poison only with Venomous Kunai.
 
 ## Shared synergy upgrade: Grand Entrance
 
@@ -125,7 +125,7 @@ Active-character attacks, including attacks after swapping, cannot consume Prepa
 
 For Returning Fang, Grand Entrance's extra projectiles become bonus damage on the next throw. For Great Shuriken, they become extra size on the next blade. Barrage retains the enhanced normal volley.
 
-The enhancement is spent at the attack's hit/projectile notify. Canceled attacks before that point retain it. It does not stack, and leaving the active character clears an unused enhancement. Assists, automatic abilities and Double Cut follow-ups cannot spend it. Acquiring the card does not immediately arm it: swap after acquisition. The enhanced normal attack does not itself apply universal Prepare.
+The enhancement is spent at the attack's hit/projectile notify. Canceled attacks before that point retain it. It does not stack, and leaving the active character clears an unused enhancement. Assists, automatic abilities and Double Cut follow-ups cannot spend it. Acquiring the card does not immediately arm it: swap after acquisition.
 
 Balance is editable on `/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEntrance` under Runtime Balance: `SamuraiRadius`, `NinjaBonusProjectiles`, and `NinjaFanAngle`. The source illustration and exact built-in imagegen prompt are recorded in `Art/UpgradeCards/GrandEntrance.json`.
 
@@ -139,7 +139,7 @@ In a non-shipping build, `BuildPreview BladeWave` grants its starter, all branch
 - `Tools/remove_automatic_ability_upgrades.py`: removes retired saved assets with backups; `-ValidateAttackRoster` verifies the saved pool without editing.
 - `Art/UpgradeCards/manifest.json`: the seven retained family illustrations. Grand Entrance keeps its separate art manifest.
 
-Normal-attack execution and Blade Wave still use `AutoAttackComponent` and `SamuraiBladeWave`. `SurvivorAbilityComponent` retains assist, Prepare, presentation and Blade Wave hit support; automatic casts are disabled.
+Normal-attack execution and Blade Wave still use `AutoAttackComponent` and `SamuraiBladeWave`. `SurvivorAbilityComponent` retains assist, presentation and Blade Wave hit support; automatic casts are disabled.
 
 ## Samurai build authoring
 
@@ -190,6 +190,6 @@ Open `/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaGreatShuriken` and edit
 
 In `BP_Ninja`, select `NinjaBuildComponent` and open **Ninja Builds > Shuriken**. Assign **Shuriken Mesh** to use a custom static mesh for normal attacks, Tag Team, and Shadow Clones. Leave it empty for the existing placeholder. Author the mesh flat in XY with its pivot at the center; it spins around Z. The mesh fits the attack radius and grows with Wide Orbit. **Shuriken Mesh Scale** adjusts only its appearance, not hit detection. Materials come from the assigned mesh.
 
-Ninja Tag Team hits apply poison only when **Venomous Kunai** is acquired, including Great Shuriken, Returning Fang, and regular projectile assists. Prepare can still spread poison already on an enemy.
+Ninja Tag Team hits apply poison only when **Venomous Kunai** is acquired, including Great Shuriken, Returning Fang, and regular projectile assists.
 `Shuriken Hit Sound` in the same component category overrides impact audio for giant shurikens from normal attacks, Tag Team, and clones. Empty uses the normal projectile hit sound; kunai, Returning Fang, and scattered fragments keep their existing audio.
 `Shuriken Throw Sound` in **Ninja Builds > Shuriken** replaces the sound on the Ninja attack montage when Great Shuriken is equipped, including Tag Team and clones. Empty retains the authored montage sound. Normal kunai still use the sound assigned to the **Ninja Throw Sound** notify in `AM_AutoAttackNinja`; its timing, volume, and pitch are preserved.

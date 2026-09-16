@@ -310,7 +310,6 @@ float UNinjaBuildComponent::Hit(AEnemyBase *Enemy, float Damage, bool bEmbed, bo
         return 0;
     if (Enemy->IsMarked() && Enemy->ConsumeMark())
         Damage *= 2;
-    const uint8 StatusBefore=(Enemy->HasStatus(EEnemyStatusEffect::Bleed)?1:0)|(Enemy->HasStatus(EEnemyStatusEffect::Poison)?2:0);
     if (!ApplyEmbeddedHit(Enemy, Damage, Upgrades(), bEmbed))
         return 0;
     if ((Attack() && Attack()->ProjectileClass) || (bShuriken && ShurikenHitSound))
@@ -322,12 +321,6 @@ float UNinjaBuildComponent::Hit(AEnemyBase *Enemy, float Damage, bool bEmbed, bo
         UImpactFeedbackLibrary::PlayImpactFeedback(
             this, Feedback,
             Enemy->GetActorLocation() + FVector(0, 0, 45), FVector::UpVector, false);
-    }
-    if(bAssist)
-    {
-        if(auto* Abilities=GetOwner()->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
-            Abilities->NotifyPartnerHit(EPlayerAttackSource::Ninja,Enemy,true,StatusBefore);
-
     }
     if (!Enemy->IsDead() && Has(TEXT("VenomousKunai")))
         Enemy->ApplyStatus(EEnemyStatusEffect::Poison, Upgrades(), EPlayerAttackSource::Ninja);

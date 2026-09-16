@@ -9,19 +9,41 @@
 #include "PlayerCameraRig.h"
 #include "GameFramework/PlayerController.h"
 
+bool USwapPresentationComponent::StartAbilityFreeze(float Duration, float EaseInDuration)
+{
+    if (!bEnabled || bSwapFreezeActive) return false;
+    StartFreeze(Duration, EaseInDuration);
+    if (bSwapFreezeActive) SetComponentTickEnabled(true);
+    return bSwapFreezeActive;
+}
+
+void USwapPresentationComponent::RegisterFreezeEffect(UNiagaraComponent* Effect)
+{
+    if (!bSwapFreezeActive || !IsValid(Effect)) return;
+    Effect->SetForceSolo(true);
+    Effect->SetCustomTimeDilation(1.f);
+    Effect->AddTickPrerequisiteComponent(this);
+    FreezeEffects.AddUnique(Effect);
+}
+
 void USwapPresentationComponent::StartSwapFreeze()
+{
+    StartFreeze(FMath::Clamp(SwapFreezeDuration, 0.f, 1.f), FreezeEaseInDuration);
+}
+
+void USwapPresentationComponent::StartFreeze(float Duration, float EaseInDuration)
 {
     auto* Character=Cast<ACharacterBase>(GetOwner());
     UWorld* World=GetWorld();
-    if(bSwapFreezeActive || !Character || !World || SwapFreezeDuration<=0 || UGameplayStatics::IsGamePaused(World)) return;
+    if(bSwapFreezeActive || !Character || !World || !FMath::IsFinite(Duration) || Duration<=0 || UGameplayStatics::IsGamePaused(World)) return;
     auto* Settings=World->GetWorldSettings();
     PreviousTimeDilation=Settings->TimeDilation;
     // Do not take ownership of an existing level-up/death freeze.
     if(PreviousTimeDilation<=.001f) return;
     bSwapFreezeActive=true;
-    FreezeRemaining=FMath::Clamp(SwapFreezeDuration,0.f,1.f);
+    FreezeRemaining=Duration;
     FreezeTotalDuration=FreezeRemaining;
-    ActiveFreezeEaseInDuration=FMath::Clamp(FreezeEaseInDuration,0.f,FreezeTotalDuration);
+    ActiveFreezeEaseInDuration=FMath::IsFinite(EaseInDuration) ? FMath::Clamp(EaseInDuration,0.f,FreezeTotalDuration) : 0.f;
     AppliedTimeDilation=Settings->SetTimeDilation(ActiveFreezeEaseInDuration>0 ? PreviousTimeDilation : .0001f);
     PreviousAnimationRate=Character->GetMesh()->GlobalAnimRateScale;
     // Keep the current rate until our next tick: this frame's delta may still

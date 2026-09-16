@@ -30,9 +30,9 @@ bool FMetaSkillMapHighlightTest::RunTest(const FString&)
 	Path=Map->GetHighlightedAncestors();
 	TestTrue(TEXT("Unity includes its Steel prerequisite"),Path.Contains(TEXT("Steel.Power")));
 	TestTrue(TEXT("Unity includes its Shadow prerequisite"),Path.Contains(TEXT("Shadow.Power")));
-	TestTrue(TEXT("Unity includes its Bond prerequisite"),Path.Contains(TEXT("Bond.Echo")));
+	TestTrue(TEXT("Unity includes its Bond prerequisite"),Path.Contains(TEXT("Bond.Flow")));
 	TestFalse(TEXT("Other Bond capstone is not highlighted"),Path.Contains(TEXT("Bond.Rhythm")));
-	TestFalse(TEXT("Other Bond lane is not highlighted"),Path.Contains(TEXT("Bond.Reaction")));
+	TestFalse(TEXT("Other Bond lane is not highlighted"),Path.Contains(TEXT("Bond.Relay")));
 	Map->ResetView();
 	TestTrue(TEXT("Reset clears hover at the old map position"),Map->Hovered.IsNone());
 	TestTrue(TEXT("Reset preserves the selected path"),Map->GetHighlightedAncestors().Contains(TEXT("Bond.Unity")));

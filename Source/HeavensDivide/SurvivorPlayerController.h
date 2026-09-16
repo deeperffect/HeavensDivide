@@ -92,6 +92,7 @@ public:
     void ResumePausedRun();
     void ReturnToMenuFromPause();
     bool IsPauseMenuOpen() const { return PauseMenu != nullptr; }
+	bool IsSelectingUpgrade() const { return bLevelUpSelectionActive; }
 	bool IsRunInProgress() const { return RunEndState == ERunEndState::Playing; }
 	/** Development shortcut: grant the four new ability builds for this run only. */
 	UFUNCTION(Exec)
@@ -264,6 +265,8 @@ protected:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> InteractAction;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Input") TObjectPtr<UInputAction> ComboAbilityAction;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Combo") TObjectPtr<class UComboAbilityComponent> ComboAbilities;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> AimAction;
@@ -378,6 +381,7 @@ protected:
 
 	void Move(const FInputActionValue& Value);
 	void StopMoveInput(const FInputActionValue& Value);
+	void ActivateComboAbility();
 	void Swap(const FInputActionValue& Value);
 	void Dash(const FInputActionValue& Value);
 	void Aim(const FInputActionValue& Value);

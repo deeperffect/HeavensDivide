@@ -138,6 +138,22 @@ bool FSwapFreezeTest::RunTest(const FString&)
     SamuraiFeedback->StartArrivalMovement();
     TestEqual(TEXT("Disabling Samurai walk does not fall back to a drop"),Samurai->GetVisualRoot()->GetRelativeLocation(),SamuraiBase);
     TestTrue(TEXT("Samurai setting does not disable Ninja drop"),Feedback->bEnableNinjaArrivalDrop);
+    TestTrue(TEXT("Ability can start the shared freeze without a swap"), SamuraiFeedback->StartAbilityFreeze());
+    TestFalse(TEXT("Ability freeze cannot restart or steal an active freeze"), SamuraiFeedback->StartAbilityFreeze());
+    SamuraiFeedback->UpdateSwapFreeze(.061f);
+    TestTrue(TEXT("Ability freeze follows the same ease-in curve"), Settings->TimeDilation > .001f && Settings->TimeDilation < .75f);
+    SamuraiFeedback->UpdateSwapFreeze(.5f);
+    TestFalse(TEXT("Ability freeze expires in real time"), SamuraiFeedback->IsSwapFreezeActive());
+    TestEqual(TEXT("Ability freeze restores previous world speed"), Settings->TimeDilation, .75f);
+    const float OriginalSwapDuration = SamuraiFeedback->SwapFreezeDuration;
+    TestFalse(TEXT("Zero ability freeze duration disables it"), SamuraiFeedback->StartAbilityFreeze(0.f, 0.f));
+    TestTrue(TEXT("Independent ability freeze accepts a longer duration"), SamuraiFeedback->StartAbilityFreeze(2.f, .2f));
+    SamuraiFeedback->UpdateSwapFreeze(.8f);
+    TestTrue(TEXT("Ability duration is independent of the short swap freeze"), SamuraiFeedback->IsSwapFreezeActive());
+    SamuraiFeedback->UpdateSwapFreeze(1.3f);
+    TestFalse(TEXT("Custom ability duration expires"), SamuraiFeedback->IsSwapFreezeActive());
+    TestEqual(TEXT("Ability tuning does not modify swap tuning"), SamuraiFeedback->SwapFreezeDuration, OriginalSwapDuration);
+    TestEqual(TEXT("Custom freeze restores prior world speed"), Settings->TimeDilation, .75f);
     World->DestroyWorld(false);GEngine->DestroyWorldContext(World);
     return true;
 }

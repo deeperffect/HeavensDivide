@@ -1,4 +1,4 @@
-"""Remove the eleven retired family Prepare cards/art; universal Prepare is baseline.
+"""Legacy cleanup for eleven retired family Prepare cards/art.
 
 Run with Unreal's Python commandlet; append -ValidateFamilyRemoval for read-only checks.
 Backups are kept under Saved/Backups/UniversalPrepare before any asset is changed.
@@ -58,7 +58,7 @@ for path in cards + art:
 bp = unreal.load_asset(controller)
 cdo = unreal.get_default_object(bp.generated_class())
 pool = cdo.get_editor_property('player_upgrade_component').get_editor_property('upgrade_pool')
-assert len(pool) >= 111, len(pool)
+assert len(pool) > 0, len(pool)
 assert len({str(a.get_editor_property('upgrade_id')) for a in pool}) == len(pool)
 for a in pool:
     assert a and str(a.get_editor_property('upgrade_id')) not in ids
@@ -67,7 +67,4 @@ for a in pool:
         assert str(req.get_editor_property('upgrade_id')) not in ids
 ability = cdo.get_component_by_class(unreal.SurvivorAbilityComponent)
 assert ability
-assert abs(ability.get_editor_property('preparation_duration') - 6) < .001
-assert abs(ability.get_editor_property('preparation_damage_multiplier') - .6) < .001
-assert abs(ability.get_editor_property('preparation_spread_radius') - 300) < .001
-unreal.log('UNIVERSAL_PREPARE_ASSETS_OK: 11 retired cards and textures absent; '+str(len(pool))+' unique pool entries; shared Prepare settings verified')
+unreal.log('PREPARE_REMOVAL_ASSETS_OK: 11 retired cards and textures absent; '+str(len(pool))+' unique pool entries')

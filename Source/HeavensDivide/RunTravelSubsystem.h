@@ -13,6 +13,7 @@ struct FRunTravelSnapshot
 {
 	GENERATED_BODY()
 	UPROPERTY() bool bValid = false;
+	UPROPERTY() float Combo = 0.f;
 	UPROPERTY() float RunTimeSeconds = 0.0f;
 	UPROPERTY() float CurrentHealth = 0.0f;
 	UPROPERTY() float ExpectedMaxHealth = 0.0f;

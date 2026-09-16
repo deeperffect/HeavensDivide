@@ -44,6 +44,8 @@ bool FKeybindSettingsTest::RunTest(const FString&)
  TestTrue(TEXT("Runtime movement uses exchanged key"),HasMapping(PC->MoveAction,EKeys::Q));
  TestTrue(TEXT("Runtime interact uses mouse binding"),HasMapping(PC->InteractAction,EKeys::MiddleMouseButton));
  TestFalse(TEXT("Old interact E binding is removed"),HasMapping(PC->InteractAction,EKeys::E));
+ TestTrue(TEXT("Combo conflict exchanges its key"),HasMapping(PC->ComboAbilityAction,EKeys::RightMouseButton));
+ TestTrue(TEXT("Controller combo available"),HasMapping(PC->ComboAbilityAction,EKeys::Gamepad_FaceButton_Left));
  TestTrue(TEXT("Controller swap preserved"),HasMapping(PC->SwapAction,EKeys::Gamepad_FaceButton_Top));
  for(const auto& M:Original)if(M.Action==PC->MoveAction&&M.Key==EKeys::W)
  {
@@ -54,6 +56,7 @@ bool FKeybindSettingsTest::RunTest(const FString&)
  TestTrue(TEXT("Source asset persists right-click default"),Original.ContainsByPredicate([&](const auto& M){return M.Action==PC->SwapAction&&M.Key==EKeys::RightMouseButton;}));
  Settings->ResetKeyBindings();PC->BuildRuntimeKeyMappings(Settings);
  TestTrue(TEXT("Reset restores live default swap"),HasMapping(PC->SwapAction,EKeys::RightMouseButton));
+ TestTrue(TEXT("Reset restores combo default"),HasMapping(PC->ComboAbilityAction,EKeys::Q));
  TestTrue(TEXT("Reset restores movement"),HasMapping(PC->MoveAction,EKeys::W));
  auto* GI=NewObject<UGameInstance>(GEngine);World->SetGameInstance(GI);
  auto* LocalPlayer=NewObject<ULocalPlayer>(GEngine);LocalPlayer->SetControllerId(0);PC->SetPlayer(LocalPlayer);
@@ -61,9 +64,11 @@ bool FKeybindSettingsTest::RunTest(const FString&)
  auto* Menu=CreateWidget<UMainMenuWidget>(PC,MenuClass);
  if(TestNotNull(TEXT("Saved menu builds"),Menu))
  {
+  // Input/menu navigation does not depend on the optional background movie.
+  Menu->BackgroundMediaPlayer = nullptr;
   Menu->TakeWidget();Menu->ShowSettingsPanel();Menu->HandleKeybindSettings();
   TestEqual(TEXT("Keybind settings subpage opens"),Menu->SettingsSwitcher->GetActiveWidgetIndex(),1);
-  TestEqual(TEXT("All keyboard/mouse actions have selectors"),Menu->KeybindSelectors.Num(),7);
+  TestEqual(TEXT("All keyboard/mouse actions have selectors"),Menu->KeybindSelectors.Num(),8);
   TestTrue(TEXT("Shared page background is configured"),Menu->GetPageBackgroundTexture()!=nullptr);
   Menu->HandleBack();TestTrue(TEXT("Back returns to settings"),Menu->bSettingsPopupOpen&&Menu->SettingsSwitcher->GetActiveWidgetIndex()==0);
  }

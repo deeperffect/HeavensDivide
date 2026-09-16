@@ -1194,7 +1194,7 @@ void UPlayerUpgradeComponent::ApplyMetaSkillModifiers()
  if (!PC || !Party) return;
  for (const FMetaSkillNode& N : MetaSkillTree::Nodes())
  {
-  if (N.Effect == TEXT("Swap") || N.Effect == TEXT("Preparation") || N.Effect == TEXT("Reaction") || N.Effect == TEXT("Bleed") || N.Effect == TEXT("Poison")) continue;
+  if (N.Effect == TEXT("Swap") || N.Effect == TEXT("Bleed") || N.Effect == TEXT("Poison")) continue;
   const FName Source(*FString::Printf(TEXT("MetaSkill.%s"), *N.Id.ToString()));
   const float Value = Meta ? Meta->GetSkillRank(N.Id) * N.PerRank : 0.f;
   if (N.Target == EUpgradeStatTarget::SharedPlayer)

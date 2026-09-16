@@ -20,6 +20,7 @@ UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UInactiveCharacterAssistComponent : public UActorComponent
 {
 	GENERATED_BODY()
+	friend class FTagTeamRegressionTest;
 
 public:
 	UInactiveCharacterAssistComponent();

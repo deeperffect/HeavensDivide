@@ -270,8 +270,9 @@ bool UInactiveCharacterAssistComponent::TryTriggerAssistWithCharacters(ACharacte
 	}
 
 	const bool bRangedAssist = AssistAttack->IsProjectileAttack();
+	FVector AssistLocation = bRangedAssist ? GetRangedAssistLocation(ActiveCharacter, AssistCharacter) : FVector::ZeroVector;
 	AEnemyBase* TargetEnemy = bRangedAssist
-		? AssistAttack->FindAssistTarget()
+		? AssistAttack->FindAssistTargetNearLocation(AssistLocation, AssistAttack->GetEffectiveTargetingRange())
 		: AssistAttack->FindAssistTargetNearLocation(ActiveCharacter->GetActorLocation(), MaxMeleeAssistTargetDistance);
 	if (!TargetEnemy)
 	{
@@ -284,12 +285,7 @@ bool UInactiveCharacterAssistComponent::TryTriggerAssistWithCharacters(ACharacte
 		return false;
 	}
 
-	FVector AssistLocation = FVector::ZeroVector;
-	if (bRangedAssist)
-	{
-		AssistLocation = GetRangedAssistLocation(ActiveCharacter, AssistCharacter);
-	}
-	else if (!TryFindMeleeAssistLocation(AssistCharacter, ActiveCharacter, TargetEnemy, AssistLocation))
+	if (!bRangedAssist && !TryFindMeleeAssistLocation(AssistCharacter, ActiveCharacter, TargetEnemy, AssistLocation))
 	{
 		if (CVarHDLogSynergyAssist.GetValueOnGameThread() != 0)
 		{
