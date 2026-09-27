@@ -178,6 +178,8 @@ class HEAVENSDIVIDE_API AEnemySpawner : public AActor
 {
 	GENERATED_BODY()
 	friend class FSpawnerDirectorTest;
+	friend class UTesterBalanceSettings;
+	friend class FTesterBalanceTest;
 
 public:
 	AEnemySpawner();

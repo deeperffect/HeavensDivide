@@ -47,7 +47,7 @@ void UAnimNotify_SpawnSamuraiSlashNiagara::Notify(USkeletalMeshComponent* MeshCo
 		}
 	}
 
-	if (!WeaponComponent && SkeletonSocketName.IsNone())
+	if (!bAttachToCharacterMesh && !WeaponComponent && SkeletonSocketName.IsNone())
 	{
 #if !UE_BUILD_SHIPPING
 		UE_LOG(LogTemp, Warning, TEXT("Samurai slash Niagara notify could not find StaticMeshComponent '%s' on %s."),
@@ -73,9 +73,12 @@ void UAnimNotify_SpawnSamuraiSlashNiagara::Notify(USkeletalMeshComponent* MeshCo
 		: AreaMultiplier;
 	// Weapon scale already includes the normal area bonus. Apply only the extra ratio.
 	const float AdditionalAreaScale = AreaMultiplier > UE_SMALL_NUMBER ? VFXAreaMultiplier / AreaMultiplier : 1.0f;
-	USceneComponent* AttachComponent = SkeletonSocketName.IsNone() ? static_cast<USceneComponent*>(WeaponComponent) : MeshComp;
-	FVector SpawnScale = Scale * AdditionalAreaScale;
-	if (!SkeletonSocketName.IsNone())
+	USceneComponent* AttachComponent = bAttachToCharacterMesh || !SkeletonSocketName.IsNone()
+		? MeshComp : static_cast<USceneComponent*>(WeaponComponent);
+	// Mesh-attached bursts do not inherit weapon scaling. Scale the component once,
+	// before activation, so local-space particles retain their authored proportions.
+	FVector SpawnScale = Scale * (bAttachToCharacterMesh ? VFXAreaMultiplier : AdditionalAreaScale);
+	if (!bAttachToCharacterMesh && !SkeletonSocketName.IsNone())
 	{
 		// The skeleton is not enlarged with the weapon. Preserve VFX size without
 		// moving the authored socket or scaling the character mesh.
@@ -84,12 +87,17 @@ void UAnimNotify_SpawnSamuraiSlashNiagara::Notify(USkeletalMeshComponent* MeshCo
 		SpawnScale *= WeaponWorldScale * FTransform::GetSafeScaleReciprocal(SocketWorldScale);
 	}
 
+	const int32 CopyCount = FMath::Clamp(RadialCopies, 1, 8);
+	for (int32 CopyIndex = 0; CopyIndex < CopyCount; ++CopyIndex)
+	{
+	const FRotator CopyRotation = (FRotator(0.f, 360.f * CopyIndex / CopyCount, 0.f).Quaternion()
+		* RotationOffset.Quaternion()).Rotator();
 	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
 		NiagaraSystem,
 		AttachComponent,
 		SkeletonSocketName,
 		LocationOffset,
-		RotationOffset,
+		CopyRotation,
 		SpawnScale,
 		EAttachLocation::KeepRelativeOffset,
 		true,
@@ -135,4 +143,5 @@ void UAnimNotify_SpawnSamuraiSlashNiagara::Notify(USkeletalMeshComponent* MeshCo
 		}
 	}
 	NiagaraComponent->Activate(true);
+	}
 }

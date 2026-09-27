@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemySpawner.h"
+#include "TesterBalanceSettings.h"
 #include "EnemySpawnerDiagnostics.h"
 #include "TimerManager.h"
 
@@ -28,6 +29,7 @@ AEnemySpawner::AEnemySpawner()
 void AEnemySpawner::BeginPlay()
 {
 	Super::BeginPlay();
+	GetDefault<UTesterBalanceSettings>()->ApplySpawner(this);
 	NextEligibleSpawnTimeByClass.Empty();
 	NextEligibleEventTimeByName.Empty();
 	NextGlobalEventTime = 0.0f;

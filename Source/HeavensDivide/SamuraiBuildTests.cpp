@@ -15,6 +15,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "UObject/UnrealType.h"
+#include "TimerManager.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSamuraiBuildsTest,"HeavensDivide.Combat.SamuraiBuilds",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FSamuraiBuildsTest::RunTest(const FString&)
@@ -109,12 +110,33 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
  TestFalse(TEXT("Extra waves have a rank cap"),U->CanAcquireUpgrade(Card(TEXT("WaveMultishot"))));
  U->AcquireUpgrade(Card(TEXT("CrossingBlades")));U->AcquireUpgrade(Card(TEXT("ReturningBlade")));
  Samurai->SetActorLocation(FVector(20000,0,0));Attack->CrossingBladesAttackCounter=0;
+ Attack->CrossingBladeWaveDelay=.12f;
+ // Hold existing projectile lifetimes so this check measures emission timing only.
+ auto AdvanceTimers=[&](float Seconds){for(TActorIterator<ASamuraiBladeWave> It(World);It;++It)World->GetTimerManager().ClearAllTimersForObject(*It);++GFrameCounter;World->GetTimerManager().Tick(Seconds);};
  auto Waves=[&](){TArray<ASamuraiBladeWave*> Out;for(TActorIterator<ASamuraiBladeWave> It(World);It;++It)Out.Add(*It);return Out;};
  for(int32 Swing=0;Swing<3;++Swing)
  {
   const int32 Before=Waves().Num();Attack->bIsAttacking=true;Attack->bAttackNotifyConsumed=false;Attack->PerformAttackTrace();
-  TestEqual(TEXT("Committed swing adds waves and Crossing Blades combines"),Waves().Num()-Before,Swing==2?6:4);
+  TestEqual(TEXT("Crossing proc starts one wave; ordinary volleys remain simultaneous"),Waves().Num()-Before,Swing==2?1:4);
+  if(Swing==2)
+  {
+   AdvanceTimers(0.f);
+   AdvanceTimers(.06f);
+   TestEqual(TEXT("No extra wave before the delay"),Waves().Num()-Before,1);
+   AdvanceTimers(.07f);
+   TestEqual(TEXT("Second wave appears after the delay"),Waves().Num()-Before,2);
+   for(int32 Expected=3;Expected<=6;++Expected)
+   {
+    AdvanceTimers(.12f);
+    TestEqual(TEXT("Each remaining Crossing/Volley wave has its own delay"),Waves().Num()-Before,Expected);
+   }
+  }
  }
+ Attack->CrossingBladesAttackCounter=2;
+ const int32 BeforeCancel=Waves().Num();
+ Attack->SpawnBladeWavesForAttack(100.f);
+ Attack->StopAutoAttack();AdvanceTimers(0.f);AdvanceTimers(1.f);
+ TestEqual(TEXT("Stopping attacks cancels pending waves"),Waves().Num()-BeforeCancel,1);
  for(auto* Wave:Waves())
  {
   TestTrue(TEXT("Area penalty narrows wave collision"),FMath::IsNearlyEqual(Wave->Collision->GetUnscaledBoxExtent().Y*2,300.f*.65f,.02f));

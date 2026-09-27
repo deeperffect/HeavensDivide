@@ -61,6 +61,7 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 	GENERATED_BODY()
 	friend class FImpactFeedbackTest;
 	friend class FEnemyPushbackTest;
+	friend class FDoubleCut360Test;
 	friend class FGrandEntranceTest;
 	friend class FSamuraiBuildsTest;
 	friend class FTagTeamRegressionTest;
@@ -264,8 +265,11 @@ protected:
 	float BladeWaveDamageMultiplier = 0.65f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Samurai|Blade Wave")
 	float CrossingBladeSideAngle = 30.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Samurai|Blade Wave", meta=(ClampMin="0", Units="s", ToolTip="Delay between waves on a Crossing Blades proc. Zero restores simultaneous waves."))
+	float CrossingBladeWaveDelay = .12f;
 
 private:
+	TArray<FTimerHandle> PendingBladeWaveTimers;
 	UFUNCTION()
 	void HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode);
 

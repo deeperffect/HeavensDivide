@@ -10,13 +10,162 @@
 #include "Materials/MaterialExpression.h"
 #include "NiagaraScriptSource.h"
 #include "NiagaraGraph.h"
+#include "NiagaraEditorUtilities.h"
 #include "NiagaraNodeFunctionCall.h"
 #include "NiagaraNodeOutput.h"
 #include "NiagaraNodeInput.h"
 #include "NiagaraSpriteRendererProperties.h"
+#include "NiagaraMeshRendererProperties.h"
+#include "NiagaraDecalRendererProperties.h"
+#include "Materials/MaterialInterface.h"
+#include "Engine/StaticMesh.h"
 #include "ViewModels/Stack/NiagaraParameterHandle.h"
 #include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
 #endif
+
+bool USwapVFXSetupLibrary::CompleteGroundSlashEffects(UNiagaraSystem* System, UNiagaraSystem* Original)
+{
+#if WITH_EDITOR
+    if (!System || !Original || System == Original) return false;
+    System->Modify();
+    // Copy both halves of each event-driven trail. Copying only the visible
+    // emitter leaves it waiting for events from a different system.
+    TMap<FGuid, FGuid> RemappedIds;
+    TSet<FGuid> AddedIds;
+    for (const auto& Source : Original->GetEmitterHandles())
+    {
+        const FString Name = Source.GetName().ToString();
+        if (!Name.StartsWith(TEXT("Trail")) && Name != TEXT("StarParticles") && Name != TEXT("StarParticles002")) continue;
+        const auto* Existing = System->GetEmitterHandles().FindByPredicate(
+            [&Source](const FNiagaraEmitterHandle& Handle) { return Handle.GetName() == Source.GetName(); });
+        if (Existing) RemappedIds.Add(Source.GetId(), Existing->GetId());
+        else
+        {
+            const FGuid NewId = FNiagaraEditorUtilities::AddEmitterToSystem(
+                *System, *Source.GetInstance().Emitter, Source.GetInstance().Version);
+            auto& Copy = *System->GetEmitterHandles().FindByPredicate(
+                [&NewId](const FNiagaraEmitterHandle& Handle) { return Handle.GetId() == NewId; });
+            Copy.SetName(Source.GetName(), *System);
+            Copy.GetEmitterData()->RemoveParent();
+            Copy.SetIsEnabled(Source.GetIsEnabled(), *System, false);
+            RemappedIds.Add(Source.GetId(), NewId);
+            AddedIds.Add(NewId);
+        }
+    }
+    if (RemappedIds.Num() != 10) return false;
+    int32 SlashMeshes = 0;
+    for (auto& Handle : System->GetEmitterHandles())
+    {
+        auto* Data = Handle.GetEmitterData();
+        if (!Data) continue;
+        if (AddedIds.Contains(Handle.GetId()))
+        {
+            for (const auto& Event : Data->GetEventHandlers())
+            {
+                const auto* NewId = RemappedIds.Find(Event.SourceEmitterID);
+                if (!NewId) return false;
+                Data->GetEventHandlerByIdUnsafe(Event.Script->GetUsageId())->SourceEmitterID = *NewId;
+            }
+        }
+        if (Handle.GetName() == TEXT("SlashMeshTUT"))
+        {
+            for (auto* Renderer : Data->GetRenderers())
+                if (auto* Mesh = Cast<UNiagaraMeshRendererProperties>(Renderer))
+                {
+                    Mesh->Modify();
+                    // Rotate only the crescent around its forward axis. Rolling
+                    // the Niagara component would tip the ground decals too.
+                    for (auto& Entry : Mesh->Meshes)
+                    {
+                        Entry.Rotation = FRotator(0.f, 0.f, 90.f);
+                        if (!Entry.Mesh) return false;
+                        // The vertical asset's pivot is at its base. Center its
+                        // transverse axes before rolling it onto the ground;
+                        // mesh-space offsets follow particle rotation and scale.
+                        const FVector Center = Entry.Mesh->GetBounds().Origin * Entry.Scale;
+                        Entry.PivotOffsetSpace = ENiagaraMeshPivotOffsetSpace::Mesh;
+                        Entry.PivotOffset = FVector(0.f, -Center.Y, -Center.Z);
+                        UE_LOG(LogTemp, Display, TEXT("GroundSlash centered mesh: bounds=%s pivot=%s"),
+                            *Center.ToString(), *Entry.PivotOffset.ToString());
+                    }
+                    Mesh->PostEditChange();
+                    ++SlashMeshes;
+                }
+        }
+    }
+    if (SlashMeshes != 1) return false;
+    System->PostEditChange();
+    System->RequestCompile(true);
+    System->WaitForCompilationComplete(true, false);
+    return System->IsReadyToRun();
+#else
+    return false;
+#endif
+}
+
+int32 USwapVFXSetupLibrary::BindGroundSlashTrailOrientation(UNiagaraSystem* System)
+{
+    int32 Count = 0;
+#if WITH_EDITOR
+    if (!System) return 0;
+    System->Modify();
+    const FNiagaraVariable Parameter(FNiagaraTypeDefinition::GetQuatDef(), TEXT("User.GroundTrailOrientation"));
+    System->GetExposedParameters().SetParameterValue(UNiagaraDecalRendererProperties::GetDefaultOrientation(), Parameter, true);
+    for (const auto& Handle : System->GetEmitterHandles())
+    {
+        if (Handle.GetName() != TEXT("DecalBrightTUT")) continue;
+        if (auto* Data = Handle.GetEmitterData())
+        {
+            // Local simulation would drag already-spawned marks along with the wave.
+            if (Data->bLocalSpace) return -2;
+            for (auto* Renderer : Data->GetRenderers())
+                if (auto* Decal = Cast<UNiagaraDecalRendererProperties>(Renderer))
+                {
+                    Decal->Modify();
+                    Decal->DecalOrientationBinding.SetValue(Parameter.GetName(), Handle.GetInstance().ToBase(), Decal->SourceMode);
+                    Decal->PostEditChange();
+                    ++Count;
+                }
+        }
+    }
+    System->PostEditChange();
+    System->RequestCompile(true);
+    System->WaitForCompilationComplete(true, false);
+    if (!System->IsReadyToRun()) return -1;
+#endif
+    return Count;
+}
+
+int32 USwapVFXSetupLibrary::BindGroundSlashDebris(UNiagaraSystem* System)
+{
+    int32 Count = 0;
+#if WITH_EDITOR
+    if (!System) return 0;
+    System->Modify();
+    const FNiagaraVariable Parameter(FNiagaraTypeDefinition(UMaterialInterface::StaticClass()), TEXT("User.DebrisMaterial"));
+    System->GetExposedParameters().AddParameter(Parameter);
+    for (const auto& Handle : System->GetEmitterHandles())
+    {
+        if (!Handle.GetName().ToString().StartsWith(TEXT("Debris"))) continue;
+        if (auto* Data = Handle.GetEmitterData())
+            for (auto* Renderer : Data->GetRenderers())
+                if (auto* Mesh = Cast<UNiagaraMeshRendererProperties>(Renderer))
+                {
+                    Mesh->Modify();
+                    Mesh->bOverrideMaterials = true;
+                    if (Mesh->OverrideMaterials.IsEmpty()) Mesh->OverrideMaterials.AddDefaulted();
+                    for (auto& Override : Mesh->OverrideMaterials) Override.UserParamBinding.Parameter = Parameter;
+                    Mesh->PostEditChange();
+                    ++Count;
+                }
+    }
+    System->PostEditChange();
+    System->RequestCompile(true);
+    System->WaitForCompilationComplete(true, false);
+    if (!System->IsReadyToRun()) return -1;
+#endif
+    return Count;
+}
 
 bool USwapVFXSetupLibrary::IsMaterialInputConnected(UObject* Object, FName InputName)
 {

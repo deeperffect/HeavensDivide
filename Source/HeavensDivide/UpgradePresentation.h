@@ -16,6 +16,16 @@ struct FUpgradePresentation
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX") TObjectPtr<UNiagaraSystem> ImpactSystem;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX") TObjectPtr<UNiagaraSystem> DetonationSystem;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX") bool bShowFallbackWithNiagara=false;
+ // Opt-in projectile presentation: used by Blade Wave, not stationary family pulses.
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash") bool bGroundSlashMotion=false;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash",meta=(ToolTip="Compress the vendor slowdown timing when needed to fit the configured attack range.")) bool bFitSlowdownToRange=true;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash",meta=(ClampMin="0",Units="s")) float SlowdownDelay=0.4f;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash",meta=(ClampMin="0")) float SlowdownRate=3.5f;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash",meta=(ClampMin="1",Units="cm")) float GroundTraceDistance=150.f;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash",meta=(Units="cm")) float GroundOffset=10.f;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash",meta=(ClampMin="0.1",Units="s")) float MaxTravelTime=5.f;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash",meta=(ClampMin="0.1",Units="s")) float DebrisLifetime=5.f;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Ground Slash") TObjectPtr<UMaterialInterface> DebrisMaterial;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX") bool bShowFallbackWithoutNiagara=true;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX") TObjectPtr<UMaterialInterface> FallbackRingMaterial;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX") TObjectPtr<UMaterialInterface> FallbackLineMaterial;

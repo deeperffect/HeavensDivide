@@ -13,6 +13,7 @@ ANinjaCharacter::ANinjaCharacter()
     ComboAbility.FinalRadius = 650.f;
     ComboAbility.EffectDuration = 1.4f;
     ComboAbility.PulseInterval = .08f;
+    ComboAbility.bSpawnVFXEveryPulse = true;
     ComboAbility.bFaceEnemyPack = true;
     ComboAbility.FallbackColor = FLinearColor(.35f, .75f, 1.f);
 	AutoAttackComponent = CreateDefaultSubobject<UAutoAttackComponent>(TEXT("AutoAttackComponent"));

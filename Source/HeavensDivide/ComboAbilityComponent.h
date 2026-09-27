@@ -36,11 +36,15 @@ struct FComboAbilitySettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") TObjectPtr<USoundBase> Sound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0")) float SoundVolume = 1.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") TObjectPtr<UNiagaraSystem> VFX;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(DisplayName="Spawn VFX Every Pulse", ToolTip="Spawn a separate Niagara effect on every damage pulse. Each instance uses VFX Visibility Duration; zero uses Pulse Interval in this mode.")) bool bSpawnVFXEveryPulse = false;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FVector VFXOffset = FVector::ZeroVector;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FRotator VFXRotation = FRotator::ZeroRotator;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FVector VFXScale = FVector::OneVector;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FName VFXRadiusParameter = TEXT("User.Radius");
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0.01", Units="cm", ToolTip="Radius represented by a Niagara parameter value of 1. Use 1 for a radius in centimeters, or the effect's reference radius for a scale parameter such as User.Scale_All.")) float VFXReferenceRadius = 1.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FName VFXDurationParameter = TEXT("User.Duration");
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0", Units="s", ToolTip="How long each VFX instance emits from its spawn time. Zero uses Pulse Interval when spawning every pulse, otherwise Effect Duration. Existing particles may finish afterward; cannot extend a Niagara system that ends itself earlier.")) float VFXVisibilityDuration = 0.f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0", Units="s", ToolTip="Maximum extra time for particles to finish after emission stops. Increase for long particle lifetimes.")) float VFXCompletionTimeout = 5.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Timing", meta=(ClampMin="0", Units="s", ToolTip="Delay from activation until gameplay, sound and VFX execute.")) float EffectDelay = 0.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Timing", meta=(ClampMin="0.01", Units="s", ToolTip="Minimum recovery. Extended to cover the effect delay and montage length.")) float RecoveryDuration = .6f;
 };
@@ -76,6 +80,19 @@ public:
     UFUNCTION(BlueprintCallable, Category="Combo") void AddCombo(float Amount);
     void RestoreCombo(float Amount);
 private:
+    friend class FComboAbilityTest;
+    friend class FComboAbilityVFXTest;
+    void UpdateVFXRadius(float Radius);
+    void UpdateVFXLifetime(float DeltaTime);
+    struct FPendingVFX
+    {
+        TWeakObjectPtr<UNiagaraComponent> Effect;
+        TWeakObjectPtr<ACharacterBase> Character;
+        float Remaining = 0;
+        float CompletionRemaining = 0;
+        bool bStopping = false;
+    };
+    TArray<FPendingVFX> PendingVFX;
     bool CanRun() const;
     void SetCombo(float Amount);
     void ExecuteEffect();

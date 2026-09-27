@@ -28,4 +28,10 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")
     static bool PreparePickupBurstScale(UNiagaraSystem* System);
+    UFUNCTION(BlueprintCallable, Category="Editor|Ground Slash")
+    static int32 BindGroundSlashDebris(UNiagaraSystem* System);
+    UFUNCTION(BlueprintCallable, Category="Editor|Ground Slash")
+    static int32 BindGroundSlashTrailOrientation(UNiagaraSystem* System);
+    UFUNCTION(BlueprintCallable, Category="Editor|Ground Slash")
+    static bool CompleteGroundSlashEffects(UNiagaraSystem* System, UNiagaraSystem* Original);
 };

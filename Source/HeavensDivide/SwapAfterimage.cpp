@@ -129,6 +129,9 @@ bool ASwapAfterimage::InitializeDeparture(ACharacterBase* Source,UMaterialInterf
     AnimatedMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     AnimatedMesh->SetCastShadow(false);
     AnimatedMesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+    // This cosmetic mesh never ticks normally, so bRecentlyRendered can stay
+    // false. Keep manually evaluated poses eligible for cooked render uploads.
+    AnimatedMesh->VisibilityBasedAnimTickOption=EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
     AnimatedMesh->RegisterComponent();
     AnimatedMesh->SetWorldTransform(Source->GetMesh()->GetComponentTransform());
     AnimatedMesh->SetComponentTickEnabled(false); // Evaluated explicitly, without gameplay notifies.

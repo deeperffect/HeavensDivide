@@ -86,7 +86,10 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
 
     const FVector AttackOrigin = OwnerCharacter->GetActorLocation();
     const UUpgradeDefinition *GrandEntrance = GetReadyGrandEntranceUpgrade();
-    const FVector HitboxCenter = GrandEntrance ? AttackOrigin : AttackOrigin + AttackForward * AttackForwardOffset;
+    // Double Cut keeps the normal attack radius but centers its follow-up on
+    // the Samurai, covering the full circle rather than the forward hitbox.
+    const FVector HitboxCenter = (GrandEntrance || bDoubleCutFollowUpActive)
+        ? AttackOrigin : AttackOrigin + AttackForward * AttackForwardOffset;
     const float EffectiveAttackRadius =
         GrandEntrance ? GetGrandEntranceRadius(GrandEntrance) : GetEffectiveAttackRadius();
     if (GrandEntrance)
@@ -297,6 +300,11 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
     const auto *Multishot = Upgrades->FindUpgradeDefinition(TEXT("WaveMultishot"));
     const float ExtraAngle = FMath::Max(0.f, Multishot ? Multishot->GetBalanceValue(TEXT("AnglePerWave"), 8.f) : 8.f);
     const float FanHalfAngle = bTriple ? SideAngle : ExtraAngle * BonusWaves * 0.5f;
+    const float WaveDelay = bTriple && FMath::IsFinite(CrossingBladeWaveDelay) ? FMath::Max(0.f, CrossingBladeWaveDelay) : 0.f;
+    const float TravelDistance = Tune(TEXT("WaveTravelDistance"), BladeWaveTravelDistance);
+    const float Speed = Tune(TEXT("WaveSpeed"), BladeWaveSpeed) * (1.f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWaveHaste")));
+    const float VisualArea = FMath::Max(0.f, AreaMultiplier) * (1.f + WideArc);
+    PendingBladeWaveTimers.RemoveAll([this](const FTimerHandle& Timer) { return !GetWorld()->GetTimerManager().TimerExists(Timer); });
     for (int32 Index = 0; Index < WaveCount; ++Index)
     {
         const float Angle = WaveCount > 1
@@ -305,18 +313,26 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
         const FVector Direction = Forward.RotateAngleAxis(Angle, FVector::UpVector);
         const FVector SpawnLocation = Samurai->GetActorLocation() + Direction * Tune(TEXT("SpawnForwardOffset"), 80) +
                                       FVector(0.0f, 0.0f, Tune(TEXT("SpawnHeightOffset"), 60));
-        FActorSpawnParameters Params;
-        Params.Owner = Samurai;
-        Params.Instigator = Samurai;
-        Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        if (ASamuraiBladeWave *Wave =
-                GetWorld()->SpawnActor<ASamuraiBladeWave>(BladeWaveClass, SpawnLocation, Direction.Rotation(), Params))
+        // Capture the committed swing's origin, aim and stats; later movement or
+        // upgrade changes must not redirect or rescale the rest of this salvo.
+        auto SpawnWave = [this, Source = TWeakObjectPtr<ASamuraiCharacter>(Samurai),
+            SourceUpgrades = TWeakObjectPtr<UPlayerUpgradeComponent>(Upgrades), WaveClass = BladeWaveClass,
+            SpawnLocation, Direction, WaveDamage, WaveWidth, TravelDistance, Speed, bReturns, VisualArea]()
         {
-            Wave->InitializeBladeWave(Samurai, Upgrades, Direction, WaveDamage, WaveWidth,
-                                      Tune(TEXT("WaveTravelDistance"), BladeWaveTravelDistance),
-                                      Tune(TEXT("WaveSpeed"), BladeWaveSpeed) *
-                                          (1.0f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWaveHaste"))),
-                                      bReturns, FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc));
+            if (!Source.IsValid() || !SourceUpgrades.IsValid() || !GetWorld()) return;
+            FActorSpawnParameters Params;
+            Params.Owner = Source.Get(); Params.Instigator = Source.Get();
+            Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+            if (auto* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(WaveClass, SpawnLocation, Direction.Rotation(), Params))
+                Wave->InitializeBladeWave(Source.Get(), SourceUpgrades.Get(), Direction, WaveDamage, WaveWidth,
+                    TravelDistance, Speed, bReturns, VisualArea);
+        };
+        if (Index == 0 || WaveDelay <= 0.f) SpawnWave();
+        else
+        {
+            FTimerHandle Timer;
+            GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateWeakLambda(this, SpawnWave), Index * WaveDelay, false);
+            PendingBladeWaveTimers.Add(Timer);
         }
     }
 }

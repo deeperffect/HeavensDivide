@@ -17,6 +17,7 @@ Open **BP_Samurai** or **BP_Ninja**, then **Class Defaults > Combo Ability**. Ea
 
 - **Display Name / Enabled**: HUD name and activation toggle.
 - **Damage Per Pulse, Initial Radius, Final Radius**: damage and linear area growth.
+- For Ninja pulse tuning, edit those radii (set both equal for a constant AOE), **Effect Duration**, and **Pulse Interval** here.
 - **Effect Duration / Pulse Interval**: duration and hit frequency. The first pulse occurs when the effect starts; subsequent pulses occur at the interval through the duration. Changing the interval changes total damage.
 - **Effect Delay**: windup before damage, sound, and VFX start.
 - **Freeze On Activation / Freeze Duration / Freeze Ease In Duration**: independent per-character ability settings under **Combo Ability > Freeze**, defaulting to 0.5 / 0.12 real seconds. Zero duration disables the ability freeze. Ease-in is capped at the chosen duration. Recovery lasts at least through the freeze. Swap tuning is unchanged; pause, cancellation, and time restoration still use the shared freeze system.
@@ -24,10 +25,19 @@ Open **BP_Samurai** or **BP_Ninja**, then **Class Defaults > Combo Ability**. Ea
 - **Montage / Montage Play Rate**: optional animation. Use a montage slot supported by that character's animation Blueprint. Gameplay pulses use the configured timing and need no attack notifies.
 - **Face Enemy Pack / Pack Search Radius / Pack Radius**: enabled for Ninja. On activation, count living enemies around each nearby candidate and face the center of the largest group. Equal-sized groups prefer the closer center. Defaults: search within 1,200 cm, group neighbors within 350 cm. The chosen target overrides cursor facing until the ability ends or is cancelled. With no nearby enemies, activation leaves facing unchanged.
 - **Sound / Sound Volume**: optional sound played once at effect start, attached to the character and stopped when the ability ends.
-- **VFX / VFX Offset / VFX Rotation / VFX Scale**: optional Niagara effect attached to the visual root. `VFX Radius Parameter` (default `User.Radius`) updates at each pulse; `VFX Duration Parameter` (default `User.Duration`) receives the effect duration in seconds. The assigned system must implement those user parameters to use them. The component is cleaned up at the end.
+- **VFX / VFX Offset / VFX Rotation / VFX Scale**: optional Niagara effect attached to the visual root. `VFX Radius Parameter` (default `User.Radius`) receives the current radius divided by **VFX Reference Radius** (default 1 cm). It updates before activation and every frame, interpolating between damage pulses. `VFX Duration Parameter` (default `User.Duration`) receives the effect duration in seconds. The assigned system must implement those user parameters to use them. The component cleans itself up when Niagara finishes, with the completion timeout as a fallback.
 - **Fallback Color**: colors the native pulse rings used when no Niagara system is assigned.
+- **VFX Visibility Duration**: time from VFX spawn until graceful deactivation; zero uses Effect Duration. Can outlast ability recovery without extending damage or blocking input. Niagara systems that implement the duration parameter also receive this value. A system's own shorter emitter lifetime still applies.
+- **Spawn VFX Every Pulse**: enabled by default for Ninja. Each damage pulse spawns and activates a separate Niagara instance at that pulse's radius. Each instance has its own visibility and completion timer. With this option enabled, zero **VFX Visibility Duration** uses **Pulse Interval** instead of Effect Duration. Existing particles finish after emission stops. All instances detach when recovery ends and are removed on cancellation. Samurai retains its continuous effect by default.
+- **VFX Completion Timeout**: extra time after deactivation for existing particles to finish, default 5 seconds. This is a cleanup limit, not a forced opacity fade; Niagara's inactive response and particle lifetime control the actual finish. After recovery the effect detaches at the attack location. Cancellation, death, and level teardown remove remaining effects immediately.
 
 Presentation asset slots are optional. Pulse rings provide fallback effects; the ability does not procedurally rotate or reset the mesh. Assign a montage for Tornado's spinning. Override the character's **Execute Combo Ability** Blueprint event to replace per-pulse gameplay; call its parent implementation to retain the native AOE damage.
+
+### Samurai tornado sizing
+
+`NS_SamuraiAbility` already connects `User.Scale_All` to its emitter sizing, including Particle Update. BP_Samurai uses that parameter with **VFX Reference Radius = 600 cm**: a 600 cm hitbox gives scale 1, 900 cm gives 1.5, and 1,200 cm gives 2. Its authored size curves, colors, and component scale are preserved. Growth updates in real time during the activation freeze too.
+
+The reference radius preserves the existing visual size at the current starting radius; it is an artistic calibration, not a measured boundary of the smoke and sparks. Lower it to make the VFX larger relative to the damage area, or raise it to make the VFX smaller. Changing Initial/Final Radius automatically changes the VFX size. `Tools/configure_samurai_ability_scale.py` applies this binding without modifying the Niagara asset or other ability settings.
 
 ## Meter and HUD tuning
 

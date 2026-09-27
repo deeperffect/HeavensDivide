@@ -20,6 +20,14 @@
 
 namespace
 {
+bool IsTrialBuildStarter(const UUpgradeDefinition* Upgrade)
+{
+ static const TSet<FName> Starters = {
+  TEXT("BloodStance"), TEXT("ExecutionStance"), TEXT("WaveStance"),
+  TEXT("ReturningFang"), TEXT("BarrageStance"), TEXT("GreatShuriken")
+ };
+ return Upgrade && Starters.Contains(Upgrade->UpgradeId);
+}
 bool IsRetiredNinjaUpgrade(FName Id)
 {
  static const TSet<FName> Retired = {
@@ -318,7 +326,7 @@ TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetEligibleUpgradesForCateg
 	TArray<UUpgradeDefinition*> CandidateUpgrades;
 	for (UUpgradeDefinition* Upgrade : UpgradePool)
 	{
-		if (Upgrade && Upgrade->Category == Category)
+		if (Upgrade && Upgrade->Category == Category && !IsTrialBuildStarter(Upgrade))
 		{
 			CandidateUpgrades.Add(Upgrade);
 		}
@@ -389,7 +397,7 @@ bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCou
 	TArray<UUpgradeDefinition*> RemainingUpgrades;
 	for (UUpgradeDefinition* Upgrade : UpgradePool)
 	{
-		if (Upgrade && IsCategoryUnlocked(Upgrade->Category) && CanAcquireUpgrade(Upgrade))
+		if (Upgrade && !IsTrialBuildStarter(Upgrade) && IsCategoryUnlocked(Upgrade->Category) && CanAcquireUpgrade(Upgrade))
 		{
 			RemainingUpgrades.Add(Upgrade);
 		}
@@ -410,12 +418,27 @@ bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCou
 
 bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
-	// Existing trial Blueprints now reward the current Samurai build pool.
+	const bool bCharacterTrial = Category == EUpgradeCategory::SamuraiTrial || Category == EUpgradeCategory::NinjaTrial;
 	if (Category == EUpgradeCategory::SamuraiTrial) Category = EUpgradeCategory::Samurai;
 	if (Category == EUpgradeCategory::NinjaTrial) Category = EUpgradeCategory::Ninja;
 	ClearCurrentOffer();
 	SelectedCategory = Category;
-	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
+	if (bCharacterTrial)
+	{
+		TArray<UUpgradeDefinition*> Starters;
+		for (UUpgradeDefinition* Upgrade : UpgradePool)
+			if (IsTrialBuildStarter(Upgrade) && Upgrade->Category == Category && CanAcquireUpgrade(Upgrade))
+				Starters.AddUnique(Upgrade);
+		while (!Starters.IsEmpty() && CurrentUpgradeChoices.Num() < FMath::Max(0, UpgradeChoiceCount))
+		{
+			const int32 Index = FMath::RandRange(0, Starters.Num() - 1);
+			CurrentUpgradeChoices.Add(Starters[Index]);
+			Starters.RemoveAtSwap(Index);
+		}
+	}
+	// Once a stance is owned, exclusivity removes the other starters. Repeat trials
+	// still reward eligible support/branch cards without replacing the chosen route.
+	if (CurrentUpgradeChoices.IsEmpty()) CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
 	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
 	BuildOffersFromCurrentChoices(false);
 	return bHasSelectedCategory;

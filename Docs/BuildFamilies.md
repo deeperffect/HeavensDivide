@@ -10,7 +10,7 @@ The ten automatic ability families and their 70 starter, branch, scaling and evo
 
 ## Samurai stances and routes
 
-Three Rare, one-rank stance cards appear in normal Samurai upgrade offers. Acquiring one excludes the other two for the current run. Stances do not automatically grant Bleed, explosions or Blade Wave. All effect upgrades remain mixable across stances.
+Completing a Samurai trial offers the three Rare, one-rank stance cards as its build-defining reward. These cards are excluded from normal character offers and unrestricted upgrade rewards. Acquiring one excludes the other two for the current run. Stances do not automatically grant Bleed, explosions or Blade Wave. All effect upgrades remain mixable across stances.
 
 | Stance | Area / reach | Attack speed | Damage |
 | --- | --- | --- | --- |
@@ -54,7 +54,7 @@ Samurai's basic melee attacks launch traveling blade waves through the existing 
 
 - **Blade Wave:** unlock the attack-triggered wave.
 - **Returning Blade:** waves return for another hit pass.
-- **Crossing Blades:** every third swing launches three crossing waves, plus acquired Wave Volley waves.
+- **Crossing Blades:** every third swing launches three crossing waves, plus acquired Wave Volley waves. This proc staggers its waves by 0.12 seconds so they are visibly separate. Tune **BP_Samurai > AutoAttackComponent > Samurai > Blade Wave > Crossing Blade Wave Delay**; zero restores simultaneous spawning. Pending waves retain the committed swing's origin, aim and damage, and are cancelled when autoattacks stop (such as swapping or starting the combo ability). Ordinary Wave Volley swings keep their simultaneous fan.
 - **Splinter Wave:** the first enemy hit on each wave pass sheds a small 30%-damage Bleed burst.
 - **Force (`BladeWavePower`):** increase wave damage.
 - **Wide Arc (`WideArc`):** increase wave width and damage.
@@ -64,7 +64,7 @@ Branches combine and require Blade Wave. The three scaling cards have five ranks
 
 ## Ninja weapon routes
 
-Three Rare stance cards replace or modify Ninja's normal attack. Choose one per run; its branch cards require that stance. **Embedded Blades** and its upgrades work with every route.
+Completing a Ninja trial offers three Rare weapon-route cards that replace or modify Ninja's normal attack: Returning Fang, Barrage, and Great Shuriken. These starters are excluded from normal character offers and unrestricted upgrade rewards. Choose one per run; its branch cards require that stance. **Embedded Blades** and its upgrades work with every route.
 
 | Stance | Attack behavior | Scaling |
 | --- | --- | --- |
@@ -106,7 +106,7 @@ Direct Ninja projectile hits embed a fragment **before damage resolves**, so eve
 - **Fragment Load:** embed one additional fragment per hit per rank, up to 3 ranks.
 - **Fragment Reach:** +15/22/30% scatter targeting range per Common/Rare/Epic rank, up to 5 ranks; base range 700 cm.
 
-The old Ninja cards are retired, except **Shadow Step**, **Multiple Strikes** and **Afterimage Frenzy**, which retain Shadow Clone and its upgrades. **Venomous Kunai** is restored as a standalone card: Ninja attacks apply Poison, including all three weapons and clone attacks. The other old poison upgrades remain retired. The removed cards cover the old projectile bonus, bounce/pierce/split, Fan of Blades, Blade Cascade, execution branches and poison scaling upgrades. Hemotoxic Reaction and Accelerated Venom are also retired alongside the retired poison scaling upgrades. Shared Marked Blade remains available. Ninja trial rewards now offer current Ninja cards for every stance. None of the new Ninja attacks applies universal Prepare.
+The old Ninja cards are retired, except **Shadow Step**, **Multiple Strikes** and **Afterimage Frenzy**, which retain Shadow Clone and its upgrades. **Venomous Kunai** is restored as a standalone card: Ninja attacks apply Poison, including all three weapons and clone attacks. The other old poison upgrades remain retired. The removed cards cover the old projectile bonus, bounce/pierce/split, Fan of Blades, Blade Cascade, execution branches and poison scaling upgrades. Hemotoxic Reaction and Accelerated Venom are also retired alongside the retired poison scaling upgrades. Shared Marked Blade remains available. The first Ninja trial rewards a weapon route; after choosing a route, later Ninja trials offer eligible normal Ninja upgrades. None of the new Ninja attacks applies universal Prepare.
 
 ## Tag Team
 
@@ -168,7 +168,7 @@ Each route preview grants its stance, its branch cards and the Embedded Blades p
 
 ## Legacy Samurai cleanup
 
-The old Cleaver, Duelist and Deathblow technique cards are removed. Samurai trial rewards now offer eligible upgrades from the current Samurai build pool. The old technique effects cannot activate from stale run data.
+The old Cleaver, Duelist and Deathblow technique cards are removed. The first Samurai trial rewards a stance; after choosing one, later Samurai trials offer eligible upgrades from the current Samurai build pool. The old technique effects cannot activate from stale run data.
 
 The 22 retained Samurai cards are the ten route cards; Bleeding Edge, Deep Cuts, Heavy Blade, Area and Double Cut; and the seven original Blade Wave cards. Shared synergies and Ninja/global upgrades remain available. Existing tuned card assets are preserved without rewriting their values.
 
@@ -193,3 +193,9 @@ In `BP_Ninja`, select `NinjaBuildComponent` and open **Ninja Builds > Shuriken**
 Ninja Tag Team hits apply poison only when **Venomous Kunai** is acquired, including Great Shuriken, Returning Fang, and regular projectile assists.
 `Shuriken Hit Sound` in the same component category overrides impact audio for giant shurikens from normal attacks, Tag Team, and clones. Empty uses the normal projectile hit sound; kunai, Returning Fang, and scattered fragments keep their existing audio.
 `Shuriken Throw Sound` in **Ninja Builds > Shuriken** replaces the sound on the Ninja attack montage when Great Shuriken is equipped, including Tag Team and clones. Empty retains the authored montage sound. Normal kunai still use the sound assigned to the **Ninja Throw Sound** notify in `AM_AutoAttackNinja`; its timing, volume, and pitch are preserved.
+
+## Trial reward routing
+
+The six build starters remain in the shared catalog for save restoration, prerequisites, mastery, and debug previews, but regular offers filter them out. Character trials offer only eligible starters while a route is unchosen, then fall back to that character's ordinary eligible cards. Branches and support upgrades stay in the normal pool; Blade Wave itself, Bleeding Edge, and Overkill Burst are still separate mixable upgrades. Existing runs keep their acquired routes. No upgrade asset balance values are changed.
+
+Implementation: PlayerUpgradeComponent.cpp. Regression coverage: HeavensDivide.Combat.TrialBuildRewards (both characters, all six route selections, normal/direct offer exclusion, exclusivity, and repeat-trial rewards).

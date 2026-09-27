@@ -34,7 +34,9 @@ bool FUpgradeTuningTest::RunTest(const FString&)
  TestEqual(TEXT("Blade Wave reads editable width"),A->Tuning(4,TEXT("WaveWidth"),300),600.f);
  TestEqual(TEXT("Blade Wave reads editable damage multiplier"),A->Tuning(4,TEXT("WaveDamageMultiplier"),0.65f),1.7f);
  // A real Niagara component receives the selected system, world placement and live radius parameters.
- auto* System=NewObject<UNiagaraSystem>(GetTransientPackage());
+ // An empty NiagaraSystem has no scripts and triggers engine ensures on activation.
+ // Exercise the presentation path with the saved, compiled starter effect.
+ auto* System=SavedVFX.PulseSystem.Get();
  Root->Presentation.PulseSystem=System;Root->Presentation.LocationOffset=FVector(10,20,30);Root->Presentation.AuthoredRadius=100;
  Root->Presentation.Scale=FVector(0.5f);Root->Presentation.LifetimeOverride=0.75f;
  auto* FX=A->FamilyAccent(4,FVector::ZeroVector,FVector(200,0,0),400,FLinearColor::White);

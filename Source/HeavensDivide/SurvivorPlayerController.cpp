@@ -534,6 +534,16 @@ void ASurvivorPlayerController::SetupInputComponent()
     {
         auto& PauseBinding = InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ASurvivorPlayerController::TogglePauseMenu);
         PauseBinding.bExecuteWhenPaused = true;
+#if WITH_EDITOR
+        // Never register testing keys in standalone games or packaged builds.
+        if (GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
+        {
+            InputComponent->BindKey(EKeys::One, IE_Pressed, this, &ASurvivorPlayerController::EditorAddPlayerLevel);
+            InputComponent->BindKey(EKeys::Two, IE_Pressed, this, &ASurvivorPlayerController::EditorFillAbilityMeter);
+            InputComponent->BindKey(EKeys::Three, IE_Pressed, this, &ASurvivorPlayerController::EditorDoubleMovementSpeed);
+            InputComponent->BindKey(EKeys::Four, IE_Pressed, this, &ASurvivorPlayerController::EditorDamagePlayer);
+        }
+#endif
     }
 
 	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
@@ -566,6 +576,42 @@ void ASurvivorPlayerController::SetupInputComponent()
 
 
 }
+
+#if WITH_EDITOR
+bool ASurvivorPlayerController::CanUseEditorTestingShortcuts() const
+{
+	return GetWorld() && GetWorld()->WorldType == EWorldType::PIE && IsLocalController()
+		&& IsRunInProgress() && !bIsPlayerDead && !bLevelUpSelectionActive
+		&& !UGameplayStatics::IsGamePaused(this) && CharacterManager && CharacterManager->GetActiveCharacter();
+}
+
+void ASurvivorPlayerController::EditorAddPlayerLevel()
+{
+	if (CanUseEditorTestingShortcuts() && ExperienceComponent)
+		ExperienceComponent->AddXP(ExperienceComponent->GetXPToNextLevel() - ExperienceComponent->GetCurrentXP());
+}
+
+void ASurvivorPlayerController::EditorFillAbilityMeter()
+{
+	if (CanUseEditorTestingShortcuts() && ComboAbilities)
+		ComboAbilities->RestoreCombo(ComboAbilities->GetMaxCombo());
+}
+
+void ASurvivorPlayerController::EditorDoubleMovementSpeed()
+{
+	if (!CanUseEditorTestingShortcuts()) return;
+	const float NewMultiplier = EditorMovementSpeedMultiplier * 2.0f;
+	if (!FMath::IsFinite(NewMultiplier)) return;
+	EditorMovementSpeedMultiplier = NewMultiplier;
+	ApplySharedMoveSpeedToParty();
+	UE_LOG(LogTemp, Log, TEXT("[EditorTesting] Movement speed multiplier: %.0fx"), EditorMovementSpeedMultiplier);
+}
+
+void ASurvivorPlayerController::EditorDamagePlayer()
+{
+	if (CanUseEditorTestingShortcuts()) ApplyDamageToPlayer(100.0f);
+}
+#endif
 
 void ASurvivorPlayerController::RestoreRunTravelDashCharges(int32 Charges)
 {
@@ -1500,7 +1546,11 @@ void ASurvivorPlayerController::ApplyDashChargeStats()
 
 void ASurvivorPlayerController::ApplySharedMoveSpeedToParty()
 {
-	const float MoveSpeedMultiplier = SharedPlayerStatsComponent ? SharedPlayerStatsComponent->GetFinalMoveSpeedMultiplier() : 1.0f;
+	float MoveSpeedMultiplier = SharedPlayerStatsComponent ? SharedPlayerStatsComponent->GetFinalMoveSpeedMultiplier() : 1.0f;
+#if WITH_EDITOR
+	if (GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
+		MoveSpeedMultiplier *= EditorMovementSpeedMultiplier;
+#endif
 
 	if (!CharacterManager)
 	{

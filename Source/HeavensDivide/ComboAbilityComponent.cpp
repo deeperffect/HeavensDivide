@@ -121,23 +121,29 @@ void UComboAbilityComponent::ExecuteEffect()
     if (!bEffectExecuted && ActiveSettings.Sound)
         ActiveAudio = UGameplayStatics::SpawnSoundAttached(ActiveSettings.Sound, Character->GetRootComponent(), NAME_None,
             FVector::ZeroVector, EAttachLocation::KeepRelativeOffset, true, FMath::Max(0.f, ActiveSettings.SoundVolume));
-    if (!bEffectExecuted && ActiveSettings.VFX)
+    const bool bSpawnVFX = ActiveSettings.VFX && (!bEffectExecuted || ActiveSettings.bSpawnVFXEveryPulse);
+    if (bSpawnVFX)
     {
         ActiveVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(ActiveSettings.VFX, Character->GetVisualRoot(), NAME_None,
             ActiveSettings.VFXOffset, ActiveSettings.VFXRotation, EAttachLocation::KeepRelativeOffset, false, false);
         if (ActiveVFX)
         {
+            const float Visibility = ActiveSettings.VFXVisibilityDuration > 0.f
+                ? ActiveSettings.VFXVisibilityDuration
+                : (ActiveSettings.bSpawnVFXEveryPulse ? ActiveSettings.PulseInterval : ActiveSettings.EffectDuration);
+            PendingVFX.Add({ActiveVFX, Character, Visibility, FMath::Max(0.f, ActiveSettings.VFXCompletionTimeout), false});
+            ActiveVFX->SetAutoDestroy(true);
             if (Character->SwapPresentation) Character->SwapPresentation->RegisterFreezeEffect(ActiveVFX);
             ActiveVFX->SetRelativeScale3D(ActiveSettings.VFXScale);
-            if (!ActiveSettings.VFXDurationParameter.IsNone()) ActiveVFX->SetVariableFloat(ActiveSettings.VFXDurationParameter, ActiveSettings.EffectDuration);
+            if (!ActiveSettings.VFXDurationParameter.IsNone()) ActiveVFX->SetVariableFloat(ActiveSettings.VFXDurationParameter, Visibility);
         }
     }
     const float Alpha = FMath::Clamp((NextPulseTime - ActiveSettings.EffectDelay) / ActiveSettings.EffectDuration, 0.f, 1.f);
     const float Radius = FMath::Max(1.f, FMath::Lerp(ActiveSettings.InitialRadius, ActiveSettings.FinalRadius, Alpha));
     if (ActiveVFX)
     {
-        if (!ActiveSettings.VFXRadiusParameter.IsNone()) ActiveVFX->SetVariableFloat(ActiveSettings.VFXRadiusParameter, Radius);
-        if (!bEffectExecuted) ActiveVFX->Activate();
+        UpdateVFXRadius(Radius);
+        if (bSpawnVFX) ActiveVFX->Activate();
     }
     bEffectExecuted = true;
     if (!ActiveSettings.VFX)
@@ -151,6 +157,7 @@ void UComboAbilityComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
     if (!CanRun()) { FinishAbility(true); SetCombo(0.f); return; }
+    UpdateVFXLifetime(DeltaTime);
     if (!IsAbilityActive()) return;
     if (AbilityCharacter->GetCharacterMode() != ECharacterMode::Active) { FinishAbility(true); return; }
     const bool bRealTimeAbility = bOwnsActivationFreeze && AbilityCharacter->SwapPresentation
@@ -161,11 +168,37 @@ void UComboAbilityComponent::TickComponent(float DeltaTime, ELevelTick TickType,
         ExecuteEffect();
         NextPulseTime += ActiveSettings.PulseInterval;
     }
+    // Interpolate presentation between damage pulses, including during the real-time freeze.
+    if (IsAbilityActive() && ActiveVFX && !ActiveSettings.bSpawnVFXEveryPulse)
+    {
+        const float Alpha = FMath::Clamp((AbilityElapsed - ActiveSettings.EffectDelay) / ActiveSettings.EffectDuration, 0.f, 1.f);
+        UpdateVFXRadius(FMath::Max(1.f, FMath::Lerp(ActiveSettings.InitialRadius, ActiveSettings.FinalRadius, Alpha)));
+    }
     if (AbilityElapsed >= AbilityDuration) FinishAbility(false);
+}
+void UComboAbilityComponent::UpdateVFXRadius(float Radius)
+{
+    if (!IsValid(ActiveVFX) || ActiveSettings.VFXRadiusParameter.IsNone()) return;
+    const float Reference = FMath::IsFinite(ActiveSettings.VFXReferenceRadius)
+        ? FMath::Max(.01f, ActiveSettings.VFXReferenceRadius) : 1.f;
+    ActiveVFX->SetVariableFloat(ActiveSettings.VFXRadiusParameter, Radius / Reference);
 }
 void UComboAbilityComponent::FinishAbility(bool bCancelled)
 {
-    if (ActiveVFX) { ActiveVFX->DestroyComponent(); ActiveVFX = nullptr; }
+    if (bCancelled)
+    {
+        for (auto& Pending : PendingVFX)
+            if (Pending.Effect.IsValid()) Pending.Effect->DestroyComponent();
+        PendingVFX.Reset();
+    }
+    else
+    {
+        // Leave every pulse's finishing effect at the attack location when control returns.
+        for (auto& Pending : PendingVFX)
+            if (Pending.Character == AbilityCharacter && Pending.Effect.IsValid())
+                Pending.Effect->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+    }
+    ActiveVFX = nullptr;
     if (ActiveAudio) { ActiveAudio->Stop(); ActiveAudio = nullptr; }
     auto* Character = AbilityCharacter.Get();
     AbilityCharacter.Reset();
@@ -183,4 +216,34 @@ void UComboAbilityComponent::FinishAbility(bool bCancelled)
         if (auto* Anim = Character->GetMesh()->GetAnimInstance()) Anim->Montage_Stop(.1f, ActiveSettings.Montage);
     if (!bCancelled && CanRun() && Character->GetCharacterMode() == ECharacterMode::Active)
         if (auto* Attack = Character->FindComponentByClass<UAutoAttackComponent>()) Attack->StartAutoAttack();
+}
+
+void UComboAbilityComponent::UpdateVFXLifetime(float DeltaTime)
+{
+    if (!IsValid(ActiveVFX)) ActiveVFX = nullptr;
+    for (int32 Index = PendingVFX.Num() - 1; Index >= 0; --Index)
+    {
+        auto& Pending = PendingVFX[Index];
+        auto* Effect = Pending.Effect.Get();
+        if (!IsValid(Effect)) { PendingVFX.RemoveAtSwap(Index); continue; }
+        const auto* Character = Pending.Character.Get();
+        const bool bRealTime = Character && Character->SwapPresentation && Character->SwapPresentation->IsSwapFreezeActive();
+        float Delta = FMath::Max(0.f, bRealTime ? static_cast<float>(FApp::GetDeltaTime()) : DeltaTime);
+        if (!Pending.bStopping)
+        {
+            Pending.Remaining -= Delta;
+            if (Pending.Remaining > 0.f) continue;
+            Delta = -Pending.Remaining;
+            Pending.bStopping = true;
+            // Graceful Niagara deactivation lets existing particles age out.
+            Effect->Deactivate();
+        }
+        Pending.CompletionRemaining -= Delta;
+        if (Pending.CompletionRemaining <= 0.f)
+        {
+            Effect->DestroyComponent();
+            if (ActiveVFX == Effect) ActiveVFX = nullptr;
+            PendingVFX.RemoveAtSwap(Index);
+        }
+    }
 }

@@ -92,6 +92,8 @@ protected:
 
 private:
 	void BuildMenu();
+	UFUNCTION() void ShowTesterBalance();
+	UPROPERTY(Transient) TObjectPtr<class UTesterBalanceWidget> TesterBalancePage;
 	bool bInRunSettings = false;
 	FSimpleDelegate InRunSettingsClosed;
 	class UBorder* BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer = nullptr, FVector2D PageSize = FVector2D(1030.0f, 780.0f), bool bAllowUpscaling = false);

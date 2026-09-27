@@ -2,6 +2,8 @@
 
 See [Enemy architecture](EnemyArchitecture.md) for the enemy roster, native behavior and Blueprint settings.
 
+See [Tester balance](TesterBalance.md) for the main menu's local per-enemy health/speed overrides and run population controls.
+
 See [Swap presentation](SwapPresentation.md) for character handoff effects, optional entrance montages, sounds and HUD portrait feedback.
 
 Combat currently uses 55 upgrade cards and the existing attack animations. Bloodhound and Alternating Fans were removed after the cleanup documented below; the remaining cards retain their saved balance values.
@@ -23,6 +25,9 @@ Combat currently uses 55 upgrade cards and the existing attack animations. Blood
 | Tag Team hits and shared effect spawning | `SurvivorAbilityComponent.cpp` | Tag Team data asset |
 | Temporary rings, beams and Niagara presentation | `AbilityAccent.cpp` | Upgrade presentation settings |
 | Status stacks and timers | `EnemyStatusEffectComponent.cpp` | Enemy status settings and acquired Bleed/Poison upgrades |
+| Trial-only stance/weapon rewards and normal-offer filtering | `PlayerUpgradeComponent.cpp` | Samurai/Ninja trial Reward Choice Count; existing route upgrade assets retain their balance settings |
+
+Samurai and Ninja trials grant their respective build-defining stance/weapon choices. The six route starters are excluded from ordinary character offers and unrestricted rewards. Once that character has a route, later trials offer eligible normal upgrades. Branches and support cards remain in the normal pool. See [Build families](BuildFamilies.md#trial-reward-routing).
 
 `USurvivorAbilityComponent` keeps its existing reflected class name so saved Blueprints still resolve the component. It now contains only live assist, preparation, Blade Wave and presentation support.
 

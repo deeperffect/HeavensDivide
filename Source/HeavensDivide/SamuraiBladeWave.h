@@ -4,6 +4,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "ImpactFeedback.h"
+#include "UpgradePresentation.h"
 #include "SamuraiBladeWave.generated.h"
 
 class ASamuraiCharacter;
@@ -21,8 +22,10 @@ class HEAVENSDIVIDE_API ASamuraiBladeWave : public AActor
 {
 	GENERATED_BODY()
 	friend class FSamuraiBuildsTest;
+	friend class FGroundSlashMotionTest;
 public:
 	ASamuraiBladeWave();
+	virtual void Tick(float DeltaSeconds) override;
 	void InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,
 		float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale = 1.0f);
 
@@ -45,6 +48,16 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Blade Wave|VFX")
 	FName VFXAreaScaleParameter = TEXT("User.AreaScale");
 private:
+	void FollowGround();
+	void StartGroundVisual();
+	void ReleaseGroundVisual();
+	UPROPERTY() FUpgradePresentation GroundPresentation;
+	bool bGroundSlash = false;
+	float PhaseAge = 0.f;
+	float PhaseDistance = 0.f;
+	FVector PhaseOrigin = FVector::ZeroVector;
+	FVector GroundAnchor = FVector::ZeroVector;
+	FVector PhaseDirection = FVector::ForwardVector;
 	TArray<TWeakObjectPtr<UNiagaraComponent>> WaveEffects;
  TWeakObjectPtr<AAbilityAccent> AssignedVisual;
 	UFUNCTION() void HandleOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

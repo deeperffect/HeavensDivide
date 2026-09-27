@@ -19,23 +19,29 @@ public:
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara|Attachment", meta = (ToolTip = "Attach to the character mesh (or its selected socket) instead of the weapon. Applies attack-area scaling directly, without inheriting the weapon's scale."))
+	bool bAttachToCharacterMesh = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ToolTip = "Niagara system to spawn for the Samurai slash."))
 	TObjectPtr<UNiagaraSystem> NiagaraSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara|Attachment", meta = (DisplayName = "Weapon Component Name", ToolTip = "Name of the Samurai StaticMeshComponent whose origin the effect follows."))
 	FName WeaponComponentName = TEXT("Weapon");
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara|Attachment", meta = (ToolTip = "Optional socket on the character skeletal mesh. None attaches to the weapon origin. When set, the effect follows this socket and still uses weapon scale."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara|Attachment", meta = (ToolTip = "Optional skeletal mesh socket. None uses the character mesh origin when Attach To Character Mesh is enabled, otherwise the weapon origin."))
 	FName SkeletonSocketName = NAME_None;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ToolTip = "Local position offset from the selected skeleton socket or weapon origin."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ToolTip = "Local position offset from the selected mesh, skeleton socket, or weapon origin."))
 	FVector LocationOffset = FVector::ZeroVector;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ToolTip = "Local rotation offset from the selected skeleton socket or weapon origin."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ToolTip = "Local rotation offset from the selected mesh, skeleton socket, or weapon origin."))
 	FRotator RotationOffset = FRotator::ZeroRotator;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ToolTip = "Authored local scale for the Niagara component. Weapon scale is inherited at the weapon origin, or copied at spawn when using a skeleton socket."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ToolTip = "Base VFX scale before attack-area bonuses. Mesh attachment uses mesh scale; weapon attachment inherits or copies weapon scale."))
 	FVector Scale = FVector::OneVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara", meta = (ClampMin="1", ClampMax="8", ToolTip="Evenly spaced copies around the character's vertical axis. Four copies form Double Cut's full-circle slash without increasing its radius."))
+	int32 RadialCopies = 1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara|Area Scaling", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Strength of positive attack-area bonuses for this VFX. 2 doubles the bonus: 1.75x attack area becomes 2.5x VFX area scaling. Normal size and area reductions stay unchanged."))
 	float AreaBonusScaleMultiplier = 2.0f;

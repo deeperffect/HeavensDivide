@@ -15,6 +15,7 @@
 #include "SwapPresentationComponent.h"
 #include "GameFramework/WorldSettings.h"
 #include "Misc/App.h"
+#include "NiagaraComponent.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FComboAbilityTest, "HeavensDivide.Combat.ComboAbility",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -86,6 +87,14 @@ bool FComboAbilityTest::RunTest(const FString&)
     TestFalse(TEXT("Ability finishes"), Combo->IsAbilityActive());
     TestTrue(TEXT("Mesh orientation restored"), Samurai->GetMesh()->GetRelativeRotation().Equals(InitialRotation));
     SetActive(Ninja);
+    auto* NinjaBP = LoadClass<ACharacterBase>(nullptr, TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Ninja.BP_Ninja_C"));
+    if (TestNotNull(TEXT("Ninja blueprint"), NinjaBP))
+    {
+        const auto& Settings = NinjaBP->GetDefaultObject<ACharacterBase>()->ComboAbility;
+        TestTrue(TEXT("Saved Ninja inherits per-pulse VFX"), Settings.bSpawnVFXEveryPulse);
+        Ninja->ComboAbility.VFX = Settings.VFX;
+        TestNotNull(TEXT("Ninja has an authored pulse effect"), Settings.VFX.Get());
+    }
     for (int32 Index = 0; Index < 4; ++Index)
     {
         auto* PackEnemy = SpawnEnemy(800.f, EPlayerAttackSource::Other);
@@ -99,17 +108,23 @@ bool FComboAbilityTest::RunTest(const FString&)
     }
     const float Before = NinjaOnly->GetHealthComponent()->GetCurrentHealth();
     TestTrue(TEXT("Shared meter activates Ninja ability"), Combo->TryActivateAbility());
+    TestEqual(TEXT("First pulse spawns one VFX instance"), Combo->PendingVFX.Num(), 1);
+    TWeakObjectPtr<UNiagaraComponent> FirstPulseVFX = Combo->ActiveVFX;
     TestTrue(TEXT("Ninja faces the largest nearby pack instead of the nearest enemy"), Ninja->GetVisualForwardVector().Equals(FVector::RightVector, .01f));
     Ninja->SetFacingTarget(FVector(0.f, -1000.f, 0.f));
     Ninja->Tick(.1f);
     TestTrue(TEXT("Cursor does not override ability pack facing"), Ninja->GetVisualForwardVector().Equals(FVector::RightVector, .01f));
     Combo->TickComponent(.4f, LEVELTICK_All, nullptr);
+    TestEqual(TEXT("Five subsequent pulses each spawn a separate effect"), Combo->PendingVFX.Num(), 6);
+    TestTrue(TEXT("Latest pulse uses a fresh Niagara instance"), Combo->ActiveVFX != FirstPulseVFX.Get());
+    TestTrue(TEXT("Fresh pulse effect is activated"), Combo->ActiveVFX && Combo->ActiveVFX->IsActive());
     TestTrue(TEXT("Thousand Cuts applies multiple rapid pulses"), NinjaOnly->GetHealthComponent()->GetCurrentHealth() < Before - Ninja->ComboAbility.DamagePerPulse);
     TestEqual(TEXT("Ability pulses do not recharge their own meter"), Combo->GetCombo(), 0.f);
     FindFProperty<FBoolProperty>(ASurvivorPlayerController::StaticClass(), TEXT("bIsPlayerDead"))->SetPropertyValue_InContainer(PC, true);
     const float BeforeDeathTick = NinjaOnly->GetHealthComponent()->GetCurrentHealth();
     Combo->TickComponent(1.f, LEVELTICK_All, nullptr);
     TestFalse(TEXT("Death cancels ability"), Combo->IsAbilityActive());
+    TestTrue(TEXT("Death removes all pulse effects"), Combo->PendingVFX.IsEmpty());
     TestFalse(TEXT("Death clears character lock"), Ninja->bComboAbilityActive);
     Ninja->SetFacingTarget(FVector(1000.f, 0.f, 0.f));
     Ninja->Tick(1.f);

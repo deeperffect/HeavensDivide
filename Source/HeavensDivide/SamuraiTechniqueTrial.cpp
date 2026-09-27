@@ -2,6 +2,9 @@
 
 #include "CharacterBase.h"
 #include "Components/StaticMeshComponent.h"
+#if WITH_EDITORONLY_DATA
+#include "Components/BoxComponent.h"
+#endif
 #include "DrawDebugHelpers.h"
 #include "EnemySpawner.h"
 #include "HealthComponent.h"
@@ -15,6 +18,7 @@
 
 ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 {
+	PrimaryActorTick.bCanEverTick = true;
 	bForceSamuraiOnEntry = true;
 	bLockSwappingDuringTrial = true;
 	bSuspendAutoAttacksDuringTrial = false;
@@ -49,7 +53,7 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 		TrialWalls[WallIndex]->SetCollisionResponseToAllChannels(ECR_Block);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> SurfaceMaterial(TEXT("/Game/HeavensDivide/Materials/M_SamuraiLaneIndicator.M_SamuraiLaneIndicator"));
 	if(SurfaceMaterial.Succeeded())LaneIndicatorMaterial=SurfaceMaterial.Object;
 	for (int32 Index = 0; Index < 3; ++Index)
@@ -62,14 +66,37 @@ ASamuraiTechniqueTrial::ASamuraiTechniqueTrial()
 		Lane->SetRelativeRotation(FRotator::ZeroRotator);
 		Lane->SetRelativeScale3D(FVector(LaneWidth/100.0f,LaneDepth/100.0f,0.03f));
 		Lane->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Lane->SetCastShadow(false);
 		Lane->SetHiddenInGame(true);
 		Lane->SetVisibility(false);
-		if(Cube.Succeeded())Lane->SetStaticMesh(Cube.Object);
+		if(Plane.Succeeded())Lane->SetStaticMesh(Plane.Object);
 		if(LaneIndicatorMaterial)Lane->SetMaterial(0,LaneIndicatorMaterial);
 		Lanes.Add(Lane);
 		if(Index==0)LeftLane=Lane;
 		else if(Index==1)CenterLane=Lane;
 		else RightLane=Lane;
+
+#if WITH_EDITORONLY_DATA
+		// Match the same local 100-unit cube used by IsPlayerInLane. Keep the
+		// original lane transform as the single editable source of its footprint.
+		const FName BoundsName(*FString::Printf(TEXT("%sBounds"), *LaneName.ToString()));
+		UBoxComponent* EditorBounds = CreateEditorOnlyDefaultSubobject<UBoxComponent>(BoundsName);
+		if (EditorBounds)
+		{
+			EditorBounds->SetupAttachment(Lane);
+			EditorBounds->SetBoxExtent(FVector(50.0f));
+			EditorBounds->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			EditorBounds->SetGenerateOverlapEvents(false);
+			EditorBounds->SetCanEverAffectNavigation(false);
+			EditorBounds->SetHiddenInGame(true);
+			EditorBounds->SetVisibility(true);
+			EditorBounds->ShapeColor = Index == 0 ? FColor(50, 210, 255)
+				: Index == 1 ? FColor(255, 200, 50) : FColor(220, 100, 255);
+			EditorBounds->SetLineThickness(2.0f);
+			EditorBounds->bDrawOnlyIfSelected = false;
+			EditorBounds->bEditableWhenInherited = false;
+		}
+#endif
 
 		const FName VFXName=Index==0?TEXT("LeftStrikeVFX"):Index==1?TEXT("CenterStrikeVFX"):TEXT("RightStrikeVFX");
 		UNiagaraComponent* StrikeVFX=CreateDefaultSubobject<UNiagaraComponent>(VFXName);
@@ -122,8 +149,10 @@ bool ASamuraiTechniqueTrial::BeginChallenge()
 		UMaterialInstanceDynamic* Material=Lane->CreateAndSetMaterialInstanceDynamic(0);
 		if(Material)
 		{
-			Material->SetVectorParameterValue(TEXT("FillColor"),FLinearColor(1.0f,0.02f,0.01f,1.0f));
+			// Inherit the authored FillColor from the assigned material/instance.
 			Material->SetScalarParameterValue(TEXT("FillAmount"),0.0f);
+			const FVector LaneScale = Lane->GetComponentScale();
+			Material->SetScalarParameterValue(TEXT("LaneAspect"), FMath::Abs(LaneScale.X) / FMath::Max(0.01f, FMath::Abs(LaneScale.Y)));
 		}
 		LaneMaterials.Add(Material);
 	}
@@ -402,7 +431,7 @@ bool ASamuraiTechniqueTrial::IsPlayerInLane(ESamuraiTrialLane Lane) const
 
 	const UStaticMeshComponent* LaneComponent=Lanes[Index].Get();
 	const FVector LocalPlayerLocation=LaneComponent->GetComponentTransform().InverseTransformPosition(Character->GetActorLocation());
-	// Engine's cube mesh is 100 units per side. The component transform is the
+	// Engine's plane mesh is 100 units per side. The component transform is the
 	// single authored source for both the visible indicator and safe footprint.
 	return FMath::Abs(LocalPlayerLocation.X)<=50.0f
 		&& FMath::Abs(LocalPlayerLocation.Y)<=50.0f;

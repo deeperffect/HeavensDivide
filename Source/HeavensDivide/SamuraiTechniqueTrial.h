@@ -75,7 +75,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Samurai Trial|Strike VFX") TObjectPtr<UNiagaraComponent> LeftStrikeVFX;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Samurai Trial|Strike VFX") TObjectPtr<UNiagaraComponent> CenterStrikeVFX;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Samurai Trial|Strike VFX") TObjectPtr<UNiagaraComponent> RightStrikeVFX;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Samurai Trial|Debug", meta=(ToolTip="Debug-only: draws red boxes over the two damaging lane footprints when each strike resolves.")) bool bDrawStrikeDamageDebugBoxes=true;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Samurai Trial|Debug", meta=(ToolTip="Debug-only: draws red boxes over the two damaging lane footprints when each strike resolves.")) bool bDrawStrikeDamageDebugBoxes=false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Samurai Trial|Debug", meta=(ClampMin="0.01")) float StrikeDebugBoxDuration=0.5f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Samurai Trial|Debug", meta=(ClampMin="0.1")) float StrikeDebugBoxThickness=5.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Samurai Trial|Debug", meta=(ClampMin="1.0")) float StrikeDebugBoxHeight=100.0f;

@@ -382,6 +382,14 @@ protected:
 	void Move(const FInputActionValue& Value);
 	void StopMoveInput(const FInputActionValue& Value);
 	void ActivateComboAbility();
+#if WITH_EDITOR
+	bool CanUseEditorTestingShortcuts() const;
+	void EditorAddPlayerLevel();
+	void EditorFillAbilityMeter();
+	void EditorDoubleMovementSpeed();
+	void EditorDamagePlayer();
+	float EditorMovementSpeedMultiplier = 1.0f;
+#endif
 	void Swap(const FInputActionValue& Value);
 	void Dash(const FInputActionValue& Value);
 	void Aim(const FInputActionValue& Value);

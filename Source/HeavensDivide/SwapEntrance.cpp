@@ -23,12 +23,16 @@ void USwapPresentationComponent::StartEntrance()
     EntranceRate=FMath::Max(.01f,EntrancePlayRate*EntranceMontage->RateScale);
     PreviousAnimationMode=static_cast<uint8>(Mesh->GetAnimationMode());
     bPreviousMeshTickEnabled=Mesh->IsComponentTickEnabled();
+    PreviousVisibilityBasedAnimTickOption=static_cast<uint8>(Mesh->VisibilityBasedAnimTickOption);
     bEntranceOwnsPose=true;
     EntrancePosition=0;
     EntranceRemaining=EntranceMontage->GetPlayLength()/EntranceRate;
     // A cosmetic full-body entrance must not blend with idle, locomotion or
     // an attack slot. Scrub explicitly so no gameplay notifies/root motion run.
     Mesh->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+    // Manual ticking does not refresh bRecentlyRendered. Cooked builds gate
+    // render pose uploads on visibility; GIsEditor hides this restriction in PIE.
+    Mesh->VisibilityBasedAnimTickOption=EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
     Mesh->SetComponentTickEnabled(false);
     auto* Anim=Mesh->GetSingleNodeInstance();
     if(!Anim) { StopEntrance(); return; }
@@ -84,6 +88,7 @@ void USwapPresentationComponent::StopEntrance()
             if(auto* Mesh=Character->GetMesh())
             {
                 Mesh->SetAnimationMode(static_cast<EAnimationMode::Type>(PreviousAnimationMode));
+                Mesh->VisibilityBasedAnimTickOption=static_cast<EVisibilityBasedAnimTickOption>(PreviousVisibilityBasedAnimTickOption);
                 Mesh->SetComponentTickEnabled(bPreviousMeshTickEnabled);
             }
     bEntranceOwnsPose=false;

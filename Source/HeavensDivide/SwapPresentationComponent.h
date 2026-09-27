@@ -131,6 +131,7 @@ private:
     bool bEntranceOwnsPose = false;
     bool bPreviousMeshTickEnabled = true;
     uint8 PreviousAnimationMode = 0;
+    uint8 PreviousVisibilityBasedAnimTickOption = 0;
     float EntrancePosition = 0;
     float EntranceRate = 1;
     void StartArrivalMovement();

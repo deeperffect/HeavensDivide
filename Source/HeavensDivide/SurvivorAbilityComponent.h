@@ -34,6 +34,8 @@ class HEAVENSDIVIDE_API AAbilityAccent : public AActor
     }
     void Initialize(FVector End, float Radius, FLinearColor Color, float Duration, bool bBeam,
                     const FUpgradePresentation *Settings = nullptr, int32 Stage = 0);
+    void StartGroundSlash(UMaterialInterface* DebrisMaterial, float Seconds);
+    void ReleaseGroundSlash(float TailSeconds);
 
   private:
     UPROPERTY() TObjectPtr<UNiagaraComponent> Niagara;
@@ -61,6 +63,7 @@ class HEAVENSDIVIDE_API USurvivorAbilityComponent : public UActorComponent
     friend class FBuildFamiliesTest;
     friend class FTagTeamRegressionTest;
     friend class FUpgradeTuningTest;
+    friend class FGroundSlashMotionTest;
 
   public:
     USurvivorAbilityComponent();

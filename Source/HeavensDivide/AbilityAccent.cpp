@@ -132,6 +132,33 @@ void AAbilityAccent::Initialize(FVector End, float Radius, FLinearColor Color, f
     SetLifeSpan(Lifetime + 0.1f);
 }
 
+void AAbilityAccent::StartGroundSlash(UMaterialInterface* DebrisMaterial, float Seconds)
+{
+    SetRemainingLifetime(Seconds);
+    if (Niagara && Niagara->GetAsset())
+    {
+        Niagara->DeactivateImmediate();
+        Niagara->SetWorldRotation(GetActorRotation());
+        // World-space ground marks keep their spawn locations, but their long
+        // axis must face along the slash rather than Niagara's fixed default.
+        Niagara->SetVariableQuat(TEXT("User.GroundTrailOrientation"),
+            GetActorQuat() * FRotator(-90.f, 0.f, 90.f).Quaternion());
+        if (DebrisMaterial) Niagara->SetVariableMaterial(TEXT("User.DebrisMaterial"), DebrisMaterial);
+        // The vendor's particle animation runs at its authored speed. Slowing the
+        // moving projectile must not slow gravity or the debris animation.
+        Niagara->SetCustomTimeDilation(1.f);
+        Niagara->Activate(true);
+    }
+}
+
+void AAbilityAccent::ReleaseGroundSlash(float TailSeconds)
+{
+    DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+    Visual->SetVisibility(false, false);
+    if (Niagara) Niagara->Deactivate();
+    SetRemainingLifetime(TailSeconds);
+}
+
 void AAbilityAccent::Tick(float Delta)
 {
     Super::Tick(Delta);

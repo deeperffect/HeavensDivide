@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MainMenuWidget.h"
+#include "TesterBalanceWidget.h"
 #include "MenuInkStyle.h"
 #include "MetaSkillTreeWidget.h"
 
@@ -161,6 +162,17 @@ void UMainMenuWidget::BuildMenu()
 
 	UCanvasPanel* MainPage = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("MainPage"));
 	MenuSwitcher->AddChild(MainPage);
+	TesterBalancePage = CreateWidget<UTesterBalanceWidget>(this);
+	MenuSwitcher->AddChild(TesterBalancePage);
+	auto* TesterStack = WidgetTree->ConstructWidget<UVerticalBox>();
+	auto* TesterSlot = MainPage->AddChildToCanvas(TesterStack);
+	TesterSlot->SetAnchors(FAnchors(1, 1));
+	TesterSlot->SetAlignment(FVector2D(1, 1));
+	TesterSlot->SetPosition(FVector2D(-20, -12));
+	TesterSlot->SetAutoSize(true);
+	TesterStack->SetRenderTransformPivot(FVector2D(1, 1));
+	TesterStack->SetRenderScale(FVector2D(.65f));
+	AddMenuButton(TesterStack, FText::FromString(TEXT("TESTER BALANCE")), TEXT("TesterBalanceButton"))->OnClicked.AddDynamic(this, &UMainMenuWidget::ShowTesterBalance);
 	UVerticalBox* MainPanel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("MainPanel"));
 	UCanvasPanelSlot* MainPanelSlot = MainPage->AddChildToCanvas(MainPanel);
 	MainPanelSlot->SetAnchors(FAnchors(0.065f, 0.5f));
@@ -1113,6 +1125,13 @@ void UMainMenuWidget::HandleNewRun()
 }
 
 void UMainMenuWidget::HandleCollection() { ShowCollectionPanel(); }
+void UMainMenuWidget::ShowTesterBalance()
+{
+    if (bInRunSettings || !TesterBalancePage) return;
+    ShowMainPanel();
+    TesterBalancePage->Open(this);
+    MenuSwitcher->SetActiveWidget(TesterBalancePage);
+}
 void UMainMenuWidget::HandleSettings() { ShowSettingsPanel(); }
 void UMainMenuWidget::HandleResetProgress() { ShowResetConfirmation(); }
 void UMainMenuWidget::HandleBack() { if(bSettingsPopupOpen&&SettingsSwitcher&&SettingsSwitcher->GetActiveWidgetIndex()==1){ShowSettingsPanel();FocusNamedWidget(TEXT("KeybindSettingsButton"));}else ShowMainPanel(); }

@@ -1,4 +1,5 @@
 #include "FinalBossBase.h"
+#include "TesterBalanceSettings.h"
 
 #include "AnimNotify_BossAttackExecute.h"
 #include "BossGroundTelegraph.h"
@@ -54,7 +55,7 @@ AFinalBossBase::AFinalBossBase(const FObjectInitializer& ObjectInitializer) : Su
 void AFinalBossBase::BeginPlay()
 {
 	Super::BeginPlay();
-	if (HealthComponent) HealthComponent->SetMaxHealthPreservePercent(BossMaxHealth);
+	if (HealthComponent) HealthComponent->SetMaxHealthPreservePercent(BossMaxHealth * GetDefault<UTesterBalanceSettings>()->GetHealthMultiplier(this));
 	if (HealthComponent) HealthComponent->OnHealthChanged.AddUniqueDynamic(this, &AFinalBossBase::HandleBossHealthChangedForPhase);
 	MoveSpeed = BossMoveSpeed;
 	ApplySpawnInstanceModifiers(1.0f, 1.0f, 1.0f);

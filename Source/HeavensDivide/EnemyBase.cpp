@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyBase.h"
+#include "TesterBalanceSettings.h"
 
 #include "HealingPickupDropSubsystem.h"
 
@@ -198,6 +199,7 @@ void AEnemyBase::EndHitFlash()
 void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
+	GetDefault<UTesterBalanceSettings>()->ApplyEnemy(this);
 	InitializeHitFlash();
 
 	SnapToGroundBeforeLightweightMovement();
@@ -454,7 +456,7 @@ void AEnemyBase::ConfigureObjectiveEnemy(float MaxHealth, EPlayerAttackSource Re
 	BloodValue = 0;
 	if (HealthComponent)
 	{
-		HealthComponent->SetMaxHealthPreservePercent(FMath::Max(1.0f, MaxHealth));
+		HealthComponent->SetMaxHealthPreservePercent(FMath::Max(1.0f, MaxHealth) * GetDefault<UTesterBalanceSettings>()->GetHealthMultiplier(this));
 	}
 
 	NormalOverlayDynamicMaterial = OverlayMaterial ? UMaterialInstanceDynamic::Create(OverlayMaterial, this) : nullptr;

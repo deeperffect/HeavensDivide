@@ -16,7 +16,9 @@
 
 ASamuraiBladeWave::ASamuraiBladeWave()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+	PrimaryActorTick.TickGroup = TG_PostPhysics;
 	Collision = CreateDefaultSubobject<UBoxComponent>(TEXT("Collision"));
 	SetRootComponent(Collision);
 	Collision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -75,8 +77,23 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
   const auto* Settings=Abilities->FamilyPresentation(4);
   if(Settings&&Settings->PulseSystem)
   {
+   bGroundSlash = Settings->bGroundSlashMotion;
+   if (bGroundSlash)
+   {
+    GroundPresentation = *Settings;
+    PhaseOrigin = GetActorLocation();
+    PhaseDirection = Direction;
+    PhaseDistance = FMath::Max(1.f, InTravelDistance);
+    PhaseAge = 0.f;
+    FollowGround();
+    StartGroundVisual();
+    SetActorTickEnabled(true);
+   }
+   else
+   {
    AssignedVisual=Abilities->FamilyAccent(4,GetActorLocation(),GetActorLocation()+Direction*InTravelDistance,InWidth*0.5f,FLinearColor::White,Duration*(bReturns?2:1));
    if(AssignedVisual.IsValid()){AssignedVisual->AttachToActor(this,FAttachmentTransformRules::KeepWorldTransform);AssignedVisual->SetActorRotation(Direction.Rotation());}
+   }
    if(!Settings->bShowFallbackWithNiagara){Visual->SetVisibility(false);for(auto E:WaveEffects)if(E.IsValid())E->DeactivateImmediate();WaveEffects.Reset();}
   }
  }
@@ -86,8 +103,75 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
 		Effect->SetCustomTimeDilation(FMath::Max(0.001f, VFXAuthoredDuration) / (Duration * (bReturns ? 2.0f : 1.0f)));
 		Effect->Activate(true);
 	}
-	GetWorldTimerManager().SetTimer(PhaseTimer, this, bReturns ? &ASamuraiBladeWave::BeginReturn : &ASamuraiBladeWave::FinishWave, Duration, false);
+	if (!bGroundSlash)
+		GetWorldTimerManager().SetTimer(PhaseTimer, this, bReturns ? &ASamuraiBladeWave::BeginReturn : &ASamuraiBladeWave::FinishWave, Duration, false);
 	OnOutboundStarted.Broadcast(this);
+}
+
+void ASamuraiBladeWave::FollowGround()
+{
+    const FVector Position = GetActorLocation();
+    const float Trace = FMath::Max(1.f, GroundPresentation.GroundTraceDistance);
+    FCollisionQueryParams Query(SCENE_QUERY_STAT(BladeWaveGround), false, this);
+    if (SourceSamurai.IsValid()) Query.AddIgnoredActor(SourceSamurai.Get());
+    FHitResult Hit;
+    // Restrict ground detection to static geometry, so enemies cannot lift the wave.
+    if (GetWorld()->LineTraceSingleByObjectType(Hit, Position + FVector(0,0,Trace),
+        Position - FVector(0,0,Trace), FCollisionObjectQueryParams(ECC_WorldStatic), Query))
+    {
+        GroundAnchor = Hit.ImpactPoint + FVector(0,0,GroundPresentation.GroundOffset);
+        SetActorLocation(FVector(Position.X, Position.Y, Hit.ImpactPoint.Z + WaveHeight * .5f), false);
+    }
+    else
+        GroundAnchor = Position - FVector(0,0,WaveHeight * .5f) + FVector(0,0,GroundPresentation.GroundOffset);
+}
+
+void ASamuraiBladeWave::StartGroundVisual()
+{
+    auto* Accent = GetWorld()->SpawnActor<AAbilityAccent>(GroundAnchor, GetActorRotation());
+    if (!Accent) return;
+    AssignedVisual = Accent;
+    const float Duration = FMath::Max(.1f, GroundPresentation.MaxTravelTime);
+    Accent->Initialize(GroundAnchor + PhaseDirection * PhaseDistance,
+        Collision->GetUnscaledBoxExtent().Y, FLinearColor::White, Duration, false, &GroundPresentation);
+    Accent->SetActorRotation(GetActorRotation() + GroundPresentation.RotationOffset);
+    Accent->StartGroundSlash(GroundPresentation.DebrisMaterial, Duration + 1.f);
+}
+
+void ASamuraiBladeWave::ReleaseGroundVisual()
+{
+    if (AssignedVisual.IsValid()) AssignedVisual->ReleaseGroundSlash(GroundPresentation.DebrisLifetime);
+    AssignedVisual.Reset();
+}
+
+void ASamuraiBladeWave::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+    if (!bGroundSlash) return;
+    PhaseAge += DeltaSeconds;
+    const float Travelled = FVector::DotProduct(GetActorLocation() - PhaseOrigin, PhaseDirection);
+    if (Travelled >= PhaseDistance)
+    {
+        const FVector End = PhaseOrigin + PhaseDirection * PhaseDistance;
+        SetActorLocation(FVector(End.X, End.Y, GetActorLocation().Z), false);
+    }
+    FollowGround();
+    if (AssignedVisual.IsValid()) AssignedVisual->MoveAnchor(GroundAnchor);
+    if (Travelled >= PhaseDistance || PhaseAge >= FMath::Max(.1f, GroundPresentation.MaxTravelTime)
+        || Movement->Velocity.SizeSquared() <= 25.f)
+    {
+        if (bReturns && !bReturning) BeginReturn(); else FinishWave();
+        return;
+    }
+    const float Delay = FMath::Max(0.f, GroundPresentation.SlowdownDelay);
+    const float Rate = FMath::Max(0.f, GroundPresentation.SlowdownRate);
+    // Integral of constant speed followed by exponential decay: speed*(delay+1/rate).
+    // Keep the vendor curve's proportions while fitting shorter gameplay ranges.
+    const float TimeScale = GroundPresentation.bFitSlowdownToRange && Rate > 0.f
+        ? FMath::Clamp(PhaseDistance / (Speed * (Delay + 1.f / Rate)), .01f, 1.f) : 1.f;
+    const float SlowDelta = FMath::Min(DeltaSeconds, FMath::Max(0.f, PhaseAge - Delay * TimeScale));
+    if (SlowDelta > 0.f && GroundPresentation.SlowdownRate > 0.f)
+        Movement->Velocity = FMath::VInterpTo(Movement->Velocity, FVector::ZeroVector, SlowDelta, Rate / TimeScale);
 }
 
 void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrimitiveComponent*, int32, bool, const FHitResult&)
@@ -127,6 +211,18 @@ void ASamuraiBladeWave::BeginReturn()
 	SetActorRotation(Direction.Rotation());
 	Movement->Velocity = Direction * Speed;
 	const float ReturnDuration = FMath::Max(0.01f, Distance / Speed);
+ if (bGroundSlash)
+ {
+  ReleaseGroundVisual();
+  PhaseOrigin = GetActorLocation();
+  PhaseDirection = Direction;
+  PhaseDistance = Distance;
+  PhaseAge = 0.f;
+  FollowGround();
+  StartGroundVisual();
+  OnReturnStarted.Broadcast(this);
+  return;
+ }
  if(AssignedVisual.IsValid())AssignedVisual->SetRemainingLifetime(ReturnDuration);
 	// The player may have moved: fit the remaining animation to the actual return distance.
 	for (const TWeakObjectPtr<UNiagaraComponent>& Effect : WaveEffects)
@@ -143,6 +239,7 @@ void ASamuraiBladeWave::BeginReturn()
 void ASamuraiBladeWave::FinishWave()
 {
 	GetWorldTimerManager().ClearTimer(PhaseTimer);
+	if (bGroundSlash) ReleaseGroundVisual();
 	OnWaveFinished.Broadcast(this);
 	Destroy();
 }

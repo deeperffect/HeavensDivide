@@ -121,6 +121,8 @@ void UAutoAttackComponent::StopAutoAttack()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(AttackTimerHandle);
+		for (auto& Timer : PendingBladeWaveTimers) World->GetTimerManager().ClearTimer(Timer);
+		PendingBladeWaveTimers.Reset();
 	}
 
 	CurrentAttackTarget.Reset();
