@@ -45,8 +45,8 @@ AFinalBossBase::AFinalBossBase(const FObjectInitializer& ObjectInitializer) : Su
 	CircleTelegraph->SetVisibility(false);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cylinder(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OgreMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackTelegraphBox.M_AttackTelegraphBox"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CircleMaterial(TEXT("/Game/HeavensDivide/Materials/M_SamuraiLaneIndicator.M_SamuraiLaneIndicator"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OgreMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle.M_AttackIndicatorRectangle"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CircleMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal.M_AttackIndicatorCircle_Decal"));
 	if (Cylinder.Succeeded()) CircleTelegraph->SetStaticMesh(Cylinder.Object);
 	if (OgreMaterial.Succeeded()) RectangleTelegraphMaterial = OgreMaterial.Object;
 	if (CircleMaterial.Succeeded()) CircleTelegraphMaterial = CircleMaterial.Object;
@@ -63,13 +63,12 @@ void AFinalBossBase::BeginPlay()
 	if (RectangleTelegraphMaterial)
 	{
 		RectangleMaterialInstance = UMaterialInstanceDynamic::Create(RectangleTelegraphMaterial, this);
-		RectangleTelegraph->SetDecalMaterial(RectangleMaterialInstance);
 	}
-	if (CircleTelegraphMaterial) CircleTelegraph->SetMaterial(0, CircleTelegraphMaterial);
-	CircleMaterialInstance = CircleTelegraph->CreateAndSetMaterialInstanceDynamic(0);
+	// Legacy components remain hidden; ABossGroundTelegraph uses the matching
+	// surface/decal renderer for each shape.
+	if (CircleTelegraphMaterial) CircleMaterialInstance = UMaterialInstanceDynamic::Create(CircleTelegraphMaterial, this);
 	if (CircleMaterialInstance)
 	{
-		CircleMaterialInstance->SetVectorParameterValue(TEXT("FillColor"), FLinearColor::Red);
 		CircleMaterialInstance->SetScalarParameterValue(TEXT("FillAmount"), 1.0f);
 	}
 	HideAttackTelegraphs();

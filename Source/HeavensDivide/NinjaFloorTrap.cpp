@@ -4,6 +4,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/StaticMesh.h"
 
 ANinjaFloorTrap::ANinjaFloorTrap()
 {
@@ -14,17 +15,37 @@ ANinjaFloorTrap::ANinjaFloorTrap()
 	HazardArea->SetCollisionEnabled(ECollisionEnabled::NoCollision); HazardArea->SetCollisionResponseToAllChannels(ECR_Ignore); HazardArea->SetCollisionResponseToChannel(ECC_Pawn,ECR_Overlap);
 	TelegraphVisual = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TelegraphVisual")); TelegraphVisual->SetupAttachment(Root);
 	TelegraphVisual->SetRelativeLocation(FVector(0,0,3)); TelegraphVisual->SetRelativeScale3D(FVector(6,6,.03f)); TelegraphVisual->SetCollisionEnabled(ECollisionEnabled::NoCollision); TelegraphVisual->SetVisibility(false);
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cube(TEXT("/Engine/BasicShapes/Cube.Cube")); if(Cube.Succeeded()) TelegraphVisual->SetStaticMesh(Cube.Object);
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane")); if(Plane.Succeeded()) TelegraphVisual->SetStaticMesh(Plane.Object);
+	TelegraphVisual->SetCastShadow(false);
 }
 
-void ANinjaFloorTrap::BeginPlay(){ Super::BeginPlay(); TelegraphMaterial=TelegraphVisual->CreateAndSetMaterialInstanceDynamic(0); }
+void ANinjaFloorTrap::BeginPlay()
+{
+	Super::BeginPlay();
+	TelegraphVisual->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Plane.Plane")));
+	TelegraphVisual->SetMaterial(0,LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle.M_AttackIndicatorRectangle")));
+	TelegraphMaterial=TelegraphVisual->CreateAndSetMaterialInstanceDynamic(0);
+}
 void ANinjaFloorTrap::HandleActivationChanged(bool bActive)
 {
 	StateElapsed=0; FloorState=bActive?ENinjaFloorTrapState::Waiting:ENinjaFloorTrapState::Inactive;
 	SetActorTickEnabled(bActive); HazardArea->SetCollisionEnabled(bActive?ECollisionEnabled::QueryOnly:ECollisionEnabled::NoCollision); TelegraphVisual->SetVisibility(false);
 	if(TelegraphMaterial)TelegraphMaterial->SetScalarParameterValue(TEXT("FillAmount"),0);
 }
-void ANinjaFloorTrap::BeginTelegraph(){FloorState=ENinjaFloorTrapState::Telegraphing;StateElapsed=0;TelegraphVisual->SetVisibility(true);OnTelegraphStarted.Broadcast();}
+void ANinjaFloorTrap::BeginTelegraph()
+{
+	FloorState=ENinjaFloorTrapState::Telegraphing;StateElapsed=0;
+	const FVector Extent=HazardArea->GetScaledBoxExtent();
+	FVector Position=HazardArea->GetComponentLocation();Position.Z=TelegraphVisual->GetComponentLocation().Z;
+	TelegraphVisual->SetWorldLocationAndRotation(Position,HazardArea->GetComponentRotation());
+	TelegraphVisual->SetWorldScale3D(FVector(Extent.X/50.f,Extent.Y/50.f,1.f));
+	if(TelegraphMaterial)
+	{
+		TelegraphMaterial->SetScalarParameterValue(TEXT("LaneAspect"),Extent.Y/FMath::Max(1.f,Extent.X));
+		TelegraphMaterial->SetScalarParameterValue(TEXT("FillAmount"),0.f);
+	}
+	TelegraphVisual->SetVisibility(true);OnTelegraphStarted.Broadcast();
+}
 void ANinjaFloorTrap::ResolveDamage()
 {
 	TArray<AActor*> Actors; HazardArea->GetOverlappingActors(Actors,ACharacterBase::StaticClass());

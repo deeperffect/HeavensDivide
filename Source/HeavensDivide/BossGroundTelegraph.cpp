@@ -32,8 +32,9 @@ void ABossGroundTelegraph::InitializeTelegraph(ASurvivorPlayerController* InPlay
 	Radius = FMath::Max(1.0f, InRadius);
 	Duration = FMath::Max(0.01f, InDuration);
 	Damage = FMath::Max(0.0f, InDamage);
-	// V1 deliberately uses a static, fully visible circle. Damage timing remains
-	// independent and one-shot; no directional/fill material behavior is required.
+	Elapsed = 0.f;
+	bResolved = false;
+	TelegraphVisual->SetWorldScale3D(FVector::OneVector);
 	TelegraphVisual->SetHiddenInGame(true);
 	TelegraphVisual->SetVisibility(false);
 	CircleDecalVisual->DecalSize = FVector(64.0f, Radius, Radius);
@@ -44,7 +45,6 @@ void ABossGroundTelegraph::InitializeTelegraph(ASurvivorPlayerController* InPlay
 	}
 	if (DynamicMaterial)
 	{
-		DynamicMaterial->SetVectorParameterValue(TEXT("FillColor"), TelegraphColor);
 		DynamicMaterial->SetScalarParameterValue(TEXT("FillAmount"), 0.0f);
 	}
 	CircleDecalVisual->SetHiddenInGame(false);
@@ -55,6 +55,8 @@ void ABossGroundTelegraph::InitializeTelegraph(ASurvivorPlayerController* InPlay
 
 void ABossGroundTelegraph::InitializePersistentCircle(float InRadius, UMaterialInterface* InMaterial)
 {
+	bInitialized = false;
+	TelegraphVisual->SetWorldScale3D(FVector::OneVector);
 	Radius = FMath::Max(1.0f, InRadius);
 	TelegraphVisual->SetHiddenInGame(true);
 	TelegraphVisual->SetVisibility(false);
@@ -66,8 +68,7 @@ void ABossGroundTelegraph::InitializePersistentCircle(float InRadius, UMaterialI
 	}
 	if (DynamicMaterial)
 	{
-		DynamicMaterial->SetVectorParameterValue(TEXT("FillColor"), TelegraphColor);
-		DynamicMaterial->SetScalarParameterValue(TEXT("FillAmount"), 1.0f);
+		DynamicMaterial->SetScalarParameterValue(TEXT("FillAmount"), 0.0f);
 	}
 	CircleDecalVisual->SetHiddenInGame(false);
 	CircleDecalVisual->SetVisibility(true);
@@ -84,22 +85,23 @@ void ABossGroundTelegraph::SetTelegraphFillAmount(float FillAmount)
 
 void ABossGroundTelegraph::InitializePersistentRectangle(float InLength, float InWidth, UMaterialInterface* InMaterial)
 {
+	bInitialized = false;
 	CircleDecalVisual->SetHiddenInGame(true);
 	CircleDecalVisual->SetVisibility(false);
 	TelegraphVisual->SetHiddenInGame(false);
 	TelegraphVisual->SetVisibility(true);
-	if (UStaticMesh* CubeMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")))
+	if (UStaticMesh* PlaneMesh = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane")))
 	{
-		TelegraphVisual->SetStaticMesh(CubeMesh);
+		TelegraphVisual->SetStaticMesh(PlaneMesh);
 	}
 	const float Length = FMath::Max(1.0f, InLength);
 	const float Width = FMath::Max(1.0f, InWidth);
-	TelegraphVisual->SetWorldScale3D(FVector(Length / 100.0f, Width / 100.0f, 0.025f));
+	TelegraphVisual->SetWorldScale3D(FVector(Length / 100.0f, Width / 100.0f, 1.f));
 	if (InMaterial) TelegraphVisual->SetMaterial(0, InMaterial);
 	DynamicMaterial = TelegraphVisual->CreateAndSetMaterialInstanceDynamic(0);
 	if (DynamicMaterial)
 	{
-		DynamicMaterial->SetVectorParameterValue(TEXT("FillColor"), TelegraphColor);
+		DynamicMaterial->SetScalarParameterValue(TEXT("LaneAspect"), Width / Length);
 		DynamicMaterial->SetScalarParameterValue(TEXT("FillAmount"), 0.0f);
 	}
 	SetActorTickEnabled(false);

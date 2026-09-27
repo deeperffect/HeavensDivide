@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TankMeleeEnemyBase.h"
+#include "BossGroundTelegraph.h"
+#include "Materials/Material.h"
+#include "UObject/ConstructorHelpers.h"
 
 #include "AnimNotify_EnemyAttackHit.h"
 #include "Animation/AnimInstance.h"
@@ -52,6 +55,15 @@ ATankMeleeEnemyBase::ATankMeleeEnemyBase(const FObjectInitializer& ObjectInitial
 	ContactDamageSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
 	ContactDamageSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	ContactDamageSphere->SetGenerateOverlapEvents(true);
+	ContactAuraDecal = CreateDefaultSubobject<UDecalComponent>(TEXT("ContactAuraDecal"));
+	ContactAuraDecal->SetupAttachment(RootComponent);
+	ContactAuraDecal->SetAbsolute(false, false, true);
+	ContactAuraDecal->SetRelativeRotation(FRotator(-90.f, 0.f, 0.f));
+	ContactAuraDecal->SetHiddenInGame(true);
+	ContactAuraDecal->SetVisibility(false);
+	ContactAuraDecal->SetFadeScreenSize(0.f);
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> AuraMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal"));
+	ContactAuraMaterial = AuraMaterial.Object;
 }
 
 void ATankMeleeEnemyBase::BeginPlay()
@@ -66,6 +78,13 @@ void ATankMeleeEnemyBase::BeginPlay()
 	ContactDamageSphere->OnComponentBeginOverlap.AddUniqueDynamic(this, &ATankMeleeEnemyBase::HandleContactBeginOverlap);
 	ContactDamageSphere->OnComponentEndOverlap.AddUniqueDynamic(this, &ATankMeleeEnemyBase::HandleContactEndOverlap);
 	RefreshContactDamageTarget();
+	if (UsesContactDamage())
+	{
+		// Ground aura decals must not project onto the owner's body or attached meshes.
+		TInlineComponentArray<UMeshComponent*> BodyMeshes(this);
+		for (UMeshComponent* BodyMesh : BodyMeshes) BodyMesh->SetReceivesDecals(false);
+	}
+	UpdateContactAura();
 }
 
 void ATankMeleeEnemyBase::ApplySpawnDifficultyScaling(float HealthMultiplier, float DamageMultiplier)
@@ -95,11 +114,13 @@ void ATankMeleeEnemyBase::RestorePreBloodboundState()
 void ATankMeleeEnemyBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	UpdateContactAura();
 
 	if (bIsAttacking && bTrackPlayerDuringAttackWindup && !bAttackFacingLocked)
 	{
 		UpdateWindupFacing(DeltaSeconds);
 	}
+	if (IsValid(RectangleGroundTelegraph)) UpdateAttackTelegraphSizeAndPlacement();
 }
 
 void ATankMeleeEnemyBase::CommitSlamFacing()
@@ -119,6 +140,8 @@ void ATankMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ATankMeleeEnemyBase::HandleDeath()
 {
+	ContactAuraDecal->SetVisibility(false);
+	ContactAuraDecal->SetHiddenInGame(true);
 	StopContactDamage();
 	ClearAttackFacingState();
 	StopTelegraphFill();
@@ -136,6 +159,27 @@ void ATankMeleeEnemyBase::HandlePlayerCharacterSwapped(ACharacterBase* OldCharac
 bool ATankMeleeEnemyBase::UsesContactDamage() const
 {
 	return AttackMontage == nullptr && ContactDamageRadius > 0.0f && ContactDamageInterval > 0.0f;
+}
+
+void ATankMeleeEnemyBase::UpdateContactAura()
+{
+	const bool bShow = UsesContactDamage() && !bIsDead && !bGameplaySuspended && !IsStressTestCombatDisabled();
+	ContactAuraDecal->SetVisibility(bShow);
+	ContactAuraDecal->SetHiddenInGame(!bShow);
+	if (!bShow) return;
+	if (!ContactAuraMID && ContactAuraMaterial)
+	{
+		ContactAuraMID = UMaterialInstanceDynamic::Create(ContactAuraMaterial, this);
+		ContactAuraMID->SetScalarParameterValue(TEXT("FillAmount"), 0.f);
+		ContactAuraMID->SetScalarParameterValue(TEXT("OutlineOnly"), 1.f);
+		ContactAuraMID->SetScalarParameterValue(TEXT("ContinuousRipple"), 1.f);
+		ContactAuraDecal->SetDecalMaterial(ContactAuraMID);
+	}
+	const float Radius = ContactDamageSphere->GetScaledSphereRadius();
+	ContactAuraDecal->DecalSize = FVector(8.f, Radius, Radius);
+	FVector Center = ContactDamageSphere->GetComponentLocation();
+	Center.Z = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 4.f;
+	ContactAuraDecal->SetWorldLocation(Center);
 }
 
 void ATankMeleeEnemyBase::HandleContactBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -345,10 +389,19 @@ void ATankMeleeEnemyBase::ExecuteAttackHit()
 void ATankMeleeEnemyBase::ShowAttackTelegraph()
 {
 	InitializeTelegraphMaterialInstance();
+	if (AttackShape == ETankSlamAttackShape::Box && GetWorld())
+	{
+		if (IsValid(RectangleGroundTelegraph)) RectangleGroundTelegraph->CancelTelegraph();
+		FActorSpawnParameters Params;
+		Params.Owner = this;
+		RectangleGroundTelegraph = GetWorld()->SpawnActor<ABossGroundTelegraph>(ABossGroundTelegraph::StaticClass(), GetActorLocation(), GetActorRotation(), Params);
+		if (RectangleGroundTelegraph)
+			RectangleGroundTelegraph->InitializePersistentRectangle(AttackBoxLength, AttackBoxWidth, AttackTelegraphMaterial);
+	}
 	UpdateAttackTelegraphSizeAndPlacement();
 	SetTelegraphFillAmount(0.0f);
 
-	if (AttackTelegraphDecal)
+	if (AttackTelegraphDecal && AttackShape == ETankSlamAttackShape::Circle)
 	{
 		AttackTelegraphDecal->SetHiddenInGame(false);
 		AttackTelegraphDecal->SetVisibility(true);
@@ -390,6 +443,8 @@ void ATankMeleeEnemyBase::ShowAttackTelegraph()
 void ATankMeleeEnemyBase::HideAttackTelegraph()
 {
 	ResetTelegraphFill();
+	if (IsValid(RectangleGroundTelegraph)) RectangleGroundTelegraph->CancelTelegraph();
+	RectangleGroundTelegraph = nullptr;
 	if (AttackTelegraphDecal)
 	{
 		AttackTelegraphDecal->SetHiddenInGame(true);
@@ -399,11 +454,22 @@ void ATankMeleeEnemyBase::HideAttackTelegraph()
 
 void ATankMeleeEnemyBase::InitializeTelegraphMaterialInstance()
 {
+	if (AttackShape == ETankSlamAttackShape::Box)
+	{
+		// Migrate old decal assignments to the same surface material/rendering path as the boss.
+		if (!AttackTelegraphMaterial || AttackTelegraphMaterial->GetMaterial()->MaterialDomain != MD_Surface)
+			AttackTelegraphMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle.M_AttackIndicatorRectangle"));
+		return;
+	}
 	if (!AttackTelegraphDecal || TelegraphMaterialInstance)
 	{
 		return;
 	}
 
+	if (!AttackTelegraphMaterial)
+		AttackTelegraphMaterial = LoadObject<UMaterialInterface>(nullptr, AttackShape == ETankSlamAttackShape::Circle
+			? TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal.M_AttackIndicatorCircle_Decal")
+			: TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle_Decal.M_AttackIndicatorRectangle_Decal"));
 	if (AttackTelegraphMaterial)
 	{
 		TelegraphMaterialInstance = UMaterialInstanceDynamic::Create(AttackTelegraphMaterial, this);
@@ -470,6 +536,7 @@ void ATankMeleeEnemyBase::ResetTelegraphFill()
 
 void ATankMeleeEnemyBase::SetTelegraphFillAmount(float FillAmount)
 {
+	if (IsValid(RectangleGroundTelegraph)) RectangleGroundTelegraph->SetTelegraphFillAmount(FillAmount);
 	if (TelegraphMaterialInstance)
 	{
 		TelegraphMaterialInstance->SetScalarParameterValue(TEXT("FillAmount"), FMath::Clamp(FillAmount, 0.0f, 1.0f));
@@ -644,6 +711,12 @@ void ATankMeleeEnemyBase::UpdateWindupFacing(float DeltaSeconds)
 
 void ATankMeleeEnemyBase::UpdateAttackTelegraphSizeAndPlacement()
 {
+	if (IsValid(RectangleGroundTelegraph))
+	{
+		FVector Center = GetBoxSlamCenter();
+		Center.Z = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 4.f;
+		RectangleGroundTelegraph->SetActorLocationAndRotation(Center, GetActorForwardVector().GetSafeNormal2D().Rotation());
+	}
 	if (!AttackTelegraphDecal)
 	{
 		return;
@@ -667,6 +740,8 @@ void ATankMeleeEnemyBase::UpdateAttackTelegraphSizeAndPlacement()
 		const float SafeWidth = FMath::Max(0.0f, AttackBoxWidth);
 		AttackTelegraphDecal->DecalSize = FVector(64.0f, SafeWidth * 0.5f, SafeLength * 0.5f);
 		AttackTelegraphDecal->SetRelativeLocation(FVector(FMath::Max(0.0f, AttackBoxForwardOffset), 0.0f, GroundOffset));
+		if (TelegraphMaterialInstance)
+			TelegraphMaterialInstance->SetScalarParameterValue(TEXT("LaneAspect"), SafeWidth / FMath::Max(1.f, SafeLength));
 	}
 }
 

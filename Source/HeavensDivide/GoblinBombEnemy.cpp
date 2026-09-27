@@ -18,7 +18,7 @@ AGoblinBombEnemy::AGoblinBombEnemy(const FObjectInitializer& ObjectInitializer)
 	AttackAoERadius = 375.0f;
 	TelegraphWindupDuration = 1.0f;
 	WindupTrackingRotationSpeed = 0.0f;
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CircleTelegraph(TEXT("/Game/Assets/EnemyCharacters/M_AttackTelegraphCircle"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CircleTelegraph(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal"));
 	AttackTelegraphMaterial = CircleTelegraph.Object;
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> FlashMaterial(TEXT("/Game/HeavensDivide/Materials/M_BombChargeFlash"));
 	BombFlashMaterial = FlashMaterial.Object;

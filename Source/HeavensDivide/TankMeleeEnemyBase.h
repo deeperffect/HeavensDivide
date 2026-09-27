@@ -11,6 +11,7 @@ class USphereComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UMeshComponent;
+class ABossGroundTelegraph;
 
 UENUM(BlueprintType)
 enum class ETankSlamAttackShape : uint8
@@ -54,6 +55,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
 	TObjectPtr<USphereComponent> ContactDamageSphere;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Components")
+	TObjectPtr<UDecalComponent> ContactAuraDecal;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Contact")
+	TObjectPtr<UMaterialInterface> ContactAuraMaterial;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Contact", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Radius used by montage-less tank enemies to detect contact with the active player."))
 	float ContactDamageRadius = 125.0f;
 
@@ -63,7 +70,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Contact", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float ContactDamageInterval = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Deferred decal material used for the slam telegraph. The material can use FillAmount, BackgroundColor, FillColor, and TelegraphOpacity parameters."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Surface material for rectangular slams (same renderer as the Samurai boss); deferred decal material for circles."))
 	TObjectPtr<UMaterialInterface> AttackTelegraphMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Shape used by the tank slam telegraph and hit area. Box is a long rectangle in front of the enemy; Circle is an area around the enemy."))
@@ -94,6 +101,10 @@ protected:
 	float TelegraphFillUpdateInterval = 0.025f;
 
 private:
+	friend class FTankIndicatorTest;
+	void UpdateContactAura();
+	UPROPERTY(Transient) TObjectPtr<ABossGroundTelegraph> RectangleGroundTelegraph;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ContactAuraMID;
 	UFUNCTION() void HandleContactBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION() void HandleContactEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
