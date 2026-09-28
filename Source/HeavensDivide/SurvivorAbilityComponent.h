@@ -78,6 +78,7 @@ class HEAVENSDIVIDE_API USurvivorAbilityComponent : public UActorComponent
     FBuildFamilySpec FamilySpec(int32 Family) const;
     void ApplyConfiguredStatus(int32 Family, AEnemyBase *Enemy, EEnemyStatusEffect Status, EPlayerAttackSource Source);
     const FUpgradePresentation *FamilyPresentation(int32 Family, int32 Slot = -1) const;
+    void UpgradeAccent(FName UpgradeId, FVector Position, float Radius, FLinearColor Color);
     AAbilityAccent *FamilyAccent(int32 Family, FVector Position, FVector End, float Radius, FLinearColor Color,
                                  float Duration = 0.35f, bool bBeam = false, int32 Slot = -1, int32 Stage = 0);
 

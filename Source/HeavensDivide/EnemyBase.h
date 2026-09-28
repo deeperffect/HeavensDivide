@@ -20,6 +20,7 @@ class UCharacterManagerComponent;
 class UEnemyLightweightMovementComponent;
 class UExperienceComponent;
 class AExperiencePickup;
+class AEliteRewardChest;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class UMaterialInterface;
@@ -427,6 +428,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ToolTip = "Experience pickup actor class spawned when this enemy dies. Leave empty for no XP pickup."))
 	TSubclassOf<AExperiencePickup> ExperiencePickupClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Enemy|Rewards", meta=(ToolTip="Optional chest Blueprint for Elite rewards. Empty uses the shared animated elite chest."))
+	TSubclassOf<AEliteRewardChest> EliteRewardChestClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Random horizontal scatter radius for the XP pickup spawned at this enemy's death location."))
 	float ExperiencePickupSpawnScatterRadius = 35.0f;

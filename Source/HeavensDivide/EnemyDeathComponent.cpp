@@ -23,7 +23,7 @@ UEnemyDeathComponent::UEnemyDeathComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
-	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> Burst(TEXT("/Game/Assets/VFX/SlashTrail_SoftTofu/Niagara/Basic/NS_Hit_Basic_Once"));
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> Burst(TEXT("/Game/Assets/VFX/HitsImpactsV2/Particles/NiagaraSystems/NS_Impact_NinjaAttackProj"));
 	static ConstructorHelpers::FObjectFinder<USoundBase> Sound(TEXT("/Game/Assets/Sounds/Ninja/MS_Ninja_Impact"));
 	DeathNiagaraSystem = Burst.Object;
 	DeathSound = Sound.Object;

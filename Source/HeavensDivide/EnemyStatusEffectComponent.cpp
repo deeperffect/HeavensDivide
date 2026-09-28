@@ -37,6 +37,9 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 
 	FEnemyDamageStatusState& State = GetState(Status);
 	const int32 PreviousStacks = State.Stacks;
+	if(PreviousStacks==0)
+		if(auto* FX=SourceUpgrades->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+			FX->UpgradeAccent(StarterId,Enemy->GetActorLocation(),45.f,Status==EEnemyStatusEffect::Bleed?FLinearColor(1,.05f,.08f):FLinearColor(.2f,1,.05f));
 	State.SourceUpgrades = SourceUpgrades;
 	// Statuses have no gameplay stack cap. Saturate only at int32's technical limit
 	// so malformed input can never wrap the authoritative count negative.

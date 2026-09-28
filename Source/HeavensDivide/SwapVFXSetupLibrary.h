@@ -12,6 +12,8 @@ class USwapVFXSetupLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+    UFUNCTION(BlueprintCallable, Category="Editor|Upgrade VFX")
+    static bool TintSmokeSystem(UNiagaraSystem* System, FLinearColor Color);
     UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")
     static TArray<UObject*> GetEmitters(UNiagaraSystem* System);
 

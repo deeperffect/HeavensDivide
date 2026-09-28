@@ -44,21 +44,23 @@ bool FTankIndicatorTest::RunTest(const FString&)
  Gorilla->SetActorScale3D(FVector(1.5f));
  Gorilla->UpdateContactAura();
  TestTrue(TEXT("Saved Gorilla uses contact aura"), Gorilla->UsesContactDamage());
- TestTrue(TEXT("Aura visible outside attacks"), Gorilla->ContactAuraDecal->IsVisible());
- TestEqual(TEXT("Aura matches scaled damage radius"), float(Gorilla->ContactAuraDecal->DecalSize.Y), Gorilla->ContactDamageSphere->GetScaledSphereRadius());
+ TestTrue(TEXT("Aura visible outside attacks"), IsValid(Gorilla->ContactAuraGroundTelegraph) && !Gorilla->ContactAuraGroundTelegraph->IsHidden());
+ TestFalse(TEXT("Legacy additive decal hidden"), Gorilla->ContactAuraDecal->IsVisible());
+ TestEqual(TEXT("Aura matches scaled damage radius"), float(Gorilla->ContactAuraGroundTelegraph->GetActorScale3D().X * 50.f), Gorilla->ContactDamageSphere->GetScaledSphereRadius());
  if (TestNotNull(TEXT("Aura material initialized"), Gorilla->ContactAuraMID.Get()))
  {
-  TestEqual(TEXT("Same circle decal as boss"), Gorilla->ContactAuraMID->Parent->GetName(), FString(TEXT("M_AttackIndicatorCircle_Decal")));
+  TestEqual(TEXT("Same unlit renderer as Ogre"), Gorilla->ContactAuraMID->Parent->GetName(), FString(TEXT("M_AttackIndicatorCircle")));
   TestEqual(TEXT("Aura is unfilled"), Gorilla->ContactAuraMID->K2_GetScalarParameterValue(TEXT("FillAmount")), 0.f);
-  TestEqual(TEXT("Aura has transparent interior"), Gorilla->ContactAuraMID->K2_GetScalarParameterValue(TEXT("OutlineOnly")), 1.f);
+  TestEqual(TEXT("Aura keeps its solid black interior"), Gorilla->ContactAuraMID->K2_GetScalarParameterValue(TEXT("OutlineOnly")), 0.f);
   TestEqual(TEXT("Aura ripples continuously"), Gorilla->ContactAuraMID->K2_GetScalarParameterValue(TEXT("ContinuousRipple")), 1.f);
   TestFalse(TEXT("Gorilla body rejects ground decals"), bool(Gorilla->GetMesh()->bReceivesDecals));
   Gorilla->SetTelegraphFillAmount(.25f);
   Gorilla->HideAttackTelegraph();
   TestEqual(TEXT("Attack fill cannot animate aura"), Gorilla->ContactAuraMID->K2_GetScalarParameterValue(TEXT("FillAmount")), 0.f);
-  TestTrue(TEXT("Ending attack preserves aura"), Gorilla->ContactAuraDecal->IsVisible());
+  TestTrue(TEXT("Ending attack preserves aura"), IsValid(Gorilla->ContactAuraGroundTelegraph) && !Gorilla->ContactAuraGroundTelegraph->IsHidden());
  }
  Gorilla->HandleDeath();
+ TestNull(TEXT("Death removes surface aura"), Gorilla->ContactAuraGroundTelegraph.Get());
  TestFalse(TEXT("Death hides aura"), Gorilla->ContactAuraDecal->IsVisible());
  World->DestroyWorld(false);
  return true;

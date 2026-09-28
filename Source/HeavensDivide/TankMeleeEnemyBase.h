@@ -70,7 +70,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Contact", meta = (ClampMin = "0.01", UIMin = "0.01"))
 	float ContactDamageInterval = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Surface material for rectangular slams (same renderer as the Samurai boss); deferred decal material for circles."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Unlit surface material for slam indicators; both shapes use the same renderer as the Samurai boss rectangle."))
 	TObjectPtr<UMaterialInterface> AttackTelegraphMaterial;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Shape used by the tank slam telegraph and hit area. Box is a long rectangle in front of the enemy; Circle is an area around the enemy."))
@@ -102,8 +102,10 @@ protected:
 
 private:
 	friend class FTankIndicatorTest;
+	friend class FGoblinBombAttackTest;
 	void UpdateContactAura();
 	UPROPERTY(Transient) TObjectPtr<ABossGroundTelegraph> RectangleGroundTelegraph;
+	UPROPERTY(Transient) TObjectPtr<ABossGroundTelegraph> ContactAuraGroundTelegraph;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ContactAuraMID;
 	UFUNCTION() void HandleContactBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

@@ -34,11 +34,11 @@ TArray<AEnemyBase*> NearbySamuraiTargets(AEnemyBase* Origin,float Radius)
  if(Targets.Num()>128)Targets.SetNum(128);
  return Targets;
 }
-void ShowProc(UPlayerUpgradeComponent* Upgrades,FVector Position,float Radius,FLinearColor Color)
+void ShowProc(UPlayerUpgradeComponent* Upgrades,FName Id,FVector Position,float Radius,FLinearColor Color)
 {
  if(Upgrades&&Upgrades->GetOwner())
   if(auto* FX=Upgrades->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
-   FX->FamilyAccent(INDEX_NONE,Position-FVector(0,0,70),Position,Radius,Color,0.35f);
+   FX->UpgradeAccent(Id,Position-FVector(0,0,70),Radius,Color);
 }
 }
 
@@ -50,7 +50,7 @@ void UPlayerUpgradeComponent::HandleSamuraiDirectHit(AEnemyBase* Enemy,float Dam
  const float Radius=FMath::Max(0.f,Card?Card->GetBalanceValue(TEXT("Radius"),220.f):220.f)*SamuraiArea(this)
   *(1.f+FMath::Max(0.f,GetAccumulatedUpgradeMagnitude(TEXT("BurstRadius"))));
  if(Overkill<=0||Radius<=0)return;
- ShowProc(this,Enemy->GetActorLocation(),Radius,FLinearColor(3.f,0.65f,0.1f));
+ ShowProc(this,TEXT("OverkillBurst"),Enemy->GetActorLocation(),Radius,FLinearColor(3.f,0.65f,0.1f));
  // Proc damage deliberately bypasses this direct-hit hook: explosions cannot chain themselves.
  for(auto* Target:NearbySamuraiTargets(Enemy,Radius))Target->ApplyPlayerDamage(Overkill,EPlayerAttackSource::Samurai);
 }
@@ -80,7 +80,7 @@ void UEnemyStatusEffectComponent::TransferBleedOnDeath()
  auto Targets=NearbySamuraiTargets(Enemy,Radius);
  if(Targets.Num()>Limit)Targets.SetNum(Limit);
  if(Targets.IsEmpty()||Budget<=0||BleedState.RemainingDuration<=0)return;
- ShowProc(Upgrades,Enemy->GetActorLocation(),Radius,FLinearColor(2.5f,0.08f,0.15f));
+ ShowProc(Upgrades,TEXT("BloodTransfer"),Enemy->GetActorLocation(),Radius,FLinearColor(2.5f,0.08f,0.15f));
  const float PerTarget=Budget/Targets.Num();
  for(auto* Target:Targets)Target->GetStatusEffectComponent()->ReceiveBleedTransfer(Upgrades,PerTarget,BleedState.RemainingDuration);
 }

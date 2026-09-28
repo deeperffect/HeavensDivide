@@ -16,6 +16,7 @@
 #include "ShadowClone.h"
 #include "Sound/SoundBase.h"
 #include "SurvivorPlayerController.h"
+#include "SurvivorAbilityComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 bool UNinjaBuildComponent::ApplyEmbeddedHit(AEnemyBase *Enemy, float Damage, UPlayerUpgradeComponent *U, bool bEmbed)
@@ -80,6 +81,9 @@ void UNinjaBuildComponent::Scatter(FVector Position, int32 Count, float Damage, 
     auto Enemies = Targets(Position, Range);
     if (Enemies.IsEmpty())
         return;
+    if(auto* U=Upgrades())
+        if(auto* FX=U->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
+            FX->UpgradeAccent(TEXT("EmbeddedBlades"),Position,65.f,FLinearColor(.7f,.3f,1));
     for (int32 i = 0; i < FMath::Min(Count, 24); ++i)
         if (auto *P = SpawnBlade(ENinjaProjectileKind::Fragment, Position))
         {

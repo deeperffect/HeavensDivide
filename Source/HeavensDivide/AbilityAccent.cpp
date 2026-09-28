@@ -102,7 +102,16 @@ void AAbilityAccent::Initialize(FVector End, float Radius, FLinearColor Color, f
                                       Settings->RotationOffset);
             const float AreaScale =
                 Settings->bScaleSystemToRadius && Radius > 0 ? Radius / FMath::Max(1.0f, Settings->AuthoredRadius) : 1;
-            Niagara->SetWorldScale3D(Settings->Scale * AreaScale);
+            if(Settings->SystemScaleParameter.IsNone())Niagara->SetWorldScale3D(Settings->Scale * AreaScale);
+            else
+            {
+                Niagara->SetWorldScale3D(FVector::OneVector);
+                const FNiagaraVariable Parameter(FNiagaraTypeDefinition::GetFloatDef(),Settings->SystemScaleParameter);
+                const auto& Defaults=System->GetExposedParameters();
+                const float AuthoredScale=Settings->bMultiplyAuthoredSystemScale&&Defaults.IndexOf(Parameter)!=INDEX_NONE
+                    ? Defaults.GetParameterValue<float>(Parameter):1.f;
+                Niagara->SetVariableFloat(Settings->SystemScaleParameter,AuthoredScale*Settings->Scale.X*AreaScale);
+            }
             if (!Settings->RadiusParameter.IsNone())
                 Niagara->SetVariableFloat(Settings->RadiusParameter, Radius);
             if (!Settings->DurationParameter.IsNone())

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyBase.h"
+#include "EliteRewardChest.h"
 #include "TesterBalanceSettings.h"
 
 #include "HealingPickupDropSubsystem.h"
@@ -906,6 +907,20 @@ void AEnemyBase::SpawnExperiencePickup()
 	SpawnParameters.Owner = this;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+	if (DropCategory == EEnemyDropCategory::Elite)
+	{
+		FVector Location=GetActorLocation();
+		FHitResult Ground;
+		FCollisionObjectQueryParams Objects;Objects.AddObjectTypesToQuery(ECC_WorldStatic);
+		if(GetWorld()->LineTraceSingleByObjectType(Ground,Location+FVector(0,0,100),Location-FVector(0,0,1500),Objects,FCollisionQueryParams(SCENE_QUERY_STAT(EliteRewardGround),false,this)))Location=Ground.ImpactPoint+FVector(0,0,3);
+		const TSubclassOf<AEliteRewardChest> ChestClass=EliteRewardChestClass?EliteRewardChestClass:TSubclassOf<AEliteRewardChest>(AEliteRewardChest::StaticClass());
+		if(auto* Chest=GetWorld()->SpawnActor<AEliteRewardChest>(ChestClass,Location,FRotator::ZeroRotator,SpawnParameters))
+		{
+			Chest->InitializeReward(XPReward,ExperiencePickupClass,CachedPlayerExperienceComponent,ObservedCharacterManager);
+			return;
+		}
+		// A failed chest spawn must still drop the original reward.
+	}
 	const int32 XPPerPickup = FMath::Max(1, ExperiencePerPickup);
 	const int32 PickupCount = FMath::DivideAndRoundUp(XPReward, XPPerPickup);
 	const float ScatterRadius = PickupCount > 1

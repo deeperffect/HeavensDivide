@@ -13,19 +13,23 @@ bool FComboAbilityVFXTest::RunTest(const FString&)
     if (!TestNotNull(TEXT("Samurai blueprint"), Class)) return false;
     auto* Combo = NewObject<UComboAbilityComponent>();
     Combo->ActiveSettings = Class->GetDefaultObject<ACharacterBase>()->ComboAbility;
-    TestEqual(TEXT("Uses authored Niagara scaling input"), Combo->ActiveSettings.VFXRadiusParameter, FName(TEXT("User.Scale_All")));
+    if(!TestNotNull(TEXT("Authored ability Niagara exists"),Combo->ActiveSettings.VFX.Get()))return false;
+    TestFalse(TEXT("Uses authored Niagara scaling input"),Combo->ActiveSettings.VFXRadiusParameter.IsNone());
     const float ReferenceRadius = Combo->ActiveSettings.VFXReferenceRadius;
     TestTrue(TEXT("Reference radius is positive"), ReferenceRadius > 0.f);
     auto* FX = NewObject<UNiagaraComponent>();
     FX->SetAsset(Combo->ActiveSettings.VFX);
     Combo->ActiveVFX = FX;
-    const FNiagaraVariable Scale(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.Scale_All"));
+    const FNiagaraVariable Scale(FNiagaraTypeDefinition::GetFloatDef(), Combo->ActiveSettings.VFXRadiusParameter);
     TestTrue(TEXT("Effect exposes a float scale input"), Combo->ActiveSettings.VFX->GetExposedParameters().IndexOf(Scale) != INDEX_NONE);
+    const float AuthoredScale = Combo->ActiveSettings.VFX->GetExposedParameters().GetParameterValue<float>(Scale);
+    Combo->ActiveSettings.VFXScale = FVector(.5f);
     for (const float Radius : {600.f, 700.f, 900.f, 1200.f, 600.f})
     {
         Combo->UpdateVFXRadius(Radius);
-        TestEqual(TEXT("Current radius controls scale without accumulation"), FX->GetOverrideParameters().GetParameterValue<float>(Scale), Radius / FMath::Max(.01f, ReferenceRadius));
+        TestEqual(TEXT("Current radius controls scale without accumulation"), FX->GetOverrideParameters().GetParameterValue<float>(Scale), Radius / FMath::Max(.01f, ReferenceRadius) * AuthoredScale * .5f);
     }
+    Combo->ActiveSettings.bVFXRadiusParameterIsScale = false;
     Combo->ActiveSettings.VFXRadiusParameter = TEXT("User.Radius");
     Combo->ActiveSettings.VFXReferenceRadius = 1;
     Combo->UpdateVFXRadius(900);

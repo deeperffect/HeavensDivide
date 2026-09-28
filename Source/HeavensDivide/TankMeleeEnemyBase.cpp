@@ -62,7 +62,7 @@ ATankMeleeEnemyBase::ATankMeleeEnemyBase(const FObjectInitializer& ObjectInitial
 	ContactAuraDecal->SetHiddenInGame(true);
 	ContactAuraDecal->SetVisibility(false);
 	ContactAuraDecal->SetFadeScreenSize(0.f);
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> AuraMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> AuraMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle"));
 	ContactAuraMaterial = AuraMaterial.Object;
 }
 
@@ -130,6 +130,8 @@ void ATankMeleeEnemyBase::CommitSlamFacing()
 
 void ATankMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if(IsValid(ContactAuraGroundTelegraph))ContactAuraGroundTelegraph->CancelTelegraph();
+	ContactAuraGroundTelegraph=nullptr;
 	StopContactDamage();
 	ClearAttackFacingState();
 	StopTelegraphFill();
@@ -140,6 +142,8 @@ void ATankMeleeEnemyBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ATankMeleeEnemyBase::HandleDeath()
 {
+	if(IsValid(ContactAuraGroundTelegraph))ContactAuraGroundTelegraph->CancelTelegraph();
+	ContactAuraGroundTelegraph=nullptr;
 	ContactAuraDecal->SetVisibility(false);
 	ContactAuraDecal->SetHiddenInGame(true);
 	StopContactDamage();
@@ -163,23 +167,35 @@ bool ATankMeleeEnemyBase::UsesContactDamage() const
 
 void ATankMeleeEnemyBase::UpdateContactAura()
 {
-	const bool bShow = UsesContactDamage() && !bIsDead && !bGameplaySuspended && !IsStressTestCombatDisabled();
-	ContactAuraDecal->SetVisibility(bShow);
-	ContactAuraDecal->SetHiddenInGame(!bShow);
-	if (!bShow) return;
-	if (!ContactAuraMID && ContactAuraMaterial)
-	{
-		ContactAuraMID = UMaterialInstanceDynamic::Create(ContactAuraMaterial, this);
-		ContactAuraMID->SetScalarParameterValue(TEXT("FillAmount"), 0.f);
-		ContactAuraMID->SetScalarParameterValue(TEXT("OutlineOnly"), 1.f);
-		ContactAuraMID->SetScalarParameterValue(TEXT("ContinuousRipple"), 1.f);
-		ContactAuraDecal->SetDecalMaterial(ContactAuraMID);
-	}
-	const float Radius = ContactDamageSphere->GetScaledSphereRadius();
-	ContactAuraDecal->DecalSize = FVector(8.f, Radius, Radius);
-	FVector Center = ContactDamageSphere->GetComponentLocation();
-	Center.Z = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 4.f;
-	ContactAuraDecal->SetWorldLocation(Center);
+    // Use the same unlit alpha-composited ground plane as Ogre. Emissive decals
+    // add onto scene lighting and cannot match its colors on every floor material.
+    ContactAuraDecal->SetVisibility(false);
+    ContactAuraDecal->SetHiddenInGame(true);
+    const bool bShow=UsesContactDamage()&&!bIsDead&&!bGameplaySuspended&&!IsStressTestCombatDisabled();
+    if(IsValid(ContactAuraGroundTelegraph))ContactAuraGroundTelegraph->SetActorHiddenInGame(!bShow);
+    if(!bShow)return;
+    const float Radius=ContactDamageSphere->GetScaledSphereRadius();
+    if(!IsValid(ContactAuraGroundTelegraph))
+    {
+        if(!ContactAuraMaterial||ContactAuraMaterial->GetMaterial()->MaterialDomain!=MD_Surface)
+            ContactAuraMaterial=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle"));
+        FActorSpawnParameters Params;Params.Owner=this;
+        ContactAuraGroundTelegraph=GetWorld()->SpawnActor<ABossGroundTelegraph>(GetActorLocation(),FRotator::ZeroRotator,Params);
+        if(!ContactAuraGroundTelegraph)return;
+        ContactAuraGroundTelegraph->InitializePersistentSurfaceCircle(Radius,ContactAuraMaterial);
+        ContactAuraMID=Cast<UMaterialInstanceDynamic>(ContactAuraGroundTelegraph->FindComponentByClass<UStaticMeshComponent>()->GetMaterial(0));
+        if(ContactAuraMID)
+        {
+            ContactAuraMID->SetScalarParameterValue(TEXT("FillAmount"),0.f);
+            // Keep the black interior visible; only the outline ripples.
+            ContactAuraMID->SetScalarParameterValue(TEXT("OutlineOnly"),0.f);
+            ContactAuraMID->SetScalarParameterValue(TEXT("ContinuousRipple"),1.f);
+        }
+    }
+    FVector Center=ContactDamageSphere->GetComponentLocation();
+    Center.Z=GetActorLocation().Z-GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+4.f;
+    ContactAuraGroundTelegraph->SetActorLocation(Center);
+    ContactAuraGroundTelegraph->SetActorScale3D(FVector(Radius/50.f,Radius/50.f,1));
 }
 
 void ATankMeleeEnemyBase::HandleContactBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -389,22 +405,25 @@ void ATankMeleeEnemyBase::ExecuteAttackHit()
 void ATankMeleeEnemyBase::ShowAttackTelegraph()
 {
 	InitializeTelegraphMaterialInstance();
-	if (AttackShape == ETankSlamAttackShape::Box && GetWorld())
+	if (GetWorld())
 	{
 		if (IsValid(RectangleGroundTelegraph)) RectangleGroundTelegraph->CancelTelegraph();
 		FActorSpawnParameters Params;
 		Params.Owner = this;
 		RectangleGroundTelegraph = GetWorld()->SpawnActor<ABossGroundTelegraph>(ABossGroundTelegraph::StaticClass(), GetActorLocation(), GetActorRotation(), Params);
 		if (RectangleGroundTelegraph)
-			RectangleGroundTelegraph->InitializePersistentRectangle(AttackBoxLength, AttackBoxWidth, AttackTelegraphMaterial);
+        {
+            if(AttackShape==ETankSlamAttackShape::Circle)RectangleGroundTelegraph->InitializePersistentSurfaceCircle(AttackAoERadius,AttackTelegraphMaterial);
+            else RectangleGroundTelegraph->InitializePersistentRectangle(AttackBoxLength,AttackBoxWidth,AttackTelegraphMaterial);
+        }
 	}
 	UpdateAttackTelegraphSizeAndPlacement();
 	SetTelegraphFillAmount(0.0f);
 
-	if (AttackTelegraphDecal && AttackShape == ETankSlamAttackShape::Circle)
+	if (AttackTelegraphDecal)
 	{
-		AttackTelegraphDecal->SetHiddenInGame(false);
-		AttackTelegraphDecal->SetVisibility(true);
+		AttackTelegraphDecal->SetHiddenInGame(true);
+		AttackTelegraphDecal->SetVisibility(false);
 	}
 
 	if (CVarHDDebugTankSlam.GetValueOnGameThread() != 0)
@@ -454,31 +473,11 @@ void ATankMeleeEnemyBase::HideAttackTelegraph()
 
 void ATankMeleeEnemyBase::InitializeTelegraphMaterialInstance()
 {
-	if (AttackShape == ETankSlamAttackShape::Box)
-	{
-		// Migrate old decal assignments to the same surface material/rendering path as the boss.
-		if (!AttackTelegraphMaterial || AttackTelegraphMaterial->GetMaterial()->MaterialDomain != MD_Surface)
-			AttackTelegraphMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle.M_AttackIndicatorRectangle"));
-		return;
-	}
-	if (!AttackTelegraphDecal || TelegraphMaterialInstance)
-	{
-		return;
-	}
-
-	if (!AttackTelegraphMaterial)
-		AttackTelegraphMaterial = LoadObject<UMaterialInterface>(nullptr, AttackShape == ETankSlamAttackShape::Circle
-			? TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal.M_AttackIndicatorCircle_Decal")
-			: TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle_Decal.M_AttackIndicatorRectangle_Decal"));
-	if (AttackTelegraphMaterial)
-	{
-		TelegraphMaterialInstance = UMaterialInstanceDynamic::Create(AttackTelegraphMaterial, this);
-		if (TelegraphMaterialInstance)
-		{
-			AttackTelegraphDecal->SetDecalMaterial(TelegraphMaterialInstance);
-			SetTelegraphFillAmount(0.0f);
-		}
-	}
+    // Preserve explicit surface material overrides, migrate only legacy decals.
+    if(!AttackTelegraphMaterial||AttackTelegraphMaterial->GetMaterial()->MaterialDomain!=MD_Surface)
+        AttackTelegraphMaterial=LoadObject<UMaterialInterface>(nullptr,AttackShape==ETankSlamAttackShape::Circle
+            ?TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle")
+            :TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle"));
 }
 
 void ATankMeleeEnemyBase::StartTelegraphFill()
@@ -713,7 +712,7 @@ void ATankMeleeEnemyBase::UpdateAttackTelegraphSizeAndPlacement()
 {
 	if (IsValid(RectangleGroundTelegraph))
 	{
-		FVector Center = GetBoxSlamCenter();
+		FVector Center = AttackShape==ETankSlamAttackShape::Circle?GetActorLocation():GetBoxSlamCenter();
 		Center.Z = GetActorLocation().Z - GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 4.f;
 		RectangleGroundTelegraph->SetActorLocationAndRotation(Center, GetActorForwardVector().GetSafeNormal2D().Rotation());
 	}

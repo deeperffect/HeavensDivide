@@ -1,5 +1,6 @@
 #include "SwapVFXSetupLibrary.h"
 #include "NiagaraSystem.h"
+#include "NiagaraDataInterfaceColorCurve.h"
 #if WITH_EDITOR
 #include "NiagaraEmitterHandle.h"
 #include "NiagaraEmitter.h"
@@ -22,6 +23,24 @@
 #include "ViewModels/Stack/NiagaraParameterHandle.h"
 #include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
 #endif
+
+bool USwapVFXSetupLibrary::TintSmokeSystem(UNiagaraSystem* System,FLinearColor Color)
+{
+#if WITH_EDITOR
+ if(!System)return false;
+ const FNiagaraVariable Var(FNiagaraTypeDefinition(UNiagaraDataInterfaceColorCurve::StaticClass()),TEXT("User.User_SmokeGradient"));
+ auto* Curve=Cast<UNiagaraDataInterfaceColorCurve>(System->GetExposedParameters().GetDataInterface(Var));
+ if(!Curve)return false;
+ System->Modify();Curve->Modify();Curve->CurveAsset=nullptr;
+ FRichCurve* Channels[]={&Curve->RedCurve,&Curve->GreenCurve,&Curve->BlueCurve};
+ const float Values[]={Color.R,Color.G,Color.B};
+ for(int32 I=0;I<3;++I){Channels[I]->Reset();Channels[I]->AddKey(0,Values[I]*.12f);Channels[I]->AddKey(.45f,Values[I]);Channels[I]->AddKey(1,Values[I]*.3f);}
+ Curve->UpdateLUT();Curve->PostEditChange();System->PostEditChange();System->RequestCompile(true);System->WaitForCompilationComplete(true,false);
+ return System->IsValid();
+#else
+ return false;
+#endif
+}
 
 bool USwapVFXSetupLibrary::CompleteGroundSlashEffects(UNiagaraSystem* System, UNiagaraSystem* Original)
 {

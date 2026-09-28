@@ -134,7 +134,7 @@ void UComboAbilityComponent::ExecuteEffect()
             PendingVFX.Add({ActiveVFX, Character, Visibility, FMath::Max(0.f, ActiveSettings.VFXCompletionTimeout), false});
             ActiveVFX->SetAutoDestroy(true);
             if (Character->SwapPresentation) Character->SwapPresentation->RegisterFreezeEffect(ActiveVFX);
-            ActiveVFX->SetRelativeScale3D(ActiveSettings.VFXScale);
+            ActiveVFX->SetRelativeScale3D(ActiveSettings.bVFXRadiusParameterIsScale?FVector::OneVector:ActiveSettings.VFXScale);
             if (!ActiveSettings.VFXDurationParameter.IsNone()) ActiveVFX->SetVariableFloat(ActiveSettings.VFXDurationParameter, Visibility);
         }
     }
@@ -181,7 +181,16 @@ void UComboAbilityComponent::UpdateVFXRadius(float Radius)
     if (!IsValid(ActiveVFX) || ActiveSettings.VFXRadiusParameter.IsNone()) return;
     const float Reference = FMath::IsFinite(ActiveSettings.VFXReferenceRadius)
         ? FMath::Max(.01f, ActiveSettings.VFXReferenceRadius) : 1.f;
-    ActiveVFX->SetVariableFloat(ActiveSettings.VFXRadiusParameter, Radius / Reference);
+    float Scale=Radius/Reference;
+    if(ActiveSettings.bVFXRadiusParameterIsScale)
+    {
+        const auto* System=ActiveVFX->GetAsset();
+        const FNiagaraVariable Parameter(FNiagaraTypeDefinition::GetFloatDef(),ActiveSettings.VFXRadiusParameter);
+        const float Authored=System&&System->GetExposedParameters().IndexOf(Parameter)!=INDEX_NONE
+            ? System->GetExposedParameters().GetParameterValue<float>(Parameter):1.f;
+        Scale*=Authored*ActiveSettings.VFXScale.X;
+    }
+    ActiveVFX->SetVariableFloat(ActiveSettings.VFXRadiusParameter, Scale);
 }
 void UComboAbilityComponent::FinishAbility(bool bCancelled)
 {

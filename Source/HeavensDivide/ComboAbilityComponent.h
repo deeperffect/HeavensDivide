@@ -40,6 +40,7 @@ struct FComboAbilitySettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FVector VFXOffset = FVector::ZeroVector;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FRotator VFXRotation = FRotator::ZeroRotator;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FVector VFXScale = FVector::OneVector;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation",meta=(ToolTip="For Niagara effects with a scalar scale input: multiply its authored value by VFXScale.X and the area ratio. Component scale stays at one to avoid double scaling.")) bool bVFXRadiusParameterIsScale=false;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FName VFXRadiusParameter = TEXT("User.Radius");
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0.01", Units="cm", ToolTip="Radius represented by a Niagara parameter value of 1. Use 1 for a radius in centimeters, or the effect's reference radius for a scale parameter such as User.Scale_All.")) float VFXReferenceRadius = 1.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FName VFXDurationParameter = TEXT("User.Duration");

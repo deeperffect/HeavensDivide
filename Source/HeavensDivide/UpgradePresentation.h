@@ -45,6 +45,9 @@ struct FUpgradePresentation
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX",meta=(ClampMin="0")) float FallbackLineThickness=3.5f;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="VFX",meta=(ClampMin="0")) float MinimumSpawnInterval=0;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara Parameters") FName RadiusParameter=TEXT("User.Radius");
+ // Vendor systems often expose uniform scale rather than honoring component scale.
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara Parameters") FName SystemScaleParameter=NAME_None;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara Parameters",meta=(ToolTip="Multiply the Niagara asset's authored scale instead of replacing it. Scale.X is the uniform art multiplier when using a scalar scale parameter.")) bool bMultiplyAuthoredSystemScale=false;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara Parameters") FName DurationParameter=TEXT("User.Duration");
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara Parameters") FName StartParameter=TEXT("User.StartPosition");
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Niagara Parameters") FName EndParameter=TEXT("User.EndPosition");

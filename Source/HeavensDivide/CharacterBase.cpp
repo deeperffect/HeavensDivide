@@ -144,6 +144,20 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 		break;
 	}
 
+	// Incoming characters may have been hidden at a distant position for many frames.
+	// TeleportPhysics preserves dynamic velocity; start secondary motion from the new pose.
+	if (OldMode == ECharacterMode::Inactive && CharacterMode != ECharacterMode::Inactive)
+	{
+		if (USkeletalMeshComponent* MeshComponent = GetMesh())
+		{
+			MeshComponent->ForceClothNextUpdateTeleportAndReset();
+			if (UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance())
+			{
+				AnimInstance->ResetDynamics(ETeleportType::ResetPhysics);
+			}
+		}
+	}
+
 	OnCharacterModeChanged.Broadcast(OldMode, CharacterMode);
 	if(SwapPresentation) SwapPresentation->HandleModeChanged(CharacterMode);
 }

@@ -69,6 +69,14 @@ void AExperiencePickup::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AExperiencePickup::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (bRewardFlight)
+	{
+		FlightElapsed += DeltaSeconds;
+		const float T=FMath::Clamp(FlightElapsed/FlightDuration,0.f,1.f);
+		SetActorLocation(FMath::Lerp(FlightStart,FlightLanding,T)+FVector(0,0,4*T*(1-T)*FlightHeight));
+		if(T>=1){bRewardFlight=false;PickupCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);CheckInitialActiveCharacterProximity();if(!bAttracting)SetActorTickEnabled(false);}
+		return;
+	}
 
 	if (!bAttracting || bCollected || DeltaSeconds <= 0.0f)
 	{
@@ -100,6 +108,13 @@ void AExperiencePickup::Tick(float DeltaSeconds)
 	SetActorLocation(CurrentLocation + ToPlayer * StepDistance, false, nullptr, ETeleportType::None);
 }
 
+void AExperiencePickup::LaunchFromChest(FVector Landing,float Duration,float Height)
+{
+	bRewardFlight=true;bAttracting=false;FlightStart=GetActorLocation();FlightLanding=Landing;
+	FlightDuration=FMath::Max(.1f,Duration);FlightHeight=Height;FlightElapsed=0;
+	PickupCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);SetActorTickEnabled(true);
+}
+
 void AExperiencePickup::InitializePickup(int32 InXPValue, UExperienceComponent* InExperienceComponent, UCharacterManagerComponent* InCharacterManager)
 {
 	XPValue = FMath::Max(0, InXPValue);
@@ -112,7 +127,7 @@ void AExperiencePickup::InitializePickup(int32 InXPValue, UExperienceComponent* 
 
 void AExperiencePickup::HandlePickupOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (bCollected || bAttracting || !IsActiveCharacter(OtherActor))
+	if (bRewardFlight || bCollected || bAttracting || !IsActiveCharacter(OtherActor))
 	{
 		return;
 	}
@@ -230,7 +245,7 @@ void AExperiencePickup::ApplySharedPickupRadiusStats()
 
 void AExperiencePickup::CheckInitialActiveCharacterProximity()
 {
-	if (bCollected || bAttracting)
+	if (bRewardFlight || bCollected || bAttracting)
 	{
 		return;
 	}

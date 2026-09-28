@@ -22,6 +22,7 @@ public:
 	void InitializeTelegraph(ASurvivorPlayerController* InPlayerController, float InRadius, float InDuration, float InDamage, UMaterialInterface* InMaterial);
 	void InitializePersistentCircle(float InRadius, UMaterialInterface* InMaterial);
 	void InitializePersistentRectangle(float InLength, float InWidth, UMaterialInterface* InMaterial);
+	void InitializePersistentSurfaceCircle(float InRadius, UMaterialInterface* InMaterial);
 	void SetTelegraphFillAmount(float FillAmount);
 	void CancelTelegraph();
 

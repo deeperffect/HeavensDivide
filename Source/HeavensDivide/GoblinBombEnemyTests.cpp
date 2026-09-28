@@ -1,6 +1,7 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "GoblinBombEnemy.h"
+#include "BossGroundTelegraph.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "SurvivorPlayerController.h"
@@ -59,7 +60,17 @@ bool FGoblinBombAttackTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Charge pauses the walking animation"), Bomb->GetMesh()->bPauseAnims);
 	TestTrue(TEXT("Bomb flash material is applied to its slot"), Bomb->ChargeBombMesh && Bomb->ChargeBombMesh->GetMaterial(0) == Bomb->BombFlashMID);
 	TestTrue(TEXT("Nearby player starts charge without a montage"), Bomb->bIsAttacking);
-	TestTrue(TEXT("Shared AoE decal becomes visible"), Bomb->AttackTelegraphDecal->IsVisible());
+	TestTrue(TEXT("Shared unlit AoE becomes visible"), IsValid(Bomb->RectangleGroundTelegraph));
+    TestFalse(TEXT("Legacy additive decal remains hidden"), Bomb->AttackTelegraphDecal->IsVisible());
+    if (Bomb->RectangleGroundTelegraph)
+    {
+        auto* Mesh=Bomb->RectangleGroundTelegraph->FindComponentByClass<UStaticMeshComponent>();
+        auto* MID=Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0));
+        TestEqual(TEXT("Bomb uses circle surface material"), MID->Parent->GetName(), FString(TEXT("M_AttackIndicatorCircle")));
+        TestEqual(TEXT("Circle footprint matches damage radius"), float(Mesh->GetComponentScale().X * 50.f), Bomb->AttackAoERadius);
+        Bomb->SetTelegraphFillAmount(.5f);
+        TestEqual(TEXT("Fuse drives surface fill"), MID->K2_GetScalarParameterValue(TEXT("FillAmount")), .5f);
+    }
 	TestTrue(TEXT("Fuse timer is scheduled"), World->GetTimerManager().IsTimerActive(Bomb->DetonationTimer));
 	TestNotNull(TEXT("Attached Bomb receives the red flash material"), Bomb->BombFlashMID.Get());
 	TestTrue(TEXT("Charge visuals run only during the fuse"), World->GetTimerManager().IsTimerActive(Bomb->ChargePresentationTimer));
@@ -106,6 +117,7 @@ bool FGoblinBombAttackTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Early death cancels charge visuals"), World->GetTimerManager().IsTimerActive(Killed->ChargePresentationTimer));
 	TestFalse(TEXT("Killing the charging bomb cancels its fuse"), World->GetTimerManager().IsTimerActive(Killed->DetonationTimer));
 	TestFalse(TEXT("Killed bomb hides its decal"), Killed->AttackTelegraphDecal->IsVisible());
+	TestNull(TEXT("Killed bomb removes surface indicator"), Killed->RectangleGroundTelegraph.Get());
 	Killed->Detonate();
 	TestFalse(TEXT("Early death never becomes a detonation"), Killed->bDetonated);
 	TestTrue(TEXT("Early death keeps the standard dissolve"), Killed->EnemyDeathComponent->IsComponentTickEnabled());

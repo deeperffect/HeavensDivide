@@ -83,6 +83,12 @@ void ABossGroundTelegraph::SetTelegraphFillAmount(float FillAmount)
 	}
 }
 
+void ABossGroundTelegraph::InitializePersistentSurfaceCircle(float InRadius,UMaterialInterface* InMaterial)
+{
+	Radius=FMath::Max(1.f,InRadius);
+	InitializePersistentRectangle(Radius*2,Radius*2,InMaterial);
+}
+
 void ABossGroundTelegraph::InitializePersistentRectangle(float InLength, float InWidth, UMaterialInterface* InMaterial)
 {
 	bInitialized = false;

@@ -1,4 +1,5 @@
 #include "SurvivorAbilityComponent.h"
+
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "CharacterStatsComponent.h"
@@ -18,6 +19,12 @@
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
+
+void USurvivorAbilityComponent::UpgradeAccent(FName UpgradeId,FVector Position,float Radius,FLinearColor Color)
+{
+    const auto* Card=Upgrades?Upgrades->FindUpgradeDefinition(UpgradeId):nullptr;
+    Accent(Position,Position,Radius,Color,.65f,false,Card?&Card->Presentation:nullptr);
+}
 
 namespace
 {
