@@ -20,7 +20,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGroundSlashTrailTest,"HeavensDivide.Combat.Gro
  EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FGroundSlashTrailTest::RunTest(const FString&)
 {
- auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,TEXT("/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave.DA_Upgrade_SamuraiBladeWave"));
+ auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,TEXT("/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance.DA_Upgrade_SamuraiCrescentStance"));
  if(!TestNotNull(TEXT("Saved wave upgrade"),Upgrade)) return false;
  auto* System=Upgrade->Presentation.PulseSystem.Get();
  if(!TestNotNull(TEXT("Saved wave effect"),System)) return false;
@@ -66,10 +66,10 @@ bool FGroundSlashTrailTest::RunTest(const FString&)
  return true;
 }
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGroundSlashFullEffectsTest,"HeavensDivide.Combat.GroundSlashFullEffects",
- EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+ EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter|EAutomationTestFlags::NonNullRHI)
 bool FGroundSlashFullEffectsTest::RunTest(const FString&)
 {
- auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,TEXT("/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave.DA_Upgrade_SamuraiBladeWave"));
+ auto* Upgrade=LoadObject<UUpgradeDefinition>(nullptr,TEXT("/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance.DA_Upgrade_SamuraiCrescentStance"));
  if(!TestNotNull(TEXT("Saved upgrade"),Upgrade)) return false;
  auto* System=Upgrade->Presentation.PulseSystem.Get();
  if(!TestNotNull(TEXT("Saved effect"),System)) return false;

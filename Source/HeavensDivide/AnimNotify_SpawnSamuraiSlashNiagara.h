@@ -12,6 +12,7 @@ UCLASS()
 class HEAVENSDIVIDE_API UAnimNotify_SpawnSamuraiSlashNiagara : public UAnimNotify
 {
 	GENERATED_BODY()
+	friend class UAutoAttackComponent;
 
 public:
 	UAnimNotify_SpawnSamuraiSlashNiagara();

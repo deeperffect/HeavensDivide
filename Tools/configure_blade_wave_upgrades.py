@@ -27,7 +27,7 @@ def base(asset, upgrade_id, name, description, role, max_level):
     asset.set_editor_property("special_effects", [])
 
 
-blade = make("DA_Upgrade_SamuraiBladeWave")
+blade = make("DA_Upgrade_SamuraiCrescentStance")
 base(blade, "BladeWave", "Blade Wave", "Samurai attacks release a crescent blade wave that travels forward and damages enemies.", unreal.UpgradeRole.STARTER, 1)
 blade.set_editor_property("uses_rolled_rarity", False)
 blade.set_editor_property("prerequisite_upgrade_ids", [])
@@ -50,8 +50,11 @@ wide.set_editor_property("rarity_magnitudes", entries)
 unreal.EditorAssetLibrary.save_loaded_asset(wide, only_if_is_dirty=False)
 
 returning = make("DA_Upgrade_SamuraiReturningBlade")
-base(returning, "ReturningBlade", "Returning Blade", "Blade Waves return to Samurai after reaching maximum range, damaging enemies again.", unreal.UpgradeRole.MECHANIC, 1)
+base(returning, "ReturningBlade", "Returning Blade", "Primary waves return to their launch point, hitting each enemy once more for 50% damage. Split waves do not return. Each wave keeps one split roll and one field opportunity across both passes.", unreal.UpgradeRole.MECHANIC, 1)
 returning.set_editor_property("uses_rolled_rarity", False)
+returning_balance = dict(returning.get_editor_property("balance_parameters"))
+returning_balance.setdefault("ReturnDamageMultiplier", .5)
+returning.set_editor_property("balance_parameters", returning_balance)
 returning.set_editor_property("prerequisite_upgrade_ids", ["BladeWave"])
 returning.set_editor_property("prerequisite_requirements", [])
 unreal.EditorAssetLibrary.save_loaded_asset(returning, only_if_is_dirty=False)

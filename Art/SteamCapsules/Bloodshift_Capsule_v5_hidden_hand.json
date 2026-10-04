@@ -1,0 +1,16 @@
+{
+  "title": "Bloodshift",
+  "asset": "Steam capsule illustration - Samurai hand concealed by clothing",
+  "mode": "Built-in image_gen.imagegen",
+  "date": "2026-10-04",
+  "output": {
+    "file": "Bloodshift_Capsule_v5_hidden_hand.png",
+    "width": 1832,
+    "height": 859
+  },
+  "editSource": "Bloodshift_Capsule_v4_hand_corrected.png",
+  "priorGenerationMetadata": "Bloodshift_Capsule_v4_hand_corrected.json",
+  "finalEditPrompt": "Use case: precise-object-edit.\nInput image: edit target, the supplied BLOODSHIFT capsule.\nThe user approved the capsule but dislikes the male Samurai's large foreground hand. HIDE THAT HAND COMPLETELY instead of trying to redraw its fingers.\n\nOnly change the male Samurai's foreground right arm and the immediately surrounding clothing. The problematic hand currently extends toward screen-left below the title, around x=810–970, y=510–675 in this approximately 1832x859 image. Remove this entire exposed hand and restore the forest/background wherever it used to protrude. Repose that forearm naturally DOWNWARD and INWARD toward his own waist: his elbow stays beside his torso, the forearm follows his hip, and his hand is completely tucked behind an opaque overlapping fold of his existing black-and-crimson robe and red sash. Show enough of the armored forearm to make the arm's connection and pose natural, but show ZERO fingers, ZERO thumb, ZERO palm, and ZERO hand silhouette. The robe/sash must genuinely occlude the whole hand; don't create a severed wrist or a hand-shaped lump. This is a relaxed, confident pose with the right hand hidden in the garment folds. Adjust the robe folds locally as needed.\n\nKeep absolutely everything else as close to the edit target as possible: exact BLOODSHIFT lettering, ivory color and red underline; both faces, hair, Samurai red/gold armor and white fur, Ninja purple outfit and ponytail; their back-to-back arrangement; the Samurai's other small hand, and both Ninja hands; teal shrine forest, torii, oni and amber eyes, red foliage, crimson foreground brushstroke, painted illustration style, lighting, framing and wide aspect ratio. Do not introduce any weapon or new prop. Do not redesign the whole capsule. Return the full wide image with the single problematic hand fully hidden.",
+  "verification": "Visually confirmed the Samurai's foreground hand is fully hidden behind his robe and sash.",
+  "generatedSource": "C:/Users/deepe/.codex/generated_images/01a0fe4e-c581-7722-9a89-875760849015/exec-b51f2c1a-09c1-4431-9331-c40cc6595442.png"
+}

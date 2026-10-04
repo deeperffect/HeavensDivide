@@ -24,7 +24,7 @@ UEnemyDeathComponent::UEnemyDeathComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> Burst(TEXT("/Game/Assets/VFX/HitsImpactsV2/Particles/NiagaraSystems/NS_Impact_NinjaAttackProj"));
-	static ConstructorHelpers::FObjectFinder<USoundBase> Sound(TEXT("/Game/Assets/Sounds/Ninja/MS_Ninja_Impact"));
+	static ConstructorHelpers::FObjectFinder<USoundBase> Sound(TEXT("/Game/HeavensDivide/Audio/MetaSounds/MS_DeathSmall"));
 	DeathNiagaraSystem = Burst.Object;
 	DeathSound = Sound.Object;
 }
@@ -49,7 +49,8 @@ void UEnemyDeathComponent::StartDeathPresentation(FSimpleDelegate OnComplete)
 	}
 	if (DeathSound)
 	{
-		USoundConcurrency* Concurrency = DeathSoundConcurrency ? DeathSoundConcurrency.Get() : GetMutableDefault<UEnemyDeathSoundConcurrency>();
+		USoundConcurrency* Concurrency = DeathSoundConcurrency ? DeathSoundConcurrency.Get()
+            : (DeathSound->ConcurrencySet.IsEmpty() ? GetMutableDefault<UEnemyDeathSoundConcurrency>() : nullptr);
 		UGameplayStatics::PlaySoundAtLocation(this, DeathSound, Owner->GetActorLocation(), 1.0f, 1.0f, 0.0f, nullptr, Concurrency);
 	}
 

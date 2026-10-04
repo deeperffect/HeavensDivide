@@ -1,0 +1,51 @@
+{
+  "validated_saved_assets": false,
+  "widget": "/Game/HeavensDivide/Blueprints/UI/UpgradeUI/WBP_LevelUp",
+  "backup": "Saved\\Backups\\CategoryArtwork\\20261004_040722_892336",
+  "cards": [
+    {
+      "category": "Samurai",
+      "property": "samurai_category_artwork",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/CategoryArt/T_Category_Samurai_Cartoon.T_Category_Samurai_Cartoon",
+      "source": "Art/CategoryCards/Samurai_v1.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "source_sha256": "41a0fe0a41fe9c15b2d022c69f084a42d371c11f4d4fc172f4298c559d03e73c"
+    },
+    {
+      "category": "Ninja",
+      "property": "ninja_category_artwork",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/CategoryArt/T_Category_Ninja_Cartoon.T_Category_Ninja_Cartoon",
+      "source": "Art/CategoryCards/Ninja_v1.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "source_sha256": "518d3cb1efa205f52517ebd6aa7e458022e16b2d7da6f4b73a47053e9b813eb7"
+    },
+    {
+      "category": "Synergy",
+      "property": "synergy_category_artwork",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/CategoryArt/T_Category_Synergy_Cartoon.T_Category_Synergy_Cartoon",
+      "source": "Art/CategoryCards/Synergy_v1.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "source_sha256": "2bc583a92520542ce42b71775c5b2571ad94ca1055734ebadd0ef3a2bd45a02d"
+    },
+    {
+      "category": "Global",
+      "property": "global_category_artwork",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/CategoryArt/T_Category_Global_Cartoon.T_Category_Global_Cartoon",
+      "source": "Art/CategoryCards/Global_v1.png",
+      "size": [
+        1024,
+        1536
+      ],
+      "source_sha256": "35dbf8f2ff290c59d22d99c69c706abe03a02461ac1d0efe6dc1756e0436c9ed"
+    }
+  ]
+}

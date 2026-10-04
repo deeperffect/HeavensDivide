@@ -174,7 +174,7 @@ void UInactiveCharacterAssistComponent::UnbindAttackDelegates()
 
 void UInactiveCharacterAssistComponent::HandleAutoAttackCommitted(UAutoAttackComponent* AttackComponent, EAutoAttackSource AttackSource)
 {
-	if (!bAssistEffectActive || !CanRunAssistEffect() || !HasAssistUpgrade())
+	if (!bAssistEffectActive || !CanRunAssistEffect() || (!HasAssistUpgrade() && !bBloodAssistRequest))
 	{
 		return;
 	}
@@ -235,7 +235,7 @@ void UInactiveCharacterAssistComponent::HandleAutoAttackCommitted(UAutoAttackCom
 
 bool UInactiveCharacterAssistComponent::TryTriggerAssist()
 {
-	if (bAssistActive || !CanRunAssistEffect() || !HasAssistUpgrade())
+	if (bAssistActive || !CanRunAssistEffect() || (!HasAssistUpgrade() && !bBloodAssistRequest))
 	{
 		return false;
 	}
@@ -253,7 +253,7 @@ bool UInactiveCharacterAssistComponent::TryTriggerAssist()
 
 bool UInactiveCharacterAssistComponent::TryTriggerAssistWithCharacters(ACharacterBase* ActiveCharacter, ACharacterBase* AssistCharacter)
 {
-	if (bAssistActive || !CanRunAssistEffect() || !HasAssistUpgrade())
+	if (bAssistActive || !CanRunAssistEffect() || (!HasAssistUpgrade() && !bBloodAssistRequest))
 	{
 		return false;
 	}
@@ -518,4 +518,19 @@ bool UInactiveCharacterAssistComponent::IsAssistLocationBlocked(const ACharacter
 		ECC_WorldStatic,
 		CapsuleShape,
 		QueryParams);
+}
+
+bool UInactiveCharacterAssistComponent::TryBloodAssist()
+{
+ SurvivorController = Cast<ASurvivorPlayerController>(GetOwner());
+ PlayerUpgrades = SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+ if (!PlayerUpgrades || !((PlayerUpgrades->HasUpgradeId(TEXT("BattleStance")) && PlayerUpgrades->HasUpgradeId(TEXT("BloodAssist")))
+       || (PlayerUpgrades->HasUpgradeId(TEXT("Iaijutsu")) && PlayerUpgrades->HasUpgradeId(TEXT("IaijutsuAssist")))
+       || (PlayerUpgrades->HasUpgradeId(TEXT("BladeWave")) && PlayerUpgrades->HasUpgradeId(TEXT("CrescentAssist"))))) return false;
+ const auto* Manager = SurvivorController->GetCharacterManager();
+ if (!Manager || !Manager->GetActiveCharacter() || !Manager->GetActiveCharacter()->IsA<ASamuraiCharacter>()) return false;
+ bBloodAssistRequest = true;
+ const bool Result = TryTriggerAssist();
+ bBloodAssistRequest = false;
+ return Result;
 }

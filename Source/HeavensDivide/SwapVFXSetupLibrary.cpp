@@ -163,10 +163,41 @@ int32 USwapVFXSetupLibrary::BindGroundSlashDebris(UNiagaraSystem* System)
     System->Modify();
     const FNiagaraVariable Parameter(FNiagaraTypeDefinition(UMaterialInterface::StaticClass()), TEXT("User.DebrisMaterial"));
     System->GetExposedParameters().AddParameter(Parameter);
+    const FNiagaraVariable LifetimeParameter(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.GroundDebrisLifetime"));
+    if (!System->GetExposedParameters().FindParameterVariable(LifetimeParameter))
+        System->GetExposedParameters().SetParameterValue(5.f, LifetimeParameter, true);
+    int32 LifetimeBindings = 0;
     for (const auto& Handle : System->GetEmitterHandles())
     {
         if (!Handle.GetName().ToString().StartsWith(TEXT("Debris"))) continue;
         if (auto* Data = Handle.GetEmitterData())
+        {
+            if (Handle.GetName().ToString().StartsWith(TEXT("DebrisGround")))
+            {
+                if (Data->bLocalSpace) return -2;
+                auto* Source = Cast<UNiagaraScriptSource>(Data->GraphSource);
+                auto* Graph = Source ? Source->NodeGraph.Get() : nullptr;
+                if (!Graph) return -2;
+                // Only the stationary ground rocks persist. Air debris retains
+                // its authored gravity, lifetime and scale animation.
+                for (const auto& Node : Graph->Nodes)
+                    if (auto* Module = Cast<UNiagaraNodeFunctionCall>(Node);
+                        Module && Module->FunctionScript && Module->FunctionScript->GetFName() == TEXT("InitializeParticle"))
+                    {
+                        Handle.GetEmitterBase()->Modify();
+                        Graph->Modify();
+                        auto& Pin = FNiagaraStackGraphUtilities::GetOrCreateStackFunctionInputOverridePin(*Module,
+                            FNiagaraParameterHandle(FName(*(Module->GetFunctionName() + TEXT(".Lifetime")))),
+                            FNiagaraTypeDefinition::GetFloatDef(), FGuid(), FGuid());
+                        if (Pin.LinkedTo.IsEmpty() || Pin.LinkedTo[0]->PinName != LifetimeParameter.GetName())
+                        {
+                            Pin.BreakAllPinLinks();
+                            FNiagaraStackGraphUtilities::SetLinkedParameterValueForFunctionInput(Pin, LifetimeParameter, {});
+                        }
+                        ++LifetimeBindings;
+                        break; // Adding a parameter node invalidates the Nodes iterator.
+                    }
+            }
             for (auto* Renderer : Data->GetRenderers())
                 if (auto* Mesh = Cast<UNiagaraMeshRendererProperties>(Renderer))
                 {
@@ -177,7 +208,9 @@ int32 USwapVFXSetupLibrary::BindGroundSlashDebris(UNiagaraSystem* System)
                     Mesh->PostEditChange();
                     ++Count;
                 }
+        }
     }
+    if (LifetimeBindings != 2) return -2;
     System->PostEditChange();
     System->RequestCompile(true);
     System->WaitForCompilationComplete(true, false);

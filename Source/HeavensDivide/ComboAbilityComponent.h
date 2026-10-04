@@ -35,6 +35,8 @@ struct FComboAbilitySettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0.01")) float MontagePlayRate = 1.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") TObjectPtr<USoundBase> Sound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0")) float SoundVolume = 1.f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") TObjectPtr<USoundBase> PulseSound;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0")) float PulseSoundVolume = 1.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") TObjectPtr<UNiagaraSystem> VFX;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(DisplayName="Spawn VFX Every Pulse", ToolTip="Spawn a separate Niagara effect on every damage pulse. Each instance uses VFX Visibility Duration; zero uses Pulse Interval in this mode.")) bool bSpawnVFXEveryPulse = false;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FVector VFXOffset = FVector::ZeroVector;

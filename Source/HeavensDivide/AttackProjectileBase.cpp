@@ -265,7 +265,10 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 		}
 
 		LogProjectileFilterResult(OtherActor, true);
+        const float HealthBefore = PlayerHealth->GetCurrentHealth();
 		SurvivorController->ApplyDamageToPlayer(ProjectileDamage);
+        if (PlayerHealth->GetCurrentHealth() < HealthBefore)
+            UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, GetActorLocation(), FVector::UpVector, false);
 
 		BeginImpactTrailFade();
 	}

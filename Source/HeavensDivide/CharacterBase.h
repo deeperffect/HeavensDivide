@@ -41,7 +41,7 @@ public:
 	void SetFacingTarget(FVector WorldTarget);
 	void SetFacingOverrideTarget(FVector WorldTarget);
 	void ClearFacingOverride();
-	void SetCharacterMode(ECharacterMode NewMode);
+	virtual void SetCharacterMode(ECharacterMode NewMode);
 	ECharacterMode GetCharacterMode() const;
 	FRotator GetVisualFacingRotation() const;
 	USceneComponent* GetVisualRoot() const { return VisualRoot; }
@@ -54,7 +54,7 @@ public:
 	bool IsDashing() const;
 	UFUNCTION(BlueprintPure, Category = "Stats")
 	UCharacterStatsComponent* GetCharacterStats() const;
-	void ApplySharedMoveSpeedMultiplier(float MoveSpeedMultiplier);
+	virtual void ApplySharedMoveSpeedMultiplier(float MoveSpeedMultiplier);
 
 	UPROPERTY(BlueprintAssignable, Category = "Character", meta = (ToolTip = "Broadcast when this character changes between Active, Inactive, and Assisting modes."))
 	FOnCharacterModeChanged OnCharacterModeChanged;

@@ -178,7 +178,7 @@ void AEnemyBase::UpdateMarkIndicatorVisibility()
 		return;
 	}
 
-	const bool bShouldShowMarkIndicator = bIsMarked && !bIsDead;
+	const bool bShouldShowMarkIndicator = (bIsMarked || HasIaijutsuMark()) && !bIsDead;
 	MarkIndicatorWidgetComponent->SetHiddenInGame(!bShouldShowMarkIndicator);
 	MarkIndicatorWidgetComponent->SetVisibility(bShouldShowMarkIndicator, true);
 	MarkIndicatorWidgetComponent->SetComponentTickEnabled(false);

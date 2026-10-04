@@ -49,7 +49,24 @@ void ASwapAfterimage::Initialize(ACharacterBase* Source, UMaterialInterface* Mat
 void ASwapAfterimage::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-    AdvanceVisual(AnimatedMesh || bRealTimeFade ? static_cast<float>(FApp::GetDeltaTime()) : DeltaSeconds);
+    AdvanceVisual(!bGameTimeAnimation && (AnimatedMesh || bRealTimeFade) ? static_cast<float>(FApp::GetDeltaTime()) : DeltaSeconds);
+}
+
+void ASwapAfterimage::InitializeSwordDash(ACharacterBase* Source, UMaterialInterface* Material,
+    UAnimMontage* Montage, FVector Direction, float Duration)
+{
+    const FLinearColor Color(.2f, 1.5f, 3.f);
+    const float Rate = Montage ? Montage->GetPlayLength() / FMath::Max(.01f, Duration * Montage->RateScale) : 1.f;
+    if (!InitializeDeparture(Source, Material, Color, Montage, Rate, .08f))
+        Initialize(Source, Material, Color, Duration + .08f);
+    bGameTimeAnimation = true;
+    TrailDuration = .1f;
+    // Rotate only the copied character; leave the real player's facing untouched.
+    const float YawDelta = FMath::FindDeltaAngleDegrees(Source->GetVisualForwardVector().Rotation().Yaw, Direction.Rotation().Yaw);
+    AddActorWorldRotation(FRotator(0, YawDelta, 0));
+    TInlineComponentArray<UMeshComponent*> Meshes(this);
+    for (auto* Mesh : Meshes)
+        for (int32 Slot = 0; Slot < Mesh->GetNumMaterials(); ++Slot) Mesh->SetMaterial(Slot, FadeMaterial);
 }
 
 void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
@@ -67,6 +84,10 @@ void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
         }
     }
     Age += DeltaSeconds;
+    if (bGameTimeAnimation && AnimatedMesh && Age < DepartureDuration && Age - LastTrailAge >= .04f && TrailCount < 4)
+    {
+        SpawnTrailSnapshot(); LastTrailAge = Age; ++TrailCount;
+    }
     if (bPortalDash && AnimatedMesh)
     {
         const float Alpha = FMath::Clamp(Age / FMath::Max(.01f, DepartureDuration), 0.f, 1.f);
@@ -97,6 +118,7 @@ void ASwapAfterimage::SpawnTrailSnapshot()
     if (!Trail) return;
     Trail->Lifetime = TrailDuration;
     Trail->bRealTimeFade = true;
+    Trail->bGameTimeAnimation = bGameTimeAnimation;
     Trail->FadeMaterial = UMaterialInstanceDynamic::Create(FadeMaterial,Trail);
     Trail->FadeMaterial->SetScalarParameterValue(TEXT("Opacity"),.35f);
     auto* Pose = NewObject<UPoseableMeshComponent>(Trail);

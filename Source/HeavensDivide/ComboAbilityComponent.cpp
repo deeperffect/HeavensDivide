@@ -145,6 +145,8 @@ void UComboAbilityComponent::ExecuteEffect()
         UpdateVFXRadius(Radius);
         if (bSpawnVFX) ActiveVFX->Activate();
     }
+    if (ActiveSettings.PulseSound)
+        UGameplayStatics::PlaySoundAtLocation(this, ActiveSettings.PulseSound, Character->GetActorLocation(), ActiveSettings.PulseSoundVolume);
     bEffectExecuted = true;
     if (!ActiveSettings.VFX)
     {

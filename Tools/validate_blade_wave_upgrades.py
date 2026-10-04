@@ -1,7 +1,7 @@
 import unreal
 
 paths = {
-    "BladeWave": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave",
+    "BladeWave": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance",
     "WideArc": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiWideArc",
     "ReturningBlade": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiReturningBlade",
     "CrossingBlades": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrossingBlades",

@@ -13,7 +13,7 @@ public class HeavensDivide : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore", "EngineCameras", "AIModule", "ApplicationCore" });
 		if (Target.bBuildEditor)
 		{
-			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "NiagaraEditor", "MaterialEditor", "ClothingSystemEditor", "ClothingSystemEditorInterface", "ClothingSystemRuntimeCommon", "ClothingSystemRuntimeInterface", "ChaosCloth" });
+			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "MetasoundEngine", "NiagaraEditor", "MaterialEditor", "ClothingSystemEditor", "ClothingSystemEditorInterface", "ClothingSystemRuntimeCommon", "ClothingSystemRuntimeInterface", "ChaosCloth" });
 		}
 	}
 }

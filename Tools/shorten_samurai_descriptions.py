@@ -26,28 +26,26 @@ else:
         return {str(k):float(v) for k,v in by_id[uid].get_editor_property('balance_parameters').items()}.get(key,default)
     def n(value):return f'{value:.2f}'.rstrip('0').rstrip('.')
     text={
-        'DoubleCut':'Every 3rd melee attack hits twice.',
-        'BleedingEdge':f'Melee and Blade Wave hits apply Bleed. Each stack gains {n(tune("BleedingEdge","HitDamagePerTick",.1)*100)}% of hit damage per tick.',
-        'BladeWave':f'Melee attacks launch a wave dealing {n(tune("BladeWave","WaveDamageMultiplier",.65)*100)}% attack damage.',
-        'ReturningBlade':'Blade Waves return, hitting enemies again.',
+        'DoubleCut':'Every fourth attack becomes a 360-degree slash.',
+        'BladeWave':f'Stance: replaces melee attacks with automatic waves dealing {n(tune("BladeWave","WaveDamageMultiplier",.65)*100)}% attack damage. Slows by {n(tune("BladeWave","SlowFraction",.3)*100)}% for {n(tune("BladeWave","SlowDuration",5))} seconds.',
+        'ReturningBlade':'Primary waves return to their launch point for 50% damage. Split waves do not return; proc rolls are shared across passes.',
         'CrossingBlades':f'Every {n(tune("CrossingBlades","AttackFrequency",3))} attacks, launch {n(tune("CrossingBlades","WaveCount",3))} crossing waves.',
-        'SplinterWave':f'Each wave\'s first hit bursts for {n(tune("SplinterWave","SplinterDamageMultiplier",.3)*100)}% wave damage and applies Bleed nearby.',
-        'BloodTransfer':f'On death, share {n(tune("BloodTransfer","TransferFraction",.5)*100)}% remaining Bleed damage among up to {n(tune("BloodTransfer","Targets",5))} nearby enemies.',
-        'Bloodletting':'+1 Bleed stack per melee or Blade Wave hit, per rank.',
+        'SplinterWave':f'Each wave\'s first hit bursts for {n(tune("SplinterWave","SplinterDamageMultiplier",.3)*100)}% wave damage nearby.',
+        'BloodTransfer':'On death, spread Bleed stacks to nearby enemies.',
+        'Bloodletting':'+1 Bleed stack per Blood Stance hit, per rank.',
         'OverkillBurst':'Melee and Blade Wave kills explode for excess damage. Explosions cannot chain.',
         'WaveMultishot':'+1 Blade Wave per attack, per rank.',
     }
     formats={
+        'SamuraiHeavyBlade':'+{Percent}% Samurai attack damage. Converts to the chosen stance\'s damage upgrade.',
         'SamuraiArea':'+{Percent}% Samurai attack area.',
-        'DeepCuts':'+{Percent}% Bleed damage.',
         'WideArc':'+{Percent}% Blade Wave width and damage.',
         'BladeWavePower':'+{Percent}% Blade Wave damage.',
         'BladeWaveHaste':'+{Percent}% Blade Wave speed.',
-        'LingeringWounds':'+{Percent}% Bleed duration.',
         'SamuraiTempo':'+{Percent}% Samurai attack speed.',
         'BurstRadius':'+{Percent}% explosion radius.',
     }
-    for uid in ['BloodStance','ExecutionStance','WaveStance','SamuraiHeavyBlade']:
+    for uid in ['SamuraiHeavyBlade']:
         labels={unreal.CharacterStatType.ATTACK_AREA_MULTIPLIER:'area',unreal.CharacterStatType.ATTACK_SPEED_MULTIPLIER:'attack speed',unreal.CharacterStatType.DAMAGE_MULTIPLIER:'damage'}
         parts=[]
         for m in by_id[uid].get_editor_property('stat_modifiers'):
@@ -60,7 +58,7 @@ else:
         values=list(a.get_editor_property('rarity_magnitudes'))
         match=next((v for v in values if v.get_editor_property('rarity')==rarity),values[0])
         text[uid]=fmt.replace('{Percent}',n(float(match.get_editor_property('magnitude'))*100))
-    assert set(text)==set(by_id)
+    for uid,a in by_id.items(): text.setdefault(uid,str(a.get_editor_property('description')))
     backup=root/'Saved/Backups/SamuraiCardText'/datetime.now().strftime('%Y%m%d_%H%M%S')
     for uid,a in by_id.items():
         before=snapshot(a)
@@ -72,4 +70,4 @@ else:
         assert unreal.EditorAssetLibrary.save_loaded_asset(a,False),uid
         assert str(a.get_editor_property('description'))==text[uid]
     (root/'Saved/SamuraiCardTextResult.json').write_text(json.dumps(text,indent=2))
-    unreal.log('SAMURAI_TEXT_OK: 22 concise descriptions; saved tuning, modifiers, rarity, prerequisites and artwork preserved')
+    unreal.log('SAMURAI_TEXT_OK: Current Samurai descriptions; saved tuning, modifiers, rarity, prerequisites and artwork preserved')

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "PlayerUpgradeComponent.h"
+#include "CombatAudio.h"
 #include "BuildFamilyCatalog.h"
 #include "MetaSkillTree.h"
 
@@ -20,17 +21,84 @@
 
 namespace
 {
+// Temporary availability switch. Keep definitions, tuning and combat implementations
+// so these cards can be reused when the other Samurai routes are redesigned.
+bool IsSamuraiUpgradeTemporarilyDisabled(FName Id)
+{
+ static const TSet<FName> Disabled = {
+  TEXT("OverkillBurst"), TEXT("BurstRadius"), TEXT("WaveMultishot"),
+  TEXT("CrossingBlades"), TEXT("SplinterWave"),
+  TEXT("BladeWavePower"), TEXT("WideArc"), TEXT("BladeWaveHaste")
+ };
+ return Disabled.Contains(Id);
+}
+bool IsBloodUpgrade(FName Id)
+{
+ static const TSet<FName> Ids = {TEXT("BloodTransfer"),TEXT("Bloodletting"),TEXT("LingeringWounds"),TEXT("DoubleCut"),TEXT("BloodEcho"),TEXT("BloodCritical"),TEXT("BloodAssist"),TEXT("BloodCapacity"),TEXT("BloodTransferArea"),TEXT("DoubleCutFrequency"),TEXT("BloodCriticalChance"),TEXT("BloodEchoChance"),TEXT("BloodAssistChance"),TEXT("BloodPactPower"),TEXT("BloodPactSpeed"),TEXT("BloodDetonation")};
+ return Id == TEXT("BloodRush") || Ids.Contains(Id);
+}
+bool IsIaijutsuUpgrade(FName Id)
+{
+ return Id != TEXT("Iaijutsu") && Id.ToString().StartsWith(TEXT("Iaijutsu"));
+}
+bool IsCrescentUpgrade(FName Id)
+{
+ return Id == TEXT("ReturningBlade") || Id.ToString().StartsWith(TEXT("Crescent"));
+}
+bool IsSamuraiMeleeScalingUpgrade(FName Id)
+{
+ return Id == TEXT("SamuraiHeavyBlade") || Id == TEXT("SamuraiTempo") || Id == TEXT("SamuraiArea");
+}
+// Columns: unchosen/Blood, Iaijutsu, Crescent. Each row is one investment.
+const FName SamuraiScalingIds[3][3] = {
+ {TEXT("SamuraiHeavyBlade"), TEXT("IaijutsuDamage"), TEXT("CrescentDamage")},
+ {TEXT("SamuraiTempo"), TEXT("IaijutsuChargeSpeed"), TEXT("CrescentSpeed")},
+ {TEXT("SamuraiArea"), TEXT("IaijutsuWidth"), TEXT("CrescentRange")}
+};
+bool IsSamuraiScalingUpgrade(FName Id)
+{
+ for (const auto& Group : SamuraiScalingIds) for (FName Member : Group) if (Id == Member) return true;
+ return false;
+}
+float SamuraiScalingBase(const UUpgradeDefinition* Card)
+{
+ if (!Card) return 0.f;
+ if (Card->bUsesRolledRarity)
+  for (const auto& Entry : Card->RarityMagnitudes)
+   if (Entry.Rarity == EUpgradeRarity::Common) return Entry.Magnitude;
+ return Card->GetBalanceValue(TEXT("PerRank"), Card->StatModifiers.IsEmpty() ? 0.f : Card->StatModifiers[0].ValuePerLevel);
+}
+int32 UpgradeRankLimit(const UUpgradeDefinition* Card)
+{
+ if (!Card) return 0;
+ // Stable-ID guard also covers old asset references with the former four-rank cap.
+ const bool bDoubleCutFrequency = Card->UpgradeId == TEXT("DoubleCutFrequency")
+  || Card->UpgradeId == TEXT("IaijutsuDoubleCutFrequency") || Card->UpgradeId == TEXT("CrescentDoubleCutFrequency");
+ return bDoubleCutFrequency ? FMath::Min(3, Card->MaxLevel) : Card->MaxLevel;
+}
+bool IsStanceRareUpgrade(const UUpgradeDefinition* U)
+{
+ return U && U->Rarity == EUpgradeRarity::Rare
+  && (IsBloodUpgrade(U->UpgradeId) || IsIaijutsuUpgrade(U->UpgradeId) || IsCrescentUpgrade(U->UpgradeId));
+}
+bool IsBloodShrineUpgrade(const UUpgradeDefinition* U)
+{
+ return U && (U->UpgradeId == TEXT("BloodPactPower") || U->UpgradeId == TEXT("BloodPactSpeed") || U->UpgradeId == TEXT("BloodDetonation")
+  || U->UpgradeId == TEXT("CrescentFieldPact") || U->UpgradeId == TEXT("CrescentPowerPact") || U->UpgradeId == TEXT("CrescentEruptionPact")
+  || U->UpgradeId == TEXT("IaijutsuMarkPact") || U->UpgradeId == TEXT("IaijutsuPowerPact") || U->UpgradeId == TEXT("IaijutsuDashPact"));
+}
 bool IsTrialBuildStarter(const UUpgradeDefinition* Upgrade)
 {
  static const TSet<FName> Starters = {
-  TEXT("BloodStance"), TEXT("ExecutionStance"), TEXT("WaveStance"),
+  TEXT("BladeWave"), TEXT("BattleStance"), TEXT("Iaijutsu"),
   TEXT("ReturningFang"), TEXT("BarrageStance"), TEXT("GreatShuriken")
  };
  return Upgrade && Starters.Contains(Upgrade->UpgradeId);
 }
-bool IsRetiredNinjaUpgrade(FName Id)
+bool IsRetiredUpgrade(FName Id)
 {
  static const TSet<FName> Retired = {
+  TEXT("BloodStance"), TEXT("ExecutionStance"), TEXT("WaveStance"), TEXT("BleedingEdge"), TEXT("DeepCuts"),
   TEXT("Bloodhound"), TEXT("AlternatingFans"), TEXT("Crossfire"), TEXT("ExecutionersKunai"), TEXT("FanOfBlades"), TEXT("NinjaProjectileBonus"),
   TEXT("NinjaProjectilePierce"), TEXT("ChainExecution"), TEXT("BladeCascade"),
   TEXT("ProjectileBounce"), TEXT("ProjectileSplit"),
@@ -62,17 +130,66 @@ void UPlayerUpgradeComponent::CaptureRunState(FPlayerUpgradeRunState& OutState) 
 	OutState.Definitions = AcquiredUpgradeDefinitions;
 	OutState.SamuraiMastery = SamuraiMasteryPoints;
 	OutState.NinjaMastery = NinjaMasteryPoints;
+	OutState.BanishedUpgrades = BanishedUpgrades;
+	OutState.RerollsUsed = RerollsUsed;
+	OutState.BanishesUsed = BanishesUsed;
 }
 
 void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& State)
 {
+	if (auto* PC = Cast<ASurvivorPlayerController>(GetOwner()); PC && PC->GetCharacterManager())
+		if (auto* Samurai = PC->GetCharacterManager()->GetSamurai()) Samurai->ClearBloodRush();
 	// Clear the old snapshot's modifiers before installing a different stance or build.
 	for (const auto& Pair : AcquiredUpgradeDefinitions) ClearUpgradeModifiers(Pair.Value);
 	UpgradeLevels = State.Levels;
 	AccumulatedUpgradeMagnitudes = State.AccumulatedMagnitudes;
 	AcquiredUpgradeDefinitions = State.Definitions;
+	BanishedUpgrades = State.BanishedUpgrades;
+    // Normalize old runs into one current Samurai stance. An existing Iaijutsu
+    // wins over the formerly mixable wave; otherwise preserve a wave build.
+    const auto Owned = [this](FName Id) { return UpgradeLevels.FindRef(Id) > 0; };
+    const FName Stance = Owned(TEXT("Iaijutsu")) ? FName(TEXT("Iaijutsu"))
+        : Owned(TEXT("BladeWave")) || Owned(TEXT("WaveStance")) ? FName(TEXT("BladeWave"))
+        : Owned(TEXT("BattleStance")) || Owned(TEXT("BloodStance")) || Owned(TEXT("ExecutionStance"))
+            ? FName(TEXT("BattleStance")) : NAME_None;
+    const auto Remove = [this](FName Id)
+    {
+        UpgradeLevels.Remove(Id);
+        AccumulatedUpgradeMagnitudes.Remove(Id);
+        AcquiredUpgradeDefinitions.Remove(Id);
+    };
+    for (FName Id : {FName(TEXT("BloodStance")), FName(TEXT("ExecutionStance")), FName(TEXT("WaveStance")),
+        FName(TEXT("BladeWave")), FName(TEXT("BattleStance")), FName(TEXT("Iaijutsu"))})
+        if (Id != Stance) Remove(Id);
+    if (!Stance.IsNone())
+        if (auto* Definition = FindUpgradeDefinition(Stance))
+        {
+            UpgradeLevels.Add(Stance, 1);
+            AcquiredUpgradeDefinitions.Add(Stance, Definition);
+        }
+    if (Stance != FName(TEXT("BladeWave")))
+        for (FName Id : {FName(TEXT("ReturningBlade")), FName(TEXT("CrossingBlades")), FName(TEXT("SplinterWave")),
+            FName(TEXT("BladeWavePower")), FName(TEXT("WideArc")), FName(TEXT("BladeWaveHaste")), FName(TEXT("WaveMultishot"))})
+            Remove(Id);
+    ConvertSamuraiScalingUpgrades();
+    TArray<FName> RestoredIds; UpgradeLevels.GetKeys(RestoredIds);
+    for (FName Id : RestoredIds)
+    {
+        if (IsRetiredUpgrade(Id) || (IsBloodUpgrade(Id) && Stance != TEXT("BattleStance"))
+            || (IsIaijutsuUpgrade(Id) && Stance != TEXT("Iaijutsu"))
+            || (IsCrescentUpgrade(Id) && Stance != TEXT("BladeWave")))
+        { Remove(Id); continue; }
+        if (auto* Current = FindUpgradeDefinition(Id))
+        {
+            AcquiredUpgradeDefinitions.Add(Id, Current);
+            UpgradeLevels[Id] = FMath::Clamp(UpgradeLevels[Id], 0, UpgradeRankLimit(Current));
+        }
+    }
+	NormalizeSamuraiTradeoffUpgrades();
 	SamuraiMasteryPoints = FMath::Max(0, State.SamuraiMastery);
 	NinjaMasteryPoints = FMath::Max(0, State.NinjaMastery);
+	RerollsUsed = FMath::Clamp(State.RerollsUsed, 0, 3);
+	BanishesUsed = FMath::Clamp(State.BanishesUsed, 0, 2);
 	ClearCurrentOffer();
 	RebuildAllUpgradeModifiers();
 }
@@ -94,7 +211,7 @@ int32 UPlayerUpgradeComponent::GetUpgradeLevel(UUpgradeDefinition* Upgrade) cons
 
 int32 UPlayerUpgradeComponent::GetUpgradeLevelById(FName UpgradeId) const
 {
- if (IsRetiredNinjaUpgrade(UpgradeId)) return 0;
+ if (IsRetiredUpgrade(UpgradeId) || IsSamuraiUpgradeTemporarilyDisabled(UpgradeId)) return 0;
 	if (UpgradeId.IsNone())
 	{
 		return 0;
@@ -115,7 +232,23 @@ bool UPlayerUpgradeComponent::HasUpgradeId(FName UpgradeId) const
 
 bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) const
 {
-	if (Upgrade && (IsRetiredNinjaUpgrade(Upgrade->UpgradeId) || Upgrade->Category == EUpgradeCategory::NinjaTrial)) return false;
+    if (Upgrade && HasSamuraiTradeoffConflict(Upgrade->UpgradeId)) return false;
+    // Before choosing a stance, offer the common investments. Afterwards only
+    // their selected forms are eligible; acquisition of a stance converts ranks.
+    if (Upgrade && IsSamuraiMeleeScalingUpgrade(Upgrade->UpgradeId)
+        && (HasUpgradeId(TEXT("Iaijutsu")) || HasUpgradeId(TEXT("BladeWave")))) return false;
+    if (Upgrade && IsCrescentUpgrade(Upgrade->UpgradeId) && !HasUpgradeId(TEXT("BladeWave"))) return false;
+    if (Upgrade && IsIaijutsuUpgrade(Upgrade->UpgradeId) && !HasUpgradeId(TEXT("Iaijutsu"))) return false;
+    if (Upgrade && IsBloodUpgrade(Upgrade->UpgradeId) && !HasUpgradeId(TEXT("BattleStance"))) return false;
+    if (Upgrade && Upgrade->UpgradeId == TEXT("BloodTransfer") && HasUpgradeId(TEXT("BloodDetonation"))) return false;
+    if (Upgrade && Upgrade->UpgradeId == TEXT("BloodTransferArea") && !HasUpgradeId(TEXT("BloodTransfer")) && !HasUpgradeId(TEXT("BloodDetonation"))) return false;
+    // Enforce stance exclusivity by stable ID even for stale pre-overhaul assets
+    // whose Blade Wave definition still has no exclusivity group.
+    if (Upgrade && (Upgrade->UpgradeId == TEXT("BladeWave") || Upgrade->UpgradeId == TEXT("Iaijutsu") || Upgrade->UpgradeId == TEXT("BattleStance")))
+        for (FName Id : {FName(TEXT("BladeWave")), FName(TEXT("Iaijutsu")), FName(TEXT("BattleStance"))})
+            if (Id != Upgrade->UpgradeId && HasUpgradeId(Id)) return false;
+	if (Upgrade && BanishedUpgrades.Contains(Upgrade->UpgradeId)) return false;
+	if (Upgrade && (IsRetiredUpgrade(Upgrade->UpgradeId) || Upgrade->Category == EUpgradeCategory::NinjaTrial)) return false;
 	if (Upgrade && (Upgrade->Category == EUpgradeCategory::SamuraiTrial
 		|| Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::SamuraiCleaver)
 		|| Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::SamuraiDuelist)
@@ -156,7 +289,7 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 	return IsValidUpgradeDefinition(Upgrade)
 		&& bMetaEligible
 		&& bExclusivityEligible
-		&& GetUpgradeLevel(Upgrade) < Upgrade->MaxLevel
+		&& GetUpgradeLevel(Upgrade) < UpgradeRankLimit(Upgrade)
 		&& MeetsPrerequisites(Upgrade);
 }
 
@@ -183,8 +316,27 @@ bool UPlayerUpgradeComponent::AcquireUpgradeResolved(UUpgradeDefinition* Upgrade
 			*Upgrade->UpgradeId.ToString(), *GetRarityDisplayName(Rarity).ToString(), ResolvedMagnitude,
 			AccumulatedUpgradeMagnitudes.FindRef(Upgrade->UpgradeId));
 	}
+	else if (IsSamuraiScalingUpgrade(Upgrade->UpgradeId))
+	{
+		// Legacy stance-specific ranks have no stored magnitude. Seed them before
+		// adding a rank so conversion bonuses and earlier ranks are both retained.
+		const float Base = SamuraiScalingBase(Upgrade);
+		if (!AccumulatedUpgradeMagnitudes.Contains(Upgrade->UpgradeId))
+			AccumulatedUpgradeMagnitudes.Add(Upgrade->UpgradeId, Base * (NewLevel - 1));
+		AccumulatedUpgradeMagnitudes[Upgrade->UpgradeId] += Base;
+	}
 
-	RebuildUpgradeModifiers(Upgrade, NewLevel);
+	if (Upgrade->UpgradeId == TEXT("BattleStance") || Upgrade->UpgradeId == TEXT("Iaijutsu") || Upgrade->UpgradeId == TEXT("BladeWave"))
+	{
+		ConvertSamuraiScalingUpgrades();
+		RebuildAllUpgradeModifiers();
+	}
+	else if (Upgrade->UpgradeId == TEXT("IaijutsuDashPact") || Upgrade->UpgradeId == TEXT("CrescentEruptionPact"))
+	{
+		NormalizeSamuraiTradeoffUpgrades();
+		RebuildAllUpgradeModifiers();
+	}
+	else RebuildUpgradeModifiers(Upgrade, NewLevel);
 	if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Samurai)
 	{
 		++SamuraiMasteryPoints;
@@ -200,6 +352,97 @@ bool UPlayerUpgradeComponent::AcquireUpgradeResolved(UUpgradeDefinition* Upgrade
 	OnUpgradeAcquired.Broadcast(Upgrade, NewLevel);
 	OnUpgradeLevelChanged.Broadcast(Upgrade, NewLevel);
 	return true;
+}
+
+void UPlayerUpgradeComponent::ConvertSamuraiScalingUpgrades()
+{
+	const int32 Column = HasUpgradeId(TEXT("Iaijutsu")) ? 1 : HasUpgradeId(TEXT("BladeWave")) ? 2 : 0;
+	for (const auto& Group : SamuraiScalingIds)
+	{
+		const FName TargetId = Group[Column];
+		auto* Target = FindUpgradeDefinition(TargetId);
+		if (!Target) continue; // Do not discard an investment if its asset is missing.
+		const float TargetBase = SamuraiScalingBase(Target);
+		int32 TotalRanks = 0;
+		float TotalMagnitude = 0.f;
+		bool bBanished = false;
+		for (FName SourceId : Group)
+		{
+			bBanished |= BanishedUpgrades.Remove(SourceId) > 0;
+			const int32 Ranks = FMath::Max(0, UpgradeLevels.FindRef(SourceId));
+			if (Ranks > 0)
+			{
+				auto* Source = FindUpgradeDefinition(SourceId);
+				if (!Source) Source = AcquiredUpgradeDefinitions.FindRef(SourceId);
+				const float SourceBase = SamuraiScalingBase(Source);
+				const float* Stored = AccumulatedUpgradeMagnitudes.Find(SourceId);
+				// Old Heavy Blade was a one-rank +40% tradeoff. Keep that damage
+				// investment when migrating it to the ordinary scalable damage card.
+				const float Magnitude = Stored ? *Stored
+					: Ranks * (SourceId == TEXT("SamuraiHeavyBlade") ? .4f : SourceBase);
+				TotalRanks += Ranks;
+				TotalMagnitude += SourceId == TargetId ? Magnitude
+					: SourceBase > SMALL_NUMBER ? Magnitude * TargetBase / SourceBase : Ranks * TargetBase;
+				ClearUpgradeModifiers(Source);
+			}
+			UpgradeLevels.Remove(SourceId);
+			AccumulatedUpgradeMagnitudes.Remove(SourceId);
+			AcquiredUpgradeDefinitions.Remove(SourceId);
+		}
+		if (bBanished) BanishedUpgrades.Add(TargetId);
+		if (TotalRanks > 0)
+		{
+			UpgradeLevels.Add(TargetId, FMath::Min(TotalRanks, Target->MaxLevel));
+			AccumulatedUpgradeMagnitudes.Add(TargetId, TotalMagnitude);
+			AcquiredUpgradeDefinitions.Add(TargetId, Target);
+		}
+	}
+}
+
+bool UPlayerUpgradeComponent::HasSamuraiTradeoffConflict(FName Id) const
+{
+	if (HasUpgradeId(TEXT("IaijutsuDashPact"))
+		&& (Id == TEXT("IaijutsuMarkDamage") || Id == TEXT("IaijutsuMarkPact"))) return true;
+	if (Id == TEXT("IaijutsuDashPact") && HasUpgradeId(TEXT("IaijutsuMarkPact"))) return true;
+	return (Id == TEXT("CrescentSlow") || Id == TEXT("CrescentSlowDuration")) && HasUpgradeId(TEXT("CrescentEruptionPact"));
+}
+
+void UPlayerUpgradeComponent::NormalizeSamuraiTradeoffUpgrades()
+{
+	const auto ConvertToDamage = [this](FName SourceId, FName TargetId)
+	{
+		const int32 Ranks = FMath::Max(0, UpgradeLevels.FindRef(SourceId));
+		if (Ranks == 0) return;
+		auto* Target = FindUpgradeDefinition(TargetId);
+		if (!Target) return; // Keep the investment intact if its destination asset is unavailable.
+		auto* Source = FindUpgradeDefinition(SourceId);
+		if (!Source) Source = AcquiredUpgradeDefinitions.FindRef(SourceId);
+		const float Base = SamuraiScalingBase(Target);
+		const int32 PreviousRanks = FMath::Max(0, UpgradeLevels.FindRef(TargetId));
+		const float* Stored = AccumulatedUpgradeMagnitudes.Find(TargetId);
+		const float PreviousMagnitude = Stored ? *Stored : PreviousRanks * Base;
+		// These status cards have fixed per-rank tuning: one spent rank becomes
+		// one normal damage rank. Preserve all strength even when merging at cap.
+		ClearUpgradeModifiers(Source);
+		UpgradeLevels.Remove(SourceId);
+		AccumulatedUpgradeMagnitudes.Remove(SourceId);
+		AcquiredUpgradeDefinitions.Remove(SourceId);
+		UpgradeLevels.Add(TargetId, FMath::Min(PreviousRanks + Ranks, UpgradeRankLimit(Target)));
+		AccumulatedUpgradeMagnitudes.Add(TargetId, PreviousMagnitude + Ranks * Base);
+		AcquiredUpgradeDefinitions.Add(TargetId, Target);
+	};
+	if (HasUpgradeId(TEXT("Iaijutsu")) && HasUpgradeId(TEXT("IaijutsuDashPact")))
+	{
+		ConvertToDamage(TEXT("IaijutsuMarkDamage"), TEXT("IaijutsuDamage"));
+		// Only old saves can contain both pacts. Keep Relentless Steps and refund
+		// the ineffective Focused Malice purchase as damage, removing its penalty.
+		ConvertToDamage(TEXT("IaijutsuMarkPact"), TEXT("IaijutsuDamage"));
+	}
+	if (HasUpgradeId(TEXT("BladeWave")) && HasUpgradeId(TEXT("CrescentEruptionPact")))
+	{
+		ConvertToDamage(TEXT("CrescentSlow"), TEXT("CrescentDamage"));
+		ConvertToDamage(TEXT("CrescentSlowDuration"), TEXT("CrescentDamage"));
+	}
 }
 
 void UPlayerUpgradeComponent::RebuildAllUpgradeModifiers()
@@ -326,7 +569,7 @@ TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetEligibleUpgradesForCateg
 	TArray<UUpgradeDefinition*> CandidateUpgrades;
 	for (UUpgradeDefinition* Upgrade : UpgradePool)
 	{
-		if (Upgrade && Upgrade->Category == Category && !IsTrialBuildStarter(Upgrade))
+		if (Upgrade && Upgrade->Category == Category && !IsTrialBuildStarter(Upgrade) && !IsBloodShrineUpgrade(Upgrade))
 		{
 			CandidateUpgrades.Add(Upgrade);
 		}
@@ -397,7 +640,7 @@ bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCou
 	TArray<UUpgradeDefinition*> RemainingUpgrades;
 	for (UUpgradeDefinition* Upgrade : UpgradePool)
 	{
-		if (Upgrade && !IsTrialBuildStarter(Upgrade) && IsCategoryUnlocked(Upgrade->Category) && CanAcquireUpgrade(Upgrade))
+		if (Upgrade && !IsTrialBuildStarter(Upgrade) && !IsBloodShrineUpgrade(Upgrade) && IsCategoryUnlocked(Upgrade->Category) && CanAcquireUpgrade(Upgrade))
 		{
 			RemainingUpgrades.Add(Upgrade);
 		}
@@ -414,6 +657,22 @@ bool UPlayerUpgradeComponent::BeginDirectUpgradeSelection(int32 UpgradeChoiceCou
 	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
 	BuildOffersFromCurrentChoices(false);
 	return bHasSelectedCategory;
+}
+
+bool UPlayerUpgradeComponent::BeginBloodShrineSelection(int32 ChoiceCount)
+{
+ ClearCurrentOffer();
+ SelectedCategory = EUpgradeCategory::Cursed;
+ if (HasUpgradeId(TEXT("BattleStance")) || HasUpgradeId(TEXT("Iaijutsu")) || HasUpgradeId(TEXT("BladeWave")))
+ {
+  for (UUpgradeDefinition* Upgrade : UpgradePool)
+   if (IsBloodShrineUpgrade(Upgrade) && CanAcquireUpgrade(Upgrade)) CurrentUpgradeChoices.Add(Upgrade);
+  if (CurrentUpgradeChoices.Num() > FMath::Max(0,ChoiceCount)) CurrentUpgradeChoices.SetNum(FMath::Max(0,ChoiceCount));
+ }
+ if (CurrentUpgradeChoices.IsEmpty()) CurrentUpgradeChoices = RollUpgradeChoices(EUpgradeCategory::Cursed,ChoiceCount);
+ bHasSelectedCategory = !CurrentUpgradeChoices.IsEmpty();
+ BuildOffersFromCurrentChoices(false);
+ return bHasSelectedCategory;
 }
 
 bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount)
@@ -515,6 +774,7 @@ bool UPlayerUpgradeComponent::SelectSynergyDiscoveryUpgrade(UUpgradeDefinition* 
 
 float UPlayerUpgradeComponent::GetAccumulatedUpgradeMagnitude(FName UpgradeId) const
 {
+	if (IsSamuraiUpgradeTemporarilyDisabled(UpgradeId)) return 0.f;
 	return AccumulatedUpgradeMagnitudes.FindRef(UpgradeId);
 }
 
@@ -529,6 +789,7 @@ bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 Up
 	SelectedCategory = Category;
 	bHasSelectedCategory = true;
 	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
+	bDraftToolOffer = true;
 	BuildOffersFromCurrentChoices(true);
 
 	UE_LOG(LogTemp, Log, TEXT("Category selected: %s"), *CategoryToString(Category));
@@ -578,6 +839,7 @@ bool UPlayerUpgradeComponent::SelectUpgrade(UUpgradeDefinition* Upgrade)
 		return false;
 	}
 
+	UCombatAudioLibrary::PlayEvent(this, TEXT("UpgradeSelect"), FVector::ZeroVector, true);
 	UE_LOG(LogTemp, Log, TEXT("Upgrade selected: %s"), *UpgradeToLogString(ResolvedUpgrade));
 	UE_LOG(LogTemp, Log, TEXT("New Level: %d"), GetUpgradeLevel(ResolvedUpgrade));
 	UE_LOG(LogTemp, Log, TEXT("=== UPGRADE SELECTION END ==="));
@@ -627,21 +889,36 @@ bool UPlayerUpgradeComponent::DebugAcquireUpgrade(UUpgradeDefinition* Upgrade)
 bool UPlayerUpgradeComponent::DebugForceAcquireUpgrade(UUpgradeDefinition* Upgrade, int32 Level)
 {
 #if !UE_BUILD_SHIPPING
+	if (Upgrade && HasSamuraiTradeoffConflict(Upgrade->UpgradeId)) return false;
+	if (Upgrade && IsSamuraiMeleeScalingUpgrade(Upgrade->UpgradeId)
+		&& (HasUpgradeId(TEXT("Iaijutsu")) || HasUpgradeId(TEXT("BladeWave")))) return false;
 	if (!IsValidUpgradeDefinition(Upgrade))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("DebugForceAcquireUpgrade failed: invalid upgrade."));
 		return false;
 	}
 
-	const int32 NewLevel = FMath::Clamp(Level, 1, FMath::Max(1, Upgrade->MaxLevel));
+	const int32 NewLevel = FMath::Clamp(Level, 1, FMath::Max(1, UpgradeRankLimit(Upgrade)));
 	UpgradeLevels.FindOrAdd(Upgrade->UpgradeId) = NewLevel;
 	AcquiredUpgradeDefinitions.FindOrAdd(Upgrade->UpgradeId) = Upgrade;
 	if (Upgrade->bUsesRolledRarity)
 	{
 		AccumulatedUpgradeMagnitudes.FindOrAdd(Upgrade->UpgradeId) = ResolveMagnitude(Upgrade, EUpgradeRarity::Common) * NewLevel;
 	}
+	else if (IsSamuraiScalingUpgrade(Upgrade->UpgradeId))
+		AccumulatedUpgradeMagnitudes.FindOrAdd(Upgrade->UpgradeId) = SamuraiScalingBase(Upgrade) * NewLevel;
 
-	RebuildUpgradeModifiers(Upgrade, NewLevel);
+	if (Upgrade->UpgradeId == TEXT("BattleStance") || Upgrade->UpgradeId == TEXT("Iaijutsu") || Upgrade->UpgradeId == TEXT("BladeWave"))
+	{
+		ConvertSamuraiScalingUpgrades();
+		RebuildAllUpgradeModifiers();
+	}
+	else if (Upgrade->UpgradeId == TEXT("IaijutsuDashPact") || Upgrade->UpgradeId == TEXT("CrescentEruptionPact"))
+	{
+		NormalizeSamuraiTradeoffUpgrades();
+		RebuildAllUpgradeModifiers();
+	}
+	else RebuildUpgradeModifiers(Upgrade, NewLevel);
 	if (Upgrade->InvestmentOwner == EUpgradeInvestmentOwner::Samurai)
 	{
 		++SamuraiMasteryPoints;
@@ -737,7 +1014,8 @@ UUpgradeDefinition* UPlayerUpgradeComponent::GetAcquiredUpgradeWithSpecialEffect
 
 bool UPlayerUpgradeComponent::IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const
 {
-	return Upgrade && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0 && !IsRetiredNinjaUpgrade(Upgrade->UpgradeId);
+	return Upgrade && !Upgrade->UpgradeId.IsNone() && Upgrade->MaxLevel > 0
+        && !IsRetiredUpgrade(Upgrade->UpgradeId) && !IsSamuraiUpgradeTemporarilyDisabled(Upgrade->UpgradeId);
 }
 
 bool UPlayerUpgradeComponent::MeetsPrerequisites(const UUpgradeDefinition* Upgrade) const
@@ -893,9 +1171,10 @@ FUpgradeOffer UPlayerUpgradeComponent::MakeUpgradeOffer(UUpgradeDefinition* Upgr
 	Offer.UpgradeDefinition = Upgrade;
 	const bool bUsesNormalRarityRoll = IsNormalScalableUpgrade(Upgrade);
 	const bool bIsFixedLegendary = Upgrade && !Upgrade->bUsesRolledRarity && Upgrade->Rarity == EUpgradeRarity::Legendary;
-	Offer.bDisplaysRarity = bUsesNormalRarityRoll || bIsFixedLegendary;
+	const bool bStanceRare = IsStanceRareUpgrade(Upgrade);
+	Offer.bDisplaysRarity = bUsesNormalRarityRoll || bIsFixedLegendary || bStanceRare;
 	Offer.RolledRarity = bUsesNormalRarityRoll ? RollRarity()
-		: (bIsFixedLegendary ? EUpgradeRarity::Legendary : EUpgradeRarity::Common);
+		: (bIsFixedLegendary ? EUpgradeRarity::Legendary : bStanceRare ? EUpgradeRarity::Rare : EUpgradeRarity::Common);
 	Offer.ResolvedMagnitude = bUsesNormalRarityRoll ? ResolveMagnitude(Upgrade, Offer.RolledRarity) : 0.0f;
 	Offer.ResolvedDescription = ResolveOfferDescription(Upgrade, Offer.ResolvedMagnitude);
 	return Offer;
@@ -920,11 +1199,18 @@ void UPlayerUpgradeComponent::BuildOffersFromCurrentChoices(bool bApplyNormalLev
 		{
 			FUpgradeOffer FixedOffer;
 			FixedOffer.UpgradeDefinition = Upgrade;
+			FixedOffer.bDisplaysRarity = IsStanceRareUpgrade(Upgrade);
+			FixedOffer.RolledRarity = FixedOffer.bDisplaysRarity ? EUpgradeRarity::Rare : EUpgradeRarity::Common;
 			FixedOffer.ResolvedDescription = Upgrade ? Upgrade->Description : FText::GetEmpty();
 			CurrentUpgradeOffers.Add(FixedOffer);
 		}
 	}
 	if (bApplyNormalLevelGuarantee) ApplyMilestoneGuarantee();
+	RebuildOfferPresentation();
+}
+
+void UPlayerUpgradeComponent::RebuildOfferPresentation()
+{
 	CurrentPresentationChoices.Reset();
 	for (const FUpgradeOffer& Offer : CurrentUpgradeOffers)
 	{
@@ -1005,6 +1291,7 @@ FText UPlayerUpgradeComponent::GetRarityDisplayName(EUpgradeRarity Rarity) const
 
 void UPlayerUpgradeComponent::ClearCurrentOffer()
 {
+	bDraftToolOffer = false;
 	CurrentCategoryChoices.Reset();
 	CurrentUpgradeChoices.Reset();
 	CurrentUpgradeOffers.Reset();
@@ -1146,14 +1433,14 @@ void UPlayerUpgradeComponent::RebuildUpgradeModifiers(UUpgradeDefinition* Upgrad
 
 void UPlayerUpgradeComponent::ClearUpgradeModifiers(UUpgradeDefinition* Upgrade)
 {
-	if (!IsValidUpgradeDefinition(Upgrade))
+	if (!Upgrade || Upgrade->UpgradeId.IsNone())
 	{
 		return;
 	}
 
 	ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(GetOwner());
 	UCharacterManagerComponent* CharacterManager = SurvivorController ? SurvivorController->GetCharacterManager() : nullptr;
-	const FName SourceId = MakeUpgradeModifierSourceId(Upgrade);
+	const FName SourceId = Upgrade->UpgradeId;
 
 	if (CharacterManager)
 	{
@@ -1217,7 +1504,8 @@ void UPlayerUpgradeComponent::ApplyMetaSkillModifiers()
  if (!PC || !Party) return;
  for (const FMetaSkillNode& N : MetaSkillTree::Nodes())
  {
-  if (N.Effect == TEXT("Swap") || N.Effect == TEXT("Bleed") || N.Effect == TEXT("Poison")) continue;
+  if (N.Effect == TEXT("Swap") || N.Effect == TEXT("Bleed") || N.Effect == TEXT("Poison")
+   || N.Effect == TEXT("Reroll") || N.Effect == TEXT("Banish")) continue;
   const FName Source(*FString::Printf(TEXT("MetaSkill.%s"), *N.Id.ToString()));
   const float Value = Meta ? Meta->GetSkillRank(N.Id) * N.PerRank : 0.f;
   if (N.Target == EUpgradeStatTarget::SharedPlayer)

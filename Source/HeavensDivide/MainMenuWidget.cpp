@@ -998,6 +998,9 @@ void UMainMenuWidget::RefreshMenuEntryPresentation(float DeltaTime)
 		UButton* Button = MenuEntryButtons[Index];
 		if (!Button) continue;
 		const bool bHighlighted = Button->IsHovered() || (bCollectionOpen && Button == CollectionMenuButton)
+			|| (bSettingsPopupOpen && Button->GetFName() == TEXT("SettingsButton"))
+			|| (bSkillTreeOpen && Button->GetFName() == TEXT("SkillTreeButton"))
+			|| (bResetConfirmationOpen && Button->GetFName() == TEXT("ResetProgressButton"))
 			|| (bShowFocusHighlight && Button->HasAnyUserFocus());
 		if (!MenuEntryRevealAmounts.IsValidIndex(Index)) MenuEntryRevealAmounts.SetNumZeroed(MenuEntryButtons.Num());
 		float& Reveal = MenuEntryRevealAmounts[Index];

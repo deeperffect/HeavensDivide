@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "MenuFeedbackWidget.h"
 #include "PlayerUpgradeComponent.h"
 #include "LevelUpWidget.generated.h"
 
@@ -19,7 +19,7 @@ class UPlayerUpgradeComponent;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelUpWidgetSelectionCompleted);
 
 UCLASS(BlueprintType, Blueprintable)
-class HEAVENSDIVIDE_API ULevelUpWidget : public UUserWidget
+class HEAVENSDIVIDE_API ULevelUpWidget : public UMenuFeedbackWidget
 {
 	GENERATED_BODY()
 
@@ -71,6 +71,7 @@ public:
 	void SetControllerFocusPresentation(int32 ChoiceIndex, bool bShowingCategoryChoices);
 
 protected:
+	virtual void NativeOnInitialized() override;
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnAnalogValueChanged(const FGeometry& InGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
@@ -130,6 +131,16 @@ protected:
 	TObjectPtr<UTexture2D> GlobalCategoryBorder;
 
 private:
+	void RefreshDraftTools();
+	void RefreshDraftCards();
+	UFUNCTION() void HandleReroll();
+	UFUNCTION() void HandleBanishMode();
+	UPROPERTY(Transient) TObjectPtr<UHorizontalBox> DraftToolsRow;
+	UPROPERTY(Transient) TObjectPtr<class UButton> RerollButton;
+	UPROPERTY(Transient) TObjectPtr<class UButton> BanishButton;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> RerollLabel;
+	UPROPERTY(Transient) TObjectPtr<UTextBlock> BanishLabel;
+	bool bBanishMode = false;
 	void EnsureCategoryCardVisualStructure();
 	void RefreshCategoryCardVisuals();
 	UTexture2D* GetCategoryArtwork(EUpgradeCategory Category) const;

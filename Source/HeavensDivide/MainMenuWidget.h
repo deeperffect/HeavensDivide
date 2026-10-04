@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "MenuFeedbackWidget.h"
 #include "Components/Button.h"
 #include "Components/InputKeySelector.h"
 #include "MainMenuWidget.generated.h"
@@ -50,7 +50,7 @@ private:
 };
 
 UCLASS(BlueprintType, Blueprintable)
-class HEAVENSDIVIDE_API UMainMenuWidget : public UUserWidget
+class HEAVENSDIVIDE_API UMainMenuWidget : public UMenuFeedbackWidget
 {
 	GENERATED_BODY()
 	friend class FKeybindSettingsTest;

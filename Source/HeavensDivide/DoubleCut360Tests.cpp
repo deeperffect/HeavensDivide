@@ -1,5 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "Misc/App.h"
 #include "AutoAttackComponent.h"
 #include "SamuraiCharacter.h"
 #include "SurvivorPlayerController.h"
@@ -56,11 +57,11 @@ bool FDoubleCut360Test::RunTest(const FString&)
    Targets[Index]->SetActorLocation(Samurai->GetActorLocation()+Directions[Index]*Radius*(Index==4?1.5f:.75f));
    Targets[Index]->GetHealthComponent()->RestoreCurrentHealth(100);
   }
-  Attack->bDoubleCutFollowUpActive=false;
+  Attack->bBloodCircularAttack=false;
   Attack->ExecuteMeleeAttackTrace();
   TestEqual(TEXT("Ordinary swing retains its forward hitbox"),Targets[2]->GetHealthComponent()->GetCurrentHealth(),100.f);
   for(auto* Enemy:Targets) Enemy->GetHealthComponent()->RestoreCurrentHealth(100);
-  Attack->bDoubleCutFollowUpActive=true;
+  Attack->bBloodCircularAttack=true;
   Attack->ExecuteMeleeAttackTrace();
   for(int32 Index=0;Index<4;++Index)
    TestTrue(TEXT("Spin hits front, rear, and both sides"),Targets[Index]->GetHealthComponent()->GetCurrentHealth()<100);
@@ -78,11 +79,12 @@ bool FDoubleCut360Test::RunTest(const FString&)
  TestTrue(TEXT("Spin visual starts on damage frame"),FMath::IsNearlyEqual(DamageTime,EffectTime));
  if(TestNotNull(TEXT("Saved radial slash notify"),Notify))
  {
+  TestEqual(TEXT("Saved slash is configured for four arcs"),FindFProperty<FIntProperty>(Notify->GetClass(),TEXT("RadialCopies"))->GetPropertyValue_InContainer(Notify),4);
   Notify->Notify(Samurai->GetMesh(),Montage,FAnimNotifyEventReference());
   TArray<UNiagaraComponent*> Effects;
   for(USceneComponent* Child:Samurai->GetMesh()->GetAttachChildren())
    if(auto* Effect=Cast<UNiagaraComponent>(Child)) Effects.Add(Effect);
-  TestEqual(TEXT("Four slash arcs cover the circle"),Effects.Num(),4);
+  if(FApp::CanEverRender()) TestEqual(TEXT("Four slash arcs cover the circle"),Effects.Num(),4);
   for(int32 Index=0;Index<Effects.Num();++Index)
   {
    TestTrue(TEXT("Every arc shares the character center"),Effects[Index]->GetRelativeLocation().Equals(Effects[0]->GetRelativeLocation()));

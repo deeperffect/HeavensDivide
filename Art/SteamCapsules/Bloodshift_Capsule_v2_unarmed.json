@@ -1,0 +1,15 @@
+{
+  "title": "Bloodshift",
+  "asset": "Steam capsule illustration - unarmed poses",
+  "mode": "Built-in image_gen.imagegen",
+  "date": "2026-10-04",
+  "output": {
+    "file": "Bloodshift_Capsule_v2_unarmed.png",
+    "width": 1832,
+    "height": 858
+  },
+  "editSource": "Bloodshift_Capsule_v1_master.png",
+  "priorGenerationMetadata": "Bloodshift_Capsule_v1.json",
+  "finalEditPrompt": "Use case: precise-object-edit.\nAsset type: wide Steam capsule illustration for BLOODSHIFT.\nInput image: edit target, the supplied BLOODSHIFT capsule.\n\nPrimary request: remove ALL weapons from both main characters and adjust their arm, hand, and upper-body poses so they look naturally and deliberately unarmed. Keep the same two recognizable heroes and the same finished illustrated style.\n\nCharacter pose changes:\n- Red Samurai in the foreground: replace the sword-swinging pose with a strong, confident unarmed ready stance, torso turned slightly toward the viewer, one empty gloved hand loosely clenched near his waist and the other in a relaxed open guard near the lower chest. Natural shoulders, elbows, wrists and hands; do not leave a fist gripping an invisible sword.\n- Purple Ninja just behind him: replace both dagger-holding gestures with an agile empty-handed guard, one hand open near shoulder height, the other lowered beside her hip, elbows bent naturally. Keep her face clearly visible and her high ponytail flowing. No hands positioned as though still gripping handles.\nRemove the Samurai's katana completely, including blade, guard, grip, any scabbard, and any residual weapon silhouettes. Remove both of the Ninja's kunai completely, including all blades and handles. Remove the violet weapon trails and the bright thin sword-edge line in the foreground. Preserve the broad crimson painted sweep across the lower foreground only as an abstract graphic brushstroke, not as a weapon or a blade.\n\nInvariants: preserve exact readable title \"BLOODSHIFT\", its ivory serif design, size and left-side placement, and the red underline. Preserve both identities, faces, expressions, hair and body proportions; the Samurai's red/gold armor, white fur collar, red flame chest tattoo and red rope belt; the Ninja's purple/gold armor, black-purple outfit, violet neck scarf and rope belt. Preserve the heroes' overall right-side placement and prominence, the teal shrine forest, torii gate, shadow oni, amber glowing eyes, red foliage, lighting, rich crimson/violet/teal palette, painted ink outlines, wide crop and aspect ratio. Only change anatomy and fabric as necessary to support the new poses.\nNo weapons anywhere on either character, no new props, no new characters, no text changes, no extra text or logos, no helmet, no face mask. Correct hand anatomy, clear silhouettes, polished cohesive illustration.",
+  "generatedSource": "C:/Users/deepe/.codex/generated_images/01a0fe4e-c581-7722-9a89-875760849015/exec-d7b769e9-81a1-4e19-bc36-9edce3ae857b.png"
+}

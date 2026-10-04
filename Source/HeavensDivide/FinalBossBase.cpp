@@ -1,4 +1,6 @@
 #include "FinalBossBase.h"
+#include "CombatAudio.h"
+#include "EnemyDeathComponent.h"
 #include "TesterBalanceSettings.h"
 
 #include "AnimNotify_BossAttackExecute.h"
@@ -322,6 +324,7 @@ void AFinalBossBase::CompletePhase2Transition()
 	bPhase2TransitionMontagePlaying = false;
 	bPhase2TransitionQueued = false;
 	bPhase2Active = true;
+    UCombatAudioLibrary::PlayEvent(this, TEXT("BossPhase"), GetActorLocation());
 	PreviousAttack = EFinalBossAttack::None;
 	CurrentAttack = EFinalBossAttack::None;
 	BossState = EFinalBossState::Cooldown;
@@ -417,6 +420,7 @@ bool AFinalBossBase::PlayCurrentAttackMontage()
 void AFinalBossBase::HandleBossTelegraphStart()
 {
 	if (!bCombatEnabled || IsDead() || BossState != EFinalBossState::Windup) return;
+    UCombatAudioLibrary::PlayEvent(this, TEXT("BossWarning"), GetActorLocation());
 	if (bPhase2Active && CurrentAttack == EFinalBossAttack::ForwardCleave)
 	{
 		ConfigurePhase2CleaveDirection();
@@ -444,6 +448,9 @@ void AFinalBossBase::HandleBossAttackExecute()
 	bAttackExecuted = true;
 	StopRectangleFill();
 	SetRectangleFill(1.0f);
+    const FName AudioEvent = CurrentAttack == EFinalBossAttack::ForwardCleave ? TEXT("BossCleave")
+        : CurrentAttack == EFinalBossAttack::LongDash ? TEXT("BossDash") : TEXT("BossAOE");
+    UCombatAudioLibrary::PlayEvent(this, AudioEvent, GetActorLocation());
 	OnBossAttackImpact.Broadcast(CurrentAttack);
 	if (CurrentAttack == EFinalBossAttack::ForwardCleave)
 	{
@@ -861,6 +868,9 @@ void AFinalBossBase::BeginDeathPresentation_Implementation()
 	UAnimInstance* Anim = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	if (Anim && DeathMontage && Anim->Montage_Play(DeathMontage) > 0.0f)
 	{
+        // This path bypasses the normal dissolve component, and victory may pause the world.
+        if (EnemyDeathComponent && EnemyDeathComponent->DeathSound)
+            UGameplayStatics::PlaySound2D(this, EnemyDeathComponent->DeathSound);
 		FOnMontageEnded EndDelegate;
 		EndDelegate.BindUObject(this, &AFinalBossBase::HandleBossDeathMontageEnded);
 		Anim->Montage_SetEndDelegate(EndDelegate, DeathMontage);

@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HealthComponent.h"
+#include "CombatAudio.h"
+#include "SurvivorPlayerController.h"
 
 #include "HAL/IConsoleManager.h"
 
@@ -58,6 +60,8 @@ void UHealthComponent::ApplyDamage(float DamageAmount)
 	}
 
 	LogDamageDebug(TEXT("Accepted"), DamageAmount, PreviousHealth, CurrentHealth);
+    if (GetOwner() && GetOwner()->IsA<ASurvivorPlayerController>())
+        UCombatAudioLibrary::PlayEvent(this, TEXT("PlayerHit"), FVector::ZeroVector, true);
 	OnDamaged.Broadcast(ActualDamage, CurrentHealth);
 	BroadcastHealthChanged();
 

@@ -1,4 +1,5 @@
 #include "BossGroundTelegraph.h"
+#include "CombatAudio.h"
 
 #include "CharacterBase.h"
 #include "Components/DecalComponent.h"
@@ -132,6 +133,7 @@ void ABossGroundTelegraph::Tick(float DeltaSeconds)
 			if (bHit) PC->ApplyDamageToPlayer(Damage);
 		}
 	}
+	UCombatAudioLibrary::PlayEvent(this, TEXT("BossGroundHit"), GetActorLocation());
 	OnTelegraphResolved(bHit);
 	Destroy();
 }

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MeleeEnemyBase.h"
+#include "CombatAudio.h"
 
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
@@ -228,6 +229,7 @@ void AMeleeEnemyBase::ExecuteAttackHit()
 		return;
 	}
 
+	UCombatAudioLibrary::PlayEvent(this, TEXT("EnemySwing"), GetActorLocation());
 	const FVector HitCenter = GetActorLocation() + AttackForward * AttackHitForwardOffset;
 	// Exact sphere/capsule overlap against only the active player: no crowd-wide
 	// physics query or dependency on overlap-event flags. Reject targets behind us.

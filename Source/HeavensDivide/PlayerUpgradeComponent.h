@@ -58,6 +58,9 @@ struct FPlayerUpgradeRunState
 	UPROPERTY() TMap<FName, TObjectPtr<UUpgradeDefinition>> Definitions;
 	UPROPERTY() int32 SamuraiMastery = 0;
 	UPROPERTY() int32 NinjaMastery = 0;
+	UPROPERTY() TSet<FName> BanishedUpgrades;
+	UPROPERTY() int32 RerollsUsed = 0;
+	UPROPERTY() int32 BanishesUsed = 0;
 };
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -66,11 +69,19 @@ class HEAVENSDIVIDE_API UPlayerUpgradeComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category="Upgrades|Draft") int32 GetRerollsRemaining() const;
+	UFUNCTION(BlueprintPure, Category="Upgrades|Draft") int32 GetBanishesRemaining() const;
+	UFUNCTION(BlueprintPure, Category="Upgrades|Draft") bool CanReroll() const;
+	UFUNCTION(BlueprintPure, Category="Upgrades|Draft") bool CanBanish() const;
+	UFUNCTION(BlueprintCallable, Category="Upgrades|Draft") bool RerollUpgrades();
+	UFUNCTION(BlueprintCallable, Category="Upgrades|Draft") bool BanishUpgrade(int32 ChoiceIndex);
+	bool IsDraftToolOffer() const { return bDraftToolOffer; }
 	/** Zero when no game-instance progression exists (including isolated combat fixtures). */
 	float GetMetaSkillBonus(FName Effect) const;
 	void ApplyMetaSkillModifiers();
 	UUpgradeDefinition* FindUpgradeDefinition(FName Id) const;
 	UPlayerUpgradeComponent();
+	bool BeginBloodShrineSelection(int32 ChoiceCount = 3);
 	/** Only called by successful direct Samurai attack hits, never by proc damage. */
 	void HandleSamuraiDirectHit(class AEnemyBase* Enemy, float Damage, float HealthBeforeHit);
 	void CaptureRunState(FPlayerUpgradeRunState& OutState) const;
@@ -216,6 +227,18 @@ protected:
 	TArray<FUpgradeRarityTimeBracket> RarityTimeBrackets;
 
 private:
+	friend class FDraftToolsTest;
+	friend class FSamuraiScalingConversionTest;
+	/** Move the three shared investments to the selected stance's card IDs. */
+	void ConvertSamuraiScalingUpgrades();
+	/** Preserve investments made ineffective by a stance tradeoff, including old saves. */
+	void NormalizeSamuraiTradeoffUpgrades();
+	bool HasSamuraiTradeoffConflict(FName UpgradeId) const;
+	TArray<UUpgradeDefinition*> GetDraftAlternatives() const;
+	UPROPERTY() TSet<FName> BanishedUpgrades;
+	int32 RerollsUsed = 0;
+	int32 BanishesUsed = 0;
+	bool bDraftToolOffer = false;
 	float GetBaseCategoryWeight(EUpgradeCategory Category) const;
 	float GetCategoryRollWeight(EUpgradeCategory Category) const;
 	int32 GetCurrentPlayerLevel() const;
@@ -234,6 +257,7 @@ private:
 	float ResolveMagnitude(const UUpgradeDefinition* Upgrade, EUpgradeRarity Rarity) const;
 	FText ResolveOfferDescription(const UUpgradeDefinition* Upgrade, float Magnitude) const;
 	void BuildOffersFromCurrentChoices(bool bApplyNormalLevelGuarantee);
+	void RebuildOfferPresentation();
 	void ApplyMilestoneGuarantee();
 	bool IsNormalScalableUpgrade(const UUpgradeDefinition* Upgrade) const;
 	void ClearUpgradeModifiers(UUpgradeDefinition* Upgrade);

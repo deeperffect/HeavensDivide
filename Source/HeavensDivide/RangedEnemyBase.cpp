@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "RangedEnemyBase.h"
+#include "CombatAudio.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
@@ -263,6 +264,7 @@ void ARangedEnemyBase::SpawnAttackProjectile()
 	}
 
 	Projectile->InitializeProjectile(this, Direction, AttackDamage, ProjectileSpeed, EProjectileTargetType::ActivePlayer);
+    UCombatAudioLibrary::PlayEvent(this, TEXT("FireballCast"), SpawnLocation);
 }
 
 void ARangedEnemyBase::HandleAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)

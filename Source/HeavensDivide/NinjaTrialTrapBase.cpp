@@ -1,4 +1,5 @@
 #include "NinjaTrialTrapBase.h"
+#include "CombatAudio.h"
 
 #include "NinjaTechniqueTrial.h"
 
@@ -38,6 +39,7 @@ bool ANinjaTrialTrapBase::DamageTrialPlayer(AActor* DamageTarget)
 {
 	if (!bTrapActive || !IsValid(OwningTrial) || !OwningTrial->IsTrialRunning() || !OwningTrial->IsActivePlayerCharacter(DamageTarget)) return false;
 	if (!OwningTrial->ApplyTrialHazardDamage(Damage)) return false;
+	UCombatAudioLibrary::PlayEvent(this, TEXT("TrapHit"), GetActorLocation());
 	OnTrapDamagedPlayer.Broadcast();
 	return true;
 }

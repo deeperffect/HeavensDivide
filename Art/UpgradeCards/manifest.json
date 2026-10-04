@@ -5,7 +5,7 @@
     "family": "BladeWave",
     "owner": "Samurai",
     "role": "Starter",
-    "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave",
+    "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance",
     "texture": "/Game/HeavensDivide/Blueprints/UI/BuildFamilyArt/T_BladeWave",
     "file": "Art/UpgradeCards/Generated/BladeWave.png",
     "reference": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Art\\UpgradeCards\\References\\Samurai_BladeWave.png",

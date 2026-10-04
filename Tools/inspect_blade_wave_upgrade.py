@@ -1,7 +1,7 @@
 from pathlib import Path
 import unreal as u
 
-asset = u.load_asset('/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave')
+asset = u.load_asset('/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance')
 assert asset
 out = Path(u.Paths.project_saved_dir(), 'GroundSlashInspection').resolve()
 out.mkdir(parents=True, exist_ok=True)

@@ -72,6 +72,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Unlit surface material for slam indicators; both shapes use the same renderer as the Samurai boss rectangle."))
 	TObjectPtr<UMaterialInterface> AttackTelegraphMaterial;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Enemy|Audio") FName WindupAudioEvent = TEXT("OgreWindup");
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Enemy|Audio") FName ImpactAudioEvent = TEXT("OgreSlam");
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Slam", meta = (ToolTip = "Shape used by the tank slam telegraph and hit area. Box is a long rectangle in front of the enemy; Circle is an area around the enemy."))
 	ETankSlamAttackShape AttackShape = ETankSlamAttackShape::Box;

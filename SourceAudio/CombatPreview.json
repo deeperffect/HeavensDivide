@@ -1,0 +1,62 @@
+[
+  {
+    "at_seconds": 0,
+    "event": "SamuraiSwing"
+  },
+  {
+    "at_seconds": 0.63,
+    "event": "SamuraiImpact"
+  },
+  {
+    "at_seconds": 1.2,
+    "event": "DoubleCut"
+  },
+  {
+    "at_seconds": 2.03,
+    "event": "BladeWave"
+  },
+  {
+    "at_seconds": 3.03,
+    "event": "OverkillBurst"
+  },
+  {
+    "at_seconds": 4.08,
+    "event": "SamuraiAbility"
+  },
+  {
+    "at_seconds": 5.23,
+    "event": "KunaiThrow"
+  },
+  {
+    "at_seconds": 5.72,
+    "event": "KunaiImpact"
+  },
+  {
+    "at_seconds": 6.23,
+    "event": "ShurikenThrow"
+  },
+  {
+    "at_seconds": 7.0,
+    "event": "NinjaAbility"
+  },
+  {
+    "at_seconds": 7.97,
+    "event": "Poison"
+  },
+  {
+    "at_seconds": 8.7,
+    "event": "DeathSmall"
+  },
+  {
+    "at_seconds": 9.41,
+    "event": "DeathElite"
+  },
+  {
+    "at_seconds": 10.61,
+    "event": "BossAOE"
+  },
+  {
+    "at_seconds": 11.96,
+    "event": "ChestOpen"
+  }
+]

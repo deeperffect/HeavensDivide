@@ -50,6 +50,7 @@ UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+    friend class FIaijutsuTest;
 
 public:
 	/** All gameplay shakes go through here. Only one impact shake can be active. */
@@ -179,6 +180,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player|Dash")
 	float GetDashRechargeRemaining() const;
+    void ReduceDashRecharge(float Seconds);
 
 	UFUNCTION(BlueprintPure, Category = "Player|Dash")
 	float GetDashRechargeNormalized() const;
@@ -449,11 +451,14 @@ protected:
 	FTimerHandle SwapCooldownTimerHandle;
 	FTimerHandle SamuraiHandoffTimerHandle;
 	FTimerHandle NinjaHandoffTimerHandle;
+    FVector IaijutsuDashOrigin = FVector::ZeroVector;
+    TWeakObjectPtr<ACharacterBase> IaijutsuDashCharacter;
 	FTimerHandle DashRechargeTimerHandle;
 	FVector2D LastMovementInput = FVector2D::ZeroVector;
 	FVector LastValidControllerAimDirection = FVector::ForwardVector;
 	bool bControllerIsActiveTargetingDevice = false;
 	FVector ActiveDashDirection = FVector::ZeroVector;
+	float ActiveDashDistance = 0.0f;
 	float DashElapsedTime = 0.0f;
 	int32 CurrentDashCharges = 1;
 	int32 MaxDashCharges = 1;

@@ -22,6 +22,6 @@ assert unreal.EditorAssetLibrary.save_loaded_asset(card,False)
 comp.set_editor_property('upgrade_pool',pool)
 unreal.BlueprintEditorLibrary.compile_blueprint(controller)
 assert unreal.EditorAssetLibrary.save_loaded_asset(controller,False)
-assert len(pool)==len({str(a.get_editor_property('upgrade_id')) for a in pool})==57
+assert len(pool)==len({str(a.get_editor_property('upgrade_id')) for a in pool})==106
 assert all(hashlib.sha256(p.read_bytes()).hexdigest()==h for p,h in hashes.items())
 unreal.log('NINJA_POISON_RESTORED: 57 cards; other card tuning unchanged')

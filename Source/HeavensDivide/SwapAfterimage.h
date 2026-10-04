@@ -14,6 +14,8 @@ class ASwapAfterimage : public AActor
 public:
     ASwapAfterimage();
     void Initialize(ACharacterBase* Source, UMaterialInterface* Material, FLinearColor Color, float Duration);
+    void InitializeSwordDash(ACharacterBase* Source, UMaterialInterface* Material, UAnimMontage* Montage,
+        FVector Direction, float Duration);
     bool InitializeDeparture(ACharacterBase* Source, UMaterialInterface* Material, FLinearColor Color,
         UAnimMontage* Montage, float PlayRate, float FadeDuration = .2f);
     virtual void Tick(float DeltaSeconds) override;
@@ -24,6 +26,7 @@ private:
     float TrailDuration = 0, LastTrailAge = 0;
     int32 TrailCount = 0;
     bool bRealTimeFade = false;
+    bool bGameTimeAnimation = false;
     bool bPortalDash = false;
     FVector PortalStart = FVector::ZeroVector, PortalEnd = FVector::ZeroVector;
     friend class FSwapDepartureTest;

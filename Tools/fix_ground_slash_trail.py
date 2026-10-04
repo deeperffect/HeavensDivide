@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 import unreal as u
 
-upgrade = u.load_asset('/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave')
+upgrade = u.load_asset('/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance')
 assert upgrade
 system = upgrade.get_editor_property('presentation').get_editor_property('pulse_system')
 assert system

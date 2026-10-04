@@ -16,6 +16,7 @@ class ASamuraiCharacter;
 class ASamuraiBladeWave;
 class USoundBase;
 class UNiagaraSystem;
+class UMaterialInterface;
 class UUpgradeDefinition;
 enum class EPlayerAttackSource : uint8;
 
@@ -48,6 +49,7 @@ struct FAutoAttackRunState
 	UPROPERTY() int32 FanOfBladesCounter = 0;
 	UPROPERTY() int32 BladeCascadeProgress = 0;
 	UPROPERTY() int32 CrossingBladesCounter = 0;
+    UPROPERTY() int32 IaijutsuCounter = 0;
 	UPROPERTY() bool bBladeCascadeReady = false;
 	UPROPERTY() bool bExtraProjectileOnRight = true;
 	UPROPERTY() bool bGrandEntranceReady = false;
@@ -58,12 +60,14 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 {
 	friend class USwapPresentationComponent;
 	friend class FSwapFreezeTest;
+	friend class FNinjaAlternatingThrowTest;
 	GENERATED_BODY()
 	friend class FImpactFeedbackTest;
 	friend class FEnemyPushbackTest;
 	friend class FDoubleCut360Test;
 	friend class FGrandEntranceTest;
 	friend class FSamuraiBuildsTest;
+    friend class FCrescentBuildsTest;
 	friend class FTagTeamRegressionTest;
  friend class UNinjaBuildComponent;
  friend class ANinjaBuildProjectile;
@@ -71,6 +75,9 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 
 public:
 	UAutoAttackComponent();
+    void SpawnIaijutsuDash(FVector Origin, FVector Destination);
+    bool SpawnIaijutsuSlashes(FVector Origin, FVector Direction, float Distance, float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget = nullptr, float DamageMultiplier = 1.f);
+
 	void CaptureRunState(FAutoAttackRunState& OutState) const;
 	void RestoreRunState(const FAutoAttackRunState& State);
 	void ArmGrandEntranceAfterSwap();
@@ -173,6 +180,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Auto Attack")
 	TObjectPtr<UAnimMontage> AttackMontage;
 
+	/** Ninja alternates this left-hand throw with AttackMontage; empty preserves a single montage. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Animation")
+	TObjectPtr<UAnimMontage> AlternateAttackMontage;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Samurai|Double Cut", meta = (ToolTip = "Optional Samurai follow-up montage used when Double Cut triggers. If unset, the normal attack montage is used."))
 	TObjectPtr<UAnimMontage> DoubleCutMontage;
 
@@ -221,6 +232,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja|Projectiles")
 	FName ProjectileSpawnSocket = TEXT("ProjectileSocket");
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja|Projectiles", meta = (ToolTip = "Release socket for the alternate left-hand montage."))
+	FName AlternateProjectileSpawnSocket = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja|Projectiles")
 	FVector ProjectileSpawnOffset = FVector(80.0f, 0.0f, 60.0f);
 
@@ -238,6 +252,29 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Auto Attack|Audio", meta = (ToolTip = "2D feedback sound played once when this melee attack trace damages at least one valid enemy. Leave empty for no impact sound."))
 	TObjectPtr<USoundBase> ImpactSound;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu", meta=(ToolTip="Montage played by the real Samurai once per normal Iaijutsu attack, fitted to the charge duration. Instant casts use authored animation speed without delaying damage. Root motion and melee damage notifies cannot move or attack for the player. Empty disables this presentation. Spectral lanes use Attack Montage; dash and cascade lanes do not replay this montage."))
+    TObjectPtr<UAnimMontage> IaijutsuMontage;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu", meta=(ToolTip="Spawns once at charge completion, centered on the slash lane. Optional Niagara parameters: User.StartPosition, User.EndPosition, User.Length, User.Width."))
+    TObjectPtr<UNiagaraSystem> IaijutsuHitVFX;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu|Path Slashes", meta=(ToolTip="Cosmetic bursts distributed along the final lane when damage resolves, never during charging. Also used by Double Cut, Dash Draw and Death Cascade. Empty disables path slashes without changing the separate Hit VFX."))
+    TObjectPtr<UNiagaraSystem> IaijutsuPathSlashVFX;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu|Path Slashes", meta=(ClampMin="0", ClampMax="12", ToolTip="Evenly spaced bursts per lane at release. Zero disables them."))
+    int32 IaijutsuPathSlashCount = 5;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu|Path Slashes", meta=(ClampMin="0", ToolTip="Size relative to the authored effect, multiplied by lane half-width / 100 cm. Uses User.Scale when exposed, otherwise component scale."))
+    float IaijutsuPathSlashScale = .5f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu|Path Slashes", meta=(ToolTip="Local rotation of each burst relative to the lane direction."))
+    FRotator IaijutsuPathSlashRotation = FRotator::ZeroRotator;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu|Path Slashes", meta=(ClampMin="0", ClampMax="1", Units="s", ToolTip="Delay between cosmetic bursts from the start to the end of the resolved lane. The first burst and all damage occur immediately at release. Zero fires all bursts together."))
+    float IaijutsuPathSlashDelay = .05f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu|Path Slashes", meta=(ClampMin="0", ClampMax="180", ToolTip="Independent random +/- Pitch, Yaw and Roll added to each burst's local Rotation. Zero on an axis disables its randomness. Cosmetic randomness does not affect combat rolls."))
+    FRotator IaijutsuPathSlashRotationRandomness = FRotator(20.f, 35.f, 60.f);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu", meta=(ToolTip="Spectral montage at the end of the lane when Endpoint Burst triggers. Presentation only; animation notifies do not deal damage."))
+    TObjectPtr<UAnimMontage> IaijutsuEndpointMontage;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu", meta=(ToolTip="Empty uses the enemy rectangle indicator with Iaijutsu's color."))
+    TObjectPtr<UMaterialInterface> IaijutsuIndicatorMaterial;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Samurai|Iaijutsu")
+    FLinearColor IaijutsuIndicatorColor = FLinearColor(0.f, .8f, 1.f);
 	/** Per-enemy VFX/audio; camera shake is requested once after a successful melee swing. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Auto Attack|Impact")
 	FImpactFeedbackData ImpactFeedback;
@@ -255,6 +292,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Samurai|Blade Wave")
 	TSubclassOf<ASamuraiBladeWave> BladeWaveClass;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Samurai|Blade Wave", meta=(ToolTip="Presentation montage for normal Crescent wave attacks. Wave emission and cooldown remain timer-driven; melee damage and root motion are disabled."))
+	TObjectPtr<UAnimMontage> CrescentMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Samurai|Blade Wave", meta=(ToolTip="Alternates with Crescent Montage on successful wave attacks. Empty uses Crescent Montage for every attack."))
+	TObjectPtr<UAnimMontage> CrescentAlternateMontage;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Samurai|Blade Wave", meta=(ClampMin="1.0"))
 	float BladeWaveTravelDistance = 650.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Samurai|Blade Wave", meta=(ClampMin="1.0"))
@@ -269,6 +310,16 @@ protected:
 	float CrossingBladeWaveDelay = .12f;
 
 private:
+    friend class FIaijutsuTest;
+    int32 IaijutsuAttackCounter = 0;
+    FTimerHandle IaijutsuAssistTimer;
+    void RollIaijutsuAssist();
+    float GetIaijutsuChargeDuration() const;
+    double IaijutsuChargeEndTime = 0;
+    const UUpgradeDefinition* GetIaijutsuUpgrade() const;
+    bool StartIaijutsuAttack();
+    bool ResolveIaijutsuAttackDirection(float Distance, FVector& Direction) const;
+    void PlayIaijutsuMontage(float ChargeDuration);
 	TArray<FTimerHandle> PendingBladeWaveTimers;
 	UFUNCTION()
 	void HandleOwnerCharacterModeChanged(ECharacterMode OldMode, ECharacterMode NewMode);
@@ -282,6 +333,7 @@ private:
 	void ScheduleReadyTargetCheckTimer();
 	void ApplyLegacyTargetingRangeDefaults();
 	bool PlayAttackMontage(bool bUpdateNormalCooldown = true);
+	void PlayCrescentMontage();
 	UAnimMontage* GetMontageForNextAttack() const;
 	float CalculateAttackMontagePlayRate(const UAnimMontage* Montage) const;
 	float GetExpectedAttackMontageDuration() const;
@@ -296,6 +348,12 @@ private:
 	bool ResolveCursorAttackDirection(FVector& OutDirection) const;
 	bool TryConsumeAttackNotify();
 	bool ExecuteMeleeAttackTrace();
+    int32 GetDoubleCutThreshold() const;
+    void ExecuteBloodEcho(FVector Origin, FVector Direction, float Damage, float Radius, bool bCircular);
+    void RollBloodAssist();
+    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance") TObjectPtr<UNiagaraSystem> BloodEchoVFX;
+    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance", meta=(ClampMin="0.01")) float BloodEchoDelay = .15f;
+    bool bBloodCircularAttack = false;
 
 	void RegisterDoubleCutPrimaryAttack();
 	bool HasDoubleCutUpgrade() const;
@@ -351,6 +409,12 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> ActiveAttackMontage;
+	bool bNextAttackUsesAlternate = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveCrescentMontage;
+	bool bNextCrescentUsesAlternate = false;
+	UPROPERTY(Transient)
+	TObjectPtr<UAnimMontage> ActiveIaijutsuMontage;
 
 	UPROPERTY(Transient)
 	TObjectPtr<USceneComponent> WeaponVisualComponent;

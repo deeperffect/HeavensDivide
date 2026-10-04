@@ -66,9 +66,11 @@ bool FEnemyPushbackTest::RunTest(const FString& Parameters)
 	Attack->OwnerCharacter = Samurai;
 	Attack->ImpactFeedback.bEnableCameraShake = false;
 	UUpgradeDefinition* DoubleCut = NewObject<UUpgradeDefinition>();
-	DoubleCut->UpgradeId = TEXT("TestDoubleCut");
+	DoubleCut->UpgradeId = TEXT("DoubleCut");
 	DoubleCut->SpecialEffects.Add(EUpgradeSpecialEffect::DoubleCut);
 	PC->GetPlayerUpgrades()->DebugForceAcquireUpgrade(DoubleCut);
+	auto* Blood=NewObject<UUpgradeDefinition>();Blood->UpgradeId=TEXT("BattleStance");
+	PC->GetPlayerUpgrades()->DebugForceAcquireUpgrade(Blood);
 	Movement->SetMovementEnabled(true);
 	const FVector TargetPosition = Samurai->GetActorLocation() + Samurai->GetVisualForwardVector() * Attack->AttackForwardOffset;
 	const auto TestStrike = [&](const TCHAR* Label, bool bExpectPush)
@@ -84,12 +86,12 @@ bool FEnemyPushbackTest::RunTest(const FString& Parameters)
 	};
 	TestStrike(TEXT("Ordinary strike keeps pushback"), true);
 	Attack->DoubleCutPrimaryAttackCounter = Attack->DoubleCutPrimaryAttackCount - 1;
-	TestStrike(TEXT("Strike earning Double Cut does not push"), false);
+	TestStrike(TEXT("Strike earning Double Cut keeps pushback"), true);
 	Attack->DoubleCutPrimaryAttackCounter = 0;
 	Attack->bDoubleCutReady = true;
-	TestStrike(TEXT("Stored-ready first strike does not push"), false);
-	Attack->bDoubleCutFollowUpActive = true;
-	TestStrike(TEXT("Double Cut second strike pushes"), true);
+	TestStrike(TEXT("Stored-ready strike keeps pushback"), true);
+	Attack->bBloodCircularAttack = true;
+	TestStrike(TEXT("Double Cut circular strike pushes"), true);
 	Movement->CancelPushback();
 	Movement->StopMovement();
 	Enemy->SetActorLocation(TargetPosition);

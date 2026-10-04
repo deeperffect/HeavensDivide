@@ -1,0 +1,16 @@
+{
+  "title": "Bloodshift",
+  "asset": "Steam capsule - Samurai category hairstyle",
+  "mode": "Built-in image_gen.imagegen",
+  "date": "2026-10-04",
+  "output": {
+    "file": "Bloodshift_Capsule_v8_category_hair.png",
+    "width": 1832,
+    "height": 858
+  },
+  "editSource": "Bloodshift_Capsule_v7_clean_cartoon.png",
+  "hairReference": "Art/CategoryCards/Samurai_v1.png",
+  "priorGenerationMetadata": "Bloodshift_Capsule_v7_clean_cartoon.json",
+  "finalEditPrompt": "Use case: precise-object-edit.\nImage 1 is the EDIT TARGET: the latest wide clean-cartoon BLOODSHIFT Steam capsule.\nImage 2 is a HAIRSTYLE REFERENCE ONLY: the Samurai category portrait.\n\nReplace ONLY the male Samurai's hairstyle in image 1 with the hairstyle from image 2. Faithfully match its silhouette and construction: predominantly black hair gathered back into a high, short, spiky tied ponytail/topknot with a small dark-red tie, swept-back side sections with restrained thin crimson streaks, and the distinctive long asymmetric black fringe dropping along the left side of his face. The front has a few long angular loose strands rather than the current evenly radiating, untied red-black spikes. Keep the tied tuft clearly readable and adapt its perspective to the capsule's existing left-facing three-quarter head angle. Preserve his forehead, eyes and expression; the new fringe can naturally overlap the forehead as in the reference. Scale the hair naturally to his current head and fit the complete tied silhouette inside the frame.\n\nUse image 2 for HAIR ONLY. Do not copy its face, pose, armor, background, portrait framing or more textured rendering. Render the new hair with the same clean black outlines, large simple shapes and flat cel shading as image 1, with no noise or fine strand texture.\n\nEverything else in image 1 must remain as close as possible: both characters' faces and poses, Samurai's costume and white fur, both visible closed fists and correct hand anatomy, Ninja's hair and scarf, moon, torii, mountain shrine, silhouettes, red leaves, palette and composition. Especially preserve the exact bottom-centered ivory BLOODSHIFT wordmark, its letterforms, color, dimensions and placement. Both remain unarmed. No new text, props or characters. Preserve the wide landscape aspect ratio. Return the complete capsule with only the Samurai's hair changed.",
+  "generatedSource": "C:/Users/deepe/.codex/generated_images/01a0fe4e-c581-7722-9a89-875760849015/exec-eadf2ced-10f0-4204-a3da-c555815b42ea.png"
+}

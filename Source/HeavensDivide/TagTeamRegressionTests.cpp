@@ -63,7 +63,7 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
     auto* Neighbor = SpawnEnemy(FVector(10300,0,0));
     auto* OldLocationEnemy = SpawnEnemy(FVector(200,0,0));
     FPlayerUpgradeRunState Empty; Upgrades->CaptureRunState(Empty);
-    for (const TCHAR* Stance : {TEXT("ExecutionStance"), TEXT("BloodStance"), TEXT("WaveStance")})
+    for (const TCHAR* Stance : {TEXT("BladeWave"), TEXT("Iaijutsu"), TEXT("BattleStance")})
     {
         Assist->DeactivateAssistEffect(true);
         Upgrades->RestoreRunState(Empty);
@@ -103,11 +103,32 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
     }
     Assist->DeactivateAssistEffect(true);
     Upgrades->RestoreRunState(Empty);
+    Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("BattleStance")));
+    Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("BloodAssist")));
+    TestFalse(TEXT("Blood assist needs no Tag Team unlock"),Upgrades->HasUpgradeId(TEXT("TagTeam")));
+    TestTrue(TEXT("Blood upgrade can start a real Ninja assist"),Assist->TryBloodAssist());
+    Assist->FinishCurrentAssist();
+    Upgrades->RestoreRunState(Empty);
+    Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("Iaijutsu")));
+    Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("IaijutsuAssist")));
+    auto* IaijutsuAssist = Upgrades->FindUpgradeDefinition(TEXT("IaijutsuAssist"));
+    const auto SavedAssistBalance = IaijutsuAssist->BalanceParameters;
+    SamuraiAttack->bAutoAttackEnabled = true;
+    IaijutsuAssist->BalanceParameters.Add(TEXT("Chance"), 0.f);
+    SamuraiAttack->RollIaijutsuAssist();
+    TestFalse(TEXT("Failed Iaijutsu RNG roll does not start an assist"), Assist->bAssistActive);
+    IaijutsuAssist->BalanceParameters.Add(TEXT("Chance"), 1.f);
+    SamuraiAttack->RollIaijutsuAssist();
+    TestTrue(TEXT("Successful Iaijutsu RNG roll starts real Ninja assist without Tag Team"), Assist->bAssistActive);
+    TestFalse(TEXT("Busy RNG assist cannot overlap itself"), Assist->TryBloodAssist());
+    IaijutsuAssist->BalanceParameters = SavedAssistBalance;
+    Assist->FinishCurrentAssist();
+    Upgrades->RestoreRunState(Empty);
     Samurai->SetCharacterMode(ECharacterMode::Assisting);
     Samurai->SetVisualFacingRotation(FRotator::ZeroRotator);
     TestTrue(TEXT("Samurai assist hits"), Ability->ExecuteSetupAssist(Samurai));
     TestFalse(TEXT("Samurai assist cannot grant free Bleed"), Enemy->HasStatus(EEnemyStatusEffect::Bleed));
-    Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("BleedingEdge")));
+    Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("BattleStance")));
     Ability->ExecuteSetupAssist(Samurai);
     TestTrue(TEXT("Samurai assist retains unlocked Bleed"), Enemy->HasStatus(EEnemyStatusEffect::Bleed));
     Neighbor->GetStatusEffectComponent()->ClearAllStatuses();

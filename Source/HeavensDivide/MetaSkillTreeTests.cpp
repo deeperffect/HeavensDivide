@@ -47,7 +47,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	Meta->CurrentSave->UnlockedSynergyUpgradeIds.Add(TEXT("Synergy.TestLegacy"));
 	TestFalse(TEXT("Unknown node cannot be purchased"),Meta->PurchaseSkill(TEXT("Missing")));
 	TestFalse(TEXT("Prerequisites enforced"),Meta->PurchaseSkill(TEXT("Steel.Edge")));
-	TestEqual(TEXT("28 authored passives"),MetaSkillTree::Nodes().Num(),28);
+	TestEqual(TEXT("30 authored skills"),MetaSkillTree::Nodes().Num(),30);
 	TSet<FName> Seen;
 	for (const FMetaSkillNode& N : MetaSkillTree::Nodes())
 	{
@@ -58,16 +58,16 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 		for (int32 Rank=0;Rank<N.MaxRank;++Rank) TestTrue(TEXT("Legal rank purchase"),Meta->PurchaseSkill(N.Id));
 		TestFalse(TEXT("Rank cap enforced"),Meta->PurchaseSkill(N.Id));
 	}
-	TestEqual(TEXT("Complete tree costs 1330 Embers"),Meta->GetSoulEmbers(),670);
+	TestEqual(TEXT("Complete tree costs 1360 Embers"),Meta->GetSoulEmbers(),640);
 	TestTrue(TEXT("Swap speed totals 30 percent"),FMath::IsNearlyEqual(Meta->GetSkillBonus(TEXT("Swap")),.3f));
 	Meta->LoadMetaProgression();
-	TestEqual(TEXT("Wallet survives disk reload"),Meta->GetSoulEmbers(),670);
+	TestEqual(TEXT("Wallet survives disk reload"),Meta->GetSoulEmbers(),640);
 	TestEqual(TEXT("Capstone survives disk reload"),Meta->GetSkillRank(TEXT("Bond.Unity")),1);
 	TestTrue(TEXT("Legacy discoveries preserved"),Meta->IsSynergyUpgradeUnlocked(TEXT("Synergy.TestLegacy")));
 	Meta->bSimulateSaveFailure = true;
 	TestFalse(TEXT("Failed refund reports failure"),Meta->RefundSkills());
 	TestEqual(TEXT("Failed refund restores ranks"),Meta->GetSkillRank(TEXT("Bond.Unity")),1);
-	TestEqual(TEXT("Failed refund restores wallet"),Meta->GetSoulEmbers(),670);
+	TestEqual(TEXT("Failed refund restores wallet"),Meta->GetSoulEmbers(),640);
 	Meta->bSimulateSaveFailure = false;
 	TestTrue(TEXT("Full refund"),Meta->RefundSkills());
 	TestEqual(TEXT("Exact paid cost returned"),Meta->GetSoulEmbers(),2000);
@@ -144,7 +144,9 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	auto* Enemy=World->SpawnActor<AEnemyBase>(FVector(100,0,0),FRotator::ZeroRotator,Params);
 	Enemy->GetHealthComponent()->SetMaxHealthPreservePercent(10000);Enemy->GetHealthComponent()->RestoreCurrentHealth(10000);
 	auto* Status=Enemy->GetStatusEffectComponent();
-	Status->ApplyStatus(EEnemyStatusEffect::Bleed,Upgrades,EPlayerAttackSource::Samurai,true);
+	auto* Blood=NewObject<UUpgradeDefinition>();Blood->UpgradeId=TEXT("BattleStance");
+	Upgrades->AcquireUpgrade(Blood);
+	Status->ApplyStatus(EEnemyStatusEffect::Bleed,Upgrades,EPlayerAttackSource::Samurai,false,80.f);
 	const float WithBleed=Status->CalculateRemainingStatusDamage(EEnemyStatusEffect::Bleed);
 	Meta->CachedSkillBonuses.Add(TEXT("Bleed"),0);
 	const float WithoutBleed=Status->CalculateRemainingStatusDamage(EEnemyStatusEffect::Bleed);

@@ -15,8 +15,16 @@ class HEAVENSDIVIDE_API ASamuraiCharacter : public ACharacterBase
 
 public:
 	ASamuraiCharacter();
+	virtual void SetCharacterMode(ECharacterMode NewMode) override;
+	virtual void ApplySharedMoveSpeedMultiplier(float MoveSpeedMultiplier) override;
+	void ApplyBloodRush(float Bonus, float Duration);
+	void ClearBloodRush();
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (ToolTip = "Auto-attack component that owns Samurai melee attack timing, montages, hit traces, and related upgrades."))
 	TObjectPtr<UAutoAttackComponent> AutoAttackComponent;
+private:
+	float SharedMoveSpeedMultiplier = 1.f;
+	float BloodRushBonus = 0.f;
+	FTimerHandle BloodRushTimer;
 };

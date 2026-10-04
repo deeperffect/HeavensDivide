@@ -20,10 +20,13 @@ UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UInactiveCharacterAssistComponent : public UActorComponent
 {
 	GENERATED_BODY()
+    friend class FCrescentBuildsTest;
 	friend class FTagTeamRegressionTest;
 
 public:
 	UInactiveCharacterAssistComponent();
+	bool TryBloodAssist();
+	bool bBloodAssistRequest = false;
 
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

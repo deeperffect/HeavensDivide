@@ -14,7 +14,8 @@ controller='/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController'
 ids={'SamuraiTechnique.Cleaver','SamuraiTechnique.Duelist','SamuraiTechnique.Deathblow'}
 paths=['/Game/HeavensDivide/Upgrades/SamuraiTrial/DA_Upgrade_SamuraiTechnique'+name for name in ['Cleaver','Duelist','Deathblow']]
 keep_ids={r['id'] for r in json.loads((root/'Tools/samurai_build_upgrades.json').read_text())}
-keep_ids.update(['BleedingEdge','DeepCuts','SamuraiHeavyBlade','SamuraiArea','DoubleCut','BladeWave','BladeWavePower','BladeWaveHaste','WideArc','ReturningBlade','CrossingBlades','SplinterWave'])
+keep_ids.update(['SamuraiHeavyBlade','SamuraiArea','DoubleCut','BladeWave','BladeWavePower','BladeWaveHaste','WideArc','ReturningBlade','CrossingBlades','SplinterWave'])
+keep_ids.update(['BloodEcho','BloodCritical','BloodAssist','BloodCapacity','BloodTransferArea','DoubleCutFrequency','BloodCriticalChance','BloodEchoChance','BloodAssistChance','BloodPactPower','BloodPactSpeed','BloodDetonation'])
 validate='-ValidateSamuraiCleanup' in unreal.SystemLibrary.get_command_line()
 backup=root/'Saved/Backups/LegacySamuraiCleanup'/datetime.now().strftime('%Y%m%d_%H%M%S')
 def disk(path):return root/'Content'/(path.removeprefix('/Game/').split('.')[0]+'.uasset')
@@ -48,8 +49,8 @@ if not validate:
     unreal.log('SAMURAI_CLEANUP_BACKUP: '+str(backup))
 for path in paths:assert not unreal.EditorAssetLibrary.does_asset_exist(path),path
 actual=[str(a.get_editor_property('upgrade_id')) for a in comp.get_editor_property('upgrade_pool') if a]
-assert len(actual)==len(set(actual))==57 and not ids.intersection(actual)
+assert len(actual)==len(set(actual))==106 and not ids.intersection(actual)
 for a in retained:
     assert not ids.intersection(str(v) for v in a.get_editor_property('prerequisite_upgrade_ids'))
     assert not ids.intersection(str(v.get_editor_property('upgrade_id')) for v in a.get_editor_property('prerequisite_requirements'))
-unreal.log('SAMURAI_CLEANUP_OK: 3 legacy techniques absent; 22 build-linked Samurai cards; 57 total cards; retained card files unchanged')
+unreal.log('SAMURAI_CLEANUP_OK: 3 legacy techniques absent; 71 Samurai-owned cards; 106 total cards; retained card files unchanged')

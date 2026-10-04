@@ -1,0 +1,34 @@
+{
+  "title": "Heavens Divide",
+  "version": 1,
+  "use_case": "ads-marketing",
+  "tool": "Built-in image_gen.imagegen",
+  "files": {
+    "master": "HeavensDivide_Capsule_v1_master.png",
+    "steam_header": "HeavensDivide_Capsule_v1_header_920x430.png"
+  },
+  "dimensions": {
+    "master": [
+      1834,
+      858
+    ],
+    "steam_header": [
+      920,
+      430
+    ]
+  },
+  "export": "The generated master was copied unchanged. The Steam header is a high-quality bicubic size export; no creative image edits were applied.",
+  "references": [
+    {
+      "role": "Primary style reference",
+      "description": "User-supplied Demon Bluff capsule: painted 2D shapes, dark contours, teal shadows, crimson lighting, prominent ivory title."
+    },
+    {
+      "role": "Project subject reference",
+      "file": "Art/UpgradeCards/Generated/GrandEntrance.png",
+      "description": "Samurai and masked Ninja, crimson sword energy and violet kunai."
+    }
+  ],
+  "specification_source": "https://partner.steamgames.com/doc/store/assets/standard#header_capsule",
+  "prompt": "Use case: ads-marketing.\nCreate an original, polished Steam store HEADER CAPSULE for the game HEAVENS DIVIDE.\nInput images: the user's attached DEMON BLUFF capsule is the PRIMARY STYLE REFERENCE ONLY. Match its hand-painted 2D cartoon fantasy illustration, broad angular shapes, expressive readable faces, dark ink contours, simplified cel-shaded volumes, subtle painted surface texture, dramatic teal-green shadows and warm crimson highlights, confident thumbnail readability. Do not copy its characters, logo, card table, cards, or specific scene.\nThe second reference, the project's square red-and-violet combat artwork, is SUBJECT/CHARACTER inspiration ONLY: an armored samurai and masked female ninja performing a combat handoff, crimson katana energy and violet kunai. Do NOT use its dense black ink-splatter style; the user's cartoon capsule sets the rendering style.\nCanvas: wide horizontal approximately 2.14:1, ideally 1840 x 860 pixels, full bleed, no frame. Design as a single finished capsule, not a mockup or collage.\nScene: dark Japanese fantasy battlefield near a ruined torii gate at dusk. A few large, simple sinister horned oni silhouettes and tiny glowing eyes emerge from deep emerald mist behind the heroes. Background is atmospheric, subordinate, not crowded with details.\nComposition: enormous readable two-line game title occupies the left 42 percent, with clear dark negative space beneath it and a 5 percent margin. Right 58 percent: the heroic Samurai in dark charcoal lamellar armor with crimson ties dominates the foreground, shown waist-up in a forceful three-quarter pose, recognizable kabuto helmet, visible determined human eyes/face, gripping one anatomically coherent katana as a brilliant red crescent slash sweeps diagonally across the LOWER foreground. A clearly feminine masked Ninja, charcoal/violet clothing, tied-back dark hair and a flowing scarf, appears just behind his right shoulder, actively throwing three distinct violet-trailed kunai toward the outer right edge. The pair visibly cooperate and both faces are unobstructed. Strong silhouette separation and a readable enemy threat behind them. Keep all faces, the complete title, and the main sword hilt inside safe margins.\nTypography: exact text, all capitals, two stacked lines:\nHEAVENS\nDIVIDE\nUse custom large ivory display serif lettering with confident sharp wedge serifs and very subtle worn edges, dark offset shadow for legibility, with a restrained crimson sword-cut accent between the words. Spell H E A V E N S and D I V I D E correctly; no apostrophe. The title must be prominent and beautifully integrated, readable when shrunk to a Steam thumbnail.\nLighting/mood: ominous and energetic but charmingly stylized like the primary reference; warm ivory light on faces, red katana rim light, small violet accents for the Ninja, saturated emerald/teal background against deep charcoal.\nConstraints: premium finished painted 2D indie-game marketing illustration; strong simple shapes and purposeful controlled detail; only game title plus artwork. No taglines, badges, review scores, interface, Steam logo, watermark, gore, photorealism, 3D rendering, airbrushed anime gloss, random illegible glyphs, additional text, or copied Demon Bluff branding."
+}

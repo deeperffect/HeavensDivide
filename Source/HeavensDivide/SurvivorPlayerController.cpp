@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SurvivorPlayerController.h"
+#include "CombatAudio.h"
 #include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
 #include "ComboAbilityComponent.h"
@@ -39,6 +40,8 @@
 #include "RunTravelSubsystem.h"
 #include "AutoAttackComponent.h"
 #include "CharacterStatsComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "MouseGroundAim.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/OverlapResult.h"
@@ -426,6 +429,17 @@ bool ASurvivorPlayerController::TryDash()
 		PendingShadowCloneTransform = ActiveCharacter->GetActorTransform();
 	}
 
+    IaijutsuDashOrigin = ActiveCharacter->GetActorLocation();
+    IaijutsuDashCharacter = ActiveCharacter;
+	ActiveDashDistance = DashDistance;
+	if (ActiveCharacter->IsA<ASamuraiCharacter>() && PlayerUpgradeComponent
+		&& PlayerUpgradeComponent->HasUpgradeId(TEXT("Iaijutsu"))
+		&& PlayerUpgradeComponent->HasUpgradeId(TEXT("IaijutsuDash")))
+	{
+		const auto* DashDraw = PlayerUpgradeComponent->FindUpgradeDefinition(TEXT("IaijutsuDash"));
+		ActiveDashDistance *= 1.f + FMath::Max(0.f, DashDraw
+			? DashDraw->GetBalanceValue(TEXT("DashDistanceBonus"), 1.f) : 1.f);
+	}
 	DashElapsedTime = 0.0f;
 	bIsDashing = true;
 	ConsumeDashCharge();
@@ -434,13 +448,14 @@ bool ASurvivorPlayerController::TryDash()
 		MovementComponent->StopMovementImmediately();
 	}
 	ActiveCharacter->StartDashVisual(DashDuration, ActiveDashDirection);
+    UCombatAudioLibrary::PlayEvent(this, TEXT("Dash"), ActiveCharacter->GetActorLocation());
 	OnDashStarted.Broadcast();
 
 	if (CVarHDLogDash.GetValueOnGameThread() != 0)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Dash started Direction=%s Distance=%.1f Duration=%.2f RechargeTime=%.2f"),
 			*ActiveDashDirection.ToString(),
-			DashDistance,
+			ActiveDashDistance,
 			DashDuration,
 			DashRechargeTime);
 	}
@@ -840,6 +855,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 		return;
 	}
 
+	UCombatAudioLibrary::PlayEvent(this, TEXT("PlayerDeath"), FVector::ZeroVector, true);
 	RunEndState = ERunEndState::Defeat;
 	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->AwardSkillRun(GetRunTimeSeconds(), false);
 	bIsPlayerDead = true;
@@ -990,6 +1006,7 @@ void ASurvivorPlayerController::PresentVictory()
 void ASurvivorPlayerController::HandlePlayerLevelUp(int32 NewLevel)
 {
 	if (RunEndState != ERunEndState::Playing) return;
+	UCombatAudioLibrary::PlayEvent(this, TEXT("LevelUp"), FVector::ZeroVector, true);
 	++PendingLevelUpChoices;
 	UE_LOG(LogTemp, Log, TEXT("LEVEL UP RECEIVED: NewLevel=%d"), NewLevel);
 	UE_LOG(LogTemp, Log, TEXT("Pending selections = %d"), PendingLevelUpChoices);
@@ -1230,7 +1247,7 @@ void ASurvivorPlayerController::StartNextUpgradeSelection()
 	bCurrentSelectionIsBloodShrineReward = true;
 	bLevelUpSelectionActive = true;
 	if (!PlayerUpgradeComponent
-		|| !PlayerUpgradeComponent->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Cursed, BloodShrineRewardChoiceCount))
+		|| !PlayerUpgradeComponent->BeginBloodShrineSelection(BloodShrineRewardChoiceCount))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Blood Shrine reward skipped: no currently eligible Blood Pact upgrades."));
 		HandleLevelUpSelectionCompleted();
@@ -1722,42 +1739,14 @@ void ASurvivorPlayerController::ApplyControllerAimInput(const FVector2D& StickIn
 
 bool ASurvivorPlayerController::GetMouseWorldPosition(FVector& OutWorldPosition) const
 {
-	FHitResult HitResult;
-	if (GetHitResultUnderCursor(ECC_Visibility, false, HitResult) && HitResult.GetActor() != GetPawn())
-	{
-		OutWorldPosition = HitResult.ImpactPoint;
-		return true;
-	}
+    FVector WorldLocation, WorldDirection;
+    if (!DeprojectMousePositionToWorld(WorldLocation, WorldDirection)) return false;
 
-	FVector WorldLocation;
-	FVector WorldDirection;
-	if (!DeprojectMousePositionToWorld(WorldLocation, WorldDirection))
-	{
-		return false;
-	}
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SurvivorMouseWorldPosition), false, GetPawn());
-	const FVector TraceEnd = WorldLocation + WorldDirection * 100000.0f;
-
-	if (GetWorld()->LineTraceSingleByChannel(HitResult, WorldLocation, TraceEnd, ECC_Visibility, QueryParams))
-	{
-		OutWorldPosition = HitResult.ImpactPoint;
-		return true;
-	}
-
-	const ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
-	const float GameplayPlaneZ = ActiveCharacter ? ActiveCharacter->GetActorLocation().Z : 0.0f;
-	if (!FMath::IsNearlyZero(WorldDirection.Z))
-	{
-		const float DistanceAlongRay = (GameplayPlaneZ - WorldLocation.Z) / WorldDirection.Z;
-		if (DistanceAlongRay > 0.0f)
-		{
-			OutWorldPosition = WorldLocation + WorldDirection * DistanceAlongRay;
-			return true;
-		}
-	}
-
-	return false;
+    const ACharacterBase* ActiveCharacter = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr;
+    const float GroundZ = ActiveCharacter
+        ? ActiveCharacter->GetActorLocation().Z - ActiveCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
+        : 0.f;
+    return MouseGroundAim::Resolve(GetWorld(), WorldLocation, WorldDirection, GroundZ, GetPawn(), OutWorldPosition);
 }
 
 FVector ASurvivorPlayerController::GetDashDirection(const ACharacterBase* ActiveCharacter) const
@@ -1806,7 +1795,7 @@ void ASurvivorPlayerController::HandleDashStep(float DeltaTime)
 		return;
 	}
 
-	const float DashSpeed = DashDistance / DashDuration;
+	const float DashSpeed = ActiveDashDistance / DashDuration;
 	const FVector StartLocation = ActiveCharacter->GetActorLocation();
 	const FVector DesiredLocation = StartLocation + ActiveDashDirection * DashSpeed * StepTime;
 
@@ -1838,6 +1827,10 @@ void ASurvivorPlayerController::FinishDash()
 			MovementComponent->StopMovementImmediately();
 		}
 		ActiveCharacter->EndDashVisual();
+        if (!bIsPlayerDead && IaijutsuDashCharacter.Get() == ActiveCharacter)
+            if (auto* Attack = ActiveCharacter->FindComponentByClass<UAutoAttackComponent>())
+                Attack->SpawnIaijutsuDash(IaijutsuDashOrigin, ActiveCharacter->GetActorLocation());
+        IaijutsuDashCharacter.Reset();
 	}
 	OnDashEnded.Broadcast();
 
@@ -1953,6 +1946,15 @@ void ASurvivorPlayerController::StartDashRechargeIfNeeded()
 		DashRechargeTime,
 		false);
 	OnDashRechargeStarted.Broadcast();
+}
+
+void ASurvivorPlayerController::ReduceDashRecharge(float Seconds)
+{
+    const float Remaining = GetDashRechargeRemaining();
+    if (!GetWorld() || Seconds <= 0.f || Remaining <= 0.f || bIsPlayerDead) return;
+    if (Remaining <= Seconds) HandleDashRechargeTimerElapsed();
+    else GetWorldTimerManager().SetTimer(DashRechargeTimerHandle, this,
+        &ASurvivorPlayerController::HandleDashRechargeTimerElapsed, Remaining - Seconds, false);
 }
 
 void ASurvivorPlayerController::StopDashRecharge()

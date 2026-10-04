@@ -3,6 +3,7 @@
 #include "AutoAttackComponent.h"
 #include "SwapPresentationComponent.h"
 #include "NinjaBuildComponent.h"
+#include "CrescentBuild.h"
 #include "SurvivorAbilityComponent.h"
 
 #include "Animation/AnimInstance.h"
@@ -55,6 +56,14 @@ static UPlayerUpgradeComponent* GetPlayerUpgradesForAutoAttackMarkedForDeath(con
 	}
 
 	return SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+}
+
+static const UUpgradeDefinition* GetCrescentStance(const UObject* Context, const ACharacterBase* Character)
+{
+	if (!Character || !Character->IsA<ASamuraiCharacter>()) return nullptr;
+	const auto* Upgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(Context, Character);
+	return Upgrades && Upgrades->HasUpgradeId(TEXT("BladeWave"))
+		? Upgrades->FindUpgradeDefinition(TEXT("BladeWave")) : nullptr;
 }
 
 UAutoAttackComponent::UAutoAttackComponent()
@@ -114,13 +123,28 @@ void UAutoAttackComponent::StartAutoAttack()
 	}
 
 	ScheduleNextAttackTimerFromCooldown();
+    if (OwnerCharacter && OwnerCharacter->IsA<ASamuraiCharacter>() && !GetWorld()->GetTimerManager().IsTimerActive(IaijutsuAssistTimer))
+        GetWorld()->GetTimerManager().SetTimer(IaijutsuAssistTimer, this, &UAutoAttackComponent::RollIaijutsuAssist, 1.f, true);
 }
 
 void UAutoAttackComponent::StopAutoAttack()
 {
+	if (ActiveCrescentMontage && OwnerCharacter && OwnerCharacter->GetMesh())
+	{
+		if (auto* Anim = OwnerCharacter->GetMesh()->GetAnimInstance())
+			Anim->Montage_Stop(.1f, ActiveCrescentMontage);
+	}
+	ActiveCrescentMontage = nullptr;
+	if (ActiveIaijutsuMontage && OwnerCharacter && OwnerCharacter->GetMesh())
+	{
+		if (auto* Anim = OwnerCharacter->GetMesh()->GetAnimInstance())
+			Anim->Montage_Stop(.1f, ActiveIaijutsuMontage);
+	}
+	ActiveIaijutsuMontage = nullptr;
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(AttackTimerHandle);
+        World->GetTimerManager().ClearTimer(IaijutsuAssistTimer);
 		for (auto& Timer : PendingBladeWaveTimers) World->GetTimerManager().ClearTimer(Timer);
 		PendingBladeWaveTimers.Reset();
 	}
@@ -175,6 +199,8 @@ bool UAutoAttackComponent::IsAutoAttackEnabled() const
 
 void UAutoAttackComponent::PerformAttackTrace()
 {
+	// Stance waves/lanes own their damage. Their montages cannot add a melee swing.
+	if (!bActiveAttackIsAssist && (GetCrescentStance(this, OwnerCharacter) || GetIaijutsuUpgrade())) return;
 	if (!CanExecuteAttackInCurrentMode())
 	{
 		return;
@@ -184,40 +210,26 @@ void UAutoAttackComponent::PerformAttackTrace()
 		return;
 	}
 
-	// Reaching this point means the attack montage's hit notify was consumed for
-	// one legitimate Samurai swing. This shared commit path includes both the
-	// primary swing and Double Cut's actual follow-up swing.
-	LastResolvedPrimaryAttackDamage = GetEffectiveAttackDamage();
-	const bool bMeleeTraceResolved = ExecuteMeleeAttackTrace();
-	if (bMeleeTraceResolved)
-	{
-		SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
-	}
+    bBloodCircularAttack = !bActiveAttackIsAssist && HasDoubleCutUpgrade() && WillNextSamuraiAttackTriggerDoubleCut();
+    LastResolvedPrimaryAttackDamage = GetEffectiveAttackDamage();
+    if (ExecuteMeleeAttackTrace())
+    {
+        SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
+        if (!bActiveAttackIsAssist && HasDoubleCutUpgrade())
+        {
+            DoubleCutPrimaryAttackCounter = bBloodCircularAttack ? 0 : DoubleCutPrimaryAttackCounter + 1;
+            bDoubleCutReady = false;
+        }
+    }
+    bBloodCircularAttack = false;
 
-	if (bDoubleCutFollowUpActive)
-	{
-		if (bMeleeTraceResolved)
-		{
-			// The earned proc is consumed only here: the follow-up montage has
-			// reached its authoritative committed-damage notify.
-			bDoubleCutReady = false;
-			OnAutoAttack.Broadcast(this, EAutoAttackSource::DoubleCut);
-		}
-		return;
-	}
-
-	const bool bCountsForDoubleCut = !ProjectileClass && !bActiveAttackIsAssist && HasDoubleCutUpgrade();
-	if (bMeleeTraceResolved && bCountsForDoubleCut)
-	{
-		RegisterDoubleCutPrimaryAttack();
-		bDoubleCutFollowUpPending = bDoubleCutReady;
-	}
 }
 
 void UAutoAttackComponent::CaptureRunState(FAutoAttackRunState& OutState) const
 {
 	OutState.DoubleCutCounter = DoubleCutPrimaryAttackCounter;
 	OutState.bDoubleCutReady = bDoubleCutReady;
+	OutState.IaijutsuCounter = IaijutsuAttackCounter;
 	OutState.CrossingBladesCounter = CrossingBladesAttackCounter;
 	OutState.bGrandEntranceReady = bGrandEntranceReady;
 	OutState.bExtraProjectileOnRight = bNormalVolleyExtraProjectileOnRight;
@@ -225,11 +237,12 @@ void UAutoAttackComponent::CaptureRunState(FAutoAttackRunState& OutState) const
 
 void UAutoAttackComponent::RestoreRunState(const FAutoAttackRunState& State)
 {
-	const int32 DoubleCutThreshold = FMath::Max(1, DoubleCutPrimaryAttackCount);
+	const int32 DoubleCutThreshold = GetDoubleCutThreshold();
 	bDoubleCutReady = State.bDoubleCutReady || State.DoubleCutCounter == DoubleCutThreshold;
 	DoubleCutPrimaryAttackCounter = State.DoubleCutCounter > DoubleCutThreshold
 		? DoubleCutThreshold - 1
 		: FMath::Clamp(State.DoubleCutCounter, 0, DoubleCutThreshold - 1);
+	IaijutsuAttackCounter = FMath::Max(0, State.IaijutsuCounter);
 	CrossingBladesAttackCounter = FMath::Max(0, State.CrossingBladesCounter);
 	bGrandEntranceReady = State.bGrandEntranceReady;
 	bNormalVolleyExtraProjectileOnRight = State.bExtraProjectileOnRight;
@@ -528,6 +541,9 @@ void UAutoAttackComponent::HandleOwnerCharacterModeChanged(ECharacterMode OldMod
 
 void UAutoAttackComponent::HandleCharacterStatsChanged()
 {
+    // A committed Iaijutsu keeps its complete charge/cooldown. New speed applies
+    // to the next cast, so gaining a buff cannot skip the post-charge cooldown.
+    if (GetIaijutsuUpgrade() && GetWorld() && GetWorld()->GetTimeSeconds() < NextAttackReadyTime) return;
 	if (GetWorld() && LastAttackStartTime > -DBL_MAX / 2.0)
 	{
 		const float NewInterval = GetEffectiveAttackInterval();
@@ -715,7 +731,7 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 	OutExpectedDuration = GetExpectedAttackMontageDuration();
 	if (!ProjectileClass && WillNextSamuraiAttackTriggerDoubleCut())
 	{
-		OutExpectedDuration += GetExpectedDoubleCutFollowUpDuration();
+		OutExpectedDuration = GetExpectedAttackMontageDuration();
 	}
 
 	const double PreviousLastAttackStartTime = LastAttackStartTime;
@@ -739,6 +755,22 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 	}
 
 	return bStarted;
+}
+
+void UAutoAttackComponent::PlayCrescentMontage()
+{
+	UAnimMontage* Montage = bNextCrescentUsesAlternate && CrescentAlternateMontage
+		? CrescentAlternateMontage.Get() : CrescentMontage.Get();
+	if (!Montage) Montage = CrescentAlternateMontage;
+	auto* Anim = OwnerCharacter && OwnerCharacter->GetMesh() ? OwnerCharacter->GetMesh()->GetAnimInstance() : nullptr;
+	if (!Montage || !Anim) return;
+	// This animation never owns the attack state or its cooldown. Missing or
+	// interrupted presentation must not prevent waves or re-enable melee notifies.
+	if (Anim->Montage_Play(Montage, CalculateAttackMontagePlayRate(Montage)) <= 0.f) return;
+	if (auto* Instance = Anim->GetActiveInstanceForMontage(Montage)) Instance->PushDisableRootMotion();
+	ActiveCrescentMontage = Montage;
+	bNextCrescentUsesAlternate = Montage != CrescentAlternateMontage;
+	OwnerCharacter->SetVisualFacingRotation(ActiveAttackDirection.Rotation());
 }
 
 bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
@@ -778,14 +810,7 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 	}
 
 	const float NormalCalculatedPlayRate = CalculateAttackMontagePlayRate(MontageToPlay);
-	const bool bProspectiveDoubleCutPrimary = bUpdateNormalCooldown
-		&& !ProjectileClass
-		&& OwnerCharacter
-		&& !OwnerCharacter->bComboAbilityActive
-		&& OwnerCharacter->IsA<ASamuraiCharacter>()
-		&& WillNextSamuraiAttackTriggerDoubleCut();
-	const float ActualPlayRate = NormalCalculatedPlayRate
-		* (bProspectiveDoubleCutPrimary ? FMath::Max(0.01f, DoubleCutPrimarySpeedMultiplier) : 1.0f);
+	const float ActualPlayRate = NormalCalculatedPlayRate;
 	const float PlayResult = AnimInstance->Montage_Play(MontageToPlay, ActualPlayRate);
 	if (PlayResult <= 0.0f)
 	{
@@ -804,6 +829,8 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 	bAttackNotifyConsumed = false;
 	bActiveAttackIsAssist = !bUpdateNormalCooldown;
 	ActiveAttackMontage = MontageToPlay;
+	if (bUpdateNormalCooldown && OwnerAsCharacter->IsA<ANinjaCharacter>() && AlternateAttackMontage)
+		bNextAttackUsesAlternate = MontageToPlay != AlternateAttackMontage;
 	ApplyAttackWeaponVisualScale();
 	if (bUpdateNormalCooldown)
 	{
@@ -824,7 +851,9 @@ bool UAutoAttackComponent::PlayAttackMontage(bool bUpdateNormalCooldown)
 
 UAnimMontage* UAutoAttackComponent::GetMontageForNextAttack() const
 {
-
+	if (!bActiveAttackIsAssist && WillNextSamuraiAttackTriggerDoubleCut() && DoubleCutMontage) return DoubleCutMontage;
+	if (GetOwner() && GetOwner()->IsA<ANinjaCharacter>() && bNextAttackUsesAlternate && AlternateAttackMontage)
+		return AlternateAttackMontage;
 	return AttackMontage;
 }
 
@@ -929,6 +958,46 @@ bool UAutoAttackComponent::StartTargetedAttack()
 		return false;
 	}
 
+	if (GetIaijutsuUpgrade()) return StartIaijutsuAttack();
+	if (GetCrescentStance(this, OwnerCharacter))
+	{
+		if (!CanAutoAttack() || !BladeWaveClass) return false;
+		FVector Direction;
+		CurrentAttackTarget.Reset();
+		if (IsCursorTargetingEnabledForNormalAttack())
+		{
+			if (!ResolveCursorAttackDirection(Direction)) return false;
+		}
+		else
+		{
+			const float Range = GetEffectiveTargetingRange();
+			TArray<AEnemyBase*> Targets;
+			FindEnemyTargetsSortedFromLocation(OwnerCharacter->GetActorLocation(), Range, Targets);
+			Targets.RemoveAll([this, Range](const AEnemyBase* Enemy)
+			{
+				return !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai)
+					|| FVector::DistSquared2D(Enemy->GetActorLocation(), OwnerCharacter->GetActorLocation()) > FMath::Square(Range);
+			});
+			if (Targets.IsEmpty()) return false;
+			CurrentAttackTarget = Targets[0];
+			Direction = GetEnemyAimLocation(Targets[0]) - OwnerCharacter->GetActorLocation();
+		}
+		Direction.Z = 0.f;
+		if (!Direction.Normalize()) Direction = OwnerCharacter->GetVisualForwardVector().GetSafeNormal2D();
+		if (Direction.IsNearlyZero()) return false;
+		ActiveAttackDirection = Direction;
+		OwnerCharacter->ClearFacingOverride();
+		LastAttackStartTime = GetWorld()->GetTimeSeconds();
+		AttackIntervalAtLastAttackStart = GetEffectiveAttackInterval();
+		NextAttackReadyTime = LastAttackStartTime + AttackIntervalAtLastAttackStart;
+		LastResolvedPrimaryAttackDamage = GetEffectiveAttackDamage();
+		PlayCrescentMontage();
+		SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
+		// Grand Entrance remains its separate, once-per-swap circular proc, as with Iaijutsu.
+		if (GetReadyGrandEntranceUpgrade()) ExecuteMeleeAttackTrace();
+		OnAutoAttack.Broadcast(this, EAutoAttackSource::NormalAutoAttack);
+		return true;
+	}
 	if (IsCursorTargetingEnabledForNormalAttack())
 	{
 		FVector CursorDirection;
@@ -985,7 +1054,7 @@ bool UAutoAttackComponent::CanStartAttackNow() const
 		return false;
 	}
 
-	return World->GetTimeSeconds() >= NextAttackReadyTime;
+	return World->GetTimeSeconds() >= FMath::Max(NextAttackReadyTime, IaijutsuChargeEndTime);
 }
 
 bool UAutoAttackComponent::CanExecuteAttackInCurrentMode() const
@@ -1057,6 +1126,9 @@ float UAutoAttackComponent::GetEffectiveAttackInterval() const
 	const ASurvivorPlayerController* SurvivorController = Cast<ASurvivorPlayerController>(OwnerCharacter ? OwnerCharacter->GetOwner() : nullptr);
 	const USharedPlayerStatsComponent* SharedStats = SurvivorController ? SurvivorController->GetSharedPlayerStats() : nullptr;
 	const float GlobalAttackSpeedMultiplier = SharedStats ? SharedStats->GetFinalAttackSpeedMultiplier() : 1.0f;
+	if (const auto* Iaijutsu = GetIaijutsuUpgrade())
+		return GetIaijutsuChargeDuration()
+			+ FMath::Max(.01f, Iaijutsu->GetBalanceValue(TEXT("Cooldown"), .5f) / FMath::Max(.01f, AttackSpeedMultiplier * GlobalAttackSpeedMultiplier));
 	return FMath::Max(0.01f, AttackInterval / FMath::Max(0.01f, AttackSpeedMultiplier * GlobalAttackSpeedMultiplier));
 }
 
@@ -1116,6 +1188,14 @@ float UAutoAttackComponent::GetEffectiveProjectileSpeed() const
 
 float UAutoAttackComponent::GetEffectiveTargetingRange() const
 {
+	if (OwnerCharacter && OwnerCharacter->GetCharacterMode() == ECharacterMode::Active && !bActiveAttackIsAssist)
+		if (const auto* Crescent = GetCrescentStance(this, OwnerCharacter))
+		{
+			const auto* Upgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+			return FMath::Max(1.f, Crescent->GetBalanceValue(TEXT("WaveTravelDistance"), BladeWaveTravelDistance))
+				* (1.f + CrescentBuild::Scaling(Upgrades, TEXT("CrescentRange"), .2f))
+				+ FMath::Max(0.f, Crescent->GetBalanceValue(TEXT("SpawnForwardOffset"), 80.f));
+		}
 	if (ProjectileClass)
 	{
 		return TargetingRange;
@@ -1370,16 +1450,18 @@ FVector UAutoAttackComponent::GetProjectileSpawnLocation() const
 	}
 
 	const USkeletalMeshComponent* MeshComponent = OwnerCharacter->GetMesh();
-	if (MeshComponent && ProjectileSpawnSocket != NAME_None && MeshComponent->DoesSocketExist(ProjectileSpawnSocket))
+	const bool bAlternateThrow = AlternateAttackMontage && ActiveAttackMontage == AlternateAttackMontage;
+	const FName ReleaseSocket = bAlternateThrow ? AlternateProjectileSpawnSocket : ProjectileSpawnSocket;
+	if (MeshComponent && ReleaseSocket != NAME_None && MeshComponent->DoesSocketExist(ReleaseSocket))
 	{
-		return MeshComponent->GetSocketLocation(ProjectileSpawnSocket);
+		return MeshComponent->GetSocketLocation(ReleaseSocket);
 	}
 
 	const FVector VisualForward = OwnerCharacter->GetVisualForwardVector();
 	const FVector VisualRight = FRotationMatrix(OwnerCharacter->GetVisualFacingRotation()).GetScaledAxis(EAxis::Y);
 	return OwnerCharacter->GetActorLocation()
 		+ VisualForward * ProjectileSpawnOffset.X
-		+ VisualRight * ProjectileSpawnOffset.Y
+		+ VisualRight * (bAlternateThrow ? -ProjectileSpawnOffset.Y : ProjectileSpawnOffset.Y)
 		+ FVector::UpVector * ProjectileSpawnOffset.Z;
 }
 

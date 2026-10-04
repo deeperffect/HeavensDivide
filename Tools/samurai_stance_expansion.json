@@ -1,0 +1,15 @@
+{
+  "catalog_count": 106,
+  "enabled_count": 98,
+  "disabled_ids": ["OverkillBurst", "BurstRadius", "WaveMultishot", "CrossingBlades", "SplinterWave", "BladeWavePower", "WideArc", "BladeWaveHaste"],
+  "cards": [
+    {"id":"BloodRush", "name":"Blood Rush", "stance":"BattleStance", "ranks":1, "rarity":"Common", "requires":[], "balance":{"MoveSpeedBonus":0.2,"Duration":3.0}, "description":"Killing a bleeding enemy while Samurai is active grants +20% movement speed for 3 seconds. Refreshes without stacking. Also triggers on lethal Blood Detonation; ends on swap."},
+    {"id":"IaijutsuVacuumReach", "name":"Vacuum Reach", "stance":"Iaijutsu", "ranks":5, "rarity":"Common", "requires":[], "balance":{"PerRank":0.15}, "description":"+15% Iaijutsu vacuum reach per rank. Maximum 5 ranks: base 60 cm reaches 105 cm. Does not increase the slash hitbox."},
+    {"id":"IaijutsuCascadePower", "name":"Cascade Power", "stance":"Iaijutsu", "ranks":5, "rarity":"Rare", "requires":["IaijutsuChain"], "balance":{"PerRank":0.2}, "description":"+20% Death Cascade attack damage per rank, including its crossing lanes and Endpoint Burst. Maximum 5 ranks. Cascaded attacks cannot cascade again."},
+    {"id":"IaijutsuDashPower", "name":"Dash Draw Power", "stance":"Iaijutsu", "ranks":5, "rarity":"Rare", "requires":["IaijutsuDash"], "balance":{"PerRank":0.2}, "description":"+20% Dash Draw attack damage per rank, including its crossing lanes and Endpoint Burst. Maximum 5 ranks. Does not increase normal or cascaded attack damage."},
+    {"id":"ReturningBlade", "name":"Returning Blade", "stance":"BladeWave", "ranks":1, "rarity":"Common", "requires":[], "balance":{"ReturnDamageMultiplier":0.5}, "description":"Primary waves return to their launch point, hitting each enemy once more for 50% damage. Split waves do not return. Each wave keeps one split roll and one field opportunity across both passes."},
+    {"id":"CrescentSlowDuration", "name":"Slow Duration", "stance":"BladeWave", "ranks":5, "rarity":"Common", "requires":[], "balance":{"PerRank":1.0}, "description":"+1 second Crescent slow duration per rank. Maximum 5 ranks: base 5 seconds reaches 10 seconds. Unavailable with Sudden Eruption; owned ranks convert into Wave Damage."},
+    {"id":"CrescentArcChance", "name":"Arc Volley Chance", "stance":"BladeWave", "ranks":5, "rarity":"Rare", "requires":["CrescentArc"], "balance":{"PerRank":0.1}, "description":"+10 percentage points Arc Volley chance per rank. Maximum 5 ranks: base 15% reaches 65%."},
+    {"id":"CrescentFieldChance", "name":"Wake Chance", "stance":"BladeWave", "ranks":5, "rarity":"Rare", "requires":["CrescentField"], "balance":{"PerRank":0.05}, "description":"+5 percentage points damaging field chance per primary wave per rank. Maximum 5 ranks: base 15% reaches 40%. Split waves inherit their parent result; returning waves do not reroll."}
+  ]
+}

@@ -1,14 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "MenuFeedbackWidget.h"
 #include "Styling/SlateTypes.h"
 #include "MetaSkillTreeWidget.generated.h"
 
 class UMainMenuWidget;
 
 UCLASS()
-class HEAVENSDIVIDE_API UMetaSkillTreeWidget : public UUserWidget
+class HEAVENSDIVIDE_API UMetaSkillTreeWidget : public UMenuFeedbackWidget
 {
 	GENERATED_BODY()
 public:

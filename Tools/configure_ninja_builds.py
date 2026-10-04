@@ -13,6 +13,9 @@ folder='/Game/HeavensDivide/Upgrades/Ninja'
 validate='-ValidateNinjaBuilds' in unreal.SystemLibrary.get_command_line()
 backup=root/'Saved/Backups/NinjaBuilds'/datetime.now().strftime('%Y%m%d_%H%M%S')
 bp=unreal.load_asset(controller);comp=unreal.get_default_object(bp.generated_class()).get_editor_property('player_upgrade_component')
+def asset_name(row):
+    return 'DA_Upgrade_Ninja' + row['id'] + ('Stance' if row.get('stance') and not row['id'].endswith('Stance') else '')
+
 def disk(a):return root/'Content'/(a.get_path_name().removeprefix('/Game/').split('.')[0]+'.uasset')
 preserved={str(disk(a)):hashlib.sha256(disk(a).read_bytes()).hexdigest() for a in comp.get_editor_property('upgrade_pool') if a and str(a.get_editor_property('upgrade_id')) not in {r['id'] for r in rows}}
 def props(a,values):
@@ -25,7 +28,7 @@ if not validate:
     cards=[]
     stats={'AttackSpeedMultiplier':'ATTACK_SPEED_MULTIPLIER','DamageMultiplier':'DAMAGE_MULTIPLIER','ProjectileSpeedMultiplier':'PROJECTILE_SPEED_MULTIPLIER','ProjectileCountBonus':'PROJECTILE_COUNT_BONUS'}
     for r in rows:
-        path=folder+'/DA_Upgrade_Ninja'+r['id'];copy(path)
+        path=folder+'/'+asset_name(r);copy(path)
         exists=unreal.EditorAssetLibrary.does_asset_exist(path)
         a=unreal.load_asset(path) if exists else unreal.AssetToolsHelpers.get_asset_tools().create_asset(path.rsplit('/',1)[1],folder,unreal.UpgradeDefinition,factory)
         if not exists:
@@ -48,11 +51,11 @@ if not validate:
     assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==digest for p,digest in preserved.items())
     backup.mkdir(parents=True,exist_ok=True);(backup/'preserved_card_hashes.json').write_text(json.dumps(preserved,indent=2))
 pool=list(comp.get_editor_property('upgrade_pool'));ids=[str(a.get_editor_property('upgrade_id')) for a in pool if a]
-assert len(ids)==len(pool)==len(set(ids))==57
+assert len(ids)==len(pool)==len(set(ids))==106
 for r in rows:
     assert ids.count(r['id'])==1
-    a=unreal.load_asset(folder+'/DA_Upgrade_Ninja'+r['id'])
+    a=unreal.load_asset(folder+'/'+asset_name(r))
     assert a.get_editor_property('card_artwork') and a.get_editor_property('icon')
     assert set(str(k) for k in a.get_editor_property('prerequisite_upgrade_ids')).issubset(ids)
     if r.get('stance'):assert str(a.get_editor_property('exclusivity_group'))=='NinjaWeaponStance'
-unreal.log('NINJA_BUILDS_OK: 20 cards, 3 exclusive stances, 57 unique pool entries; existing card tuning preserved')
+unreal.log('NINJA_BUILDS_OK: 20 cards, 3 exclusive stances, 106 unique pool entries; existing card tuning preserved')

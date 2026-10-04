@@ -293,11 +293,11 @@ bool USynergyMetaProgressionSubsystem::AwardSkillRun(float Seconds, bool bVictor
  LastSkillRunReward = MetaSkillTree::RunReward(Seconds, bVictory);
  PendingSkillReward = static_cast<int32>(FMath::Min<int64>(MAX_int32, int64(PendingSkillReward) + LastSkillRunReward));
  RetrySkillReward();
- return PendingSkillReward == 0;
+ return !HasPendingSkillReward();
 }
 void USynergyMetaProgressionSubsystem::RetrySkillReward()
 {
- if (PendingSkillReward <= 0 || !CurrentSave) return;
+ if (!HasPendingSkillReward() || !CurrentSave) return;
  const int32 OldWallet = CurrentSave->SoulEmbers;
  CurrentSave->SoulEmbers = static_cast<int32>(FMath::Min<int64>(MAX_int32, int64(OldWallet) + PendingSkillReward));
  if (SaveMetaProgression()) PendingSkillReward = 0;

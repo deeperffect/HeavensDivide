@@ -147,8 +147,8 @@
     "index": 4,
     "owner": "Samurai",
     "id": "BladeWave",
-    "name": "Blade Wave",
-    "description": "Basic melee attacks launch the existing traveling blade wave.",
+    "name": "Crescent Stance",
+    "description": "Replaces normal melee attacks with traveling Blade Waves, without a melee swing. Wave hits slow enemies by 30% for 5 seconds. Choose one Samurai stance per run. Cannot apply Bleed.",
     "kind": "Legacy",
     "damage": 20,
     "radius": 160,
@@ -169,7 +169,7 @@
       {
         "id": "SplinterWave",
         "name": "Splinter Wave",
-        "description": "The first enemy hit on each wave pass sheds a small 30%-damage Bleed burst."
+        "description": "The first enemy hit on each wave pass sheds a small 30%-damage burst. Does not apply Bleed."
       }
     ],
     "scales": [

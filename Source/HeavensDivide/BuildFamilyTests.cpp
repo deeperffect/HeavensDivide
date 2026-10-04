@@ -30,7 +30,21 @@ bool FBuildFamiliesTest::RunTest(const FString&)
  FPlayerUpgradeRunState Empty;Upgrades->CaptureRunState(Empty);
  TSet<FName> Ids;int32 Counts[2]={};
  auto Load=[&](const FString& Path){auto* U=LoadObject<UUpgradeDefinition>(nullptr,*Path);TestNotNull(*Path,U);return U;};
- auto Card=[&](int32 Family,const TCHAR* Id){return Load(FString(TEXT("/Game/HeavensDivide/Upgrades/"))+BuildFamilies[Family].Owner+TEXT("/DA_Upgrade_")+BuildFamilies[Family].Owner+Id);};
+ auto Card=[&](int32 Family,const TCHAR* Id){return Load(FString(TEXT("/Game/HeavensDivide/Upgrades/"))+BuildFamilies[Family].Owner+TEXT("/DA_Upgrade_")+BuildFamilies[Family].Owner+(FCString::Strcmp(Id,TEXT("BladeWave"))==0?TEXT("CrescentStance"):Id));};
+ // Saved soft references must still resolve after the stance DA packages and objects are renamed.
+ for (const TCHAR* Id : {TEXT("BattleStance"), TEXT("Iaijutsu"), TEXT("BladeWave"), TEXT("ReturningFang"), TEXT("BarrageStance"), TEXT("GreatShuriken")})
+ {
+  auto* Stance = Upgrades->FindUpgradeDefinition(FName(Id));
+  if (TestNotNull(TEXT("Saved stance definition"), Stance))
+   TestTrue(TEXT("Every stance DA includes Stance in its name"), Stance->GetName().Contains(TEXT("Stance")));
+ }
+ for (const TCHAR* Id : {TEXT("BladeWave"), TEXT("Iaijutsu"), TEXT("ReturningFang"), TEXT("GreatShuriken")})
+ {
+  const FString Owner = FCString::Strcmp(Id,TEXT("BladeWave"))==0 || FCString::Strcmp(Id,TEXT("Iaijutsu"))==0 ? TEXT("Samurai") : TEXT("Ninja");
+  const FString Name = TEXT("DA_Upgrade_") + Owner + Id;
+  const FSoftObjectPath LegacyPath(TEXT("/Game/HeavensDivide/Upgrades/") + Owner + TEXT("/") + Name + TEXT(".") + Name);
+  TestTrue(TEXT("Old stance reference resolves to the renamed pool asset"), LegacyPath.TryLoad() == Upgrades->FindUpgradeDefinition(FName(Id)));
+ }
  TArray<AEnemyBase*> Enemies;
  for(int32 i=0;i<25;++i)
  {
@@ -53,18 +67,20 @@ bool FBuildFamiliesTest::RunTest(const FString&)
    TestEqual(TEXT("Each scaling card has five ranks"),Scale->MaxLevel,5);
    TestTrue(TEXT("Scaling supports rolled rarities"),Scale->bUsesRolledRarity&&Scale->RarityMagnitudes.Num()==3);
    TestTrue(TEXT("Unique scaling ID"),!Ids.Contains(Scale->UpgradeId));Ids.Add(Scale->UpgradeId);
-   TestTrue(TEXT("Acquire scaling"),Upgrades->AcquireUpgrade(Scale));Upgrades->AcquireUpgrade(Scale);
+   TestFalse(TEXT("Saved scaling is temporarily disabled"),Upgrades->AcquireUpgrade(Scale));
   }
   FPlayerUpgradeRunState ScaledState;Upgrades->CaptureRunState(ScaledState);
   for(int32 b=0;b<3;++b)
   {
    auto* Branch=Card(f,S.Branches[b]);if(!Branch)continue;
    TestTrue(TEXT("Unique behavior branch"),!Ids.Contains(Branch->UpgradeId));Ids.Add(Branch->UpgradeId);
-   TestTrue(TEXT("All three branches can combine"),Upgrades->AcquireUpgrade(Branch));
-   TestTrue(TEXT("Runtime recognizes branch asset"),Ability->Branch(f,b));
+   const bool bReturning = f==4 && b==0;
+   TestEqual(TEXT("Only Returning Blade is enabled among legacy wave branches"),Upgrades->AcquireUpgrade(Branch),bReturning);
+   TestEqual(TEXT("Returning Blade activation preserves the stable family branch"),Ability->Branch(f,b),bReturning);
   }
   const float Before=Enemies[12]->GetHealthComponent()->GetCurrentHealth();Ability->BladeWaveImpact(Enemies[12],20,true);
-  TestTrue(TEXT("Splinter Wave adds real Bleed damage"),Enemies[12]->GetHealthComponent()->GetCurrentHealth()<Before&&Enemies[12]->HasStatus(EEnemyStatusEffect::Bleed));
+  TestEqual(TEXT("Disabled Splinter cannot deal burst damage"),Enemies[12]->GetHealthComponent()->GetCurrentHealth(),Before);
+  TestFalse(TEXT("Crescent Splinter cannot apply Bleed"),Enemies[12]->HasStatus(EEnemyStatusEffect::Bleed));
  }
  TestEqual(TEXT("One Samurai family"),Counts[0],1);TestEqual(TEXT("No Ninja ability families"),Counts[1],0);TestEqual(TEXT("Seven Blade Wave cards"),Ids.Num(),7);
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;

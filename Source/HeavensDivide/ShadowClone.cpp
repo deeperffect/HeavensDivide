@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "ShadowClone.h"
+#include "CombatAudio.h"
 #include "NinjaBuildComponent.h"
 
 #include "AutoAttackComponent.h"
@@ -48,6 +49,7 @@ void AShadowClone::InitializeShadowClone(ANinjaCharacter* InSourceNinja, ASurviv
 		CloneMesh->SetAnimInstanceClass(SourceMesh->GetAnimClass());
 	}
 
+	UCombatAudioLibrary::PlayEvent(this, TEXT("ShadowClone"), GetActorLocation());
 	OnShadowCloneSpawned.Broadcast(this);
 	GetWorldTimerManager().SetTimer(AttackTimer, this, &AShadowClone::BeginAttack, FMath::Max(0.01f, InitialAttackDelay), false);
 	GetWorldTimerManager().SetTimer(SafetyTimer, this, &AShadowClone::FinishClone, FMath::Max(0.1f, SafetyLifetime), false);

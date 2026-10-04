@@ -1,12 +1,12 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "MenuFeedbackWidget.h"
 #include "TesterBalanceWidget.generated.h"
 class UTesterBalanceSettings;
 class SBox;
 class UMainMenuWidget;
 UCLASS()
-class HEAVENSDIVIDE_API UTesterBalanceWidget : public UUserWidget
+class HEAVENSDIVIDE_API UTesterBalanceWidget : public UMenuFeedbackWidget
 {
     GENERATED_BODY()
 public:

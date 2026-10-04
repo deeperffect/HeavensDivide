@@ -55,10 +55,6 @@ void USurvivorAbilityComponent::BladeWaveImpact(AEnemyBase *Enemy, float Damage,
                 continue;
             FamilyAccent(4, Target->GetActorLocation(), Target->GetActorLocation(), FamilySpec(4).Radius,
                          FamilyColor(4), 0.25f, false, -1, 2);
-            if (!Target->IsDead())
-            {
-                ApplyConfiguredStatus(4, Target, EEnemyStatusEffect::Bleed, EPlayerAttackSource::Samurai);
-            }
         }
     }
 }
@@ -74,22 +70,26 @@ void USurvivorAbilityComponent::GrantBuildPreview(FString FamilyId, int32 Select
             continue;
         if (!FamilyId.Equals(S.Id, ESearchCase::IgnoreCase) && !FamilyId.Equals(TEXT("All"), ESearchCase::IgnoreCase))
             continue;
-        auto Grant = [this](const FString &Path, int32 Level) {
-            if (auto *U = LoadObject<UUpgradeDefinition>(nullptr, *Path))
+        auto Grant = [this](const FString &Id, int32 Level) {
+            if (auto *U = Upgrades->FindUpgradeDefinition(FName(Id)))
                 while (Upgrades->GetUpgradeLevel(U) < Level)
                     if (!Upgrades->AcquireUpgrade(U))
                         break;
         };
-        const FString Root = FString(TEXT("/Game/HeavensDivide/Upgrades/")) + S.Owner + TEXT("/DA_Upgrade_") + S.Owner;
-        Grant(Root + S.Id, 1);
+        Grant(S.Id, 1);
+        if (!Upgrades->HasUpgradeId(FName(S.Id)))
+        {
+            Controller->ClientMessage(TEXT("Blade Wave preview requires an unchosen Samurai stance or the Blade Wave stance."));
+            return;
+        }
         for (const TCHAR *Suffix : {TEXT("Power"), TEXT("Area"), TEXT("Haste")})
-            Grant(Root + (i == 4 && FCString::Strcmp(Suffix, TEXT("Area")) == 0 ? FString(TEXT("WideArc"))
+            Grant((i == 4 && FCString::Strcmp(Suffix, TEXT("Area")) == 0 ? FString(TEXT("WideArc"))
                                                                                 : FString(S.Id) + Suffix),
                   2);
         for (int32 b = 0; b < 3; ++b)
             if (SelectedBranch == 0 || SelectedBranch == b + 1)
-                Grant(Root + S.Branches[b], 1);
-        Controller->ClientMessage(FString::Printf(TEXT("%s build ready: scaling rank 2, selected branches. This run only."),
+                Grant(S.Branches[b], 1);
+        Controller->ClientMessage(FString::Printf(TEXT("%s ready. Support cards are temporarily disabled; only the base stance is granted. This run only."),
                                                   S.Title));
     }
 #endif

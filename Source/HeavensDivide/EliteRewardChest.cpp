@@ -35,7 +35,7 @@ AEliteRewardChest::AEliteRewardChest()
  RewardGlow->SetupAttachment(RootComponent);
  static ConstructorHelpers::FObjectFinder<UNiagaraSystem> Glow(TEXT("/Game/Assets/VFX/LootDropsV2/Particles/NiagaraSystems/LootDrop05/NS_LootDrop05_lvl5_yellow"));
  RewardGlow->SetAsset(Glow.Object);
- static ConstructorHelpers::FObjectFinder<USoundBase> Sound(TEXT("/Game/Assets/Sounds/Pickups/MS_XpPickup"));
+ static ConstructorHelpers::FObjectFinder<USoundBase> Sound(TEXT("/Game/HeavensDivide/Audio/MetaSounds/MS_ChestOpen"));
  OpeningSound=Sound.Object;
  Light=CreateDefaultSubobject<UPointLightComponent>(TEXT("RewardLight"));
  Light->SetupAttachment(RootComponent);

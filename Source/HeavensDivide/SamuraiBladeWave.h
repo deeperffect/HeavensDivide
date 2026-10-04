@@ -22,12 +22,14 @@ class HEAVENSDIVIDE_API ASamuraiBladeWave : public AActor
 {
 	GENERATED_BODY()
 	friend class FSamuraiBuildsTest;
+    friend class FCrescentBuildsTest;
 	friend class FGroundSlashMotionTest;
 public:
 	ASamuraiBladeWave();
 	virtual void Tick(float DeltaSeconds) override;
 	void InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,
-		float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale = 1.0f);
+		float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale = 1.0f, float InFieldDamage = -1.f,
+        TOptional<bool> InInheritedFieldProc = TOptional<bool>());
 
 	UPROPERTY(BlueprintAssignable, Category="Blade Wave|Events") FBladeWaveEvent OnOutboundStarted;
 	UPROPERTY(BlueprintAssignable, Category="Blade Wave|Events") FBladeWaveEvent OnReturnStarted;
@@ -48,7 +50,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Blade Wave|VFX")
 	FName VFXAreaScaleParameter = TEXT("User.AreaScale");
 private:
-	void FollowGround();
+    void SpawnSplitWaves(AActor* FirstTarget);
+    void SpawnField();
+    bool bCanSplit = true, bSplitChecked = false, bFieldPending = false;
+    // Retain the result for split inheritance and debris after the field spawns.
+    bool bFieldTriggered = false;
+    float WaveWidth = 0.f, TravelDistance = 0.f, VisualAreaScale = 1.f, FieldDamage = 0.f;
+    FVector LaunchOrigin = FVector::ZeroVector;
+    FVector FieldTrailStart = FVector::ZeroVector;
+    float ReturnDamageScale = 1.f;
+    bool bReturnToLaunch = false;
+    void FollowGround();
 	void StartGroundVisual();
 	void ReleaseGroundVisual();
 	UPROPERTY() FUpgradePresentation GroundPresentation;

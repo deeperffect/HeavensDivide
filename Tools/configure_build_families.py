@@ -15,12 +15,12 @@ def set_props(a,props):
  for k,v in props.items():a.set_editor_property(k,v)
 def configure(r,uid,title,desc,role,scale=None):
  owner=r['owner'];folder='/Game/HeavensDivide/Upgrades/'+owner
- path=folder+('/DA_Upgrade_'+owner)+uid
+ path=folder+('/DA_Upgrade_'+owner)+('CrescentStance' if uid=='BladeWave' else uid)
  a=asset(path)
  existing_art=a.get_editor_property('card_artwork')
  art=existing_art or unreal.load_asset('/Game/HeavensDivide/Blueprints/UI/CardArt2/'+owner+('/BladeWave' if owner=='Samurai' else '/VenomousKunai'))
  legacy_evo=uid in ['RazorHalo','Starfall','BlackWeb','WitheringGarden']
- set_props(a,dict(upgrade_id=uid,display_name=title,description=desc,category=getattr(unreal.UpgradeCategory,owner.upper()),investment_owner=getattr(unreal.UpgradeInvestmentOwner,owner.upper()),role=unreal.UpgradeRole.EVOLUTION if legacy_evo else getattr(unreal.UpgradeRole,role.upper()),build_family_id=r['id'],max_level=5 if scale else 1,rarity=unreal.UpgradeRarity.LEGENDARY if legacy_evo else unreal.UpgradeRarity.RARE if role in ['Mechanic','Special'] else unreal.UpgradeRarity.COMMON,uses_rolled_rarity=bool(scale),prerequisite_upgrade_ids=[] if role=='Starter' else [r['id']],prerequisite_requirements=[],exclusivity_group='None',requires_meta_unlock=False,stat_modifiers=[],special_effects=[],card_artwork=art,icon=art))
+ set_props(a,dict(upgrade_id=uid,display_name=title,description=desc,category=getattr(unreal.UpgradeCategory,owner.upper()),investment_owner=getattr(unreal.UpgradeInvestmentOwner,owner.upper()),role=unreal.UpgradeRole.EVOLUTION if legacy_evo else getattr(unreal.UpgradeRole,role.upper()),build_family_id=r['id'],max_level=5 if scale else 1,rarity=unreal.UpgradeRarity.LEGENDARY if legacy_evo else unreal.UpgradeRarity.RARE if role in ['Mechanic','Special'] or uid=='BladeWave' else unreal.UpgradeRarity.COMMON,uses_rolled_rarity=bool(scale),prerequisite_upgrade_ids=[] if role=='Starter' else [r['id']],prerequisite_requirements=[],exclusivity_group='SamuraiStance' if uid=='BladeWave' else 'None',requires_meta_unlock=False,stat_modifiers=[],special_effects=[],card_artwork=art,icon=art))
  if legacy_evo:
   reqs=[]
   for suffix in ['Power','Area']:

@@ -1,4 +1,5 @@
 #include "TechniqueTrialBase.h"
+#include "CombatAudio.h"
 
 #include "AutoAttackComponent.h"
 #include "CharacterBase.h"
@@ -61,7 +62,7 @@ bool ATechniqueTrialBase::EnterTrial(APawn* P)
 	if(!BeginChallenge()){AbortTrial();return false;} OnTrialEntered.Broadcast(); return true;
 }
 
-void ATechniqueTrialBase::FinishChallenge(){if(TrialState!=ETechniqueTrialState::Active||!PlayerController||PlayerController->IsPlayerDead())return;TrialState=ETechniqueTrialState::Result;MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);StopChallenge();OnTechniqueTrialCompleted.Broadcast();GetWorldTimerManager().SetTimer(ResultTimer,this,&ATechniqueTrialBase::ReturnToArena,ResultDisplayDuration,false);}
+void ATechniqueTrialBase::FinishChallenge(){if(TrialState!=ETechniqueTrialState::Active||!PlayerController||PlayerController->IsPlayerDead())return;TrialState=ETechniqueTrialState::Result;MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);StopChallenge();UCombatAudioLibrary::PlayEvent(this,TEXT("TrialSuccess"),GetActorLocation(),true);OnTechniqueTrialCompleted.Broadcast();GetWorldTimerManager().SetTimer(ResultTimer,this,&ATechniqueTrialBase::ReturnToArena,ResultDisplayDuration,false);}
 void ATechniqueTrialBase::AbortTrial(){if(TrialState==ETechniqueTrialState::Completed||TrialState==ETechniqueTrialState::Failed)return;TrialState=ETechniqueTrialState::Failed;MinimapMarker->SetMarkerState(EMinimapMarkerState::Failed);StopChallenge();CleanupRuntime(true);}
 void ATechniqueTrialBase::HandlePlayerDeath(){AbortTrial();}
 void ATechniqueTrialBase::ReturnToArena(){TrialState=bAllowReactivation?ETechniqueTrialState::Inactive:ETechniqueTrialState::Completed;MinimapMarker->SetMarkerState(bAllowReactivation?EMinimapMarkerState::Available:EMinimapMarkerState::Completed);StopChallenge();CleanupRuntime(true);OnPlayerReturned.Broadcast();}

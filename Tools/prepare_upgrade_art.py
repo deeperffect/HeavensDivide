@@ -45,7 +45,7 @@ for r in rows:
         folder = 'Synergy' if synergy else r['owner']
         prefix = 'DA_BuildSynergy_' if synergy else 'DA_Upgrade_' + r['owner']
         jobs.append(dict(id=uid, name=name, family=r['id'], owner=r['owner'], role=role,
-                         asset='/Game/HeavensDivide/Upgrades/' + folder + '/' + prefix + uid,
+                         asset='/Game/HeavensDivide/Upgrades/' + folder + '/' + prefix + ('CrescentStance' if uid == 'BladeWave' else uid),
                          texture='/Game/HeavensDivide/Blueprints/UI/BuildFamilyArt/T_' + uid,
                          file='Art/UpgradeCards/Generated/' + uid + '.png',
                          reference=str(out / 'References' / (ref + '.png')), prompt=prompt))

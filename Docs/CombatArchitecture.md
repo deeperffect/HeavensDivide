@@ -6,16 +6,19 @@ See [Tester balance](TesterBalance.md) for the main menu's local per-enemy healt
 
 See [Swap presentation](SwapPresentation.md) for character handoff effects, optional entrance montages, sounds and HUD portrait feedback.
 
-Combat currently uses 55 upgrade cards and the existing attack animations. Bloodhound and Alternating Fans were removed after the cleanup documented below; the remaining cards retain their saved balance values.
+The saved catalog contains 106 upgrade cards (98 currently enabled), including three equal Samurai trees with 21 cards each. Iaijutsu adds a spectral Samurai dash attack while preserving player movement. Existing cards retain their saved balance values except explicit migrations such as Returning Blade's 50% return damage.
 
 ## Where to work
 
 | Feature | Implementation | Editable settings |
 | --- | --- | --- |
 | Attack timing, aiming, normal Ninja volleys | `AutoAttackComponent.cpp` | Auto Attack timing, targeting, animation and projectile categories |
-| Samurai melee, Double Cut, Blade Wave emission | `SamuraiAutoAttack.cpp` | Samurai melee trace, Double Cut, Blade Wave and pushback categories on AutoAttackComponent |
+| Samurai melee, Double Cut, Blade Wave emission (Crescent uses presentation montages with no normal melee hitbox) | `SamuraiAutoAttack.cpp`, `AutoAttackComponent.cpp` | Samurai melee trace, Double Cut, Blade Wave and pushback categories on AutoAttackComponent; Crescent Montage and Crescent Alternate Montage under Blade Wave |
+| Iaijutsu spectral dash and player animation | `SamuraiIaijutsu.cpp`, `SamuraiAutoAttack.cpp`, `SwapAfterimage.cpp` | Iaijutsu data asset: `DashDistance`, `ChargeDuration`, `Cooldown`, `SlashRadius`; Iaijutsu Montage animates the real Samurai; indicator and hit VFX on AutoAttackComponent |
 | Samurai Bleed transfer and overkill explosions | `SamuraiBuildUpgrades.cpp` | Corresponding Samurai upgrade data assets |
-| Moving Blade Waves | `SamuraiBladeWave.cpp` | Blade Wave upgrade data assets and Samurai attack defaults |
+| Moving Blade Waves, split waves, Crescent fields | `SamuraiBladeWave.cpp`, `SamuraiWaveField.cpp`, `CrescentBuild.cpp` | Crescent upgrade data assets; field Runtime VFX on Lingering Wake |
+| Crescent slow | `EnemyBase.cpp`, `EnemyLightweightMovementComponent.cpp`, `SamuraiBuildUpgrades.cpp` | Crescent stance `SlowFraction` / `SlowDuration`, Increased Slow and Slow Duration cards |
+| Blood Rush movement bonus | `SamuraiCharacter.cpp`, `SamuraiBuildUpgrades.cpp`, `EnemyBase.cpp` | Blood Rush `MoveSpeedBonus` / `Duration`; death event and one expiry timer; clears on swap/restoration |
 | Ninja stances, Crescendo, weapon spawning | `NinjaBuildComponent.cpp` | Ninja upgrade data assets; Kunai Throw Sound on NinjaBuildComponent |
 | Returning Fang, giant shuriken movement, kunai presentation | `NinjaBuildProjectile.cpp` / `.h` | Weapon upgrade data assets, including Great Shuriken `TravelSpeed` |
 | Embedded blades and death scatter | `NinjaEmbeddedBlades.cpp` | Embedded Blades and its support cards |
@@ -26,6 +29,9 @@ Combat currently uses 55 upgrade cards and the existing attack animations. Blood
 | Temporary rings, beams and Niagara presentation | `AbilityAccent.cpp` | Upgrade presentation settings |
 | Status stacks and timers | `EnemyStatusEffectComponent.cpp` | Enemy status settings and acquired Bleed/Poison upgrades |
 | Trial-only stance/weapon rewards and normal-offer filtering | `PlayerUpgradeComponent.cpp` | Samurai/Ninja trial Reward Choice Count; existing route upgrade assets retain their balance settings |
+| Shared Samurai damage/speed/size conversion | `PlayerUpgradeComponent.cpp`, `IaijutsuBuild.h`, `CrescentBuild.h` | Pre-stance card rarity tuning and destination card `PerRank`; rank caps, bonus strength, mastery and banishments survive stance selection |
+
+Ninja's `Alternate Attack Montage` uses `AM_AutoAttackNinja_Left`, whose segment references the baked `AS_NinjaThrow_Left` clip. `Tools/fix_ninja_alternate_montage.py` repairs that nested segment reference with a backup; `-ValidateNinjaAlternate` checks the saved reference and mirrored poses. `HeavensDivide.Combat.NinjaAlternatingThrow` evaluates the montage hand poses as well as selection order and release sockets.
 
 Samurai and Ninja trials grant their respective build-defining stance/weapon choices. The six route starters are excluded from ordinary character offers and unrestricted rewards. Once that character has a route, later trials offer eligible normal upgrades. Branches and support cards remain in the normal pool. See [Build families](BuildFamilies.md#trial-reward-routing).
 
@@ -58,6 +64,6 @@ Projectile movement remains frame-based. Attack timers, the 0.1-second preparati
 
 The audit covers 55 project Blueprint assets and 10 combat Blueprint compilations. The upgrade baseline contains 57 cards, all present in the pool, with no missing prerequisites or unused upgrade assets. `Saved/CombatCleanupBaseline.json` records the original card hashes and pool order; retained card bytes are checked after cleanup.
 
-Behavior checks cover Samurai stance scaling using saved tuning, Bleed budgets and transfer, overkill, Blade Waves, Double Cut pushback, Ninja stance attacks, clone weapons, forking, Crescendo, poison, Prepare, Grand Entrance, impact feedback and upgrade tuning. Old assertions that hardcoded pre-tuning Samurai values now use the saved card factors.
+Behavior checks cover Samurai stance scaling using saved tuning, Blood-only Bleed caps, refresh, transfer and detonation, overkill, Blade Waves, Double Cut pushback, Ninja stance attacks, clone weapons, forking, Crescendo, poison, Prepare, Grand Entrance, impact feedback and upgrade tuning. Old assertions that hardcoded pre-tuning Samurai values now use the saved card factors.
 
 The cleanup validation passed 13 automation tests and the editor build. All 57 original upgrade asset hashes matched afterward. Nine unconnected event nodes were removed across the three saved Blueprints. No frame-rate benchmark or interactive playtest was performed.

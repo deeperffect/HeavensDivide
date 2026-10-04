@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Blueprint/UserWidget.h"
+#include "MenuFeedbackWidget.h"
 #include "MenuPromptWidget.generated.h"
 
 class UButton;
@@ -10,7 +10,7 @@ class UTextBlock;
 
 /** Shared menu presentation for in-run choices and run result screens. */
 UCLASS(Abstract)
-class HEAVENSDIVIDE_API UMenuPromptWidget : public UUserWidget
+class HEAVENSDIVIDE_API UMenuPromptWidget : public UMenuFeedbackWidget
 {
     GENERATED_BODY()
 public:

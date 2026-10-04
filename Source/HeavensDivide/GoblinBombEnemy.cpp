@@ -14,6 +14,8 @@ AGoblinBombEnemy::AGoblinBombEnemy(const FObjectInitializer& ObjectInitializer)
 {
 	AttackMontage = nullptr;
 	AttackShape = ETankSlamAttackShape::Circle;
+    WindupAudioEvent = TEXT("BombFuse");
+    ImpactAudioEvent = TEXT("BombExplosion");
 	AttackRange = 250.0f;
 	AttackAoERadius = 375.0f;
 	TelegraphWindupDuration = 1.0f;

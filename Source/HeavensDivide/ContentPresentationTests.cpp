@@ -19,7 +19,7 @@ bool FContentPresentationTest::RunTest(const FString&)
  auto* Class=LoadClass<ASurvivorPlayerController>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController.BP_SurvivorPlayerController_C"));
  auto* PC=World->SpawnActor<ASurvivorPlayerController>(Class);
  if(PC)
- for(const TCHAR* Id:{TEXT("OverkillBurst"),TEXT("BloodTransfer"),TEXT("BleedingEdge"),TEXT("VenomousKunai"),TEXT("EmbeddedBlades"),TEXT("GrandEntrance"),TEXT("TagTeam")})
+ for(const TCHAR* Id:{TEXT("OverkillBurst"),TEXT("BloodTransfer"),TEXT("BattleStance"),TEXT("VenomousKunai"),TEXT("EmbeddedBlades"),TEXT("GrandEntrance"),TEXT("TagTeam")})
  {
   const auto* Card=PC->GetPlayerUpgrades()->FindUpgradeDefinition(Id);
   if(!TestNotNull(FString(Id)+TEXT(" remains in active upgrade pool"),Card))continue;

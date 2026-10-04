@@ -4,63 +4,249 @@ See [Combat architecture](CombatArchitecture.md) for source ownership, Blueprint
 
 The shared [combo meter and character abilities](ComboAbilities.md) add **Tornado** for Samurai and **Thousand Cuts** for Ninja, activated with **Q** at full charge. Swaps and Tag Team fill the meter; these abilities do not require upgrade cards.
 
-Combat now uses normal autoattacks and **Blade Wave**, which launches from Samurai's normal melee attacks. The saved upgrade pool contains **57 unique cards**, including 20 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
+Combat now uses normal autoattacks and **Blade Wave**, which replaces Samurai's melee attacks in Crescent Stance. The saved catalog retains **106 unique cards**, of which **98 are currently enabled**, including 20 Ninja build cards. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
 
 The ten automatic ability families and their 70 starter, branch, scaling and evolution cards are retired. They cannot appear in offers, be acquired through stale references, or run through the old automatic cast scheduler.
 
 ## Samurai stances and routes
 
-Completing a Samurai trial offers the three Rare, one-rank stance cards as its build-defining reward. These cards are excluded from normal character offers and unrestricted upgrade rewards. Acquiring one excludes the other two for the current run. Stances do not automatically grant Bleed, explosions or Blade Wave. All effect upgrades remain mixable across stances.
+The first Samurai trial offers **Blood Stance**, **Iaijutsu Stance**, and **Crescent Stance**. Choose one per run. Later trials offer eligible ordinary Samurai cards; stance starters never appear in regular offers.
 
-| Stance | Area / reach | Attack speed | Damage |
+| Stance | Attack behavior | Stat changes |
+| --- | --- | --- |
+| Blood Stance (`BattleStance`) | Original melee attack, applying Bleed by default. | +35% area and +30% attack speed; damage unchanged. |
+| Iaijutsu Stance (`Iaijutsu`) | Charge a spectral lane, then hit it instantly. | No stance stat modifier. |
+| Crescent Stance (`BladeWave`) | Automatically launches traveling blade waves with alternating cast montages and no normal melee damage. | No stance stat modifier. |
+
+Stable internal IDs are retained for save compatibility. Blood Stance retains Battle Stance's multiplicative bonuses. The earlier retired `BloodStance`, `ExecutionStance`, and `WaveStance` IDs remain retired. Old Blood/Execution saves map to the current Blood Stance; old Wave maps to Crescent. Iaijutsu takes priority in formerly mixed saves. Unsupported wave/Blood cards are removed on restoration, while mastery totals are preserved.
+
+### Stance data assets
+
+All six stance asset names include `Stance`. Find them under `/Game/HeavensDivide/Upgrades/Samurai` or `/Game/HeavensDivide/Upgrades/Ninja`:
+
+| Stance | Data asset |
+| --- | --- |
+| Blood | `DA_Upgrade_SamuraiBattleStance` |
+| Iaijutsu | `DA_Upgrade_SamuraiIaijutsuStance` |
+| Crescent | `DA_Upgrade_SamuraiCrescentStance` |
+| Returning Fang | `DA_Upgrade_NinjaReturningFangStance` |
+| Barrage | `DA_Upgrade_NinjaBarrageStance` |
+| Great Shuriken | `DA_Upgrade_NinjaGreatShurikenStance` |
+
+Stable upgrade IDs and tuning are unchanged. `Tools/rename_stance_assets.py` performs the rename with backups under `Saved/Backups/StanceAssetNames`; `-ValidateStanceNames` checks all six names, the saved pool, and configured compatibility redirects without writing. `HeavensDivide.Abilities.BuildFamilies` verifies that old saved references load the renamed assets. The redirects are retained in `Config/DefaultEngine.ini`.
+
+### Shared investments and stance conversion
+
+**Attack Damage**, **Attack Speed**, and **Area** are available from the start of a run, before selecting a stance. Each is one five-rank investment. Selecting a stance converts its owned ranks into the corresponding card below; future offers continue that same investment rather than starting a second rank track.
+
+| Investment | Before stance / Blood | Iaijutsu | Crescent |
 | --- | --- | --- | --- |
-| Blood Stance (`BloodStance`) | +35% | +30% | -30% |
-| Execution Stance (`ExecutionStance`) | +35% | -35% | +80% |
-| Blade Wave Stance (`WaveStance`) | -35% | +25% | +25% |
+| Damage | Attack Damage | Iaijutsu Damage | Wave Damage |
+| Speed | Attack Speed | Iaijutsu Charge Speed | Wave Speed |
+| Size / reach | Area | Iaijutsu Width | Wave Range |
 
-These are multiplicative factors applied after additive stat upgrades. A 35% attack-speed penalty remains a 0.65 multiplier even after buying more attack speed. Area scales melee reach, melee presentation, wave width, and these routes' transfer/explosion radii. Wave travel distance is unchanged. Ninja stats are unaffected.
+Ranks, rarity-weighted strength, mastery, and banishments survive conversion and run restoration. Converted bonuses use the destination card's Common/per-rank tuning: two Common Area ranks become two Width ranks (+50%) or two Range ranks (+40%). A Rare or Epic investment retains its strength relative to a Common rank. The previous melee modifier is removed, so converted speed affects charge or wave travel rather than also changing attack frequency. Global modifiers remain independent. Mixed legacy saves merge matching investments; rank caps stay at five while already invested bonus strength is preserved.
 
-### Blood: fast crowd coverage
+`SamuraiHeavyBlade` is now **Attack Damage**, an ordinary five-rank Samurai card granting +20/30/45% at Common/Rare/Epic, without the old attack-speed penalty. Old saves without a stored damage magnitude retain their former +40% investment. Attack Speed retains +10/15/22%; Area retains +15/25/40%. `Tools/configure_samurai_shared_scaling.py` updates the saved damage card and speed name with backups; `-ValidateSamuraiSharedScaling` is read-only. `HeavensDivide.Combat.SamuraiScalingConversion` covers pre-stance offers, trial conversion, rarity, caps, mastery, banishments and repeated restores.
 
-Start with **Bleeding Edge**. Normal melee and Blade Wave hits apply Bleed; each stack contributes its base Bleed damage plus **10% of its applying hit's damage per tick**. The hit contribution is captured when applied and already includes attack damage scaling. Deep Cuts and Bleed meta bonuses scale the resulting damage. Samurai assists require Bleeding Edge and retain base-stack damage.
+Each stance now has **20 upgrades plus its stance card**: **6 one-time mechanics, 5 normal scalable cards, 6 Rare scalable cards, and 3 Shrine tradeoffs**. The three shared investments count among each stance's five normal scalable cards. See [Samurai stance audit](SamuraiStanceAudit.md) for the full branching trees and balance findings.
 
-- **Bloodletting (`Bloodletting`)**: +1 Bleed stack per direct melee/wave hit per rank, up to 3 ranks. Requires Bleeding Edge.
-- **Blood Transfer (`BloodTransfer`)**: on a bleeding enemy's death, distribute **50% of its remaining Bleed damage** evenly among up to **5** nearest valid enemies within **300 cm**, scaling with Samurai area. Requires Bleeding Edge. Works on deaths from direct hits, status ticks or other damage.
-- **Lingering Wounds (`LingeringWounds`)**: newly applied Bleed lasts 15/22/30% longer per Common/Rare/Epic rank, up to 5 ranks.
-- Continue scaling with **Deep Cuts**, **Quickened Cuts** and the existing Samurai area upgrade.
+### Temporary Samurai upgrade availability
 
-Transfers retain the source's remaining duration and add no free base-stack damage. They carry a finite damage budget, so damage/mastery bonuses are not applied twice and refreshing duration does not multiply that budget. Further deaths can transfer half the remaining budget again. A lethal Bleed tick is spent before transfer. Poison and source-restricted enemies are unaffected by this transfer.
+The three stance choices and their Blood, Iaijutsu and Crescent upgrades below are enabled. Shared damage/speed/area investments are available before stance selection, then use the chosen stance's names and effects. Other stance-specific cards become eligible only after choosing their stance. **Overkill Burst**, **Expanding Ruin**, **Wave Volley**, **Crossing Blades**, **Splinter Wave**, **Force**, **Wide Arc**, and **Velocity** are temporarily disabled.
 
-### Execution: heavy killing blows
+These eight cards cannot appear in normal offers, unrestricted rewards, repeat trials, or previews, and cannot be acquired through saved asset references. Their saved ranks are inactive, including scaling bonuses. Assets, tuning, combat implementations, and compatible saved ranks remain available for future reuse. Ninja, Global, and Synergy cards are unaffected. The disabled-card list is centralized in `PlayerUpgradeComponent.cpp` as `IsSamuraiUpgradeTemporarilyDisabled`.
 
-**Overkill Burst (`OverkillBurst`)** is a separate, mixable Rare starter. Direct normal melee and Blade Wave kills explode for their excess damage within **220 cm**, scaling with Samurai area. A hit dealing 150 damage to a 40-HP enemy creates a 110-damage explosion. Exact kills with no overkill create no explosion.
+### Blood Stance: attacks and Bleed
+
+Only Blood Stance can apply Bleed, including Samurai assists. Acquiring the stance grants Bleed automatically; Bleeding Edge and Deep Cuts are retired. Crescent and Iaijutsu cannot acquire Blood upgrades or apply Bleed through intrinsic effects. Blood keeps the ordinary damage, attack-speed and area forms of the three shared investments.
+
+Each stack deals **12.5% of its applying hit's damage over the base 3 seconds**, with six **0.5-second ticks**. There is no flat base damage. Critical hits contribute their actual increased hit damage. Additional duration adds ticks at the same damage rate. Every application refreshes all stacks, including applications at the cap; capped applications do not add damage. The cap starts at **5**, increasing to **10** through upgrades.
+
+| One-time upgrade | Effect |
+| --- | --- |
+| Blood Rush | Killing a bleeding enemy while Samurai is active grants +20% movement speed for 3 seconds. Refreshes without stacking, also triggers on lethal Blood Detonation, and ends on swap. Uses one expiry timer. |
+| Blood Transfer | On a bleeding enemy's death, copy its stacks and per-stack damage to nearby valid enemies, respecting their stack cap. Base radius 300 cm, scaled by Samurai area. |
+| Double Cut | Every fourth committed attack becomes a full-damage 360-degree slash, using the existing circular slash montage. |
+| Echoing Slash | 15% chance to repeat the committed attack after 0.15 seconds for 50% damage, showing only Niagara slash VFX. Echoes apply Bleed/Marked Blade, can independently crit, advance Double Cut and normal attack counters, and can call assists. Echoes cannot produce further echoes. |
+| Critical Strike | 15% chance for double attack damage. |
+| Ninja Assist | 5% chance per attack to request the Ninja's equipped assist attack. A busy assist cannot overlap itself. |
+
+| Normal scalable upgrade | Per rank | Maximum ranks |
+| --- | --- | --- |
+| Attack Damage (`SamuraiHeavyBlade`) | +20/30/45% at Common/Rare/Epic | 5 |
+| Attack Speed (`SamuraiTempo`) | +10/15/22% at Common/Rare/Epic | 5 |
+| Area (`SamuraiArea`) | +15/25/40% at Common/Rare/Epic | 5 |
+| Bleed Duration (`LingeringWounds`) | +1 second | 3 |
+| Bleed Stacks per Hit (`Bloodletting`) | +1 stack | 5 |
+
+| Rare scalable upgrade | Per rank | Maximum ranks |
+| --- | --- | --- |
+| Max Bleed Stacks | +1 maximum stack | 5 |
+| Blood Transfer Area | +10% radius; applies to detonation radius when that tradeoff is owned | 5 |
+| Double Cut Frequency | One fewer attack; ranks yield 3/2/1 | 3 |
+| Critical Chance | +10 percentage points | 5 |
+| Echo Chance | +10 percentage points | 5 |
+| Assist Chance | +5 percentage points | 5 |
+
+Chance upgrades require their one-time unlocks. Blood Transfer Area requires Blood Transfer or Blood Detonation.
+
+Blood Shrine objectives offer these one-time tradeoffs only when Blood Stance is selected. They are excluded from normal and unrestricted rewards:
+
+- **Crimson Power**: +70% Bleed damage and -30% attack speed.
+- **Frenzied Blood**: +40% attack speed and -25% attack damage.
+- **Blood Detonation**: reaching maximum stacks consumes Bleed and immediately explodes for **200% of its remaining damage**, hitting the affected enemy and nearby valid enemies. Disables Blood Transfer. Transfer-area ranks increase the explosion radius. Explosion damage applies no Bleed.
+
+Tradeoff stat modifiers multiply after additive upgrades. The three tradeoffs can combine across Shrine rewards. In **BP_Samurai > AutoAttackComponent > Samurai > Blood Stance**, **Blood Echo VFX** and **Blood Echo Delay** control echo presentation.
+
+### Iaijutsu Stance: directional spectral dash attacks
+
+**Iaijutsu Stance** is one of the three mutually exclusive Samurai trial stances. Normal attacks create a spectral Samurai that uses the selected targeting mode and moves along an **800 cm** lane during a **1-second base charge**. A cyan ground indicator fills during the charge. At charge completion, the entire lane hits instantly, damaging each enemy currently inside once for full normal attack damage; no damage travels with the afterimage. Enemies that leave before completion escape the hit. A separate **0.5-second base cooldown** follows the charge. The real Samurai plays the Iaijutsu montage during the charge, with root motion disabled and no facing lock, and remains free to move or dash. During a normal charge, the lane follows the Samurai's current position and aim: Auto Targeting enabled aims at the nearest valid enemy, while disabled follows the cursor/controller aim, including empty space. Mouse aiming reads walkable ground and ignores mobs, pawn-owned weapons, and non-walkable sides of world geometry; empty space falls back to a plane at the active character's feet. Setting changes take effect during the charge. The indicator, spectral copy, vacuum, and final hitbox stay aligned; moving or turning does not restart the charge. Damage and Endpoint Burst use the final lane at release. Double Cut follows as one X with a shared midpoint and aim. If no valid target remains, the charge keeps its last direction while following the Samurai and still completes. Death Cascade retains its fixed victim origin and selected lane; Dash Draw retains the completed dash path.
+
+The slash lane has an **100 cm base half-width** (200 cm full width), scaled by Iaijutsu Width. Iaijutsu Damage and Iaijutsu Charge Speed scale hit damage and shorten charging. Shared Samurai damage, attack-speed and area investments convert into Iaijutsu Damage, Charge Speed and Width when this stance is chosen or a saved run is restored. Future offers use those forms and retain the existing ranks and bonuses. Global stat bonuses still apply; global attack speed shortens the cooldown. Iaijutsu itself applies no stat bonuses or penalties. Marked Blade works on its hits. Overkill Burst is temporarily disabled. Bleed and Blood-specific upgrades are unavailable. Blade Wave is a separate exclusive stance and cannot be acquired alongside Iaijutsu. Grand Entrance adds its existing circular strike when consumed. Tag Team retains its existing Samurai assist slash.
+
+The real Samurai plays `AM_SamuraiIaijutsu` once per normal attack, including Double Cut, fitted to the committed charge duration. **BP_Samurai > AutoAttackComponent > Samurai > Iaijutsu > Iaijutsu Montage** controls this animation; empty disables only the player presentation. The montage scales with **Charge Speed**, not ordinary attack-speed modifiers: its full length fits `ChargeDuration / (1 + Charge Speed bonus)`, with the slower-charge pact applied afterward. At the 1-second base charge, five ordinary +15% ranks yield about 0.57 seconds. Pre-stance Attack Speed ranks convert into Charge Speed when Iaijutsu is chosen; separate character/global attack-speed modifiers affect only the post-charge cooldown. Instant casts still hit immediately and play the montage at its authored speed. Root motion is disabled, and montage damage notifies cannot add a normal melee hit. The spectral character retains the original normal attack animation and spectral material, without gameplay notifies. Dash Draw and Death Cascade animate their spectral lanes without replaying the player montage or interrupting a dash; Endpoint Burst retains its separate spectral montage slot. The card temporarily reuses Double Cut artwork. Tune `DashDistance`, `ChargeDuration`, `Cooldown`, and `SlashRadius` on `/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuStance` under Runtime Balance. `Tools/add_iaijutsu.py` adds the card and pool reference while preserving all existing card tuning, with backups under `Saved/Backups/Iaijutsu`; `-ValidateIaijutsu` is read-only.
+
+In **BP_Samurai > AutoAttackComponent > Samurai > Iaijutsu**, assign **Iaijutsu Hit VFX** (Niagara) for the instant damage moment. It spawns once per slash at the lane center, oriented along the attack; optional parameters are `User.StartPosition` and `User.EndPosition` (vectors), `User.Length` and `User.Width` (floats, cm). The slot is empty by default. **Iaijutsu Indicator Color** defaults to cyan; **Iaijutsu Indicator Material** optionally replaces the enemy-style rectangle material. `Tools/update_iaijutsu_charge.py` applies the 1-second charge, 100 cm base half-width, and +25% width per rank to the saved cards with backups, preserving other tuning; `-ValidateIaijutsuCharge` is read-only.
+
+In **BP_Samurai > AutoAttackComponent > Samurai > Iaijutsu > Path Slashes**, **Iaijutsu Path Slash VFX** selects the release bursts (`NS_Slash_Iaijutsu` from the SlashesV1 folder). Five evenly spaced bursts progress along each final lane starting when damage resolves, including Double Cut, Dash Draw, Death Cascade and instant casts. The first appears immediately; the remaining bursts follow at **0.05-second intervals** (0.2 seconds from first to last). Each burst independently varies its local rotation by up to **?20? pitch, ?35? yaw and ?60? roll**. All gameplay damage still resolves immediately at charge completion. Nothing spawns during the charge. The bursts stay at the resolved world positions and finish independently of the attack actor. **Iaijutsu Path Slash Count**, **Scale**, and **Rotation** adjust density, size and base orientation; size also follows lane width. **Iaijutsu Path Slash Delay** controls spacing in time (zero makes them simultaneous); **Iaijutsu Path Slash Rotation Randomness** sets the maximum random angle on each axis (zero disables that axis). Short one-shot timers retain the final path after the attack actor is destroyed, and cosmetic randomness uses a separate stream from combat rolls. Clear the effect or set Count to zero to disable them. These are cosmetic and leave the separate center Hit VFX intact. `Tools/configure_iaijutsu_path_slashes.py` assigns the effect with a Blueprint backup under `Saved/Backups/IaijutsuPathSlashes`; `-ValidateIaijutsuPathSlashes` checks without writing. `HeavensDivide.Combat.IaijutsuPathVFX` checks release-only timing, delayed burst order, fixed final-lane placement, independent rotation bounds, zero-delay/zero-randomness behavior, particle emission and natural cleanup with rendering enabled.
+
+During charging, a gentle vacuum draws valid nearby enemies into the lane: **60 cm** beyond its edges (up to **105 cm** with Vacuum Reach), at **240 cm/s**, checked every 0.05 seconds within the existing slash presentation tick. The pull compensates for enemy movement away from the lane, so ordinary pursuit cannot overpower it; movement along the lane remains free. It uses the enemy movement system's sweep, respecting walls while allowing grounded capsules to move along the floor. Instant casts perform the pull at resolution. Enemies outside the small vacuum margin remain unaffected.
+
+Lane hits apply a separate **3-second Iaijutsu mark**, making enemies take **50% more damage** from subsequent damage, including Ninja attacks. Reapplying refreshes its duration without stacking copies. The applying hit does not benefit from its newly applied mark. Marked Blade remains a separate consumable effect; both use the existing mark indicator. Iaijutsu marks do not apply Bleed.
+
+| One-time upgrade | Effect |
+| --- | --- |
+| Death Cascade | An Iaijutsu attack that kills at least one enemy launches one follow-up from a killed enemy toward the nearest valid enemy within 800 cm. Cascaded attacks cannot trigger another cascade, including kills from their extra lanes or Endpoint Burst. An X attack triggers at most one follow-up. |
+| Double Cut | Every fourth Iaijutsu attack becomes two full-damage lanes, rotated +/-30 degrees around their common midpoint to form an X. Enemies in their intersection can take both hits. |
+| Flash Draw | 15% chance to resolve immediately without charging; normal attacks still have their cooldown. |
+| Endpoint Burst | 15% chance to add a full-damage circular hit at one lane endpoint, with a 250 cm radius. Can hit an enemy also hit by the lane and applies the Iaijutsu mark. |
+| Ninja Assist | Every second while Samurai autoattacks are enabled, a 5% chance to request Ninja's equipped assist. Uses a timer, with no component tick; a busy assist cannot overlap itself. Pauses with gameplay and stops when autoattacks stop. |
+| Dash Draw | +100% Samurai dash distance while Iaijutsu is equipped, with the same dash duration and charge cost. After a completed dash, charge a slash from its old position to its actual endpoint, including collision-shortened dashes. Does not consume or reset normal attack cooldown. Ninja dash distance is unchanged. |
+
+Normal, dash and kill-triggered attacks advance the Iaijutsu Double Cut counter and can roll instant cast and Endpoint Burst. Extra lanes do not separately advance the counter. Only normal attacks consume Grand Entrance or advance normal attack/Tag Team events. Kill follow-ups stop when Samurai is no longer active or autoattacks cannot run.
+
+| Normal scalable upgrade | Per rank | Maximum ranks |
+| --- | --- | --- |
+| Iaijutsu Damage | +20% Iaijutsu damage | 5 |
+| Iaijutsu Charge Speed | +15% charge speed; duration = base duration / (1 + total bonus) | 5 |
+| Iaijutsu Width | +25% lane width | 5 |
+| Mark Damage | +10 percentage points vulnerability | 5 |
+| Vacuum Reach | +15% vacuum reach; 60 cm base reaches 105 cm, without widening the damage lane | 5 |
+
+These are initial balance defaults. Each card exposes `PerRank` under Runtime Balance.
+
+| Rare scalable upgrade | Per rank | Maximum ranks |
+| --- | --- | --- |
+| Double Cut Frequency | One fewer attack; 3/2/1 | 3 |
+| Endpoint Burst Chance | +10 percentage points | 5 |
+| Instant Cast Chance | +10 percentage points | 5 |
+| Assist Chance | +5 percentage points per one-second roll | 5 |
+| Cascade Power | +20% Death Cascade attack damage, including its crossing lanes and Endpoint Burst | 5 |
+| Dash Draw Power | +20% Dash Draw attack damage, including its crossing lanes and Endpoint Burst | 5 |
+
+Rare upgrades require their respective one-time unlocks. Cascade Power requires Death Cascade; Dash Draw Power requires Dash Draw. Their bonuses are separate: dash damage does not carry into a cascade, and cascades still cannot chain. All 20 upgrades require Iaijutsu; Blood Double Cut and its counter remain separate.
+
+**Blood Shrine rewards for Iaijutsu Stance only**, excluded from ordinary and unrestricted offers:
+
+- **Focused Malice:** +100% mark damage bonus (doubles vulnerability after Mark Damage ranks; base +50% becomes +100%), -20% lane width. Mutually exclusive with Relentless Steps.
+- **Patient Blade:** +50% Iaijutsu damage, +30% charge duration (slower). Both multiply after scalable bonuses.
+- **Relentless Steps:** marks no longer increase damage taken. A marked enemy's death from any source reduces the current dash recharge by 0.3 seconds, including lethal applying hits. Finishing that recharge grants one charge; excess reduction does not carry into another charge. Existing Mark Damage ranks convert one-for-one into Iaijutsu Damage, and Mark Damage stops appearing in offers. Mutually exclusive with Focused Malice.
+
+Tradeoff conversions preserve existing damage strength, mastery and the damage card's five-rank ceiling; if merged investments exceed that ceiling, all already purchased bonus strength is retained. Older saves containing both Iaijutsu pacts retain Relentless Steps and convert the ineffective Focused Malice purchase into one damage rank, removing its width penalty. Repeated saves/restores do not repeat the conversion.
+
+In **BP_Samurai > AutoAttackComponent > Samurai > Iaijutsu**, assign **Iaijutsu Endpoint Montage** for the spectral Samurai at the endpoint when Endpoint Burst procs. This is presentation only, with gameplay animation notifies suppressed; damage works even when the slot is empty. The slot is empty by default.
+
+`Tools/overhaul_iaijutsu.py` authors the 20 upgrades and pool entries, reusing Iaijutsu artwork. Existing card tuning is preserved, backups go under `Saved/Backups/IaijutsuBuild`, and `-ValidateIaijutsuBuild` checks the 106-card catalog without writing. `-UpdateIaijutsuCascade` updates only Death Cascade's saved description for the one-follow-up rule. Stance Runtime Balance exposes `VacuumReach`, `VacuumSpeed`, `MarkBonus`, and `MarkDuration` alongside the existing lane/timing values. Proc cards expose `Chance`, and Endpoint Burst also exposes `Radius`.
+
+Dash Draw exposes `DashDistanceBonus` (1.0 = +100%) on `DA_Upgrade_SamuraiIaijutsuDash`. Its distance is committed when the dash begins and does not modify the controller's base dash distance. `Tools/update_iaijutsu_dash.py` updates only this card with a backup; `-ValidateIaijutsuDash` validates without writing.
+
+Implementation: `SamuraiIaijutsu.cpp`, `SamuraiAutoAttack.cpp`, `IaijutsuBuild.h`, `EnemyBase.cpp`, and dash hooks in `SurvivorPlayerController.cpp`. Regression coverage: `HeavensDivide.Combat.Iaijutsu`, `SamuraiBuilds`, and `TrialBuildRewards`.
+
+### Disabled overkill upgrades (retained for future reuse)
+
+**Overkill Burst (`OverkillBurst`)** is temporarily disabled, along with **Expanding Ruin**. Their retained behavior is described below. Direct normal melee and Blade Wave kills explode for their excess damage within **220 cm**, scaling with Samurai area. A hit dealing 150 damage to a 40-HP enemy creates a 110-damage explosion. Exact kills with no overkill create no explosion.
 
 Assists, Bleed, explosion kills and other proc damage cannot start an explosion. Each directly killed melee target can produce its own burst. Explosion damage respects enemy source restrictions and does not apply Bleed.
 
 - **Expanding Ruin (`BurstRadius`)**: +12/18/25% explosion radius per Common/Rare/Epic rank, up to 5 ranks. Requires Overkill Burst.
-- Continue scaling with **Heavy Blade**, Samurai area and **Double Cut**. Double Cut's committed follow-up is another normal attack and can create its own overkill burst.
+- Continue scaling with **Attack Damage** and Samurai area. Blood Stance's Double Cut and echoes can also create direct-hit overkill bursts.
 
-### Blade Wave: narrow, frequent attacks
+### Crescent Stance: waves and slow
 
-Unlock **Blade Wave** separately. Blade Wave Stance increases its inherited attack damage and frequency while reducing both melee reach and wave width. Dedicated width upgrades can compensate gradually.
+**Crescent Stance** replaces normal melee attacks with traveling blade waves, fired directly by the existing attack timer. The character alternates `AM_SamuraiBladeWave` and `AM_SamuraiBladeWave2`, creates no normal melee hitbox, and remains free to move. Auto-targeting selects the nearest valid enemy within the upgraded wave travel range; cursor aiming keeps its chosen direction. The normal attack interval is unchanged. Wave hits apply **30% slow for 5 seconds**. Reapplication refreshes the duration; copies do not stack. Split waves also apply the slow. Movement uses the current slow multiplier without adding an enemy tick or changing its underlying movement speed.
 
-**Wave Volley (`WaveMultishot`)** adds one additional wave per committed swing per rank, up to three ranks. Waves retain their normal damage, width and returning behavior. Ordinary volleys use an 8-degree spacing. Crossing Blades adds its extra crossing waves on every third swing: with all three Wave Volley ranks, ordinary swings launch 4 waves and crossing swings launch 6.
+In **BP_Samurai > AutoAttackComponent > Samurai > Blade Wave**, **Crescent Montage** and **Crescent Alternate Montage** select the alternating animations. Playback uses the existing attack-interval animation scaling. The visual faces the committed wave direction without a facing lock; root motion is suppressed. These montages are presentation only: waves fire at attack start, and animation notifies cannot add melee damage or duplicate waves. Dash, swap and combo transitions can interrupt the animation. Leaving either slot empty uses the other; leaving both empty still fires waves. Assists retain the normal Samurai assist montage.
 
-**Quickened Cuts (`SamuraiTempo`)** is a mixable Samurai attack-speed card: +10/15/22% per Common/Rare/Epic rank, up to 5 ranks. It supports Blood or Blade Wave, or partly offsets Execution's slower cadence without removing its multiplier.
+All three stance montages are in `/Game/HeavensDivide/Blueprints/PlayerCharacters/Montages/Samurai`. `Tools/configure_stance_montages.py` assigns them on the saved Samurai Blueprint, preserving Blood/assist and Endpoint Burst montage settings, with backups under `Saved/Backups/StanceMontages`; `-ValidateStanceMontages` is read-only.
 
-## Blade Wave (`BladeWave`)
+Shared Samurai damage, attack-speed and area investments convert into Wave Damage, Wave Speed and Wave Range when Crescent is selected or a saved run is restored. Their ranks and bonuses carry over. Future offers use these Crescent forms in normal offers, unrestricted rewards and repeat trials. Global stat bonuses still apply. Returning Blade is enabled with the behavior below; the other legacy wave branches and scaling cards remain disabled.
 
-Samurai's basic melee attacks launch traveling blade waves through the existing attack notify path. The original seven family cards remain, alongside the new Wave Volley card:
+| One-time upgrade | Effect |
+| --- | --- |
+| Double Cut | Every fourth committed attack fires four full-damage waves in a **+ pattern**, oriented forward/right/back/left. Each retains the wave upgrades. |
+| Splitting Waves | **15%** chance on each wave's first successful hit to spawn two smaller waves at +/-35 degrees. Each deals **50% damage**, with **60% width and range**. Children cannot split again or immediately hit their triggering enemy. |
+| Lingering Wake | Each primary wave has a **15%** chance to leave one continuous stationary strip along its **whole outbound path, from launch to its actual endpoint**, using its scaled width and height and including the wave hitbox at both ends. It appears when outbound travel ends; early hits do not shorten it. Split waves inherit their parent's success or failure without rerolling; successful children leave their own narrower full-path strips. Base duration **3 seconds** and damage **30% of its wave damage basis per second**. |
+| Ninja Assist | Kills while Samurai is active in Crescent have a **5%** chance to request Ninja's equipped assist. Includes melee, wave, field and other kills during that stance. Busy assists cannot overlap. Uses the death event, with no polling or tick. |
+| Returning Blade | Primary waves return to their committed launch point for a second pass at **50% damage**. Each enemy can be hit once per pass. Split children do not return. |
+| Arc Volley | Attacks have a **15%** chance to fire three waves in a **40-degree arc**. On Double Cut, each of the four directions becomes a fan, producing twelve waves. |
 
-- **Blade Wave:** unlock the attack-triggered wave.
-- **Returning Blade:** waves return for another hit pass.
+Each wave has only one split roll and one field opportunity across both passes. A successful field proc commits its entire outbound strip before returning; its first return hit can still use its unused split roll. Split children inherit the parent's original field result, even when first created during the return after its field has spawned. Returning Blade applies to Double Cut and Arc Volley primary waves. There is no Crescent cascade upgrade. Double Cut advances once per committed normal attack; assists and child waves do not advance its counter. Split and arc waves preserve the committed attack's damage, speed and range scaling. Ground-motion slowdown stretches with range and speed so a slower wave does not lose its configured reach.
+
+| Normal scalable upgrade | Per rank | Maximum ranks |
+| --- | --- | --- |
+| Wave Damage | +20% wave damage; also increases the field damage basis | 5 |
+| Wave Speed | +20% travel speed; does not change attack frequency | 5 |
+| Wave Range | +20% travel range | 5 |
+| Increased Slow | +5 percentage points; 30% base reaches 55% | 5 |
+| Slow Duration | +1 second; 5-second base reaches 10 seconds | 5 |
+
+| Rare scalable upgrade | Per rank | Maximum ranks |
+| --- | --- | --- |
+| Double Cut Frequency | One fewer attack; 3/2/1 | 3 |
+| Field Duration & Damage | +15% duration and total damage; damage per second unchanged | 5 |
+| Split Chance | +15 percentage points; maximum 90% total | 5 |
+| Assist Chance | +5 percentage points; maximum 30% total | 5 |
+| Arc Volley Chance | +10 percentage points; maximum 65% total | 5 |
+| Wake Chance | +5 percentage points per primary wave; maximum 40% total; split waves inherit the result | 5 |
+
+Rare cards require their corresponding one-time unlocks. Field damage uses timers, including a final partial tick when needed. Fields retain Samurai damage-source restrictions and do not apply slow, split or create more fields. Fields and waves already spawned persist through swaps.
+
+Fields sweep the wave's rectangular hitbox from its ground-adjusted launch position to its actual outbound endpoint. The resulting strip is centered halfway along that path, aligned with travel, and retains the wave's scaled width and end-cap thickness. It uses actual distance travelled rather than configured range, so shortened travel cannot damage ground ahead. The strip stays fixed after the wave disappears or returns. Its full duration starts when outbound travel ends; Sudden Eruption waits 0.3 seconds from that point. Normal pulses and eruptions cover the same full strip; neither spawns a separate ground indicator. One field damage budget applies per target, regardless of strip length; returns create no duplicate field.
+
+The wave's crescent and glowing ground line always remain visible. Its three ground-debris layers appear only when that wave successfully procs **Lingering Wake**; owning the upgrade alone does not enable debris. Split waves inherit their parent's field result and debris state without rerolling. Returning waves retain the original proc result, including after their field has spawned, without rerolling. The field has no blue decal, rectangle or eruption flash. Its only persistent ground visual is the Niagara debris deposited along the wave path. The two stationary debris layers remain visible for the whole field lifetime (3 seconds base, 5.25 seconds with all duration ranks) and disappear when the field ends; Sudden Eruption clears them when it erupts after 0.3 seconds. Returning waves reuse the deposited ground trail rather than laying a second one. Air debris keeps its authored animation. See [Blade Wave ground slash](BladeWaveGroundSlash.md) for presentation tuning.
+
+**Blood Shrine rewards for Crescent only**, excluded from ordinary and unrestricted rewards:
+
+- **Scorched Wake:** +50% ground field damage, -30% direct wave damage. Requires Lingering Wake.
+- **Crushing Tide:** +50% direct wave damage, -50% wave travel speed.
+- **Sudden Eruption:** Crescent hits no longer apply slow. Fields wait **0.3 seconds**, then erupt for all damage they would have dealt over their full duration. Requires Lingering Wake. Existing Increased Slow and Slow Duration ranks convert one-for-one into Wave Damage, and both slow upgrades stop appearing in offers. Conversion preserves invested strength and mastery, including in older saves.
+
+Field Duration & Damage increases the total damage budget only once: five ranks give **5.25 seconds and 175% total damage**, with unchanged DPS. Sudden Eruption uses the same total. Scorched Wake multiplies the result by 1.5, giving 262.5% of the unupgraded field's total damage at maximum field ranks.
+
+Tradeoffs combine multiplicatively. The direct-wave damage tradeoffs do not change the damage basis of the field, so Scorched Wake grants its full field benefit. Existing slows expire normally after acquiring Sudden Eruption.
+
+`Tools/overhaul_crescent.py` authors the 20 upgrades and controller pool references, reusing Crescent artwork and preserving existing card tuning. Backups are under `Saved/Backups/CrescentBuild`; `-ValidateCrescent` checks the 106-card pool without writing. Edit `SlowFraction` and `SlowDuration` on the Crescent stance asset; the new cards expose `Chance`, `PerRank`, split ratios, field `Duration`, and `DamagePerSecond` under Runtime Balance. Field dimensions come from the wave; the obsolete field `Radius` setting is removed. Lingering Wake's **Runtime VFX** accepts the existing presentation settings for a custom field effect. Optional Niagara parameters are `User.HalfExtents` (vector) and `User.Length`, `User.Width`, `User.Height` (floats, cm); effects are oriented to the wave.
+
+`Tools/update_crescent_field_shape.py` updates Lingering Wake's completed-path and split-inheritance description, Wake Chance's description, and removes only the obsolete field radius, with backups under `Saved/Backups/CrescentFieldShape`; `-ValidateCrescentFieldShape` is read-only. `CrescentBuilds` checks full-path coverage at the launch point, middle and endpoint, shortened travel, inherited split strips, return deduplication, rotated/scaled/elevated boxes, fixed placement, and identical pulse/eruption coverage. Damage and duration tuning are preserved.
+
+`Tools/update_crescent_waves.py` migrates the saved stance to 30% slow and updates its descriptions, preserving other tuning with backups under `Saved/Backups/CrescentWaves`; `-ValidateCrescentWaves` is read-only. Grand Entrance keeps its separate circular proc on wave launch. Samurai Tag Team retains its existing assist slash.
+
+Implementation: `CrescentBuild.cpp`, `AutoAttackComponent.cpp`, `SamuraiAutoAttack.cpp`, `SamuraiBladeWave.cpp`, `SamuraiWaveField.cpp`, `SamuraiBuildUpgrades.cpp`, `EnemyBase.cpp`, and `EnemyLightweightMovementComponent.cpp`. Regression coverage: `HeavensDivide.Combat.CrescentBuilds`, `SamuraiBuilds`, `TrialBuildRewards`, and `GroundSlashMotion`.
+
+## Legacy Blade Wave supports (`BladeWave`)
+
+With Crescent Stance, Samurai automatically launches traveling blade waves directly from the attack timer, accompanied by alternating stance montages. Emission needs no animation notify and deals no normal melee damage. The original seven family cards and Wave Volley remain saved for compatibility. The stance and Returning Blade are active; the other support cards listed below are disabled and replaced by the Crescent upgrades above:
+
+- **Crescent Stance:** exclusive trial stance that unlocks the attack-triggered wave.
+- **Returning Blade (enabled):** primary waves return to their launch point at 50% damage, with the proc limits described above.
 - **Crossing Blades:** every third swing launches three crossing waves, plus acquired Wave Volley waves. This proc staggers its waves by 0.12 seconds so they are visibly separate. Tune **BP_Samurai > AutoAttackComponent > Samurai > Blade Wave > Crossing Blade Wave Delay**; zero restores simultaneous spawning. Pending waves retain the committed swing's origin, aim and damage, and are cancelled when autoattacks stop (such as swapping or starting the combo ability). Ordinary Wave Volley swings keep their simultaneous fan.
-- **Splinter Wave:** the first enemy hit on each wave pass sheds a small 30%-damage Bleed burst.
+- **Splinter Wave:** the first enemy hit on each wave pass sheds a small 30%-damage burst that applies no Bleed.
 - **Force (`BladeWavePower`):** increase wave damage.
 - **Wide Arc (`WideArc`):** increase wave width and damage.
 - **Velocity (`BladeWaveHaste`):** increase wave travel speed; does not change basic attack frequency.
 
-Branches combine and require Blade Wave. The three scaling cards have five ranks. Force grants 20/30/45%, Wide Arc 12/18/25%, and Velocity 10/15/22% at Common/Rare/Epic rarity; magnitudes add across ranks.
+The following tuning is retained for future reuse. Disabled branches combine and require Blade Wave when re-enabled. The three scaling cards have five ranks. Force grants 20/30/45%, Wide Arc 12/18/25%, and Velocity 10/15/22% at Common/Rare/Epic rarity; magnitudes add across ranks.
 
 ## Ninja weapon routes
 
@@ -114,7 +300,7 @@ Ninja's Tag Team attack uses her equipped stance and attack upgrades: Great Shur
 
 Prepare has been removed: Blade Wave no longer marks targets, and assists grant no reaction bonus damage or status spreading. The four Prepare skill-tree passives are retired; their paid ranks are refunded on profile load, while surviving skills remain connected.
 
-Ninja selects targets around her upcoming assist position beside the active Samurai. At the throw notify, she selects a new target if the original one has died or left range. Samurai assists apply Bleed only with Bleeding Edge; Ninja assists apply Poison only with Venomous Kunai.
+Ninja selects targets around her upcoming assist position beside the active Samurai. At the throw notify, she selects a new target if the original one has died or left range. Samurai assists apply Bleed only with Blood Stance; Ninja assists apply Poison only with Venomous Kunai.
 
 ## Shared synergy upgrade: Grand Entrance
 
@@ -131,7 +317,7 @@ Balance is editable on `/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEnt
 
 ## Preview and maintenance
 
-In a non-shipping build, `BuildPreview BladeWave` grants its starter, all branches and rank-2 scaling. `BuildPreview BladeWave 1` selects only its first branch; use 2 or 3 for the others. `BuildPreview All` and the legacy `AbilityShowcase` command now preview only Blade Wave. These commands affect the current run only.
+In a non-shipping build, `BuildPreview BladeWave` grants Crescent Stance and can grant the enabled Returning Blade branch. Other legacy branch arguments cannot grant temporarily disabled support cards. `BuildPreview All` and the legacy `AbilityShowcase` command now preview only Blade Wave. The Blade Wave preview respects stance exclusivity and cannot replace Iaijutsu Stance or Blood Stance. These commands affect the current run only.
 
 - `Tools/build_family_catalog.json`: Blade Wave is the only available family. Retired entries retain their stable internal indices for compatibility and stale-ID rejection.
 - `Tools/generate_build_catalog.py`: regenerates the runtime catalog.
@@ -143,13 +329,15 @@ Normal-attack execution and Blade Wave still use `AutoAttackComponent` and `Samu
 
 ## Samurai build authoring
 
-- `Tools/samurai_build_upgrades.json`: stance values, seven new mixable cards, prerequisites and scaling.
-- `Tools/configure_samurai_builds.py`: authors those ten cards and updates the saved controller pool; use `-ValidateSamuraiBuilds` for read-only validation.
-- New cards reuse matching Samurai illustrations from the existing CardArt2 set.
-- `SamuraiBuildUpgrades.cpp`: finite Bleed transfer and direct-hit overkill explosions. Both use bounded nearby queries and existing combat ring visuals.
-- `HeavensDivide.Combat.SamuraiBuilds`: verifies saved cards, stance exclusivity/scaling/restoration, Bleed transfer budgets, lethal ticks, real melee explosions and actual wave spawns.
+`Tools/samurai_stance_expansion.json` defines the eight additions/re-enabled cards. `Tools/complete_samurai_stance_trees.py` adds the seven new assets, re-enables and balances Returning Blade, and updates Sudden Eruption text with backups under `Saved/Backups/SamuraiStanceTrees`. `-ValidateSamuraiTrees` checks the 106-card pool, 98 enabled cards, all three 21-card trees and their 6/5/6/3 categories without writing. Other upgrade assets and their tuning are preserved. `HeavensDivide.Combat.SamuraiTreeStructure` covers tree counts, prerequisites, rank caps, ordinary offers, stale-reference rejection and restoration.
 
-These are starting balance values and need playtesting against the current enemy waves.
+`Tools/balance_samurai_upgrades.py` updates the three Double Cut Frequency caps and tradeoff/field descriptions with backups under `Saved/Backups/SamuraiBalance`; `-ValidateSamuraiBalance` is read-only. All three frequency cards cap at three ranks, reaching every attack. Old fourth ranks clamp to three on restoration without changing attack behavior or mastery. `HeavensDivide.Combat.SamuraiStanceBalance` covers caps, stale references, tradeoff conversions, offer exclusions and save restoration; `CrescentBuilds` checks actual field and eruption damage at every rank.
+
+`Tools/overhaul_blood_stance.py` authors the current Blood cards and stance display names, preserves unrelated card tuning, and removes retired Bleeding Edge/Deep Cuts references from the pool. Backups are under `Saved/Backups/BloodStance`. `-ValidateBloodStance` validates the 106-card pool without writing. New cards reuse existing Samurai illustrations.
+
+`Tools/samurai_build_upgrades.json` remains the seed catalog for the earlier shared supports. `Tools/configure_samurai_builds.py` forwards to the current Blood authoring workflow. Runtime behavior is in `SamuraiAutoAttack.cpp`, `SamuraiBuildUpgrades.cpp`, and `EnemyStatusEffectComponent.cpp`; Shrine routing is in `PlayerUpgradeComponent.cpp` and `SurvivorPlayerController.cpp`.
+
+`HeavensDivide.Combat.SamuraiBuilds` covers exclusivity, stack caps and refresh, damage totals, transfers, detonation, Double Cut frequency, Shrine routing, disabled-card rejection, and base wave spawning. Balance still needs playtesting.
 
 ## Ninja testing and authoring
 
@@ -170,7 +358,7 @@ Each route preview grants its stance, its branch cards and the Embedded Blades p
 
 The old Cleaver, Duelist and Deathblow technique cards are removed. The first Samurai trial rewards a stance; after choosing one, later Samurai trials offer eligible upgrades from the current Samurai build pool. The old technique effects cannot activate from stale run data.
 
-The 22 retained Samurai cards are the ten route cards; Bleeding Edge, Deep Cuts, Heavy Blade, Area and Double Cut; and the seven original Blade Wave cards. Shared synergies and Ninja/global upgrades remain available. Existing tuned card assets are preserved without rewriting their values.
+There are 71 Samurai-owned cards (63 enabled), including three Shrine-only tradeoffs for each of Blood, Iaijutsu and Crescent. Bleeding Edge and Deep Cuts are retired; Blood Stance now grants Bleed. Shared synergies and Ninja/global upgrades remain available. Existing tuned card assets are preserved without rewriting their values.
 
 `Tools/remove_legacy_samurai_techniques.py` removes the three legacy assets and verifies retained card file hashes. Backups and hashes are under `Saved/Backups/LegacySamuraiCleanup`. Their shared artwork is retained because current build cards reuse it.
 
@@ -180,7 +368,7 @@ The 22 retained Samurai cards are the ten route cards; Bleeding Edge, Deep Cuts,
 
 Shadow Clones use the Ninja's current weapon: Barrage/normal projectiles, Great Shuriken, or an independent Returning Fang that returns to the clone. Multiple Strikes increases the attack quota. A Fang round trip counts as one attack and immediately relaunches while attacks remain; Afterimage Frenzy increases its travel speed. Barrage counters belong to each clone. Clone attacks do not spend Grand Entrance or advance the player's attack counters.
 
-Open `/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaGreatShuriken` and edit **Runtime Balance > Balance Parameters > TravelSpeed** (cm/s, default 900). This directly controls player and clone shuriken speed, independently of normal kunai speed. Grinding Halt can still briefly slow a blade. The stance's old projectile-speed stat modifier no longer determines giant shuriken travel speed.
+Open `/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaGreatShurikenStance` and edit **Runtime Balance > Balance Parameters > TravelSpeed** (cm/s, default 900). This directly controls player and clone shuriken speed, independently of normal kunai speed. Grinding Halt can still briefly slow a blade. The stance's old projectile-speed stat modifier no longer determines giant shuriken travel speed.
 
 `Tools/restore_ninja_poison.py` restores the original poison starter from the cleanup backup and re-adds it to the saved pool, preserving other card tuning.
 
@@ -196,6 +384,6 @@ Ninja Tag Team hits apply poison only when **Venomous Kunai** is acquired, inclu
 
 ## Trial reward routing
 
-The six build starters remain in the shared catalog for save restoration, prerequisites, mastery, and debug previews, but regular offers filter them out. Character trials offer only eligible starters while a route is unchosen, then fall back to that character's ordinary eligible cards. Branches and support upgrades stay in the normal pool; Blade Wave itself, Bleeding Edge, and Overkill Burst are still separate mixable upgrades. Existing runs keep their acquired routes. No upgrade asset balance values are changed.
+The six build starters remain in the shared catalog for save restoration, prerequisites, mastery, and debug previews, but regular offers filter them out. Character trials offer only eligible starters while a route is unchosen, then fall back to that character's ordinary eligible cards. Eligible branches and support upgrades stay in the normal pool. Overkill and legacy Crescent support upgrades are temporarily disabled. Each stance offers only its own upgrade set, including its Shrine tradeoffs. The shared Samurai damage/speed/area investments are available before stance selection and convert into the selected stance's forms without losing ranks. Old Samurai routes are normalized as described above. Existing wave, Iaijutsu, and support-card tuning is preserved.
 
 Implementation: PlayerUpgradeComponent.cpp. Regression coverage: HeavensDivide.Combat.TrialBuildRewards (both characters, all six route selections, normal/direct offer exclusion, exclusivity, and repeat-trial rewards).

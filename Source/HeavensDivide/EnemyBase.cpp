@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyBase.h"
+#include "CrescentBuild.h"
 #include "EliteRewardChest.h"
 #include "TesterBalanceSettings.h"
 
@@ -16,6 +17,8 @@
 #include "EnemyHealthBarWidget.h"
 #include "EnemyLightweightMovementComponent.h"
 #include "EnemyMarkIndicatorWidget.h"
+#include "PlayerUpgradeComponent.h"
+#include "SurvivorPlayerController.h"
 #include "EnemyStatusEffectComponent.h"
 #include "EnemyStatusIndicatorWidget.h"
 #include "ExperiencePickup.h"
@@ -311,6 +314,42 @@ bool AEnemyBase::IsStressTestInvulnerable() const
 	return bIsStressTestEnemy && bStressTestInvulnerable;
 }
 
+void AEnemyBase::ApplyCrescentSlow(float Fraction, float Duration)
+{
+    if (IsDead() || !GetWorld()) return;
+    const float Previous = GetWorld()->GetTimeSeconds() < CrescentSlowExpiry ? CrescentSlowFraction : 0.f;
+    CrescentSlowFraction = FMath::Max(Previous, FMath::Clamp(Fraction, 0.f, .8f));
+    CrescentSlowExpiry = GetWorld()->GetTimeSeconds() + FMath::Max(.01f, Duration);
+}
+float AEnemyBase::GetCrescentMovementMultiplier() const
+{
+    return GetWorld() && GetWorld()->GetTimeSeconds() < CrescentSlowExpiry ? 1.f - CrescentSlowFraction : 1.f;
+}
+
+bool AEnemyBase::HasIaijutsuMark() const
+{
+    return !IsDead() && GetWorld() && GetWorld()->GetTimeSeconds() < IaijutsuMarkExpiry;
+}
+
+float AEnemyBase::GetIaijutsuDamageMultiplier() const
+{
+    const auto* Source = IaijutsuMarkSource.Get();
+    const bool bRefund = bIaijutsuDashRefund || (Source && Source->HasUpgradeId(TEXT("IaijutsuDashPact")));
+    return HasIaijutsuMark() && !bRefund ? 1.f + IaijutsuMarkBonus : 1.f;
+}
+
+void AEnemyBase::ApplyIaijutsuMark(UPlayerUpgradeComponent* Source, float Bonus, float Duration, bool bDashRefund)
+{
+    if (IsDead() || !GetWorld()) return;
+    IaijutsuMarkSource = Source;
+    IaijutsuMarkBonus = FMath::Max(0.f, Bonus);
+    bIaijutsuDashRefund = bDashRefund;
+    IaijutsuMarkExpiry = GetWorld()->GetTimeSeconds() + FMath::Max(.01f, Duration);
+    GetWorldTimerManager().SetTimer(IaijutsuMarkTimer, FTimerDelegate::CreateWeakLambda(this, [this]
+    { IaijutsuMarkExpiry = 0; UpdateMarkIndicatorVisibility(); }), FMath::Max(.01f, Duration), false);
+    UpdateMarkIndicatorVisibility();
+}
+
 bool AEnemyBase::IsMarked() const
 {
 	return bIsMarked;
@@ -407,7 +446,7 @@ bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource Attac
 	}
 
 	const float PreviousHealth = HealthComponent->GetCurrentHealth();
-	HealthComponent->ApplyDamage(DamageAmount);
+	HealthComponent->ApplyDamage(DamageAmount * GetIaijutsuDamageMultiplier());
 	return HealthComponent->GetCurrentHealth() < PreviousHealth;
 }
 
@@ -758,9 +797,17 @@ void AEnemyBase::HandleDeath()
 	if (GetMesh() && GetMesh()->GetAnimInstance()) GetMesh()->GetAnimInstance()->Montage_Stop(0.0f);
 	if (StatusEffectComponent)
 	{
+		StatusEffectComponent->GrantBloodRushOnDeath();
 		StatusEffectComponent->TransferBleedOnDeath();
 		StatusEffectComponent->ClearAllStatuses();
 	}
+    if ((bIaijutsuDashRefund || (IaijutsuMarkSource.IsValid() && IaijutsuMarkSource->HasUpgradeId(TEXT("IaijutsuDashPact"))))
+        && GetWorld() && GetWorld()->GetTimeSeconds() < IaijutsuMarkExpiry)
+        if (auto* Source = IaijutsuMarkSource.Get())
+            if (auto* PC = Cast<ASurvivorPlayerController>(Source->GetOwner())) PC->ReduceDashRecharge(.3f);
+    IaijutsuMarkExpiry = 0;
+    GetWorldTimerManager().ClearTimer(IaijutsuMarkTimer);
+	CrescentBuild::TryKillAssist(GetWorld());
 	OnEnemyDied.Broadcast(this);
 	if (bIsBloodbound)
 	{

@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 import unreal as u
 
-upgrade = u.load_asset('/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave')
+upgrade = u.load_asset('/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance')
 system = upgrade.get_editor_property('presentation').get_editor_property('pulse_system')
 assert system.get_path_name().split('.')[0] == '/Game/HeavensDivide/VFX/NS_GroundSlash_BladeWave'
 source = Path(u.Paths.project_content_dir(), 'HeavensDivide/VFX/NS_GroundSlash_BladeWave.uasset')

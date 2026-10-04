@@ -77,6 +77,7 @@ public:
 
 private:
 	friend class FMetaSkillTreeTest;
+	friend class FDraftToolsTest;
 #if WITH_DEV_AUTOMATION_TESTS
 	bool bSimulateSaveFailure = false;
 #endif

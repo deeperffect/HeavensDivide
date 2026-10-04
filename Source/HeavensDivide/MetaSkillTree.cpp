@@ -45,6 +45,8 @@ const TArray<FMetaSkillNode>& MetaSkillTree::Nodes()
 		Add(TEXT("Bond.Rhythm"), TEXT("Heaven Undivided"), TEXT("+8% basic attack speed for both characters."), 3,3,1,TEXT("Bond.Relay"),TEXT("Attack"),.08f,1);
 		Result[26].Prerequisites.Append({FName(TEXT("Steel.Power")), FName(TEXT("Shadow.Power"))});
 		Result[27].Prerequisites.Append({FName(TEXT("Steel.Wounds")), FName(TEXT("Shadow.Toxin"))});
+		Add(TEXT("Bond.Reroll"), TEXT("Reroll"), TEXT("Unlock 3 rerolls per run. Replace your level-up upgrade choices."), 3,2,0,TEXT("Bond.Flow"),TEXT("Reroll"),3,1);
+		Add(TEXT("Bond.Banish"), TEXT("Banish"), TEXT("Unlock 2 banishes per run. Replace a chosen upgrade and remove it from future offers for that run."), 3,2,1,TEXT("Bond.Relay"),TEXT("Banish"),2,1);
 		for (FMetaSkillNode& N : Result)
 		{
 			if (N.Effect == TEXT("Health")) N.SharedStat = ESharedPlayerStatType::MaxHealthMultiplier;

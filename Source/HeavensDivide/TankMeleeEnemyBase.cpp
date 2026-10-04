@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "TankMeleeEnemyBase.h"
+#include "CombatAudio.h"
 #include "BossGroundTelegraph.h"
 #include "Materials/Material.h"
 #include "UObject/ConstructorHelpers.h"
@@ -290,6 +291,7 @@ void ATankMeleeEnemyBase::HandleAttackCommitted()
 		return;
 	}
 
+	UCombatAudioLibrary::PlayEvent(this, WindupAudioEvent, GetActorLocation());
 	Super::HandleAttackCommitted();
 	StartWindupFacingTracking();
 	ShowAttackTelegraph();
@@ -330,6 +332,7 @@ void ATankMeleeEnemyBase::ExecuteAttackHit()
 		return;
 	}
 
+	UCombatAudioLibrary::PlayEvent(this, ImpactAudioEvent, GetActorLocation());
 	ACharacterBase* ActivePlayerCharacter = ObservedCharacterManager->GetActiveCharacter();
 	if (!ActivePlayerCharacter)
 	{

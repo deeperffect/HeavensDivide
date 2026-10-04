@@ -165,9 +165,10 @@ bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase *Character)
                Definition ? &Definition->Presentation : nullptr);
         if (!Enemy->IsDead())
         {
-            if (Upgrades->HasUpgradeId(bSamurai ? TEXT("BleedingEdge") : TEXT("VenomousKunai")))
+            if (Upgrades->HasUpgradeId(bSamurai ? TEXT("BattleStance") : TEXT("VenomousKunai")))
                 Enemy->GetStatusEffectComponent()->ApplyStatus(
-                    bSamurai ? EEnemyStatusEffect::Bleed : EEnemyStatusEffect::Poison, Upgrades, Source);
+                    bSamurai ? EEnemyStatusEffect::Bleed : EEnemyStatusEffect::Poison, Upgrades, Source, false,
+                    (bSamurai ? AssistTune(TEXT("SamuraiDamage"), 12) : AssistTune(TEXT("NinjaDamage"), 10)) * Power(Character));
             if (bSamurai)
             {
                 if (Upgrades->HasUpgradeId(TEXT("MarkedBlade")))

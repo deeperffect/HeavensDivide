@@ -137,7 +137,9 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 	}
 
 	const FVector StartLocation = Owner->GetActorLocation();
-	const FVector DesiredDelta = MoveDirection * MoveSpeed * DeltaTime;
+	const auto* Enemy = Cast<AEnemyBase>(Owner);
+    const float StatusSpeed = Enemy ? Enemy->GetCrescentMovementMultiplier() : 1.f;
+    const FVector DesiredDelta = MoveDirection * MoveSpeed * StatusSpeed * DeltaTime;
 	FVector DesiredLocation = StartLocation + DesiredDelta;
 	DesiredLocation.Z = SpawnZ;
 

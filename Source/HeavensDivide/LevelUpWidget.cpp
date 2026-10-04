@@ -21,6 +21,14 @@
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
 
+void ULevelUpWidget::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+	// Build the root before Slate caches it when the controller adds the screen to the viewport.
+	EnsureSynergyDiscoveryPresentation();
+	RefreshDraftTools();
+}
+
 void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayerController)
 {
 	SurvivorPlayerController = InPlayerController;
@@ -161,6 +169,7 @@ void ULevelUpWidget::MoveControllerFocus(int32 Direction)
 
 void ULevelUpWidget::RefreshControllerFocus()
 {
+	RefreshDraftTools();
 	const int32 ChoiceCount = GetVisibleChoiceCount();
 	ControllerFocusedChoiceIndex = ChoiceCount > 0 ? FMath::Clamp(ControllerFocusedChoiceIndex, 0, ChoiceCount - 1) : 0;
 	RebuildFocusableChoices();
@@ -177,13 +186,14 @@ void ULevelUpWidget::RefreshControllerFocus()
 
 void ULevelUpWidget::RefreshChoiceScales()
 {
+	SetMenuFocusedButton(nullptr);
 	for (int32 Index = 0; Index < FocusableChoiceButtons.Num(); ++Index)
 	{
 		if (UButton* Button = FocusableChoiceButtons[Index])
 		{
 			const bool bMouseHovered = Button == MouseHoveredButton;
 			const bool bControllerSelected = !MouseHoveredButton && bHasControllerSelection && Index == ControllerFocusedChoiceIndex;
-			Button->SetRenderScale(bMouseHovered || bControllerSelected ? FVector2D(1.045f) : FVector2D(1.0f));
+			if (bMouseHovered || bControllerSelected) SetMenuFocusedButton(Button);
 		}
 	}
 }
@@ -231,6 +241,22 @@ void ULevelUpWidget::RebuildFocusableChoices()
 FReply ULevelUpWidget::HandleControllerKey(const FKeyEvent& InKeyEvent)
 {
 	const FKey Key = InKeyEvent.GetKey();
+	if (Key == EKeys::R || Key == EKeys::Gamepad_FaceButton_Left)
+	{
+		HandleReroll();
+		return FReply::Handled();
+	}
+	if (Key == EKeys::B || Key == EKeys::Gamepad_FaceButton_Top)
+	{
+		HandleBanishMode();
+		return FReply::Handled();
+	}
+	if ((Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right) && bBanishMode)
+	{
+		bBanishMode = false;
+		RefreshDraftTools();
+		return FReply::Handled();
+	}
 	if (Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Left || Key == EKeys::Up)
 	{
 		MoveControllerFocus(-1);
@@ -250,6 +276,7 @@ FReply ULevelUpWidget::HandleControllerKey(const FKeyEvent& InKeyEvent)
 			MouseHoveredButton = nullptr;
 			RefreshControllerFocus();
 		}
+		PressMenuFocusedButton();
 		const bool bSelected = bCategoryChoiceCommitted
 			? SelectUpgradeChoice(ControllerFocusedChoiceIndex)
 			: SelectCategoryChoice(ControllerFocusedChoiceIndex);
@@ -342,6 +369,13 @@ bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 	}
 
 	UUpgradeDefinition* SelectedUpgrade = UpgradeChoices[ChoiceIndex];
+	if (bBanishMode)
+	{
+		if (!PlayerUpgrades->BanishUpgrade(ChoiceIndex)) return false;
+		bBanishMode = false;
+		RefreshDraftCards();
+		return true;
+	}
 	const bool bSelected = bSynergyDiscoveryMode
 		? PlayerUpgrades->SelectSynergyDiscoveryUpgrade(SelectedUpgrade)
 		: PlayerUpgrades->SelectUpgrade(SelectedUpgrade);

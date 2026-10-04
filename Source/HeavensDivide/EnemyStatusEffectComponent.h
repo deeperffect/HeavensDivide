@@ -43,6 +43,9 @@ public:
 	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus = false, float ApplyingHitDamage = 0.0f);
 	/** Called once before death clears status state. Transfer keeps a finite damage budget. */
 	void TransferBleedOnDeath();
+	void GrantBloodRushOnDeath();
+	void TryBloodDetonation();
+	void ReceiveBloodStacks(UPlayerUpgradeComponent* Upgrades, int32 Stacks, float DamagePerTick, float Duration);
 	void ReceiveBleedTransfer(UPlayerUpgradeComponent* Upgrades, float DamageBudget, float RemainingDuration);
 
 	UFUNCTION(BlueprintPure, Category="Enemy|Status")

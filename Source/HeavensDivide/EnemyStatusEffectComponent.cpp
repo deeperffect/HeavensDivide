@@ -32,8 +32,8 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 	if (!Enemy || Enemy->IsDead() || !SourceUpgrades || !Enemy->CanReceivePlayerDamage(Source)) return false;
 	const bool bCorrectSource = (Status == EEnemyStatusEffect::Bleed && Source == EPlayerAttackSource::Samurai)
 		|| (Status == EEnemyStatusEffect::Poison && Source == EPlayerAttackSource::Ninja);
-	const FName StarterId = Status == EEnemyStatusEffect::Bleed ? StatusUpgradeIds::BleedingEdge : StatusUpgradeIds::VenomousKunai;
-	if (!bCorrectSource || (!bIntrinsicStatus && !SourceUpgrades->HasUpgradeId(StarterId))) return false;
+	const FName StarterId = Status == EEnemyStatusEffect::Bleed ? FName(TEXT("BattleStance")) : StatusUpgradeIds::VenomousKunai;
+	if (!bCorrectSource || ((Status == EEnemyStatusEffect::Bleed || !bIntrinsicStatus) && !SourceUpgrades->HasUpgradeId(StarterId))) return false;
 
 	FEnemyDamageStatusState& State = GetState(Status);
 	const int32 PreviousStacks = State.Stacks;
@@ -41,21 +41,19 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 		if(auto* FX=SourceUpgrades->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
 			FX->UpgradeAccent(StarterId,Enemy->GetActorLocation(),45.f,Status==EEnemyStatusEffect::Bleed?FLinearColor(1,.05f,.08f):FLinearColor(.2f,1,.05f));
 	State.SourceUpgrades = SourceUpgrades;
-	// Statuses have no gameplay stack cap. Saturate only at int32's technical limit
-	// so malformed input can never wrap the authoritative count negative.
-	const int32 AddedStacks = Status == EEnemyStatusEffect::Bleed && !bIntrinsicStatus && ApplyingHitDamage > 0
-        ? 1 + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("Bloodletting")), 0, 3) : 1;
-    const int32 AcceptedStacks = FMath::Min(AddedStacks, MAX_int32 - State.Stacks);
+    const bool bBleed = Status == EEnemyStatusEffect::Bleed;
+    const int32 Cap = bBleed ? 5 + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("BloodCapacity")), 0, 5) : MAX_int32;
+    const int32 AddedStacks = bBleed && !bIntrinsicStatus ? 1 + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("Bloodletting")), 0, 5) : 1;
+    const int32 AcceptedStacks = FMath::Clamp(AddedStacks, 0, FMath::Max(0, Cap - State.Stacks));
     State.Stacks += AcceptedStacks;
-    if (Status == EEnemyStatusEffect::Bleed)
+    if (bBleed)
     {
-        State.BleedBaseStackWeight += AcceptedStacks;
-        const auto* Starter = SourceUpgrades->FindUpgradeDefinition(TEXT("BleedingEdge"));
-        const float HitFraction = Starter ? Starter->GetBalanceValue(TEXT("HitDamagePerTick"), 0.1f) : 0.1f;
-        State.BleedHitBonusPerTick += FMath::Max(0.f, ApplyingHitDamage) * FMath::Max(0.f, HitFraction) * AcceptedStacks;
+        const auto* Stance = SourceUpgrades->FindUpgradeDefinition(TEXT("BattleStance"));
+        const float Fraction = Stance ? Stance->GetBalanceValue(TEXT("BleedHitFraction"), .125f) : .125f;
+        // 12.5% over six base ticks. Duration upgrades add ticks at this same rate.
+        State.BleedHitBonusPerTick += FMath::Max(0.f, ApplyingHitDamage) * FMath::Max(0.f, Fraction) / 6.f * AcceptedStacks;
     }
-	State.RemainingDuration = GetDuration(Status) * (Status == EEnemyStatusEffect::Bleed
-        ? 1.f + FMath::Max(0.f, SourceUpgrades->GetAccumulatedUpgradeMagnitude(TEXT("LingeringWounds"))) : 1.f);
+    State.RemainingDuration = bBleed ? 3.f + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("LingeringWounds")), 0, 3) : GetDuration(Status);
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(State.TickTimer))
 	{
@@ -67,7 +65,7 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 		GetWorld()->GetTimerManager().SetTimer(State.TickTimer, TickDelegate, State.ActiveTickInterval, true);
 	}
 	if (State.Stacks != PreviousStacks) OnStatusStacksChanged.Broadcast(Status, State.Stacks);
-	if (Status == EEnemyStatusEffect::Bleed) RefreshPoisonTickRate();
+	if (Status == EEnemyStatusEffect::Bleed) { RefreshPoisonTickRate(); TryBloodDetonation(); }
 	return true;
 }
 
@@ -101,7 +99,7 @@ void UEnemyStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 
 FEnemyDamageStatusState& UEnemyStatusEffectComponent::GetState(EEnemyStatusEffect Status) { return Status == EEnemyStatusEffect::Bleed ? BleedState : PoisonState; }
 const FEnemyDamageStatusState& UEnemyStatusEffectComponent::GetState(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? BleedState : PoisonState; }
-float UEnemyStatusEffectComponent::GetTickInterval(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? BleedTickInterval : PoisonTickInterval; }
+float UEnemyStatusEffectComponent::GetTickInterval(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? .5f : PoisonTickInterval; }
 float UEnemyStatusEffectComponent::GetEffectiveTickInterval(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const
 {
 	return GetTickInterval(Status);
@@ -127,7 +125,11 @@ float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffe
 {
 	const UPlayerUpgradeComponent* Upgrades = State.SourceUpgrades.Get();
 	if (!Upgrades || State.Stacks <= 0) return 0.0f;
-	const float Power = Status == EEnemyStatusEffect::Bleed ? Upgrades->GetSamuraiPowerMultiplier() : Upgrades->GetNinjaPowerMultiplier();
+	if (Status == EEnemyStatusEffect::Bleed)
+        return Upgrades->HasUpgradeId(TEXT("BattleStance")) ? State.BleedHitBonusPerTick
+            * (Upgrades->HasUpgradeId(TEXT("BloodPactPower")) ? 1.7f : 1.f)
+            * (1.f + Upgrades->GetMetaSkillBonus(TEXT("Bleed"))) : 0.f;
+    const float Power = Status == EEnemyStatusEffect::Bleed ? Upgrades->GetSamuraiPowerMultiplier() : Upgrades->GetNinjaPowerMultiplier();
 	const FName SupportId = Status == EEnemyStatusEffect::Bleed ? StatusUpgradeIds::DeepCuts : StatusUpgradeIds::PotentVenom;
 	const int32 SupportLevel = Upgrades->GetUpgradeLevelById(SupportId);
 	const float LegacyPerLevel = Status == EEnemyStatusEffect::Bleed ? DeepCutsDamagePerLevel : PotentVenomDamagePerLevel;

@@ -14,7 +14,10 @@ bool FTrialBuildRewardTest::RunTest(const FString&)
     World->InitializeActorsForPlay(FURL());
     auto* Class = LoadClass<ASurvivorPlayerController>(nullptr,
         TEXT("/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController.BP_SurvivorPlayerController_C"));
-    const TArray<FName> Samurai = {TEXT("BloodStance"), TEXT("ExecutionStance"), TEXT("WaveStance")};
+    const TArray<FName> Samurai = {TEXT("BladeWave"), TEXT("Iaijutsu"), TEXT("BattleStance")};
+    const TSet<FName> MeleeScaling = {TEXT("SamuraiHeavyBlade"), TEXT("SamuraiTempo"), TEXT("SamuraiArea")};
+    const TSet<FName> IaijutsuScaling = {TEXT("IaijutsuDamage"), TEXT("IaijutsuChargeSpeed"), TEXT("IaijutsuWidth"), TEXT("IaijutsuMarkDamage")};
+    const TSet<FName> CrescentScaling = {TEXT("CrescentDamage"), TEXT("CrescentSpeed"), TEXT("CrescentRange"), TEXT("CrescentSlow")};
     const TArray<FName> Ninja = {TEXT("ReturningFang"), TEXT("BarrageStance"), TEXT("GreatShuriken")};
     for (bool bSamurai : {true, false})
     {
@@ -30,18 +33,36 @@ bool FTrialBuildRewardTest::RunTest(const FString&)
             Upgrades->BeginDirectUpgradeSelection(1000);
             for (auto* Choice : Upgrades->GetCurrentUpgradeChoices())
                 TestFalse(TEXT("Unrestricted rewards exclude both characters' starters"), Samurai.Contains(Choice->UpgradeId) || Ninja.Contains(Choice->UpgradeId));
-            TestTrue(TEXT("Trial produces a route choice"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, 3));
+            TestTrue(TEXT("Trial produces a route choice"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, Ids.Num()));
             const auto Choices = Upgrades->GetCurrentUpgradeChoices();
-            TestEqual(TEXT("Trial offers all three routes"), Choices.Num(), 3);
+            TestEqual(TEXT("Trial offers requested routes"), Choices.Num(), Ids.Num());
             for (FName Id : Ids)
                 TestTrue(TEXT("Correct character route is offered"), Choices.Contains(Upgrades->FindUpgradeDefinition(Id)));
             TestTrue(TEXT("Trial selection grants route"), Upgrades->SelectUpgrade(Upgrades->FindUpgradeDefinition(ChosenId)));
             TestTrue(TEXT("Selected route is owned"), Upgrades->HasUpgradeId(ChosenId));
             for (FName Id : Ids)
                 TestFalse(TEXT("Other routes and duplicate ranks remain excluded"), Upgrades->CanAcquireUpgrade(Upgrades->FindUpgradeDefinition(Id)));
-            TestTrue(TEXT("Repeat trial offers an eligible upgrade"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, 3));
+            const auto CheckStance = [&](const UUpgradeDefinition* Choice)
+            {
+                if (!bSamurai) return;
+                TestFalse(TEXT("Non-Blood offers exclude melee scaling"),ChosenId!=TEXT("BattleStance") && MeleeScaling.Contains(Choice->UpgradeId));
+                TestFalse(TEXT("Other stances exclude Crescent scaling"),ChosenId!=TEXT("BladeWave") && CrescentScaling.Contains(Choice->UpgradeId));
+                TestFalse(TEXT("Melee stance offers exclude Iaijutsu scaling"),ChosenId!=TEXT("Iaijutsu") && IaijutsuScaling.Contains(Choice->UpgradeId));
+            };
+            for (auto* Choice : Upgrades->GetEligibleUpgradesForCategory(Category)) CheckStance(Choice);
+            Upgrades->BeginDirectUpgradeSelection(1000);
+            for (auto* Choice : Upgrades->GetCurrentUpgradeChoices()) CheckStance(Choice);
+            if (bSamurai)
+                for (FName Id : ChosenId==TEXT("Iaijutsu") ? IaijutsuScaling : ChosenId==TEXT("BladeWave") ? CrescentScaling : MeleeScaling)
+                {
+                    auto* Card = Upgrades->FindUpgradeDefinition(Id);
+                    TestTrue(*FString::Printf(TEXT("%s remains in its authored reward category"), *Id.ToString()),
+                        Card && Upgrades->GetEligibleUpgradesForCategory(Card->Category).Contains(Card));
+                }
+            TestTrue(TEXT("Repeat trial offers an eligible upgrade"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, Ids.Num()));
             for (auto* Choice : Upgrades->GetCurrentUpgradeChoices())
             {
+                CheckStance(Choice);
                 TestEqual(TEXT("Repeat reward stays with trial character"), Choice->Category, Category);
                 TestFalse(TEXT("Repeat reward cannot replace chosen route"), Ids.Contains(Choice->UpgradeId));
                 TestTrue(TEXT("Repeat reward respects prerequisites"), Upgrades->CanAcquireUpgrade(Choice));

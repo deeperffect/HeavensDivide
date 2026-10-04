@@ -1,4 +1,5 @@
 #include "SamuraiTechniqueTrial.h"
+#include "CombatAudio.h"
 
 #include "CharacterBase.h"
 #include "Components/StaticMeshComponent.h"
@@ -394,6 +395,7 @@ void ASamuraiTechniqueTrial::ShowDangerLanesExcept(ESamuraiTrialLane SafeLane,fl
 
 void ASamuraiTechniqueTrial::SpawnStrikeImpactEffects(ESamuraiTrialLane SafeLane)
 {
+    UCombatAudioLibrary::PlayEvent(this, TEXT("TrialStrike"), GetActorLocation());
 	for(int32 LaneIndex=0;LaneIndex<StrikeVFXComponents.Num();++LaneIndex)
 	{
 		if(LaneIndex==static_cast<int32>(SafeLane))continue;

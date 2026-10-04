@@ -4,7 +4,7 @@ import shutil
 import unreal as u
 
 root = Path(u.Paths.project_dir()).resolve()
-upgrade_path = '/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWave'
+upgrade_path = '/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance'
 upgrade = u.load_asset(upgrade_path)
 assert upgrade
 backup = root / 'Saved/Backups/GroundSlashIntegration'

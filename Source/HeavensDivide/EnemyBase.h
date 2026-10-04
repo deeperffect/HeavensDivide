@@ -13,6 +13,7 @@ class UMeshComponent;
 class UWidgetComponent;
 class UEnemyHealthBarWidget;
 class UEnemyMarkIndicatorWidget;
+class UPlayerUpgradeComponent;
 class USkeletalMeshComponentBudgeted;
 class ACharacterBase;
 class ASurvivorPlayerController;
@@ -101,6 +102,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Mark")
 	bool IsMarked() const;
+
+    void ApplyIaijutsuMark(UPlayerUpgradeComponent* Source, float Bonus, float Duration, bool bDashRefund);
+    bool HasIaijutsuMark() const;
+    float GetIaijutsuDamageMultiplier() const;
+    void ApplyCrescentSlow(float Fraction, float Duration);
+    float GetCrescentMovementMultiplier() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Mark")
 	bool ApplyMark();
@@ -375,6 +382,13 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Mark", meta = (ToolTip = "Whether this enemy currently has the Marked for Death state."))
 	bool bIsMarked = false;
+    float CrescentSlowFraction = 0.f;
+    double CrescentSlowExpiry = 0;
+    TWeakObjectPtr<UPlayerUpgradeComponent> IaijutsuMarkSource;
+    FTimerHandle IaijutsuMarkTimer;
+    double IaijutsuMarkExpiry = 0;
+    float IaijutsuMarkBonus = 0;
+    bool bIaijutsuDashRefund = false;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Enemy|Stress Test", meta = (ToolTip = "True when this enemy was spawned by the stress-test tooling instead of normal gameplay spawning."))
 	bool bIsStressTestEnemy = false;
