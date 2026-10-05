@@ -549,8 +549,11 @@ void ASurvivorPlayerController::SetupInputComponent()
     {
         auto& PauseBinding = InputComponent->BindKey(EKeys::Escape, IE_Pressed, this, &ASurvivorPlayerController::TogglePauseMenu);
         PauseBinding.bExecuteWhenPaused = true;
+#if !UE_BUILD_SHIPPING
+        InputComponent->BindKey(EKeys::Five, IE_Pressed, this, &ASurvivorPlayerController::DebugOpenBloodShrineReward);
+#endif
 #if WITH_EDITOR
-        // Never register testing keys in standalone games or packaged builds.
+        // Keys 1-4 remain editor-play shortcuts only.
         if (GetWorld() && GetWorld()->WorldType == EWorldType::PIE)
         {
             InputComponent->BindKey(EKeys::One, IE_Pressed, this, &ASurvivorPlayerController::EditorAddPlayerLevel);
@@ -591,6 +594,16 @@ void ASurvivorPlayerController::SetupInputComponent()
 
 
 }
+
+#if !UE_BUILD_SHIPPING
+void ASurvivorPlayerController::DebugOpenBloodShrineReward()
+{
+	if (!IsLocalController() || !IsRunInProgress() || bIsPlayerDead || bLevelUpSelectionActive
+		|| UGameplayStatics::IsGamePaused(this) || !CharacterManager || !CharacterManager->GetActiveCharacter())
+		return;
+	RequestBloodShrineUpgradeReward(3);
+}
+#endif
 
 #if WITH_EDITOR
 bool ASurvivorPlayerController::CanUseEditorTestingShortcuts() const

@@ -7,6 +7,46 @@
 
 using namespace PlayerUpgradeRules;
 
+namespace
+{
+// Run-specific copy belongs to transient offer cards, never the saved definition.
+bool TradeoffCopy(const UPlayerUpgradeComponent* U, const UUpgradeDefinition* Card,
+                  float Magnitude, FText& Name, FText& Description)
+{
+ if (!Card) return false;
+ const FName Id = Card->UpgradeId;
+ auto Copy = [&](const TCHAR* Title, const FString& Body) {
+  Name = FText::FromString(Title); Description = FText::FromString(Body); return true;
+ };
+ auto Percent = [](float Value) { return FText::AsNumber(Value * 100.f).ToString(); };
+ if (U->HasUpgradeId(TEXT("BarrageProcession")))
+ {
+  if (Id == TEXT("ForkingProjectiles") || Id == TEXT("BarrageSplitChance"))
+  {
+   const bool bUnlock = Id == TEXT("ForkingProjectiles");
+   const float Chance = Card->GetBalanceValue(bUnlock ? TEXT("Chance") : TEXT("PerRank"), bUnlock ? .15f : .1f);
+   return Copy(bUnlock ? TEXT("Rebounding Blades") : TEXT("Ricochet Mastery"),
+    FString::Printf(TEXT("Reduce damage lost on each ricochet by %s percentage points%s."),
+     *Percent(Chance * .2f), bUnlock ? TEXT("") : TEXT(" per rank")));
+  }
+ }
+ if (U->HasUpgradeId(TEXT("BloodDetonation")) && Id == TEXT("BloodTransferArea"))
+  return Copy(TEXT("Crimson Reach"), TEXT("Increase Blood Detonation radius by 10% per rank."));
+ if (U->HasUpgradeId(TEXT("CrescentEruptionPact")))
+ {
+  if (Id == TEXT("CrescentFieldPower"))
+   return Copy(TEXT("Violent Wake"), FString::Printf(TEXT("Increase Sudden Eruption damage by %s%% per rank."), *Percent(Card->GetBalanceValue(TEXT("PerRank"), .15f))));
+  if (Id == TEXT("CrescentFieldChance"))
+   return Copy(TEXT("Restless Eruption"), TEXT("Gain 5 percentage points of chance to leave an erupting trail. Split waves share the trigger."));
+ }
+ if (U->HasUpgradeId(TEXT("BarrageBloom")) && Id == TEXT("BarragePoolRadius"))
+  return Copy(TEXT("Spreading Bloom"), FString::Printf(TEXT("Increase Venom Bloom puddle radius by %s%% per rank."), *Percent(Card->GetBalanceValue(TEXT("PerRank"), .2f))));
+ if (U->HasUpgradeId(TEXT("ShurikenHunger")) && Id == TEXT("ShurikenSize"))
+  return Copy(TEXT("Ravenous Growth"), FString::Printf(TEXT("Increase blade size gained per kill by %s%% per rank. Growth remains limited by the blade's growth cap."), *Percent(Magnitude)));
+ return false;
+}
+}
+
 bool UPlayerUpgradeComponent::IsCategoryUnlocked(EUpgradeCategory Category) const
 {
 	if (Category != EUpgradeCategory::Synergy)
@@ -482,6 +522,8 @@ float UPlayerUpgradeComponent::ResolveMagnitude(const UUpgradeDefinition* Upgrad
 
 FText UPlayerUpgradeComponent::ResolveOfferDescription(const UUpgradeDefinition* Upgrade, float Magnitude) const
 {
+	FText Name, Description;
+	if (TradeoffCopy(this, Upgrade, Magnitude, Name, Description)) return Description;
 	if (Upgrade && Upgrade->bUsesRolledRarity)
 	{
 		for (const FUpgradeRarityMagnitude& Entry : Upgrade->RarityMagnitudes)
@@ -540,7 +582,8 @@ void UPlayerUpgradeComponent::BuildOffersFromCurrentChoices(bool bApplyNormalLev
 			FixedOffer.UpgradeDefinition = Upgrade;
 			FixedOffer.bDisplaysRarity = IsStanceRareUpgrade(Upgrade);
 			FixedOffer.RolledRarity = FixedOffer.bDisplaysRarity ? EUpgradeRarity::Rare : EUpgradeRarity::Common;
-			FixedOffer.ResolvedDescription = Upgrade ? Upgrade->Description : FText::GetEmpty();
+			FixedOffer.ResolvedMagnitude = Upgrade && Upgrade->bUsesRolledRarity ? ResolveMagnitude(Upgrade, FixedOffer.RolledRarity) : 0.f;
+			FixedOffer.ResolvedDescription = ResolveOfferDescription(Upgrade, FixedOffer.ResolvedMagnitude);
 			CurrentUpgradeOffers.Add(FixedOffer);
 		}
 	}
@@ -555,11 +598,14 @@ void UPlayerUpgradeComponent::RebuildOfferPresentation()
 	for (const FUpgradeOffer& Offer : CurrentUpgradeOffers)
 	{
 		UUpgradeDefinition* Presentation = Offer.UpgradeDefinition;
-		if (Offer.bDisplaysRarity && Offer.UpgradeDefinition)
+		FText ContextName, ContextDescription;
+		const bool bContextCopy = TradeoffCopy(this, Offer.UpgradeDefinition, Offer.ResolvedMagnitude, ContextName, ContextDescription);
+		if ((Offer.bDisplaysRarity || bContextCopy) && Offer.UpgradeDefinition)
 		{
 			Presentation = DuplicateObject<UUpgradeDefinition>(Offer.UpgradeDefinition, this);
 			Presentation->Rarity = Offer.RolledRarity;
 			Presentation->Description = Offer.ResolvedDescription;
+			if (bContextCopy) Presentation->DisplayName = ContextName;
 		}
 		CurrentPresentationChoices.Add(Presentation);
 	}

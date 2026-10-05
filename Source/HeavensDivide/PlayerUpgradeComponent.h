@@ -234,7 +234,7 @@ private:
     void ConvertNinjaScalingUpgrades();
 	/** Preserve investments made ineffective by a stance tradeoff, including old saves. */
 	void NormalizeSamuraiTradeoffUpgrades();
-	bool HasSamuraiTradeoffConflict(FName UpgradeId) const;
+	bool HasUpgradeTradeoffConflict(FName UpgradeId) const;
 	TArray<UUpgradeDefinition*> GetDraftAlternatives() const;
 	UPROPERTY() TSet<FName> BanishedUpgrades;
 	int32 RerollsUsed = 0;

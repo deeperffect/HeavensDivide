@@ -465,6 +465,10 @@ Balance is editable on `/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEnt
 
 ## Preview and maintenance
 
+In a non-shipping build, press **5** during a live run to open the normal Blood Shrine upgrade selection. The shortcut respects stance prerequisites and owned ranks, and is ignored while paused, dead, or already choosing a reward. The binding and handler are absent from Shipping builds. Keys 1-4 remain editor-play-only shortcuts.
+
+Only the six actual stance data assets contain `Stance` in their asset names. In the Content Browser, use `Name=Stance AND Type=UpgradeDefinition` to exclude matching textures, effects, and metadata. `Tools/rename_stance_assets.py -ValidateStanceNames` checks this rule across all saved upgrade DAs without changing them.
+
 In a non-shipping build, `BuildPreview BladeWave` grants Crescent Stance and can grant the enabled Returning Blade branch. Other legacy branch arguments cannot grant temporarily disabled support cards. `BuildPreview All` and the legacy `AbilityShowcase` command now preview only Blade Wave. The Blade Wave preview respects stance exclusivity and cannot replace Iaijutsu Stance or Blood Stance. These commands affect the current run only.
 
 - `Tools/build_family_catalog.json`: Blade Wave is the only available family. Retired entries retain their stable internal indices for compatibility and stale-ID rejection.
@@ -548,3 +552,11 @@ Ninja Tag Team hits apply poison only when **Venomous Kunai** is acquired, on le
 The six build starters remain in the shared catalog for save restoration, prerequisites, mastery, and debug previews, but regular offers filter them out. Character trials offer only eligible starters while a route is unchosen, then fall back to that character's ordinary eligible cards. Eligible branches and support upgrades stay in the normal pool. Overkill and legacy Crescent support upgrades are temporarily disabled. Each stance offers only its own upgrade set, including its Shrine tradeoffs. The shared Samurai damage/speed/area investments are available before stance selection and convert into the selected stance's forms without losing ranks. Old Samurai routes are normalized as described above. Existing wave, Iaijutsu, and support-card tuning is preserved.
 
 Implementation: `PlayerUpgradeSelection.cpp` and `PlayerUpgradeRules.cpp`. Regression coverage: HeavensDivide.Combat.TrialBuildRewards (both characters, all six route selections, normal/direct offer exclusion, exclusivity, and repeat-trial rewards).
+
+### Tradeoff-aware upgrade cards
+
+Reward cards describe their active effect after a Shrine tradeoff, while retaining their IDs, prerequisites, ranks and tuning. Serpent's Procession keeps both split upgrades available: Forked Blades becomes **Rebounding Blades** (3 percentage points less damage lost per ricochet), and Branching Blades becomes **Ricochet Mastery** (2 points per rank). Existing ranks provide the same benefit.
+
+With Sudden Eruption, Enduring Wake becomes **Violent Wake**, increasing eruption damage, and Restless Wake becomes **Restless Eruption**. Blood Hunger changes Shuriken Size to **Ravenous Growth**, increasing size gained per kill. Venom Bloom changes Spreading Blight to **Spreading Bloom**. Crimson Reach describes detonation radius when Blood Detonation is active. These are presentation changes; useful upgrades remain obtainable.
+
+`HeavensDivide.Combat.StanceDependencies` checks all six stances, mechanic prerequisites, incompatible rewards, retained tradeoff benefits, save restoration, and contextual card presentation.

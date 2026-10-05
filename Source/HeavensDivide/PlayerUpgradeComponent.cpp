@@ -54,7 +54,7 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 		return false;
 	if ((bBarrage || bFang || bWheel) && (Id == TEXT("NinjaDamage") || Id == TEXT("NinjaSpeed") || Id == TEXT("NinjaCoverage")))
 		return false;
-	if (HasSamuraiTradeoffConflict(Id))
+	if (HasUpgradeTradeoffConflict(Id))
 		return false;
 	// Before choosing a stance, offer the common investments. Afterwards only
 	// their selected forms are eligible; acquisition of a stance converts ranks.
@@ -65,8 +65,6 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 	if (IsIaijutsuUpgrade(Id) && !HasUpgradeId(TEXT("Iaijutsu")))
 		return false;
 	if (IsBloodUpgrade(Id) && !HasUpgradeId(TEXT("BattleStance")))
-		return false;
-	if (Id == TEXT("BloodTransfer") && HasUpgradeId(TEXT("BloodDetonation")))
 		return false;
 	if (Id == TEXT("BloodTransferArea") && !HasUpgradeId(TEXT("BloodTransfer")) &&
 	    !HasUpgradeId(TEXT("BloodDetonation")))
@@ -154,8 +152,10 @@ bool UPlayerUpgradeComponent::AcquireUpgradeResolved(UUpgradeDefinition* Upgrade
 	return true;
 }
 
-bool UPlayerUpgradeComponent::HasSamuraiTradeoffConflict(FName Id) const
+bool UPlayerUpgradeComponent::HasUpgradeTradeoffConflict(FName Id) const
 {
+	if (Id == TEXT("BloodTransfer") && HasUpgradeId(TEXT("BloodDetonation")))
+		return true;
 	if (HasUpgradeId(TEXT("IaijutsuDashPact")) && (Id == TEXT("IaijutsuMarkDamage") || Id == TEXT("IaijutsuMarkPact")))
 		return true;
 	if (Id == TEXT("IaijutsuDashPact") && HasUpgradeId(TEXT("IaijutsuMarkPact")))
@@ -188,7 +188,7 @@ bool UPlayerUpgradeComponent::DebugAcquireUpgrade(UUpgradeDefinition* Upgrade)
 bool UPlayerUpgradeComponent::DebugForceAcquireUpgrade(UUpgradeDefinition* Upgrade, int32 Level)
 {
 #if !UE_BUILD_SHIPPING
-	if (Upgrade && HasSamuraiTradeoffConflict(Upgrade->UpgradeId))
+	if (Upgrade && HasUpgradeTradeoffConflict(Upgrade->UpgradeId))
 		return false;
 	if (Upgrade && IsSamuraiMeleeScalingUpgrade(Upgrade->UpgradeId) &&
 	    (HasUpgradeId(TEXT("Iaijutsu")) || HasUpgradeId(TEXT("BladeWave"))))

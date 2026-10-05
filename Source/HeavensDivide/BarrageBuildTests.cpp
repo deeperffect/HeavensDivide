@@ -84,7 +84,8 @@ bool FBarrageBuildsTest::RunTest(const FString&)
  Grant(TEXT("BarrageProcession"));auto* Ricochet=World->SpawnActor<AAttackProjectileBase>(FVector(5000,0,50),FRotator::ZeroRotator,Params);Ricochet->InitializeProjectile(N,FVector::ForwardVector,100,1000,EProjectileTargetType::Enemies,1000,nullptr,true,0,0,1);
  TestFalse(TEXT("Procession never splits"),Ricochet->bCanTriggerSplit);TestEqual(TEXT("Three additional bounce targets"),Ricochet->RemainingBounces,3);
  TestTrue(TEXT("Split unlock improves ricochet retention"),FMath::IsNearlyEqual(Ricochet->BarrageBounceRetention,.78f,.001f));
- for(int I=0;I<5;++I)Grant(TEXT("BarrageSplitChance"));TestTrue(TEXT("Split investment remains useful with Procession"),FMath::IsNearlyEqual(.75f+BarrageBuild::SplitChance(U)*.2f,.88f,.001f));
+ for(int I=0;I<5;++I)TestTrue(TEXT("Procession retains split scaling purchases"),Grant(TEXT("BarrageSplitChance")));
+ TestTrue(TEXT("Split scaling improves ricochet retention"),FMath::IsNearlyEqual(.75f+BarrageBuild::SplitChance(U)*.2f,.88f));
  const float Range=A->GetEffectiveTargetingRange(),Interval=A->GetEffectiveAttackInterval();Grant(TEXT("BarragePointBlank"));TestTrue(TEXT("Point-blank range cost"),FMath::IsNearlyEqual(A->GetEffectiveTargetingRange(),Range*.3f,.001f));TestTrue(TEXT("Point-blank attack-speed benefit"),FMath::IsNearlyEqual(A->GetEffectiveAttackInterval(),Interval/1.5f,.001f));
  Reset();Grant(TEXT("BarragePool"));Grant(TEXT("BarrageRush"));E=Spawn(FVector(300,0,0),1);
  auto Pools=[&](){int C=0;for(TActorIterator<ABarragePoisonPool> I(World);I;++I)++C;return C;};

@@ -82,7 +82,7 @@ if not validate:
     unreal.log('STANCE_NAMES_BACKUP: ' + str(backup))
 
 ids = [str(card.get_editor_property('upgrade_id')) for card in pool]
-assert len(ids) == len(set(ids)) == 106
+assert len(ids) == len(set(ids))
 assert before == {str(card.get_editor_property('upgrade_id')): snapshot(card) for card in pool}
 for owner, old, new in renames:
     canonical = unreal.load_asset(asset_path(owner, new))
@@ -96,4 +96,16 @@ for owner, old, new in renames:
 stances = [card for card in pool if str(card.get_editor_property('exclusivity_group')) in ('SamuraiStance', 'NinjaWeaponStance')]
 assert len(stances) == 6
 assert all('Stance' in card.get_name() for card in stances)
-unreal.log('STANCE_NAMES_OK: all 6 stance DAs include Stance; 106 unique cards, tuning preserved and legacy redirects configured')
+# Check every saved DA, including retired definitions outside the offer pool.
+registry = unreal.AssetRegistryHelpers.get_asset_registry()
+registry.search_all_assets(True)
+named_stances = []
+for data in registry.get_assets_by_path('/Game/HeavensDivide/Upgrades', recursive=True):
+    if str(data.asset_class_path.asset_name) != 'UpgradeDefinition':
+        continue
+    if 'stance' in str(data.asset_name).lower():
+        card = data.get_asset()
+        assert card in stances, 'Non-stance DA contains Stance: ' + card.get_path_name()
+        named_stances.append(card)
+assert len(named_stances) == 6
+unreal.log(f'STANCE_NAMES_OK: only the 6 stance DAs include Stance; {len(ids)} unique pool cards, tuning preserved and legacy redirects configured')

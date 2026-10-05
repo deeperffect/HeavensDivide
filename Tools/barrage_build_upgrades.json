@@ -289,7 +289,7 @@
   {
     "id": "BarrageProcession",
     "name": "Serpent's Procession",
-    "description": "Fire kunai one after another in a straight line. They ricochet to 3 additional nearby enemies, losing 25% damage per bounce, but cannot split. Each 10% split chance reduces this loss by 2%.",
+    "description": "Fire kunai in a straight sequence. They ricochet to 3 additional enemies, losing 25% damage per bounce, and cannot split. Split upgrades become ricochet upgrades that reduce damage lost per bounce.",
     "kind": "shrine",
     "levels": 1,
     "requires": [],

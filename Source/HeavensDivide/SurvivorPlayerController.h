@@ -246,6 +246,9 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
+#if !UE_BUILD_SHIPPING
+	void DebugOpenBloodShrineReward();
+#endif
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Input", meta = (ToolTip = "Enhanced Input mapping context added for player controls at BeginPlay."))
 	TObjectPtr<UInputMappingContext> DefaultMappingContext;
