@@ -1,8 +1,8 @@
 [
   {
     "id": "ReturningFang",
-    "name": "Returning Fang",
-    "description": "One homing blade returns and instantly relaunches. Attack speed increases blade speed; extra projectiles increase damage. One Ninja stance per run.",
+    "name": "Returning Fang Stance",
+    "description": "Throw a homing blade that returns and immediately relaunches. Attack speed makes it travel faster. Each extra projectile adds 25% damage instead. Choose one Ninja stance per run.",
     "art": "KunaisBounce",
     "requires": [],
     "stance": true,
@@ -12,8 +12,8 @@
   },
   {
     "id": "BarrageStance",
-    "name": "Barrage",
-    "description": "+65% attack speed, -40% damage, +2 projectiles. One Ninja stance per run.",
+    "name": "Barrage Stance",
+    "description": "Unleash rapid volleys with 2 additional projectiles and 65% more attack speed, but 40% less damage. Choose one Ninja stance per run.",
     "art": "FanOfBl",
     "requires": [],
     "stance": true,
@@ -34,8 +34,8 @@
   },
   {
     "id": "GreatShuriken",
-    "name": "Great Shuriken",
-    "description": "Throw a large, piercing shuriken with repeat hits. +50% damage, -50% attack speed, -55% projectile speed. Extra projectiles increase size. One Ninja stance per run.",
+    "name": "Great Shuriken Stance",
+    "description": "Throw a giant blade that pierces enemies and hits repeatedly. Gain 50% damage, but attack 50% slower. Each extra projectile adds 12% blade size instead. Choose one Ninja stance per run.",
     "art": "ProjectilesPierce",
     "requires": [],
     "stance": true,
@@ -64,7 +64,7 @@
   {
     "id": "CuttingReturn",
     "name": "Cutting Return",
-    "description": "The returning blade damages each enemy once.",
+    "description": "Returning Fang also strikes enemies on its way back to you.",
     "art": "KunaisBounce",
     "requires": [
       "ReturningFang"
@@ -73,7 +73,7 @@
   {
     "id": "RelentlessFang",
     "name": "Relentless Fang",
-    "description": "Consecutive outbound hits on one enemy gain +15% damage, up to +75%.",
+    "description": "Returning Fang deals 15% more damage with each consecutive outward hit against the same enemy, up to 75% more.",
     "art": "MultipleStrikes",
     "requires": [
       "ReturningFang"
@@ -82,7 +82,7 @@
   {
     "id": "FinalPursuit",
     "name": "Final Pursuit",
-    "description": "On a kill, the blade strikes one nearby enemy before returning.",
+    "description": "When Returning Fang kills an enemy, it seeks one more nearby target before returning.",
     "art": "Exec",
     "requires": [
       "ReturningFang"
@@ -91,7 +91,7 @@
   {
     "id": "FocusedVolley",
     "name": "Focused Volley",
-    "description": "65% tighter projectile spread.",
+    "description": "Your volleys have 65% less spread, concentrating their fire.",
     "art": "MultipleStrikes",
     "requires": [
       "BarrageStance"
@@ -101,7 +101,7 @@
   {
     "id": "Crescendo",
     "name": "Crescendo",
-    "description": "Every 3 attacks add 1 temporary projectile. At the cap, the next attack restarts the buildup. Cap: 5, +2 per extra rank.",
+    "description": "Gain 1 extra projectile every 3 attacks, up to 5. Fire at full strength, then build up again. Each additional rank raises the limit by 2.",
     "art": "Afterimage",
     "requires": [
       "BarrageStance"
@@ -116,7 +116,7 @@
   {
     "id": "NeedleRain",
     "name": "Needle Rain",
-    "description": "Every 4th volley fires twice as many projectiles.",
+    "description": "Every fourth volley fires twice as many projectiles.",
     "art": "ProjectileBonus",
     "requires": [
       "BarrageStance"
@@ -126,7 +126,7 @@
   {
     "id": "SerratedEdge",
     "name": "Serrated Edge",
-    "description": "Repeat shuriken hits on one enemy gain +15% damage, up to +75%.",
+    "description": "Each successive hit from the same Great Shuriken deals 15% more damage to that enemy, up to 75% more.",
     "art": "ProjectilesPierce",
     "requires": [
       "GreatShuriken"
@@ -135,7 +135,7 @@
   {
     "id": "GrindingHalt",
     "name": "Grinding Halt",
-    "description": "The shuriken briefly slows on its first hit against an elite or boss.",
+    "description": "Great Shuriken slows for 0.6 seconds when it first hits an elite or boss, giving it time to strike again.",
     "art": "ShadowStep",
     "requires": [
       "GreatShuriken"
@@ -144,7 +144,7 @@
   {
     "id": "WideOrbit",
     "name": "Growing Shuriken",
-    "description": "The shuriken grows as it travels, reaching double size after 1000 cm.",
+    "description": "Great Shuriken grows as it travels, reaching twice its size after 10 meters.",
     "art": "KunaisBounce",
     "requires": [
       "GreatShuriken"
@@ -157,7 +157,7 @@
   {
     "id": "BreakingWheel",
     "name": "Breaking Wheel",
-    "description": "When the shuriken expires, scatter 6 blades dealing 30% hit damage each.",
+    "description": "When a Great Shuriken fades, it scatters 6 blades toward nearby enemies. Each deals 30% of its damage.",
     "art": "ProjectilesSplit",
     "requires": [
       "GreatShuriken"
@@ -166,7 +166,7 @@
   {
     "id": "EmbeddedBlades",
     "name": "Embedded Blades",
-    "description": "Projectile hits embed blades, including killing hits. On death, scatter them for 40% of their hit damage. Stores up to 12 blades; scattered blades cannot embed.",
+    "description": "Ninja hits embed blades in enemies, up to 12 per enemy. On death, they scatter toward nearby foes for 40% of their original hit damage. Scattered blades cannot embed again.",
     "art": "ProjectilesSplit",
     "requires": [],
     "balance": {
@@ -177,7 +177,7 @@
   {
     "id": "FragmentDamage",
     "name": "Sharper Fragments",
-    "description": "Increase embedded blade damage.",
+    "description": "Embedded blades deal 20% more damage.",
     "art": "PotentVenom",
     "requires": [
       "EmbeddedBlades"
@@ -188,12 +188,12 @@
       0.3,
       0.45
     ],
-    "format": "+{Percent}% embedded blade damage."
+    "format": "Embedded blades deal {Percent}% more damage."
   },
   {
     "id": "FragmentLoad",
     "name": "Barbed Blades",
-    "description": "Embed 1 additional blade per hit, per rank.",
+    "description": "Embed 1 additional blade with each hit.",
     "art": "ProjectileBonus",
     "requires": [
       "EmbeddedBlades"
@@ -203,7 +203,7 @@
   {
     "id": "FragmentReach",
     "name": "Scattering Blades",
-    "description": "Increase fragment target range.",
+    "description": "Scattered blades seek enemies from 15% farther away.",
     "art": "MarksSpread",
     "requires": [
       "EmbeddedBlades"
@@ -214,12 +214,12 @@
       0.22,
       0.3
     ],
-    "format": "+{Percent}% fragment target range."
+    "format": "Scattered blades seek enemies from {Percent}% farther away."
   },
   {
     "id": "ForkingProjectiles",
-    "name": "Forking Projectiles",
-    "description": "Projectiles fork on hit into 2 projectiles dealing 50% damage each. Forked projectiles cannot fork again.",
+    "name": "Forked Blades",
+    "description": "Projectiles split on impact into 2 blades, each dealing 50% damage. These blades cannot split again.",
     "art": "ProjectilesSplit",
     "requires": [
       "BarrageStance"
@@ -228,7 +228,7 @@
   {
     "id": "HeavyShuriken",
     "name": "Heavy Shuriken",
-    "description": "Shuriken travels 20% slower per rank.",
+    "description": "Great Shuriken travels 20% slower.",
     "art": "ShadowStep",
     "requires": [
       "GreatShuriken"
@@ -241,7 +241,7 @@
   {
     "id": "LingeringShuriken",
     "name": "Lingering Shuriken",
-    "description": "+30% shuriken lifetime per rank.",
+    "description": "Great Shuriken stays in flight 30% longer.",
     "art": "KunaisBounce",
     "requires": [
       "GreatShuriken"

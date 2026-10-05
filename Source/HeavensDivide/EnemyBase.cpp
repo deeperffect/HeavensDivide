@@ -797,6 +797,7 @@ void AEnemyBase::HandleDeath()
 	if (GetMesh() && GetMesh()->GetAnimInstance()) GetMesh()->GetAnimInstance()->Montage_Stop(0.0f);
 	if (StatusEffectComponent)
 	{
+		StatusEffectComponent->BarragePoisonDeath();
 		StatusEffectComponent->GrantBloodRushOnDeath();
 		StatusEffectComponent->TransferBleedOnDeath();
 		StatusEffectComponent->ClearAllStatuses();

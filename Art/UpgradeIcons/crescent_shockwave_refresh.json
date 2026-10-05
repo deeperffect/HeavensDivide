@@ -1,0 +1,132 @@
+{
+  "mode": "Built-in image_gen.imagegen",
+  "theme": "Bright yellow kinetic shockwaves",
+  "cards": [
+    {
+      "id": "CrescentEruptionPact",
+      "file": "Art/UpgradeIcons/Generated/CrescentEruptionPact.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentEruptionPact",
+      "source_sha256": "447d2d75b3520db366f3e7a4885b27adfd256d361b68c64585cb8681d13b9d84"
+    },
+    {
+      "id": "CrescentFieldPact",
+      "file": "Art/UpgradeIcons/Generated/CrescentFieldPact.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentFieldPact",
+      "source_sha256": "10c870bbc052734c015a492cd8581e731868035e2971da26d277ac94e1356700"
+    },
+    {
+      "id": "CrescentPowerPact",
+      "file": "Art/UpgradeIcons/Generated/CrescentPowerPact.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentPowerPact",
+      "source_sha256": "9d7ba1105d68cf022765a18d5c4f9489f6d570c13c7263193eb87912c53cc569"
+    },
+    {
+      "id": "BladeWave",
+      "file": "Art/UpgradeIcons/Generated/BladeWave.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BladeWave",
+      "source_sha256": "8c05ce2b67c1da92da5f659f77a3685289ff8a3d1d01854759d6b594a4153877"
+    },
+    {
+      "id": "CrescentArc",
+      "file": "Art/UpgradeIcons/Generated/CrescentArc.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentArc",
+      "source_sha256": "400738e5028242961ad2dc39df357cfd186a6057e34469af04525f6a3a47f55f"
+    },
+    {
+      "id": "CrescentArcChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentArcChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentArcChance",
+      "source_sha256": "9889db230f5cef145dbea9954bbd21567923db884011cf689cd8bba385ae4353"
+    },
+    {
+      "id": "CrescentAssist",
+      "file": "Art/UpgradeIcons/Generated/CrescentAssist.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentAssist",
+      "source_sha256": "a3e2d3b6d4a41f0870e77343f0e5f1249b45ace2adc759e9d32e83318a302007"
+    },
+    {
+      "id": "CrescentAssistChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentAssistChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentAssistChance",
+      "source_sha256": "79a1c33c736c06d543cc1d10e9498eb3bb78098f59cea183548f329ca092f934"
+    },
+    {
+      "id": "CrescentDamage",
+      "file": "Art/UpgradeIcons/Generated/CrescentDamage.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentDamage",
+      "source_sha256": "0759d26787a29fd9c31fed0e193064226c4959b4b2a2b3d79aae0c8291224b76"
+    },
+    {
+      "id": "CrescentDoubleCut",
+      "file": "Art/UpgradeIcons/Generated/CrescentDoubleCut.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentDoubleCut",
+      "source_sha256": "599d8f50021cf9187bb005990af39d07e6eec492fcdca0125c5c59c8cd7e67de"
+    },
+    {
+      "id": "CrescentDoubleCutFrequency",
+      "file": "Art/UpgradeIcons/Generated/CrescentDoubleCutFrequency.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentDoubleCutFrequency",
+      "source_sha256": "385ed346eb0a8816511250819b51c01ea3131e8db56d1c8d116554f5e154da1e"
+    },
+    {
+      "id": "CrescentField",
+      "file": "Art/UpgradeIcons/Generated/CrescentField.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentField",
+      "source_sha256": "00bfeeef7c801038c76c0ef7eca287f6e60448556a1e69613f88378761ca0018"
+    },
+    {
+      "id": "CrescentFieldChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentFieldChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentFieldChance",
+      "source_sha256": "61c5ae6b556d5346a848058079de656024dedd9c719c7c53b5e73a21b5611d6a"
+    },
+    {
+      "id": "CrescentFieldPower",
+      "file": "Art/UpgradeIcons/Generated/CrescentFieldPower.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentFieldPower",
+      "source_sha256": "3846d3a28e5eca8c068c2f3f3c0fd5b033c6227eb73f8b62b939fa33fc3f2fa2"
+    },
+    {
+      "id": "CrescentRange",
+      "file": "Art/UpgradeIcons/Generated/CrescentRange.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentRange",
+      "source_sha256": "814c2184119d83e8bf2b2568dcd1d63ea4b5ff4c16bacbe449d35669f456a986"
+    },
+    {
+      "id": "CrescentSlow",
+      "file": "Art/UpgradeIcons/Generated/CrescentSlow.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSlow",
+      "source_sha256": "35ff1538fc99e17df668acbdfd2c67289ae0f91b9caaf0351efd9ea3f97f954f"
+    },
+    {
+      "id": "CrescentSlowDuration",
+      "file": "Art/UpgradeIcons/Generated/CrescentSlowDuration.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSlowDuration",
+      "source_sha256": "4901a396edce1800f07ca119bf66b00994fe0b523b19807df31575f367de9e25"
+    },
+    {
+      "id": "CrescentSpeed",
+      "file": "Art/UpgradeIcons/Generated/CrescentSpeed.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSpeed",
+      "source_sha256": "7fda918779c4c333ef3a3e975ee3faddf663bdb059f47cf8752932933268e4dd"
+    },
+    {
+      "id": "CrescentSplit",
+      "file": "Art/UpgradeIcons/Generated/CrescentSplit.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSplit",
+      "source_sha256": "0cfc3c866cdce3d5f62ddeef54033c86a643e264f37123ab1068fcf9a6c9203d"
+    },
+    {
+      "id": "CrescentSplitChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentSplitChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSplitChance",
+      "source_sha256": "baa1c8d10934327abe65a78135f3d9d781d855bf072781801ef6eb15edc8144c"
+    },
+    {
+      "id": "ReturningBlade",
+      "file": "Art/UpgradeIcons/Generated/ReturningBlade.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ReturningBlade",
+      "source_sha256": "6dd9e3a753f61156ac843aceac863299f8a240a159229c0f2652beb77924f031"
+    }
+  ]
+}

@@ -21,7 +21,9 @@ bool FSamuraiTreeStructureTest::RunTest(const FString&)
     auto* U = PC->GetPlayerUpgrades();
     auto* Property = FindFProperty<FArrayProperty>(UPlayerUpgradeComponent::StaticClass(), TEXT("UpgradePool"));
     const auto& Pool = *Property->ContainerPtrToValuePtr<TArray<TObjectPtr<UUpgradeDefinition>>>(U);
-    TestEqual(TEXT("Saved pool has 106 unique cards"), Pool.Num(), 106);
+    TSet<FName> PoolIds;
+    for (const auto& Card : Pool) if (Card) PoolIds.Add(Card->UpgradeId);
+    TestEqual(TEXT("Saved pool has unique card IDs"), PoolIds.Num(), Pool.Num());
     const TSet<FName> Disabled = {TEXT("OverkillBurst"), TEXT("BurstRadius"), TEXT("WaveMultishot"),
         TEXT("CrossingBlades"), TEXT("SplinterWave"), TEXT("BladeWavePower"), TEXT("WideArc"), TEXT("BladeWaveHaste")};
     const TSet<FName> BloodStats = {TEXT("SamuraiHeavyBlade"), TEXT("SamuraiTempo"), TEXT("SamuraiArea")};

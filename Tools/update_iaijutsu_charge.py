@@ -13,7 +13,7 @@ backup = root / 'Saved/Backups/IaijutsuCharge' / datetime.now().strftime('%Y%m%d
 row = next(r for r in json.loads((root / 'Tools/samurai_build_upgrades.json').read_text()) if r['id'] == 'Iaijutsu')
 changes = [
     ('DA_Upgrade_SamuraiIaijutsuStance', {'ChargeDuration': 1.0, 'SlashRadius': 100.0}, row['description']),
-    ('DA_Upgrade_SamuraiIaijutsuWidth', {'PerRank': .25}, '+25% Iaijutsu lane width per rank. Maximum 5 ranks.'),
+    ('DA_Upgrade_SamuraiIaijutsuWidth', {'PerRank': .25}, 'Iaijutsu slashes are 25% wider.'),
 ]
 changed_paths = {root / 'Content/HeavensDivide/Upgrades/Samurai' / (name + '.uasset') for name, _, _ in changes}
 if not validate:

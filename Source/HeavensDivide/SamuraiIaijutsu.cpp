@@ -24,6 +24,17 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "UObject/StrongObjectPtr.h"
+#include "DrawDebugHelpers.h"
+#include "HAL/IConsoleManager.h"
+
+#if ENABLE_DRAW_DEBUG
+static TAutoConsoleVariable<int32> CVarIaijutsuEndpointDebug(
+    TEXT("hd.Debug.IaijutsuEndpoint"), 0,
+    TEXT("Draw the actual Final Flourish damage sphere at impact. 0=off, 1=on."), ECVF_Cheat);
+static TAutoConsoleVariable<float> CVarIaijutsuEndpointDebugDuration(
+    TEXT("hd.Debug.IaijutsuEndpointDuration"), 3.f,
+    TEXT("Seconds to retain each Final Flourish debug sphere."), ECVF_Cheat);
+#endif
 
 ASamuraiIaijutsu::ASamuraiIaijutsu()
 {
@@ -61,7 +72,7 @@ void ASamuraiIaijutsu::Initialize(ASamuraiCharacter* Source, UPlayerUpgradeCompo
     if (ChargeMaterial)
     {
         ChargeIndicator->SetMaterial(0, ChargeMaterial);
-        ChargeMaterial->SetScalarParameterValue(TEXT("FillAmount"), 0.f);
+        ChargeMaterial->SetScalarParameterValue(TEXT("FillAmount"), TravelDuration <= 0.f ? 1.f : 0.f);
         ChargeMaterial->SetScalarParameterValue(TEXT("LaneAspect"), HitRadius * 2.f / Length);
         ChargeMaterial->SetVectorParameterValue(TEXT("FillColor"), IndicatorColor);
         ChargeMaterial->SetVectorParameterValue(TEXT("BorderColor"), IndicatorColor);
@@ -106,7 +117,7 @@ void ASamuraiIaijutsu::SpawnPathSlashes()
     const bool bHasScaleParameter = Defaults.IndexOf(ScaleParameter) != INDEX_NONE;
     const float AuthoredScale = bHasScaleParameter ? Defaults.GetParameterValue<float>(ScaleParameter) : 1.f;
     // Own the effect asset until the last timer fires, without retaining the attack
-    // actor or its source. The actor still resolves damage once and dies immediately.
+    // actor or its source. Damage still resolves only once.
     const auto SpawnBurst = [World = TWeakObjectPtr<UWorld>(GetWorld()),
         System = TStrongObjectPtr<UNiagaraSystem>(PathSlashVFX.Get()), Scale, bHasScaleParameter, AuthoredScale]
         (FVector Location, FRotator Rotation)
@@ -154,19 +165,29 @@ void ASamuraiIaijutsu::UpdateLaneTransform()
 void ASamuraiIaijutsu::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-    if (bResolved) return;
+    if (bResolved)
+    {
+        const float Step = FMath::Min(DeltaSeconds, PostHitRemaining);
+        if (Step > 0.f) Vacuum(Step);
+        PostHitRemaining -= DeltaSeconds;
+        if (PostHitRemaining <= KINDA_SMALL_NUMBER)
+        {
+            ReleaseMovementHolds();
+            Destroy();
+        }
+        return;
+    }
     if (UpdateAim.IsBound())
     {
         UpdateAim.Execute(Origin, End);
         UpdateLaneTransform();
     }
+    const float PreviousAge = Age;
     Age += DeltaSeconds;
-    VacuumElapsed += DeltaSeconds;
-    if (VacuumElapsed >= .05f || Age >= TravelDuration)
-    {
-        Vacuum(TravelDuration <= 0.f ? .5f : VacuumElapsed);
-        VacuumElapsed = 0.f;
-    }
+    const float VacuumStart = FMath::Max(0.f, TravelDuration - .2f);
+    const float VacuumStep = FMath::Max(0.f, FMath::Min(Age, TravelDuration)
+        - FMath::Max(PreviousAge, VacuumStart));
+    if (Age >= VacuumStart) Vacuum(VacuumStep);
     const float Progress = TravelDuration <= 0.f ? 1.f : FMath::Clamp(Age / TravelDuration, 0.f, 1.f);
     if (Visual.IsValid())
     {
@@ -179,7 +200,8 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
     if (ChargeMaterial) ChargeMaterial->SetScalarParameterValue(TEXT("FillAmount"), Progress);
     if (Age < TravelDuration) return;
     bResolved = true;
-    ChargeIndicator->SetVisibility(false);
+    // Instant casts need a readable, fully filled lane during the post-hit window.
+    ChargeIndicator->SetVisibility(TravelDuration <= 0.f);
     SpawnPathSlashes();
     if (DamageVFX)
     {
@@ -219,6 +241,21 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
     if (bEndpointBurst)
     {
         const float Radius = FMath::Max(1.f, IaijutsuBuild::Value(SourceUpgrades.Get(), TEXT("IaijutsuAOE"), TEXT("Radius"), 250.f));
+#if ENABLE_DRAW_DEBUG
+        if (CVarIaijutsuEndpointDebug.GetValueOnGameThread() != 0)
+        {
+            const float Duration = FMath::Max(.01f, CVarIaijutsuEndpointDebugDuration.GetValueOnGameThread());
+            // Use the exact center and radius passed to the damage overlap below.
+            DrawDebugSphere(GetWorld(), End, Radius, 48, FColor::Cyan, false, Duration, 0, 2.f);
+            DrawDebugCircle(GetWorld(), End, Radius, 64, FColor::Yellow, false, Duration, 0, 3.f,
+                FVector::ForwardVector, FVector::RightVector, false);
+            DrawDebugPoint(GetWorld(), End, 16.f, FColor::Yellow, false, Duration);
+            DrawDebugLine(GetWorld(), Origin, End, FColor::Yellow, false, Duration, 0, 1.f);
+            DrawDebugString(GetWorld(), End + FVector(0, 0, Radius + 20.f),
+                FString::Printf(TEXT("Final Flourish | Radius %.0f cm | Diameter %.0f cm"), Radius, Radius * 2.f),
+                nullptr, FColor::Cyan, Duration, true);
+        }
+#endif
         TArray<FOverlapResult> Overlaps;
         GetWorld()->OverlapMultiByObjectType(Overlaps, End, FQuat::Identity, Objects, FCollisionShape::MakeSphere(Radius), Query);
         TSet<AEnemyBase*> Seen;
@@ -229,22 +266,24 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
         {
             FActorSpawnParameters Params; Params.Owner = Source;
             if (auto* Ghost = GetWorld()->SpawnActor<ASwapAfterimage>(End, (End-Origin).Rotation(), Params))
+            {
                 Ghost->InitializeSwordDash(Source, Source->SwapPresentation->GhostMaterial, EndpointMontage,
                     (End-Origin).GetSafeNormal2D(), FMath::Max(.1f, EndpointMontage->GetPlayLength()));
+                Ghost->EnableCosmeticNiagaraNotifies();
+            }
         }
     }
     if (bKilledEnemy) SpawnKillFollowUp(FirstKillLocation);
     if (bHit && Impact.bEnableCameraShake)
         UImpactFeedbackLibrary::PlayGameplayCameraShake(this, Impact.CameraShakeClass, Impact.CameraShakeScale);
     OnResolved.ExecuteIfBound();
-    Destroy();
 }
 
 void ASamuraiIaijutsu::Vacuum(float Step)
 {
     const float Reach = IaijutsuBuild::VacuumReach(SourceUpgrades.Get());
-    const float Speed = FMath::Max(0.f, IaijutsuBuild::Value(SourceUpgrades.Get(), TEXT("Iaijutsu"), TEXT("VacuumSpeed"), 240.f));
-    if (Reach <= 0.f || Speed <= 0.f || Step <= 0.f) return;
+    const float Speed = 3.f * FMath::Max(0.f, IaijutsuBuild::Value(SourceUpgrades.Get(), TEXT("Iaijutsu"), TEXT("VacuumSpeed"), 240.f));
+    ReleaseMovementHolds();
     const FVector Forward = (End - Origin).GetSafeNormal2D();
     const FVector Right = FVector::CrossProduct(FVector::UpVector, Forward);
     const FVector Center = (Origin + End) * .5f;
@@ -275,8 +314,7 @@ void ASamuraiIaijutsu::Vacuum(float Step)
         Destination.Z = Position.Z;
         if (auto* Movement = Enemy->FindComponentByClass<UEnemyLightweightMovementComponent>())
         {
-            // Chase/separation movement otherwise overcomes the 240 cm/s pull.
-            // Cancel only velocity opposing the pull; movement along the lane stays free.
+            // Compensate for outward pursuit until the target reaches the lane.
             const FVector Pull = Destination - Position;
             const float OpposingSpeed = FMath::Max(0.f,
                 -FVector::DotProduct(Movement->GetCurrentVelocity(), Pull.GetSafeNormal2D()));
@@ -285,8 +323,28 @@ void ASamuraiIaijutsu::Vacuum(float Step)
             // Use enemy movement's world sweep: grounded capsules must not get stuck
             // on the floor, and nearby characters must not block the grouping effect.
             Movement->MoveOwnerToNoSlide(Destination, Hit);
+            const FVector FinalOffset = Enemy->GetActorLocation() - Center;
+            if (FMath::Abs(FVector::DotProduct(FinalOffset, Forward)) <= HalfLength
+                && FMath::Abs(FVector::DotProduct(FinalOffset, Right)) <= HitRadius)
+            {
+                Movement->SetMovementHeldBy(this, true);
+                HeldMovements.Add(Movement);
+            }
         }
     }
+}
+
+void ASamuraiIaijutsu::ReleaseMovementHolds()
+{
+    for (const auto& Movement : HeldMovements)
+        if (Movement.IsValid()) Movement->SetMovementHeldBy(this, false);
+    HeldMovements.Reset();
+}
+
+void ASamuraiIaijutsu::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    ReleaseMovementHolds();
+    Super::EndPlay(EndPlayReason);
 }
 
 bool ASamuraiIaijutsu::HitEnemy(AEnemyBase* Enemy)

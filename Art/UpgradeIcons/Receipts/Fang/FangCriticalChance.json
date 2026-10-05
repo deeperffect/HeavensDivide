@@ -1,0 +1,9 @@
+{
+  "id": "FangCriticalChance",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A bold violet eye with an ivory four-point glint at its pupil, embraced by two large lavender targeting brackets and a single compact upward chevron. Clear improved critical chance emblem, no kunai, no text.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-0f556988-e667-4e4c-b822-27d4a209e037.png",
+  "file": "Art/UpgradeIcons/Generated/Fang/FangCriticalChance.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangCriticalChance",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "7a96428a1bf386c2902dfee32ad1fbb1014ad88ef158e9dbeab247422628bee8"
+}

@@ -16,7 +16,14 @@ class HEAVENSDIVIDE_API ANinjaCharacter : public ACharacterBase
 
 public:
 	ANinjaCharacter();
+ virtual void SetCharacterMode(ECharacterMode NewMode) override;
+ virtual void ApplySharedMoveSpeedMultiplier(float Multiplier) override;
+ void ApplyViperRush(float Bonus, float Duration);
+ void ClearViperRush();
 
+private:
+ float SharedMoveSpeedMultiplier = 1.f, ViperRushBonus = 0.f;
+ FTimerHandle ViperRushTimer;
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (ToolTip = "Ninja stance attacks and their presentation, including the custom shuriken mesh."))
 	TObjectPtr<UNinjaBuildComponent> NinjaBuildComponent;

@@ -231,6 +231,7 @@ bool FCrescentBuildsTest::RunTest(const FString&)
     U->RestoreRunState(Base);Acquire(TEXT("CrescentSplit"));Acquire(TEXT("CrescentField"));
     auto* Split=Card(TEXT("CrescentSplit"));auto* FieldCard=Card(TEXT("CrescentField"));
     const auto SplitBalance=Split->BalanceParameters,FieldBalance=FieldCard->BalanceParameters;
+    TestEqual(TEXT("Saved split angle sends branches sideways"),Split->GetBalanceValue(TEXT("Angle"),0.f),90.f);
     Split->BalanceParameters.Add(TEXT("Chance"),1.f);FieldCard->BalanceParameters.Add(TEXT("Chance"),1.f);
     auto* SplitWave=Wave(FVector(15000,0,60));
     FieldCard->BalanceParameters.Add(TEXT("Chance"),0.f);
@@ -255,6 +256,50 @@ bool FCrescentBuildsTest::RunTest(const FString&)
     TestEqual(TEXT("Each finished child leaves its own strip"),Fields().Num(),2);
     Hit(SplitWave,Restricted);TestEqual(TEXT("Further parent hits do not create a premature field"),Fields().Num(),2);
     SplitWave->FinishWave();TestEqual(TEXT("Finished parent also leaves one strip"),Fields().Num(),3);Clear();
+
+    // Sweep real projectiles through an off-center first target, a target farther
+    // ahead, and targets to either side. Do not inject overlap callbacks here.
+    // Let these spawned actors enter play so Unreal dispatches overlap events;
+    // the surrounding cases deliberately drive damage callbacks themselves.
+    const bool bWorldWasPlaying=World->HasBegunPlay();
+    World->SetBegunPlay(true);
+    const FVector BranchTestStart(100000,0,100);
+    const FVector Forward=FRotator(0,37,0).Vector();
+    const FVector Right=FVector::CrossProduct(FVector::UpVector,Forward);
+    auto* FirstBranchTarget=Enemy(BranchTestStart+Forward*150.f+Right*40.f);
+    auto* AheadTarget=Enemy(BranchTestStart+Forward*350.f);
+    auto* LeftTarget=Enemy(FirstBranchTarget->GetActorLocation()-Right*280.f);
+    auto* RightTarget=Enemy(FirstBranchTarget->GetActorLocation()+Right*280.f);
+    auto* PiercingWave=World->SpawnActor<ASamuraiBladeWave>(Attack->BladeWaveClass,BranchTestStart,Forward.Rotation(),Params);
+    PiercingWave->InitializeBladeWave(Samurai,U,Forward,100,300,600,1000,false);
+    auto* OriginalVisual=PiercingWave->AssignedVisual.Get();
+    for(int32 Frame=0;Frame<45;++Frame)
+        for(auto* MovingWave:Waves())
+        {
+            MovingWave->Movement->TickComponent(.01f,LEVELTICK_All,nullptr);
+            if(!MovingWave->IsActorBeingDestroyed())MovingWave->Tick(.01f);
+        }
+    TestEqual(TEXT("Real first collision creates exactly two branches"),Waves().Num(),3);
+    TestFalse(TEXT("Splitting does not consume the original wave"),PiercingWave->IsActorBeingDestroyed());
+    TestTrue(TEXT("Original keeps travelling beyond the first enemy"),FVector::DotProduct(PiercingWave->GetActorLocation()-FirstBranchTarget->GetActorLocation(),Forward)>100.f);
+    TestTrue(TEXT("Original remains moving forwards after splitting"),FVector::DotProduct(PiercingWave->Movement->Velocity,Forward)>0.f);
+    TestEqual(TEXT("Original retains its full travel range"),PiercingWave->TravelDistance,600.f);
+    TestTrue(TEXT("Original keeps its launch point"),PiercingWave->LaunchOrigin.Equals(BranchTestStart));
+    TestEqual(TEXT("Original keeps its existing slash visual"),PiercingWave->AssignedVisual.Get(),OriginalVisual);
+    TestEqual(TEXT("Original damages the next enemy at full strength"),AheadTarget->GetHealthComponent()->GetCurrentHealth(),9900.f);
+    TestEqual(TEXT("Branches do not immediately hit their triggering enemy"),FirstBranchTarget->GetHealthComponent()->GetCurrentHealth(),9900.f);
+    TestEqual(TEXT("Left branch damages enemies beside the first hit"),LeftTarget->GetHealthComponent()->GetCurrentHealth(),9950.f);
+    TestEqual(TEXT("Right branch damages enemies beside the first hit"),RightTarget->GetHealthComponent()->GetCurrentHealth(),9950.f);
+    for(auto* Child:Waves())if(Child!=PiercingWave)
+    {
+        TestTrue(TEXT("Branches start at the struck enemy instead of the approaching wave"),Child->LaunchOrigin.Equals(FirstBranchTarget->GetActorLocation(),.01f));
+        TestTrue(TEXT("Branches travel perpendicular to the incoming wave"),FMath::Abs(FVector::DotProduct(Child->GetActorForwardVector(),Forward))<.001f);
+        TestFalse(TEXT("Side branches cannot recursively split"),Child->bCanSplit);
+        TestFalse(TEXT("Side branches do not return"),Child->bReturns);
+    }
+    Clear();
+    for(auto* E:{FirstBranchTarget,AheadTarget,LeftTarget,RightTarget})E->Destroy();
+    World->SetBegunPlay(bWorldWasPlaying);
     auto* DryWave=Wave(FVector(16500,0,60));
     TestFalse(TEXT("Parent field roll fails at zero chance"),DryWave->bFieldPending);
     FieldCard->BalanceParameters.Add(TEXT("Chance"),1.f);

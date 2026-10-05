@@ -1,0 +1,9 @@
+{
+  "id": "CrescentRange",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-4fee0055-fb4a-49e1-ba82-174a992bcfdb.png",
+  "file": "Art/UpgradeIcons/Generated/CrescentRange.png",
+  "mode": "Built-in image_gen.imagegen",
+  "prompt": "Use case: precise-object-edit. Asset: one square BLOODSHIFT game upgrade icon. Image 1 is the old icon to replace; image 2 is the approved yellow shockwave style reference. Preserve image 1's symbolic meaning and readable composition, dark deep-teal background, clean hand-drawn black contours, simple flat cartoon cel shading, and quiet margins. Replace every cyan/blue/turquoise wave or icy effect with the reference's saturated bright lemon-yellow KINETIC SHOCKWAVE, ivory edge and narrow amber shadow. Use sharp pressure arcs and motion strokes, no water crests, droplets, foam, frost, ice, lightning bolts or fire. Foreground should read as physical force, not an element. Keep charcoal supporting objects and violet ninja accents when present. One large readable symbol within middle 70% of canvas, at most two supporting motifs. No text, UI, border, logo, photorealism, 3D, grain, speckles, noisy debris, gradients or glow fog. Do not add extra objects. Specific subject: A bright yellow crescent shockwave at the far end of a long straight ivory/yellow motion trail between two clean dark endpoint posts.",
+  "edit_target_backup": "Saved\\Backups\\CrescentShockwaveArt\\20261004_171654\\UpgradeIcons\\Generated\\CrescentRange.png",
+  "style_reference": "Art/UpgradeIcons/Generated/BladeWave.png"
+}

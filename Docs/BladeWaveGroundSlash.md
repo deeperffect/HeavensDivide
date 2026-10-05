@@ -9,12 +9,12 @@ The working system also includes V1's four `Trail01`–`Trail04` layers, their f
 handlers refer to the copied sources, not the original system's emitter IDs.
 These use the original trail/fire materials, curves, and particle timing.
 
-`SlashMeshTUT > Mesh Renderer > Meshes > Index 0 > Rotation` is set to Roll 90°,
-laying the crescent horizontally. Adjust that renderer rotation to change the
+`SlashMeshTUT > Mesh Renderer > Meshes > Index 0 > Rotation` is set to Roll 0°,
+standing the crescent vertically along its travel direction. Adjust that renderer rotation to change the
 mesh plane independently of the ground decals and airborne effects.
-The mesh-space Pivot Offset cancels the mesh bounds center on Y/Z before this
-rotation. That centers the crescent over the trail without changing its forward
-placement, and follows particle scaling and attack direction. Project console
+The mesh-space Pivot Offset centers the mesh on Y and places its lowest Z bound
+at the trail's authored ground height. The crescent rises above the trail without
+changing its forward placement, and follows particle scaling and attack direction. Project console
 variable `r.LensFlareQuality=0` disables lens-flare post processing; bloom and the
 authored light, trail, and spark emitters remain enabled.
 The existing ground projection, debris material, slowdown, and return behavior
@@ -43,6 +43,13 @@ Upgrade an existing working effect without resetting tuning with
 `Saved/Backups/GroundSlashFullEffects`. Test
 `HeavensDivide.Combat.GroundSlashFullEffects` checks copied event connections,
 mesh rotation, and actual particle emission from every visible added layer.
+
+The upright-mesh update passed the Development Editor build and all three
+`GroundSlashFullEffects`, `GroundSlashMotion`, and `GroundSlashTrailDirection`
+suites with rendering enabled. Geometry checks cover ground alignment and
+vertical orientation for forward, sideways, diagonal, and return headings.
+Evidence: `Saved/Logs/BladeWaveUprightBuild.log`, `BladeWaveUprightAssets.log`,
+and `BladeWaveUprightRegression.log`.
 
 Presentation > Ground Slash exposes:
 

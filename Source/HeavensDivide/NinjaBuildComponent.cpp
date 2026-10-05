@@ -1,4 +1,5 @@
 #include "NinjaBuildComponent.h"
+#include "FangBuild.h"
 #include "AttackProjectileBase.h"
 #include "AutoAttackComponent.h"
 #include "CharacterManagerComponent.h"
@@ -134,7 +135,12 @@ void UNinjaBuildComponent::ClearProjectiles()
             P->Destroy();
     Projectiles.Reset();
     Fang.Reset();
-    ConsecutiveVolleys = VolleyCount = 0;
+    FangLaunchCount = 0;
+    ShurikenThrowCount = 0;
+    NextFangAssistTime = 0;
+    FangVictimHits.Reset();
+    PendingFangScatter.Reset();
+    VolleyCount = 0;
     for (auto &Pair : Embedded)
     {
         if (Pair.Key.IsValid())
@@ -158,6 +164,9 @@ void UNinjaBuildComponent::TickComponent(float Delta, ELevelTick Type, FActorCom
         ClearProjectiles();
         return;
     }
+    ProcessFangScatter();
+    for (auto It = FangVictimHits.CreateIterator(); It; ++It)
+        if (!It.Key().IsValid() || It.Key()->IsDead()) It.RemoveCurrent();
     const bool Active = IsActive();
     if (bWasActive && !Active)
         VolleyCount = 0;
@@ -213,14 +222,21 @@ bool UNinjaBuildComponent::ReplaceVolley(FVector Direction, bool bAssist)
     }
     Direction.Z = 0;
     Direction.Normalize();
-    if(auto* P=SpawnShuriken(Ninja()->GetActorLocation() + Direction * 65 + FVector(0, 0, 50), Direction, !bAssist)) P->bAssistProjectile=bAssist;
+    if(auto* P=SpawnShuriken(Ninja()->GetActorLocation() + Direction * 65 + FVector(0, 0, 50), Direction, !bAssist))
+    {
+        P->bAssistProjectile=bAssist;
+        if (!bAssist && ++ShurikenThrowCount % FMath::Max(1,4-Upgrades()->GetUpgradeLevelById(TEXT("ShurikenTwinFrequency"))) == 0 && Has(TEXT("ShurikenTwin")))
+            if (auto* Twin=SpawnShuriken(P->GetActorLocation(),Direction.RotateAngleAxis(20,FVector::UpVector),false))
+            {
+                Twin->Damage=P->Damage; Twin->Radius=P->Radius; Twin->InitialRadius=P->InitialRadius;
+                Twin->OrbitAngle=P->OrbitAngle+PI; Twin->UpdateShurikenVisualScale();
+            }
+    }
     return true;
 }
 float UNinjaBuildComponent::GetShurikenTravelSpeed() const
 {
-    const int32 Rank = Upgrades() ? Upgrades()->GetUpgradeLevelById(TEXT("HeavyShuriken")) : 0;
-    const float Reduction = FMath::Clamp(Tune(TEXT("HeavyShuriken"), TEXT("SpeedReductionPerRank"), .2f), 0.f, .95f);
-    return FMath::Max(1.f, Tune(TEXT("GreatShuriken"), TEXT("TravelSpeed"), 900.f) * FMath::Pow(1.f - Reduction, Rank));
+    return FMath::Max(1.f, Tune(TEXT("GreatShuriken"), TEXT("TravelSpeed"), 900.f));
 }
 
 float UNinjaBuildComponent::GetShurikenLifetime() const
@@ -250,6 +266,12 @@ ANinjaBuildProjectile *UNinjaBuildComponent::SpawnShuriken(FVector Position, FVe
     P->Radius = FMath::Clamp(Tune(TEXT("GreatShuriken"), TEXT("Radius"), 95) *
                                  (1 + Extra * Tune(TEXT("GreatShuriken"), TEXT("CountSize"), .12f)),
                              25.f, 300.f);
+    P->Radius *= Has(TEXT("ShurikenHunger")) ? Tune(TEXT("ShurikenHunger"),TEXT("InitialSizeMultiplier"),.7f)
+        : 1.f + FangBuild::Scaling(Upgrades(), TEXT("ShurikenSize"), .15f);
+    P->InitialRadius=P->Radius;
+    P->OrbitOrigin=Ninja()->GetActorLocation()+FVector(0,0,50);
+    P->OrbitAngle=FMath::Atan2(Direction.Y,Direction.X);
+    if (Has(TEXT("ShurikenOrbit"))) P->SetActorLocation(P->OrbitOrigin+Direction.GetSafeNormal()*Tune(TEXT("ShurikenOrbit"),TEXT("OrbitRadius"),230.f));
     if (ShurikenMesh)
     {
         P->Visual->SetStaticMesh(ShurikenMesh);
@@ -273,35 +295,17 @@ ANinjaBuildProjectile *UNinjaBuildComponent::SpawnCloneFang(AShadowClone *InClon
     }
     return P;
 }
-void UNinjaBuildComponent::ModifyVolley(FVector &Direction, int32 &Count, float &Spacing)
+void UNinjaBuildComponent::ModifyVolley(int32 &Count, float &Spacing)
 {
-    ModifyVolleyWithCounters(Direction, Count, Spacing, VolleyCount, ConsecutiveVolleys);
+    ModifyVolleyWithCounter(Count, Spacing, VolleyCount);
 }
-void UNinjaBuildComponent::ModifyVolleyWithCounters(FVector &Direction, int32 &Count, float &Spacing, int32 &Volley,
-                                                    int32 &Consecutive)
+void UNinjaBuildComponent::ModifyVolleyWithCounter(int32 &Count, float &Spacing, int32 &Volley)
 {
     if (!Has(TEXT("BarrageStance")))
         return;
     ++Volley;
-    if (Has(TEXT("Crescendo")))
-    {
-        const int32 Rank = Upgrades()->GetUpgradeLevelById(TEXT("Crescendo"));
-        const int32 Cap =
-            FMath::Clamp(FMath::RoundToInt(Tune(TEXT("Crescendo"), TEXT("BaseCap"), 5) +
-                                           FMath::Max(0, Rank - 1) * Tune(TEXT("Crescendo"), TEXT("CapPerRank"), 2)),
-                         1, 64);
-        const int32 Interval =
-            FMath::Clamp(FMath::RoundToInt(Tune(TEXT("Crescendo"), TEXT("AttacksPerProjectile"), 3)), 1, 100);
-        Consecutive = FMath::Min(Consecutive + 1, Cap * Interval);
-        const int32 Bonus = FMath::Min(Consecutive / Interval, Cap);
-        Count += Bonus;
-        if (Bonus >= Cap)
-            Consecutive = 0; // Fire the peak volley, then begin a new buildup.
-    }
-    if (Has(TEXT("NeedleRain")) && Volley % 4 == 0)
-        Count *= 2;
-    if (Has(TEXT("FocusedVolley")))
-        Spacing *= .35f;
+    if (Has(TEXT("NeedleRain")) && Volley % FMath::Max(1, 4-Upgrades()->GetUpgradeLevelById(TEXT("BarrageRainFrequency"))) == 0) Count *= 2;
+    if (Has(TEXT("BarrageProcession"))) Spacing = 0.f;
     Count = FMath::Clamp(Count, 1, 128);
 }
 float UNinjaBuildComponent::Hit(AEnemyBase *Enemy, float Damage, bool bEmbed, bool bAssist, bool bShuriken)

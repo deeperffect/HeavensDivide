@@ -1,0 +1,9 @@
+{
+  "id": "BarragePointBlank",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Three short ivory kunai striking a nearby crimson target disk, tightly packed violet speed chevrons behind them, close-range rapid barrage emblem. Crimson Shrine accents.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-7721c34e-26fa-4320-ba47-5f8d9458cd96.png",
+  "file": "Art/UpgradeIcons/Generated/Barrage/BarragePointBlank.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePointBlank",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "af63946d5102d9e3086bd050b538fc742e18e126c099c29f5ad95c5d29b4f7df"
+}

@@ -52,8 +52,8 @@ class HEAVENSDIVIDE_API UNinjaBuildComponent : public UActorComponent
     /** Cosmetic scale after fitting the mesh to the attack radius; does not change hit detection. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Shuriken", meta=(ClampMin="0.01"))
     float ShurikenMeshScale = 1.f;
-    void ModifyVolley(FVector &Direction, int32 &Count, float &Spacing);
-    void ModifyVolleyWithCounters(FVector &Direction, int32 &Count, float &Spacing, int32 &Volley, int32 &Consecutive);
+    void ModifyVolley(int32 &Count, float &Spacing);
+    void ModifyVolleyWithCounter(int32 &Count, float &Spacing, int32 &Volley);
     float Hit(AEnemyBase *Enemy, float Damage, bool bEmbed = true, bool bAssist = false, bool bShuriken = false);
     static bool ApplyEmbeddedHit(AEnemyBase *Enemy, float Damage, UPlayerUpgradeComponent *Upgrades,
                                  bool bEmbed = true);
@@ -62,11 +62,30 @@ class HEAVENSDIVIDE_API UNinjaBuildComponent : public UActorComponent
     void Scatter(FVector Position, int32 Count, float Damage, float Range);
     ANinjaBuildProjectile *SpawnBlade(ENinjaProjectileKind Kind, FVector Position);
     void ClearProjectiles();
+    float FangDamageMultiplier() const;
+    float FangSpeedMultiplier() const;
+    float FangHit(ANinjaBuildProjectile* Projectile, AEnemyBase* Enemy);
+    void FangLaunched(ANinjaBuildProjectile* Projectile);
+    void FangReturned(ANinjaBuildProjectile* Projectile);
+    void ScatterFangKunai(FVector Position, int32 Count, float Damage);
+    void ProcessFangScatter();
+    int32 FangLaunchCount = 0;
+    float NextFangAssistTime = 0;
+    TMap<TWeakObjectPtr<AEnemyBase>, int32> FangVictimHits;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Fang")
+    TObjectPtr<class UNiagaraSystem> FangReturnBurstVFX;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Fang")
+    TObjectPtr<class UMaterialInterface> SpectralFangMaterial;
     TWeakObjectPtr<ANinjaBuildProjectile> Fang;
     TArray<TWeakObjectPtr<ANinjaBuildProjectile>> Projectiles;
-    int32 VolleyCount = 0, ConsecutiveVolleys = 0;
+    int32 VolleyCount = 0;
+    int32 ShurikenThrowCount = 0;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Shuriken")
+    TObjectPtr<class UNiagaraSystem> ShurikenBurstVFX;
 
   private:
+    struct FFangScatter { FVector Position; int32 Remaining; float Damage; int32 Emitted = 0; };
+    TArray<FFangScatter> PendingFangScatter;
     struct FEmbedded
     {
         int32 Count = 0;

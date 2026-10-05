@@ -67,7 +67,9 @@ bool FDoubleCut360Test::RunTest(const FString&)
    TestTrue(TEXT("Spin hits front, rear, and both sides"),Targets[Index]->GetHealthComponent()->GetCurrentHealth()<100);
   TestEqual(TEXT("Spin does not increase radius"),Targets[4]->GetHealthComponent()->GetCurrentHealth(),100.f);
  }
- auto* Montage=LoadObject<UAnimMontage>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/Montages/Samurai/AM_DoubleCutSamurai.AM_DoubleCutSamurai"));
+ const auto* SavedClass=LoadClass<ASamuraiCharacter>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai.BP_Samurai_C"));
+ const auto* SavedAttack=SavedClass?SavedClass->GetDefaultObject<ASamuraiCharacter>()->FindComponentByClass<UAutoAttackComponent>():nullptr;
+ auto* Montage=SavedAttack?SavedAttack->DoubleCutMontage.Get():nullptr;
  UAnimNotify_SpawnSamuraiSlashNiagara* Notify=nullptr;
  float DamageTime=-1,EffectTime=-2;
  if(TestNotNull(TEXT("Saved Double Cut montage"),Montage))

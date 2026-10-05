@@ -1,0 +1,9 @@
+{
+  "id": "FangDeadeye",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A single sharp violet ninja eye inside a simple ivory targeting diamond, with an ivory pointed kunai aligned toward its center. Bold critical-strike emblem, no face or hands.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-54572c0d-9d37-4260-8cb1-220ce7a35ed2.png",
+  "file": "Art/UpgradeIcons/Generated/Fang/FangDeadeye.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangDeadeye",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "0b9da5447a3f45d46de33e2589271aa335a9401a7163ec32c01bc13f30a4a63d"
+}

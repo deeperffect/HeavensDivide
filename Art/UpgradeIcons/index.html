@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BLOODSHIFT | Upgrades</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0a181e;color:#eee8da;font:16px/1.5 system-ui,sans-serif}
+header,main{max-width:1440px;margin:auto;padding:28px}header{padding-bottom:12px}h1{margin:0;font-size:32px;letter-spacing:.04em}header p{color:#acb9bd;max-width:800px}
+.filters{display:flex;gap:12px;flex-wrap:wrap;align-items:center}label{display:flex;gap:8px;align-items:center}input,select{font:inherit;background:#142a32;color:#fff;border:1px solid #41606b;border-radius:8px;padding:10px}input{width:min(420px,65vw)}#count{color:#c2cece}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:20px;padding-top:12px}article{background:#102229;border:1px solid #29434d;border-radius:12px;overflow:hidden}article[hidden]{display:none}img{display:block;width:100%;height:auto;aspect-ratio:1;object-fit:contain}.copy{padding:18px;padding-top:8px}small{color:#d9b370;text-transform:uppercase;letter-spacing:.1em;font-size:11px}h2{font-size:18px;margin:6px 0}p{font-size:14px;color:#b6c5c9}details{font-size:12px;overflow-wrap:anywhere;color:#9dafb5}summary{cursor:pointer}a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #eac977;outline-offset:3px}
+</style>
+<header><h1>BLOODSHIFT</h1><p>Explore stance upgrades, shared bonuses, and Blood Pacts.</p>
+<div class="filters"><label>Search <input id="search" type="search" placeholder="Name, effect, or prerequisite…"></label><label>Category <select id="category"><option value="">All categories</option><option>Samurai</option><option>Ninja</option><option>Synergy</option><option>Shared</option><option>Blood Pacts</option></select></label><span id="count" aria-live="polite"></span></div></header>
+<main><article data-category="Blood Pacts" data-search="blood detonation enemies at maximum bleed stacks explode for twice their remaining bleed damage, hurting themselves and nearby foes. consumes bleed and replaces blood transfer. blood stance">
+      <a href="Generated/BloodDetonation.png" target="_blank" rel="noopener"><img src="Generated/BloodDetonation.png" alt="Blood Detonation icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Blood Detonation</h2>
+      <p>Enemies at maximum Bleed stacks explode for twice their remaining Bleed damage, hurting themselves and nearby foes. Consumes Bleed and replaces Blood Transfer.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="crimson power bleed deals 70% more damage, but you attack 30% slower. blood stance">
+      <a href="Generated/BloodPactPower.png" target="_blank" rel="noopener"><img src="Generated/BloodPactPower.png" alt="Crimson Power icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Crimson Power</h2>
+      <p>Bleed deals 70% more damage, but you attack 30% slower.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="frenzied blood attack 40% faster, but deal 25% less attack damage. blood stance">
+      <a href="Generated/BloodPactSpeed.png" target="_blank" rel="noopener"><img src="Generated/BloodPactSpeed.png" alt="Frenzied Blood icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Frenzied Blood</h2>
+      <p>Attack 40% faster, but deal 25% less attack damage.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="sudden eruption your waves no longer slow enemies. lingering wake erupts after 0.3 seconds for all its damage at once. your slow upgrades become wave damage. crescent stance lingering wake">
+      <a href="Generated/CrescentEruptionPact.png" target="_blank" rel="noopener"><img src="Generated/CrescentEruptionPact.png" alt="Sudden Eruption icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Sudden Eruption</h2>
+      <p>Your waves no longer slow enemies. Lingering Wake erupts after 0.3 seconds for all its damage at once. Your slow upgrades become Wave Damage.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="scorched wake lingering wake deals 50% more damage, but wave hits deal 30% less damage. crescent stance lingering wake">
+      <a href="Generated/CrescentFieldPact.png" target="_blank" rel="noopener"><img src="Generated/CrescentFieldPact.png" alt="Scorched Wake icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Scorched Wake</h2>
+      <p>Lingering Wake deals 50% more damage, but wave hits deal 30% less damage.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="crushing tide waves deal 50% more damage, but travel 50% slower. crescent stance">
+      <a href="Generated/CrescentPowerPact.png" target="_blank" rel="noopener"><img src="Generated/CrescentPowerPact.png" alt="Crushing Tide icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Crushing Tide</h2>
+      <p>Waves deal 50% more damage, but travel 50% slower.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="relentless steps your iaijutsu marks no longer amplify damage. killing a marked enemy reduces dash recharge by 0.3 seconds instead. exposed weakness ranks become iaijutsu damage. iaijutsu stance">
+      <a href="Generated/IaijutsuDashPact.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuDashPact.png" alt="Relentless Steps icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Relentless Steps</h2>
+      <p>Your Iaijutsu marks no longer amplify damage. Killing a marked enemy reduces dash recharge by 0.3 seconds instead. Exposed Weakness ranks become Iaijutsu Damage.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="focused malice double the damage bonus from iaijutsu marks, but your slashes are 20% narrower. iaijutsu stance">
+      <a href="Generated/IaijutsuMarkPact.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuMarkPact.png" alt="Focused Malice icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Focused Malice</h2>
+      <p>Double the damage bonus from Iaijutsu marks, but your slashes are 20% narrower.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="patient blade iaijutsu slashes deal 50% more damage, but take 30% longer to charge. iaijutsu stance">
+      <a href="Generated/IaijutsuPowerPact.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuPowerPact.png" alt="Patient Blade icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Patient Blade</h2>
+      <p>Iaijutsu slashes deal 50% more damage, but take 30% longer to charge.</p></div>
+    </article>
+<article data-category="Shared" data-search="quickening both heroes gain 5% attack speed.">
+      <a href="Generated/GlobalAttackSpeed.png" target="_blank" rel="noopener"><img src="Generated/GlobalAttackSpeed.png" alt="Quickening icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Shared</small><h2>Quickening</h2>
+      <p>Both heroes gain 5% attack speed.</p></div>
+    </article>
+<article data-category="Shared" data-search="shared strength both heroes deal 10% more damage.">
+      <a href="Generated/GlobalDamage.png" target="_blank" rel="noopener"><img src="Generated/GlobalDamage.png" alt="Shared Strength icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Shared</small><h2>Shared Strength</h2>
+      <p>Both heroes deal 10% more damage.</p></div>
+    </article>
+<article data-category="Shared" data-search="extra dash gain 1 additional dash charge.">
+      <a href="Generated/GlobalDashCharge.png" target="_blank" rel="noopener"><img src="Generated/GlobalDashCharge.png" alt="Extra Dash icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Shared</small><h2>Extra Dash</h2>
+      <p>Gain 1 additional dash charge.</p></div>
+    </article>
+<article data-category="Shared" data-search="vitality increase maximum health by 5%.">
+      <a href="Generated/GlobalMaxHealth.png" target="_blank" rel="noopener"><img src="Generated/GlobalMaxHealth.png" alt="Vitality icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Shared</small><h2>Vitality</h2>
+      <p>Increase maximum health by 5%.</p></div>
+    </article>
+<article data-category="Shared" data-search="fleetfoot move 5% faster.">
+      <a href="Generated/GlobalMovespeed.png" target="_blank" rel="noopener"><img src="Generated/GlobalMovespeed.png" alt="Fleetfoot icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Shared</small><h2>Fleetfoot</h2>
+      <p>Move 5% faster.</p></div>
+    </article>
+<article data-category="Shared" data-search="magnetism increase pickup range by 15%.">
+      <a href="Generated/GlobalPickupRadius.png" target="_blank" rel="noopener"><img src="Generated/GlobalPickupRadius.png" alt="Magnetism icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Shared</small><h2>Magnetism</h2>
+      <p>Increase pickup range by 15%.</p></div>
+    </article>
+<article data-category="Ninja" data-search="afterimage frenzy shadow clones attack 200% faster. their returning fangs travel 200% faster instead. shadow step">
+      <a href="Generated/AfterimageFrenzy.png" target="_blank" rel="noopener"><img src="Generated/AfterimageFrenzy.png" alt="Afterimage Frenzy icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Afterimage Frenzy</h2>
+      <p>Shadow Clones attack 200% faster. Their Returning Fangs travel 200% faster instead.</p></div>
+    </article>
+<article data-category="Ninja" data-search="barrage stance gain 30% attack speed and 2 extra projectiles. kunai inflict poison: each stack deals 5% of its hit damage over 5 seconds. hits refresh all stacks, up to 20. choose one ninja stance per run.">
+      <a href="Generated/Barrage/BarrageStance.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageStance.png" alt="Barrage Stance icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Barrage Stance</h2>
+      <p>Gain 30% attack speed and 2 extra projectiles. Kunai inflict poison: each stack deals 5% of its hit damage over 5 seconds. Hits refresh all stacks, up to 20. Choose one Ninja stance per run.</p></div>
+    </article>
+<article data-category="Ninja" data-search="breaking wheel when a blade expires, it releases a circular slash dealing 75% blade damage. larger blades create larger slashes. giant shuriken stance">
+      <a href="Generated/Shuriken/BreakingWheel.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/BreakingWheel.png" alt="Breaking Wheel icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Breaking Wheel</h2>
+      <p>When a blade expires, it releases a circular slash dealing 75% blade damage. Larger blades create larger slashes.</p></div>
+    </article>
+<article data-category="Ninja" data-search="embedded blades ninja hits embed blades in enemies, up to 12 per enemy. on death, they scatter toward nearby foes for 40% of their original hit damage. scattered blades cannot embed again.">
+      <a href="Generated/EmbeddedBlades.png" target="_blank" rel="noopener"><img src="Generated/EmbeddedBlades.png" alt="Embedded Blades icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Embedded Blades</h2>
+      <p>Ninja hits embed blades in enemies, up to 12 per enemy. On death, they scatter toward nearby foes for 40% of their original hit damage. Scattered blades cannot embed again.</p></div>
+    </article>
+<article data-category="Ninja" data-search="forked blades kunai have a 15% chance to split on impact into 2 blades dealing 50% damage each. split blades apply poison but cannot split again. barrage stance">
+      <a href="Generated/Barrage/ForkingProjectiles.png" target="_blank" rel="noopener"><img src="Generated/Barrage/ForkingProjectiles.png" alt="Forked Blades icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Forked Blades</h2>
+      <p>Kunai have a 15% chance to split on impact into 2 blades dealing 50% damage each. Split blades apply poison but cannot split again.</p></div>
+    </article>
+<article data-category="Ninja" data-search="sharper fragments embedded blades deal 20% more damage. embedded blades">
+      <a href="Generated/FragmentDamage.png" target="_blank" rel="noopener"><img src="Generated/FragmentDamage.png" alt="Sharper Fragments icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Sharper Fragments</h2>
+      <p>Embedded blades deal 20% more damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="barbed blades embed 1 additional blade with each hit. embedded blades">
+      <a href="Generated/FragmentLoad.png" target="_blank" rel="noopener"><img src="Generated/FragmentLoad.png" alt="Barbed Blades icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Barbed Blades</h2>
+      <p>Embed 1 additional blade with each hit.</p></div>
+    </article>
+<article data-category="Ninja" data-search="scattering blades scattered blades seek enemies from 15% farther away. embedded blades">
+      <a href="Generated/FragmentReach.png" target="_blank" rel="noopener"><img src="Generated/FragmentReach.png" alt="Scattering Blades icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Scattering Blades</h2>
+      <p>Scattered blades seek enemies from 15% farther away.</p></div>
+    </article>
+<article data-category="Ninja" data-search="giant shuriken stance throw massive piercing blades that repeatedly cut enemies. gain 50% damage and throw 50% slower. extra projectiles increase blade size. choose one ninja stance per run.">
+      <a href="Generated/Shuriken/GreatShuriken.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/GreatShuriken.png" alt="Giant Shuriken Stance icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Giant Shuriken Stance</h2>
+      <p>Throw massive piercing blades that repeatedly cut enemies. Gain 50% damage and throw 50% slower. Extra projectiles increase blade size. Choose one Ninja stance per run.</p></div>
+    </article>
+<article data-category="Ninja" data-search="grinding halt each blade slows to 15% speed for 1 second on its first elite or boss hit. giant shuriken stance">
+      <a href="Generated/Shuriken/GrindingHalt.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/GrindingHalt.png" alt="Grinding Halt icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Grinding Halt</h2>
+      <p>Each blade slows to 15% speed for 1 second on its first elite or boss hit.</p></div>
+    </article>
+<article data-category="Ninja" data-search="lingering shuriken blades last 30% longer per rank. giant shuriken stance">
+      <a href="Generated/Shuriken/LingeringShuriken.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/LingeringShuriken.png" alt="Lingering Shuriken icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Lingering Shuriken</h2>
+      <p>Blades last 30% longer per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="multiple strikes shadow clones perform 1 additional attack. shadow step">
+      <a href="Generated/MultipleStrikes.png" target="_blank" rel="noopener"><img src="Generated/MultipleStrikes.png" alt="Multiple Strikes icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Multiple Strikes</h2>
+      <p>Shadow Clones perform 1 additional attack.</p></div>
+    </article>
+<article data-category="Ninja" data-search="needle rain every fourth attack fires twice as many kunai. barrage stance">
+      <a href="Generated/Barrage/NeedleRain.png" target="_blank" rel="noopener"><img src="Generated/Barrage/NeedleRain.png" alt="Needle Rain icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Needle Rain</h2>
+      <p>Every fourth attack fires twice as many kunai.</p></div>
+    </article>
+<article data-category="Ninja" data-search="relentless fang consecutive hits from the same fang against an enemy gain 15% damage per hit, up to 75%. hitting another enemy resets the bonus. returning fang stance">
+      <a href="Generated/Fang/RelentlessFang.png" target="_blank" rel="noopener"><img src="Generated/Fang/RelentlessFang.png" alt="Relentless Fang icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Relentless Fang</h2>
+      <p>Consecutive hits from the same Fang against an enemy gain 15% damage per hit, up to 75%. Hitting another enemy resets the bonus.</p></div>
+    </article>
+<article data-category="Ninja" data-search="returning fang stance throw a homing fang that strikes, returns harmlessly, and immediately launches again. fighting close speeds up its cycle. attack speed increases flight speed; extra projectiles grant 25% fang damage each.">
+      <a href="Generated/Fang/ReturningFang.png" target="_blank" rel="noopener"><img src="Generated/Fang/ReturningFang.png" alt="Returning Fang Stance icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Returning Fang Stance</h2>
+      <p>Throw a homing Fang that strikes, returns harmlessly, and immediately launches again. Fighting close speeds up its cycle. Attack speed increases flight speed; extra projectiles grant 25% Fang damage each.</p></div>
+    </article>
+<article data-category="Ninja" data-search="serrated edge each blade gains 15% damage against an enemy for every previous contact hit, up to 75%. bursts benefit from this bonus without increasing it. giant shuriken stance">
+      <a href="Generated/Shuriken/SerratedEdge.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/SerratedEdge.png" alt="Serrated Edge icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Serrated Edge</h2>
+      <p>Each blade gains 15% damage against an enemy for every previous contact hit, up to 75%. Bursts benefit from this bonus without increasing it.</p></div>
+    </article>
+<article data-category="Ninja" data-search="shadow step dashing as ninja leaves a shadow clone that attacks once with your current weapon.">
+      <a href="Generated/ShadowStep.png" target="_blank" rel="noopener"><img src="Generated/ShadowStep.png" alt="Shadow Step icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Shadow Step</h2>
+      <p>Dashing as Ninja leaves a Shadow Clone that attacks once with your current weapon.</p></div>
+    </article>
+<article data-category="Ninja" data-search="venomous blades ninja attacks inflict poison, including attacks from shadow clones and assists.">
+      <a href="Generated/VenomousKunai.png" target="_blank" rel="noopener"><img src="Generated/VenomousKunai.png" alt="Venomous Blades icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Venomous Blades</h2>
+      <p>Ninja attacks inflict Poison, including attacks from Shadow Clones and assists.</p></div>
+    </article>
+<article data-category="Ninja" data-search="growing shuriken blades grow throughout their lifetime, reaching twice their starting size. giant shuriken stance">
+      <a href="Generated/Shuriken/WideOrbit.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/WideOrbit.png" alt="Growing Shuriken icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Growing Shuriken</h2>
+      <p>Blades grow throughout their lifetime, reaching twice their starting size.</p></div>
+    </article>
+<article data-category="Samurai" data-search="blood stance gain 35% attack area and 30% attack speed. attacks inflict bleed: each stack deals 12.5% of the hit&#x27;s damage over 3 seconds. stacks up to 5 times; new hits refresh all stacks. choose one samurai stance per run.">
+      <a href="Generated/BattleStance.png" target="_blank" rel="noopener"><img src="Generated/BattleStance.png" alt="Blood Stance icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Blood Stance</h2>
+      <p>Gain 35% attack area and 30% attack speed. Attacks inflict Bleed: each stack deals 12.5% of the hit&#x27;s damage over 3 seconds. Stacks up to 5 times; new hits refresh all stacks. Choose one Samurai stance per run.</p></div>
+    </article>
+<article data-category="Samurai" data-search="crescent stance replace melee attacks with piercing waves that deal 40% attack damage and slow enemies by 30% for 5 seconds. choose one samurai stance per run.">
+      <a href="Generated/BladeWave.png" target="_blank" rel="noopener"><img src="Generated/BladeWave.png" alt="Crescent Stance icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Crescent Stance</h2>
+      <p>Replace melee attacks with piercing waves that deal 40% attack damage and slow enemies by 30% for 5 seconds. Choose one Samurai stance per run.</p></div>
+    </article>
+<article data-category="Samurai" data-search="ninja assist each attack has a 5% chance to call ninja for an assist attack. blood stance">
+      <a href="Generated/BloodAssist.png" target="_blank" rel="noopener"><img src="Generated/BloodAssist.png" alt="Ninja Assist icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Ninja Assist</h2>
+      <p>Each attack has a 5% chance to call Ninja for an assist attack.</p></div>
+    </article>
+<article data-category="Samurai" data-search="reinforcements +5% chance to trigger ninja assist. blood stance ninja assist">
+      <a href="Generated/BloodAssistChance.png" target="_blank" rel="noopener"><img src="Generated/BloodAssistChance.png" alt="Reinforcements icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Reinforcements</h2>
+      <p>+5% chance to trigger Ninja Assist.</p></div>
+    </article>
+<article data-category="Samurai" data-search="deep reserves increase the maximum number of bleed stacks on each enemy by 1. blood stance">
+      <a href="Generated/BloodCapacity.png" target="_blank" rel="noopener"><img src="Generated/BloodCapacity.png" alt="Deep Reserves icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Deep Reserves</h2>
+      <p>Increase the maximum number of Bleed stacks on each enemy by 1.</p></div>
+    </article>
+<article data-category="Samurai" data-search="critical strike attacks have a 15% chance to deal double damage. blood stance">
+      <a href="Generated/BloodCritical.png" target="_blank" rel="noopener"><img src="Generated/BloodCritical.png" alt="Critical Strike icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Critical Strike</h2>
+      <p>Attacks have a 15% chance to deal double damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="keen edge +10% chance to trigger critical strike. blood stance critical strike">
+      <a href="Generated/BloodCriticalChance.png" target="_blank" rel="noopener"><img src="Generated/BloodCriticalChance.png" alt="Keen Edge icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Keen Edge</h2>
+      <p>+10% chance to trigger Critical Strike.</p></div>
+    </article>
+<article data-category="Samurai" data-search="echoing slash attacks have a 15% chance to echo for 50% damage. echoes can inflict bleed and critically strike, but cannot create further echoes. blood stance">
+      <a href="Generated/BloodEcho.png" target="_blank" rel="noopener"><img src="Generated/BloodEcho.png" alt="Echoing Slash icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Echoing Slash</h2>
+      <p>Attacks have a 15% chance to echo for 50% damage. Echoes can inflict Bleed and critically strike, but cannot create further echoes.</p></div>
+    </article>
+<article data-category="Samurai" data-search="echo mastery +10% chance to trigger echoing slash. blood stance echoing slash">
+      <a href="Generated/BloodEchoChance.png" target="_blank" rel="noopener"><img src="Generated/BloodEchoChance.png" alt="Echo Mastery icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Echo Mastery</h2>
+      <p>+10% chance to trigger Echoing Slash.</p></div>
+    </article>
+<article data-category="Samurai" data-search="blood rush killing a bleeding enemy grants 20% movement speed for 3 seconds. further kills refresh the bonus. swapping ends it. blood stance">
+      <a href="Generated/BloodRush.png" target="_blank" rel="noopener"><img src="Generated/BloodRush.png" alt="Blood Rush icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Blood Rush</h2>
+      <p>Killing a bleeding enemy grants 20% movement speed for 3 seconds. Further kills refresh the bonus. Swapping ends it.</p></div>
+    </article>
+<article data-category="Samurai" data-search="blood transfer when a bleeding enemy dies, its bleed stacks spread to nearby enemies. blood stance">
+      <a href="Generated/BloodTransfer.png" target="_blank" rel="noopener"><img src="Generated/BloodTransfer.png" alt="Blood Transfer icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Blood Transfer</h2>
+      <p>When a bleeding enemy dies, its Bleed stacks spread to nearby enemies.</p></div>
+    </article>
+<article data-category="Samurai" data-search="crimson reach +10% blood transfer and blood detonation radius. blood stance">
+      <a href="Generated/BloodTransferArea.png" target="_blank" rel="noopener"><img src="Generated/BloodTransferArea.png" alt="Crimson Reach icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Crimson Reach</h2>
+      <p>+10% Blood Transfer and Blood Detonation radius.</p></div>
+    </article>
+<article data-category="Samurai" data-search="bloodletting each hit applies 1 additional bleed stack. blood stance">
+      <a href="Generated/Bloodletting.png" target="_blank" rel="noopener"><img src="Generated/Bloodletting.png" alt="Bloodletting icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Bloodletting</h2>
+      <p>Each hit applies 1 additional Bleed stack.</p></div>
+    </article>
+<article data-category="Samurai" data-search="arc volley attacks have a 15% chance to fire a fan of 3 waves. with double cut, the fan fires in all four directions. crescent stance">
+      <a href="Generated/CrescentArc.png" target="_blank" rel="noopener"><img src="Generated/CrescentArc.png" alt="Arc Volley icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Arc Volley</h2>
+      <p>Attacks have a 15% chance to fire a fan of 3 waves. With Double Cut, the fan fires in all four directions.</p></div>
+    </article>
+<article data-category="Samurai" data-search="arc mastery +10% chance to trigger arc volley. crescent stance arc volley">
+      <a href="Generated/CrescentArcChance.png" target="_blank" rel="noopener"><img src="Generated/CrescentArcChance.png" alt="Arc Mastery icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Arc Mastery</h2>
+      <p>+10% chance to trigger Arc Volley.</p></div>
+    </article>
+<article data-category="Samurai" data-search="ninja assist kills in crescent stance have a 5% chance to call ninja for an assist attack. crescent stance">
+      <a href="Generated/CrescentAssist.png" target="_blank" rel="noopener"><img src="Generated/CrescentAssist.png" alt="Ninja Assist icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Ninja Assist</h2>
+      <p>Kills in Crescent Stance have a 5% chance to call Ninja for an assist attack.</p></div>
+    </article>
+<article data-category="Samurai" data-search="reinforcements +5% chance to trigger ninja assist. crescent stance ninja assist">
+      <a href="Generated/CrescentAssistChance.png" target="_blank" rel="noopener"><img src="Generated/CrescentAssistChance.png" alt="Reinforcements icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Reinforcements</h2>
+      <p>+5% chance to trigger Ninja Assist.</p></div>
+    </article>
+<article data-category="Samurai" data-search="wave damage waves and their damaging trails deal 20% more damage. crescent stance">
+      <a href="Generated/CrescentDamage.png" target="_blank" rel="noopener"><img src="Generated/CrescentDamage.png" alt="Wave Damage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Wave Damage</h2>
+      <p>Waves and their damaging trails deal 20% more damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="double cut every fourth attack sends 4 full-damage waves in a cross, each carrying your wave upgrades. crescent stance">
+      <a href="Generated/CrescentDoubleCut.png" target="_blank" rel="noopener"><img src="Generated/CrescentDoubleCut.png" alt="Double Cut icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Double Cut</h2>
+      <p>Every fourth attack sends 4 full-damage waves in a cross, each carrying your wave upgrades.</p></div>
+    </article>
+<article data-category="Samurai" data-search="relentless cuts double cut requires 1 fewer attack, down to every attack. crescent stance double cut">
+      <a href="Generated/CrescentDoubleCutFrequency.png" target="_blank" rel="noopener"><img src="Generated/CrescentDoubleCutFrequency.png" alt="Relentless Cuts icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Relentless Cuts</h2>
+      <p>Double Cut requires 1 fewer attack, down to every attack.</p></div>
+    </article>
+<article data-category="Samurai" data-search="lingering wake waves have a 15% chance to leave a trail along their full path after travelling outward. trails deal 30% wave damage per second for 3 seconds. their split waves share the effect. crescent stance">
+      <a href="Generated/CrescentField.png" target="_blank" rel="noopener"><img src="Generated/CrescentField.png" alt="Lingering Wake icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Lingering Wake</h2>
+      <p>Waves have a 15% chance to leave a trail along their full path after travelling outward. Trails deal 30% wave damage per second for 3 seconds. Their split waves share the effect.</p></div>
+    </article>
+<article data-category="Samurai" data-search="restless wake +5% chance to trigger lingering wake. crescent stance lingering wake">
+      <a href="Generated/CrescentFieldChance.png" target="_blank" rel="noopener"><img src="Generated/CrescentFieldChance.png" alt="Restless Wake icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Restless Wake</h2>
+      <p>+5% chance to trigger Lingering Wake.</p></div>
+    </article>
+<article data-category="Samurai" data-search="enduring wake +15% lingering wake duration and total damage. also increases sudden eruption damage. crescent stance lingering wake">
+      <a href="Generated/CrescentFieldPower.png" target="_blank" rel="noopener"><img src="Generated/CrescentFieldPower.png" alt="Enduring Wake icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Enduring Wake</h2>
+      <p>+15% Lingering Wake duration and total damage. Also increases Sudden Eruption damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="wave range waves travel 20% farther. crescent stance">
+      <a href="Generated/CrescentRange.png" target="_blank" rel="noopener"><img src="Generated/CrescentRange.png" alt="Wave Range icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Wave Range</h2>
+      <p>Waves travel 20% farther.</p></div>
+    </article>
+<article data-category="Samurai" data-search="chilling waves waves slow enemies by an additional 5%. crescent stance">
+      <a href="Generated/CrescentSlow.png" target="_blank" rel="noopener"><img src="Generated/CrescentSlow.png" alt="Chilling Waves icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Chilling Waves</h2>
+      <p>Waves slow enemies by an additional 5%.</p></div>
+    </article>
+<article data-category="Samurai" data-search="lingering chill your waves slow enemies for 1 second longer. crescent stance">
+      <a href="Generated/CrescentSlowDuration.png" target="_blank" rel="noopener"><img src="Generated/CrescentSlowDuration.png" alt="Lingering Chill icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Lingering Chill</h2>
+      <p>Your waves slow enemies for 1 second longer.</p></div>
+    </article>
+<article data-category="Samurai" data-search="wave speed waves travel 20% faster. crescent stance">
+      <a href="Generated/CrescentSpeed.png" target="_blank" rel="noopener"><img src="Generated/CrescentSpeed.png" alt="Wave Speed icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Wave Speed</h2>
+      <p>Waves travel 20% faster.</p></div>
+    </article>
+<article data-category="Samurai" data-search="splitting waves the first enemy hit has a 15% chance to launch 2 smaller waves sideways while the original continues. side waves deal 50% damage, have 60% width and range, and cannot split again. crescent stance">
+      <a href="Generated/CrescentSplit.png" target="_blank" rel="noopener"><img src="Generated/CrescentSplit.png" alt="Splitting Waves icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Splitting Waves</h2>
+      <p>The first enemy hit has a 15% chance to launch 2 smaller waves sideways while the original continues. Side waves deal 50% damage, have 60% width and range, and cannot split again.</p></div>
+    </article>
+<article data-category="Samurai" data-search="fracture mastery +15% chance to trigger splitting waves. crescent stance splitting waves">
+      <a href="Generated/CrescentSplitChance.png" target="_blank" rel="noopener"><img src="Generated/CrescentSplitChance.png" alt="Fracture Mastery icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Fracture Mastery</h2>
+      <p>+15% chance to trigger Splitting Waves.</p></div>
+    </article>
+<article data-category="Samurai" data-search="double cut every fourth attack becomes a full-damage slash that strikes all around you. blood stance">
+      <a href="Generated/DoubleCut.png" target="_blank" rel="noopener"><img src="Generated/DoubleCut.png" alt="Double Cut icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Double Cut</h2>
+      <p>Every fourth attack becomes a full-damage slash that strikes all around you.</p></div>
+    </article>
+<article data-category="Samurai" data-search="relentless cuts double cut requires 1 fewer attack, down to every attack. blood stance double cut">
+      <a href="Generated/DoubleCutFrequency.png" target="_blank" rel="noopener"><img src="Generated/DoubleCutFrequency.png" alt="Relentless Cuts icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Relentless Cuts</h2>
+      <p>Double Cut requires 1 fewer attack, down to every attack.</p></div>
+    </article>
+<article data-category="Samurai" data-search="iaijutsu stance charge a slash for 1 second, drawing nearby enemies into its path. strike the entire path and mark foes for 3 seconds. marked foes take 50% more damage from later hits. choose one samurai stance per run.">
+      <a href="Generated/Iaijutsu.png" target="_blank" rel="noopener"><img src="Generated/Iaijutsu.png" alt="Iaijutsu Stance icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Iaijutsu Stance</h2>
+      <p>Charge a slash for 1 second, drawing nearby enemies into its path. Strike the entire path and mark foes for 3 seconds. Marked foes take 50% more damage from later hits. Choose one Samurai stance per run.</p></div>
+    </article>
+<article data-category="Samurai" data-search="final flourish iaijutsu attacks have a 15% chance to unleash a circular strike at the end of their path, dealing full attack damage within 2.5 meters. iaijutsu stance">
+      <a href="Generated/IaijutsuAOE.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuAOE.png" alt="Final Flourish icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Final Flourish</h2>
+      <p>Iaijutsu attacks have a 15% chance to unleash a circular strike at the end of their path, dealing full attack damage within 2.5 meters.</p></div>
+    </article>
+<article data-category="Samurai" data-search="flourish mastery +10% chance to trigger final flourish. iaijutsu stance final flourish">
+      <a href="Generated/IaijutsuAOEChance.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuAOEChance.png" alt="Flourish Mastery icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Flourish Mastery</h2>
+      <p>+10% chance to trigger Final Flourish.</p></div>
+    </article>
+<article data-category="Samurai" data-search="ninja assist while fighting in iaijutsu stance, you have a 5% chance each second to call ninja for an assist attack. iaijutsu stance">
+      <a href="Generated/IaijutsuAssist.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuAssist.png" alt="Ninja Assist icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Ninja Assist</h2>
+      <p>While fighting in Iaijutsu Stance, you have a 5% chance each second to call Ninja for an assist attack.</p></div>
+    </article>
+<article data-category="Samurai" data-search="reinforcements +5% chance to trigger ninja assist. iaijutsu stance ninja assist">
+      <a href="Generated/IaijutsuAssistChance.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuAssistChance.png" alt="Reinforcements icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Reinforcements</h2>
+      <p>+5% chance to trigger Ninja Assist.</p></div>
+    </article>
+<article data-category="Samurai" data-search="deadly cascade death cascade slashes and their final flourish deal 20% more damage. iaijutsu stance death cascade">
+      <a href="Generated/IaijutsuCascadePower.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuCascadePower.png" alt="Deadly Cascade icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Deadly Cascade</h2>
+      <p>Death Cascade slashes and their Final Flourish deal 20% more damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="death cascade the first kill from an iaijutsu attack launches a slash from the fallen enemy toward the nearest foe. this slash cannot trigger death cascade. iaijutsu stance">
+      <a href="Generated/IaijutsuChain.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuChain.png" alt="Death Cascade icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Death Cascade</h2>
+      <p>The first kill from an Iaijutsu attack launches a slash from the fallen enemy toward the nearest foe. This slash cannot trigger Death Cascade.</p></div>
+    </article>
+<article data-category="Samurai" data-search="charge speed iaijutsu slashes charge 15% faster. iaijutsu stance">
+      <a href="Generated/IaijutsuChargeSpeed.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuChargeSpeed.png" alt="Charge Speed icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Charge Speed</h2>
+      <p>Iaijutsu slashes charge 15% faster.</p></div>
+    </article>
+<article data-category="Samurai" data-search="iaijutsu damage iaijutsu attacks deal 20% more damage. iaijutsu stance">
+      <a href="Generated/IaijutsuDamage.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuDamage.png" alt="Iaijutsu Damage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Iaijutsu Damage</h2>
+      <p>Iaijutsu attacks deal 20% more damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="dash draw dash twice as far in iaijutsu stance. at the end of your dash, charge a slash along the path you travelled. iaijutsu stance">
+      <a href="Generated/IaijutsuDash.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuDash.png" alt="Dash Draw icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Dash Draw</h2>
+      <p>Dash twice as far in Iaijutsu Stance. At the end of your dash, charge a slash along the path you travelled.</p></div>
+    </article>
+<article data-category="Samurai" data-search="driving draw dash draw slashes and their final flourish deal 20% more damage. iaijutsu stance dash draw">
+      <a href="Generated/IaijutsuDashPower.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuDashPower.png" alt="Driving Draw icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Driving Draw</h2>
+      <p>Dash Draw slashes and their Final Flourish deal 20% more damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="double cut every fourth iaijutsu attack releases 2 full-damage slashes in an x. iaijutsu stance">
+      <a href="Generated/IaijutsuDoubleCut.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuDoubleCut.png" alt="Double Cut icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Double Cut</h2>
+      <p>Every fourth Iaijutsu attack releases 2 full-damage slashes in an X.</p></div>
+    </article>
+<article data-category="Samurai" data-search="relentless cuts double cut requires 1 fewer attack, down to every attack. iaijutsu stance double cut">
+      <a href="Generated/IaijutsuDoubleCutFrequency.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuDoubleCutFrequency.png" alt="Relentless Cuts icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Relentless Cuts</h2>
+      <p>Double Cut requires 1 fewer attack, down to every attack.</p></div>
+    </article>
+<article data-category="Samurai" data-search="flash draw iaijutsu attacks have a 15% chance to strike instantly, without charging. iaijutsu stance">
+      <a href="Generated/IaijutsuInstant.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuInstant.png" alt="Flash Draw icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Flash Draw</h2>
+      <p>Iaijutsu attacks have a 15% chance to strike instantly, without charging.</p></div>
+    </article>
+<article data-category="Samurai" data-search="flash mastery +10% chance to trigger flash draw. iaijutsu stance flash draw">
+      <a href="Generated/IaijutsuInstantChance.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuInstantChance.png" alt="Flash Mastery icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Flash Mastery</h2>
+      <p>+10% chance to trigger Flash Draw.</p></div>
+    </article>
+<article data-category="Samurai" data-search="exposed weakness enemies marked by iaijutsu take an additional 10% damage. iaijutsu stance">
+      <a href="Generated/IaijutsuMarkDamage.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuMarkDamage.png" alt="Exposed Weakness icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Exposed Weakness</h2>
+      <p>Enemies marked by Iaijutsu take an additional 10% damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="gathering wind draw enemies into your iaijutsu slash from 15% farther away. iaijutsu stance">
+      <a href="Generated/IaijutsuVacuumReach.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuVacuumReach.png" alt="Gathering Wind icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Gathering Wind</h2>
+      <p>Draw enemies into your Iaijutsu slash from 15% farther away.</p></div>
+    </article>
+<article data-category="Samurai" data-search="slash width iaijutsu slashes are 25% wider. iaijutsu stance">
+      <a href="Generated/IaijutsuWidth.png" target="_blank" rel="noopener"><img src="Generated/IaijutsuWidth.png" alt="Slash Width icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Slash Width</h2>
+      <p>Iaijutsu slashes are 25% wider.</p></div>
+    </article>
+<article data-category="Samurai" data-search="lingering wounds bleed lasts 1 second longer and continues dealing damage. blood stance">
+      <a href="Generated/LingeringWounds.png" target="_blank" rel="noopener"><img src="Generated/LingeringWounds.png" alt="Lingering Wounds icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Lingering Wounds</h2>
+      <p>Bleed lasts 1 second longer and continues dealing damage.</p></div>
+    </article>
+<article data-category="Samurai" data-search="returning blade waves return to their starting point, striking enemies again for 50% damage. split waves do not return. crescent stance">
+      <a href="Generated/ReturningBlade.png" target="_blank" rel="noopener"><img src="Generated/ReturningBlade.png" alt="Returning Blade icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Returning Blade</h2>
+      <p>Waves return to their starting point, striking enemies again for 50% damage. Split waves do not return.</p></div>
+    </article>
+<article data-category="Samurai" data-search="attack area increase samurai attack area by 15%. adapts to slash width or wave range when you choose a stance.">
+      <a href="Generated/SamuraiArea.png" target="_blank" rel="noopener"><img src="Generated/SamuraiArea.png" alt="Attack Area icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Attack Area</h2>
+      <p>Increase Samurai attack area by 15%. Adapts to slash width or wave range when you choose a stance.</p></div>
+    </article>
+<article data-category="Samurai" data-search="attack damage samurai attacks deal 20% more damage in any stance.">
+      <a href="Generated/SamuraiHeavyBlade.png" target="_blank" rel="noopener"><img src="Generated/SamuraiHeavyBlade.png" alt="Attack Damage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Attack Damage</h2>
+      <p>Samurai attacks deal 20% more damage in any stance.</p></div>
+    </article>
+<article data-category="Samurai" data-search="attack speed samurai attacks are 10% faster. adapts to charge speed or wave speed when you choose a stance.">
+      <a href="Generated/SamuraiTempo.png" target="_blank" rel="noopener"><img src="Generated/SamuraiTempo.png" alt="Attack Speed icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Samurai</small><h2>Attack Speed</h2>
+      <p>Samurai attacks are 10% faster. Adapts to charge speed or wave speed when you choose a stance.</p></div>
+    </article>
+<article data-category="Synergy" data-search="grand entrance after swapping, empower your next attack. samurai strikes all around him within 6 meters. ninja gains 8 extra projectiles, converted to damage for returning fang or size for great shuriken. does not stack.">
+      <a href="Generated/GrandEntrance.png" target="_blank" rel="noopener"><img src="Generated/GrandEntrance.png" alt="Grand Entrance icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Synergy</small><h2>Grand Entrance</h2>
+      <p>After swapping, empower your next attack. Samurai strikes all around him within 6 meters. Ninja gains 8 extra projectiles, converted to damage for Returning Fang or size for Great Shuriken. Does not stack.</p></div>
+    </article>
+<article data-category="Synergy" data-search="handoff after swapping, the incoming hero gains 40% attack speed for 2 seconds.">
+      <a href="Generated/Handoff.png" target="_blank" rel="noopener"><img src="Generated/Handoff.png" alt="Handoff icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Synergy</small><h2>Handoff</h2>
+      <p>After swapping, the incoming hero gains 40% attack speed for 2 seconds.</p></div>
+    </article>
+<article data-category="Synergy" data-search="marked blade samurai attacks mark enemies. ninja attacks consume these marks to deal bonus damage.">
+      <a href="Generated/MarkedBlade.png" target="_blank" rel="noopener"><img src="Generated/MarkedBlade.png" alt="Marked Blade icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Synergy</small><h2>Marked Blade</h2>
+      <p>Samurai attacks mark enemies. Ninja attacks consume these marks to deal bonus damage.</p></div>
+    </article>
+<article data-category="Synergy" data-search="second wind swapping heroes restores 1 dash charge.">
+      <a href="Generated/SynergySwapRestoresDashCharge.png" target="_blank" rel="noopener"><img src="Generated/SynergySwapRestoresDashCharge.png" alt="Second Wind icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Synergy</small><h2>Second Wind</h2>
+      <p>Swapping heroes restores 1 dash charge.</p></div>
+    </article>
+<article data-category="Synergy" data-search="tag team every 5 normal attacks, your partner joins the fight. ninja uses her current weapon; samurai slashes and knocks enemies back.">
+      <a href="Generated/TagTeam.png" target="_blank" rel="noopener"><img src="Generated/TagTeam.png" alt="Tag Team icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Synergy</small><h2>Tag Team</h2>
+      <p>Every 5 normal attacks, your partner joins the fight. Ninja uses her current weapon; Samurai slashes and knocks enemies back.</p></div>
+    </article>
+<article data-category="Ninja" data-search="twin fang every fourth launch sends 2 additional spectral fangs, seeking different enemies when possible. spectral fangs return once and cannot summon more fangs. returning fang stance">
+      <a href="Generated/Fang/FangTwin.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangTwin.png" alt="Twin Fang icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Twin Fang</h2>
+      <p>Every fourth launch sends 2 additional spectral Fangs, seeking different enemies when possible. Spectral Fangs return once and cannot summon more Fangs.</p></div>
+    </article>
+<article data-category="Ninja" data-search="resonant fang after striking an enemy, each returning fang releases a burst around you for 50% fang damage. bursts cannot trigger fang effects. returning fang stance">
+      <a href="Generated/Fang/FangResonance.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangResonance.png" alt="Resonant Fang icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Resonant Fang</h2>
+      <p>After striking an enemy, each returning Fang releases a burst around you for 50% Fang damage. Bursts cannot trigger Fang effects.</p></div>
+    </article>
+<article data-category="Ninja" data-search="deadeye fang hits have a 15% chance to deal double damage. returning fang stance">
+      <a href="Generated/Fang/FangDeadeye.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangDeadeye.png" alt="Deadeye icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Deadeye</h2>
+      <p>Fang hits have a 15% chance to deal double damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="samurai assist completed main-fang round trips have a 5% chance to call samurai for an assist attack. can trigger once per second. returning fang stance">
+      <a href="Generated/Fang/FangAssist.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangAssist.png" alt="Samurai Assist icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Samurai Assist</h2>
+      <p>Completed main-Fang round trips have a 5% chance to call Samurai for an assist attack. Can trigger once per second.</p></div>
+    </article>
+<article data-category="Ninja" data-search="splintering fang fang kills scatter one kunai for each direct fang hit the enemy took, including the killing hit. each kunai deals 40% fang damage and cannot trigger fang effects. returning fang stance">
+      <a href="Generated/Fang/FangSplinter.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangSplinter.png" alt="Splintering Fang icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Splintering Fang</h2>
+      <p>Fang kills scatter one kunai for each direct Fang hit the enemy took, including the killing hit. Each kunai deals 40% Fang damage and cannot trigger Fang effects.</p></div>
+    </article>
+<article data-category="Ninja" data-search="fang damage fangs deal 20% more damage. returning fang stance">
+      <a href="Generated/Fang/FangDamage.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangDamage.png" alt="Fang Damage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Fang Damage</h2>
+      <p>Fangs deal 20% more damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="flight speed fangs travel 15% faster on outward and return trips. returning fang stance">
+      <a href="Generated/Fang/FangSpeed.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangSpeed.png" alt="Flight Speed icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Flight Speed</h2>
+      <p>Fangs travel 15% faster on outward and return trips.</p></div>
+    </article>
+<article data-category="Ninja" data-search="attack range fangs seek enemies 15% farther away. returning fang stance">
+      <a href="Generated/Fang/FangRange.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangRange.png" alt="Attack Range icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Attack Range</h2>
+      <p>Fangs seek enemies 15% farther away.</p></div>
+    </article>
+<article data-category="Ninja" data-search="close quarters fang hits deal 10% more damage to enemies within 3 metres of you. returning fang stance">
+      <a href="Generated/Fang/FangCloseQuarters.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangCloseQuarters.png" alt="Close Quarters icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Close Quarters</h2>
+      <p>Fang hits deal 10% more damage to enemies within 3 metres of you.</p></div>
+    </article>
+<article data-category="Ninja" data-search="killing edge fang hits deal 15% more damage to enemies below 30% health. returning fang stance">
+      <a href="Generated/Fang/FangKillingEdge.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangKillingEdge.png" alt="Killing Edge icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Killing Edge</h2>
+      <p>Fang hits deal 15% more damage to enemies below 30% health.</p></div>
+    </article>
+<article data-category="Ninja" data-search="twin fang frequency twin fang requires 1 fewer launch, down to every launch. returning fang stance twin fang">
+      <a href="Generated/Fang/FangTwinFrequency.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangTwinFrequency.png" alt="Twin Fang Frequency icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Twin Fang Frequency</h2>
+      <p>Twin Fang requires 1 fewer launch, down to every launch.</p></div>
+    </article>
+<article data-category="Ninja" data-search="relentless pressure increases relentless fang&#x27;s damage per stack and maximum bonus by 20% of their base values. returning fang stance relentless fang">
+      <a href="Generated/Fang/FangPressure.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangPressure.png" alt="Relentless Pressure icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Relentless Pressure</h2>
+      <p>Increases Relentless Fang&#x27;s damage per stack and maximum bonus by 20% of their base values.</p></div>
+    </article>
+<article data-category="Ninja" data-search="resonant reach resonant fang bursts have 15% more radius. returning fang stance resonant fang">
+      <a href="Generated/Fang/FangResonantReach.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangResonantReach.png" alt="Resonant Reach icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Resonant Reach</h2>
+      <p>Resonant Fang bursts have 15% more radius.</p></div>
+    </article>
+<article data-category="Ninja" data-search="deadeye mastery adds 10% critical-hit chance to fang hits. returning fang stance deadeye">
+      <a href="Generated/Fang/FangCriticalChance.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangCriticalChance.png" alt="Deadeye Mastery icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Deadeye Mastery</h2>
+      <p>Adds 10% critical-hit chance to Fang hits.</p></div>
+    </article>
+<article data-category="Ninja" data-search="reinforcements adds 5% chance to call samurai on a completed main-fang round trip. returning fang stance samurai assist">
+      <a href="Generated/Fang/FangAssistChance.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangAssistChance.png" alt="Reinforcements icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Reinforcements</h2>
+      <p>Adds 5% chance to call Samurai on a completed main-Fang round trip.</p></div>
+    </article>
+<article data-category="Ninja" data-search="splinter power splintering fang kunai deal 20% more damage. returning fang stance splintering fang">
+      <a href="Generated/Fang/FangSplinterPower.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangSplinterPower.png" alt="Splinter Power icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Splinter Power</h2>
+      <p>Splintering Fang kunai deal 20% more damage.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="farstrider fangs travel 25% slower. outward hits gain damage with distance travelled, up to 150% bonus damage at 10 metres. returning fang stance">
+      <a href="Generated/Fang/FangFarstrider.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangFarstrider.png" alt="Farstrider icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Farstrider</h2>
+      <p>Fangs travel 25% slower. Outward hits gain damage with distance travelled, up to 150% bonus damage at 10 metres.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="redline fangs travel 60% faster, but deal 30% less damage. returning fang stance">
+      <a href="Generated/Fang/FangRedline.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangRedline.png" alt="Redline icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Redline</h2>
+      <p>Fangs travel 60% faster, but deal 30% less damage.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="predator&#x27;s price fang critical hits deal 50% more damage, but noncritical hits deal 25% less damage. returning fang stance deadeye">
+      <a href="Generated/Fang/FangPredator.png" target="_blank" rel="noopener"><img src="Generated/Fang/FangPredator.png" alt="Predator&#x27;s Price icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Predator&#x27;s Price</h2>
+      <p>Fang critical hits deal 50% more damage, but noncritical hits deal 25% less damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="attack damage ninja attacks deal 20% more damage.">
+      <a href="Generated/Fang/NinjaDamage.png" target="_blank" rel="noopener"><img src="Generated/Fang/NinjaDamage.png" alt="Attack Damage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Attack Damage</h2>
+      <p>Ninja attacks deal 20% more damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="attack speed ninja attacks are 15% faster. converts to flight speed with returning fang.">
+      <a href="Generated/Fang/NinjaSpeed.png" target="_blank" rel="noopener"><img src="Generated/Fang/NinjaSpeed.png" alt="Attack Speed icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Attack Speed</h2>
+      <p>Ninja attacks are 15% faster. Converts to Flight Speed with Returning Fang.</p></div>
+    </article>
+<article data-category="Ninja" data-search="coverage kunai and great shuriken are 15% larger. converts to attack range with returning fang.">
+      <a href="Generated/Fang/NinjaCoverage.png" target="_blank" rel="noopener"><img src="Generated/Fang/NinjaCoverage.png" alt="Coverage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Coverage</h2>
+      <p>Kunai and Great Shuriken are 15% larger. Converts to Attack Range with Returning Fang.</p></div>
+    </article>
+<article data-category="Ninja" data-search="toxic ground killing an enemy poisoned by your kunai leaves a puddle for 3 seconds. every 0.5 seconds it applies 1 poison stack, matching the victim&#x27;s average stack strength. puddle poison alone cannot create another puddle. barrage stance">
+      <a href="Generated/Barrage/BarragePool.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarragePool.png" alt="Toxic Ground icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Toxic Ground</h2>
+      <p>Killing an enemy poisoned by your kunai leaves a puddle for 3 seconds. Every 0.5 seconds it applies 1 poison stack, matching the victim&#x27;s average stack strength. Puddle poison alone cannot create another puddle.</p></div>
+    </article>
+<article data-category="Ninja" data-search="samurai assist each attack has a 5% chance to call a samurai assist. an active assist cannot overlap itself. barrage stance">
+      <a href="Generated/Barrage/BarrageAssist.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageAssist.png" alt="Samurai Assist icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Samurai Assist</h2>
+      <p>Each attack has a 5% chance to call a Samurai assist. An active assist cannot overlap itself.</p></div>
+    </article>
+<article data-category="Ninja" data-search="critical strike kunai hits have a 15% chance to deal double damage. poison inherits the increased hit damage. barrage stance">
+      <a href="Generated/Barrage/BarrageCritical.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageCritical.png" alt="Critical Strike icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Critical Strike</h2>
+      <p>Kunai hits have a 15% chance to deal double damage. Poison inherits the increased hit damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="viper&#x27;s rush killing a poisoned enemy grants 20% movement speed for 3 seconds. further kills refresh the duration. barrage stance">
+      <a href="Generated/Barrage/BarrageRush.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageRush.png" alt="Viper&#x27;s Rush icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Viper&#x27;s Rush</h2>
+      <p>Killing a poisoned enemy grants 20% movement speed for 3 seconds. Further kills refresh the duration.</p></div>
+    </article>
+<article data-category="Ninja" data-search="kunai damage kunai deal 20% more damage. barrage stance">
+      <a href="Generated/Barrage/BarrageDamage.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageDamage.png" alt="Kunai Damage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Kunai Damage</h2>
+      <p>Kunai deal 20% more damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="attack speed attack 15% faster. barrage stance">
+      <a href="Generated/Barrage/BarrageSpeed.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageSpeed.png" alt="Attack Speed icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Attack Speed</h2>
+      <p>Attack 15% faster.</p></div>
+    </article>
+<article data-category="Ninja" data-search="kunai reach kunai travel 15% farther. barrage stance">
+      <a href="Generated/Barrage/BarrageRange.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageRange.png" alt="Kunai Reach icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Kunai Reach</h2>
+      <p>Kunai travel 15% farther.</p></div>
+    </article>
+<article data-category="Ninja" data-search="lingering venom poison lasts 2 seconds longer, dealing damage at the same rate. barrage stance">
+      <a href="Generated/Barrage/BarragePoisonDuration.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarragePoisonDuration.png" alt="Lingering Venom icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Lingering Venom</h2>
+      <p>Poison lasts 2 seconds longer, dealing damage at the same rate.</p></div>
+    </article>
+<article data-category="Ninja" data-search="venom load each kunai hit applies 2 additional poison stacks. barrage stance">
+      <a href="Generated/Barrage/BarragePoisonLoad.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarragePoisonLoad.png" alt="Venom Load icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Venom Load</h2>
+      <p>Each kunai hit applies 2 additional poison stacks.</p></div>
+    </article>
+<article data-category="Ninja" data-search="relentless rain needle rain requires 1 fewer attack. at maximum rank, every attack fires twice as many kunai. barrage stance needle rain">
+      <a href="Generated/Barrage/BarrageRainFrequency.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageRainFrequency.png" alt="Relentless Rain icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Relentless Rain</h2>
+      <p>Needle Rain requires 1 fewer attack. At maximum rank, every attack fires twice as many kunai.</p></div>
+    </article>
+<article data-category="Ninja" data-search="branching blades kunai gain 10% split chance. with serpent&#x27;s procession, each ricochet instead loses 2% less damage. barrage stance forked blades">
+      <a href="Generated/Barrage/BarrageSplitChance.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageSplitChance.png" alt="Branching Blades icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Branching Blades</h2>
+      <p>Kunai gain 10% split chance. With Serpent&#x27;s Procession, each ricochet instead loses 2% less damage.</p></div>
+    </article>
+<article data-category="Ninja" data-search="reinforcements gain 5% chance to call a samurai assist. barrage stance samurai assist">
+      <a href="Generated/Barrage/BarrageAssistChance.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageAssistChance.png" alt="Reinforcements icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Reinforcements</h2>
+      <p>Gain 5% chance to call a Samurai assist.</p></div>
+    </article>
+<article data-category="Ninja" data-search="spreading blight poison puddles have 20% more radius. barrage stance toxic ground">
+      <a href="Generated/Barrage/BarragePoolRadius.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarragePoolRadius.png" alt="Spreading Blight icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Spreading Blight</h2>
+      <p>Poison puddles have 20% more radius.</p></div>
+    </article>
+<article data-category="Ninja" data-search="critical precision kunai gain 10% critical strike chance. barrage stance critical strike">
+      <a href="Generated/Barrage/BarrageCriticalChance.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageCriticalChance.png" alt="Critical Precision icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Critical Precision</h2>
+      <p>Kunai gain 10% critical strike chance.</p></div>
+    </article>
+<article data-category="Ninja" data-search="deep venom enemies can hold 4 additional poison stacks. barrage stance">
+      <a href="Generated/Barrage/BarragePoisonCap.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarragePoisonCap.png" alt="Deep Venom icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Deep Venom</h2>
+      <p>Enemies can hold 4 additional poison stacks.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="point-blank barrage gain 50% attack speed, but kunai travel 70% less distance. barrage stance">
+      <a href="Generated/Barrage/BarragePointBlank.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarragePointBlank.png" alt="Point-Blank Barrage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Point-Blank Barrage</h2>
+      <p>Gain 50% attack speed, but kunai travel 70% less distance.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="serpent&#x27;s procession fire kunai one after another in a straight line. they ricochet to 3 additional nearby enemies, losing 25% damage per bounce, but cannot split. each 10% split chance reduces this loss by 2%. barrage stance">
+      <a href="Generated/Barrage/BarrageProcession.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageProcession.png" alt="Serpent&#x27;s Procession icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Serpent&#x27;s Procession</h2>
+      <p>Fire kunai one after another in a straight line. They ricochet to 3 additional nearby enemies, losing 25% damage per bounce, but cannot split. Each 10% split chance reduces this loss by 2%.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="venom bloom puddles no longer apply poison. every 0.5 seconds they instead deal 10% of each enemy&#x27;s remaining poison damage without consuming its stacks. barrage stance toxic ground">
+      <a href="Generated/Barrage/BarrageBloom.png" target="_blank" rel="noopener"><img src="Generated/Barrage/BarrageBloom.png" alt="Venom Bloom icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Venom Bloom</h2>
+      <p>Puddles no longer apply poison. Every 0.5 seconds they instead deal 10% of each enemy&#x27;s remaining poison damage without consuming its stacks.</p></div>
+    </article>
+<article data-category="Ninja" data-search="twin wheel every fourth throw launches an additional shuriken. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenTwin.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenTwin.png" alt="Twin Wheel icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Twin Wheel</h2>
+      <p>Every fourth throw launches an additional shuriken.</p></div>
+    </article>
+<article data-category="Ninja" data-search="samurai assist shuriken contact and burst kills have a 5% chance to call a samurai assist. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenAssist.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenAssist.png" alt="Samurai Assist icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Samurai Assist</h2>
+      <p>Shuriken contact and burst kills have a 5% chance to call a Samurai assist.</p></div>
+    </article>
+<article data-category="Ninja" data-search="shuriken damage increase blade and burst damage. +20% per rank. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenDamage.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenDamage.png" alt="Shuriken Damage icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Shuriken Damage</h2>
+      <p>Increase blade and burst damage. +20% per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="attack speed throw shurikens more frequently. +15% per rank. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenSpeed.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenSpeed.png" alt="Attack Speed icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Attack Speed</h2>
+      <p>Throw shurikens more frequently. +15% per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="shuriken size increase blade size and burst radius. with blood hunger, increase size gained per kill instead. +15% per rank. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenSize.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenSize.png" alt="Shuriken Size icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Shuriken Size</h2>
+      <p>Increase blade size and burst radius. With Blood Hunger, increase size gained per kill instead. +15% per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="cutting tempo increase contact hit and pulse frequency by 15% per rank. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenTempo.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenTempo.png" alt="Cutting Tempo icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Cutting Tempo</h2>
+      <p>Increase contact hit and pulse frequency by 15% per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="persistent grind grinding halt lasts 0.2 seconds longer per rank. giant shuriken stance grinding halt">
+      <a href="Generated/Shuriken/ShurikenGrindDuration.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenGrindDuration.png" alt="Persistent Grind icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Persistent Grind</h2>
+      <p>Grinding Halt lasts 0.2 seconds longer per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="unstoppable growth increase maximum blade growth by 20 percentage points per rank. also raises blood hunger&#x27;s growth cap. giant shuriken stance growing shuriken">
+      <a href="Generated/Shuriken/ShurikenGrowth.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenGrowth.png" alt="Unstoppable Growth icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Unstoppable Growth</h2>
+      <p>Increase maximum blade growth by 20 percentage points per rank. Also raises Blood Hunger&#x27;s growth cap.</p></div>
+    </article>
+<article data-category="Ninja" data-search="shattering force increase expiry slash and periodic burst damage by 15% per rank. giant shuriken stance breaking wheel">
+      <a href="Generated/Shuriken/ShurikenBurstPower.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenBurstPower.png" alt="Shattering Force icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Shattering Force</h2>
+      <p>Increase expiry slash and periodic burst damage by 15% per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="twin frequency twin wheel triggers one throw sooner per rank: every third, second, then every throw. giant shuriken stance twin wheel">
+      <a href="Generated/Shuriken/ShurikenTwinFrequency.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenTwinFrequency.png" alt="Twin Frequency icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Twin Frequency</h2>
+      <p>Twin Wheel triggers one throw sooner per rank: every third, second, then every throw.</p></div>
+    </article>
+<article data-category="Ninja" data-search="reinforcements increase samurai assist chance by 5 percentage points per rank. giant shuriken stance samurai assist">
+      <a href="Generated/Shuriken/ShurikenAssistChance.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenAssistChance.png" alt="Reinforcements icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Reinforcements</h2>
+      <p>Increase Samurai Assist chance by 5 percentage points per rank.</p></div>
+    </article>
+<article data-category="Ninja" data-search="deep grooves serrated edge gains 3 percentage points more damage per hit and a 15 percentage point higher cap per rank. giant shuriken stance serrated edge">
+      <a href="Generated/Shuriken/ShurikenGrooves.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenGrooves.png" alt="Deep Grooves icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Ninja</small><h2>Deep Grooves</h2>
+      <p>Serrated Edge gains 3 percentage points more damage per hit and a 15 percentage point higher cap per rank.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="bound orbit blades orbit around you instead of flying forward, but deal 30% less contact damage. expiry slashes are retained. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenOrbit.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenOrbit.png" alt="Bound Orbit icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Bound Orbit</h2>
+      <p>Blades orbit around you instead of flying forward, but deal 30% less contact damage. Expiry slashes are retained.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="blood hunger blades start 30% smaller and grow 10% per kill, up to their growth cap. size upgrades increase growth per kill instead of starting size. growth resets for each blade. giant shuriken stance">
+      <a href="Generated/Shuriken/ShurikenHunger.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenHunger.png" alt="Blood Hunger icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Blood Hunger</h2>
+      <p>Blades start 30% smaller and grow 10% per kill, up to their growth cap. Size upgrades increase growth per kill instead of starting size. Growth resets for each blade.</p></div>
+    </article>
+<article data-category="Blood Pacts" data-search="pulsing core blades release a circular burst every second, but deal 35% less contact damage. cutting tempo speeds up bursts. expiry slashes are retained. giant shuriken stance breaking wheel">
+      <a href="Generated/Shuriken/ShurikenPulse.png" target="_blank" rel="noopener"><img src="Generated/Shuriken/ShurikenPulse.png" alt="Pulsing Core icon" loading="lazy" width="240" height="240"></a>
+      <div class="copy"><small>Blood Pacts</small><h2>Pulsing Core</h2>
+      <p>Blades release a circular burst every second, but deal 35% less contact damage. Cutting Tempo speeds up bursts. Expiry slashes are retained.</p></div>
+    </article></main>
+<script>
+const search=document.querySelector('#search'),category=document.querySelector('#category'),cards=[...document.querySelectorAll('article')];
+function filter(){const terms=search.value.trim().toLowerCase().split(/\s+/).filter(Boolean);let count=0;for(const card of cards){const visible=(!category.value||category.value===card.dataset.category)&&terms.every(term=>card.dataset.search.includes(term));card.hidden=!visible;if(visible)count++}document.querySelector('#count').textContent=`${count} / ${cards.length} upgrades`}
+search.addEventListener('input',filter);category.addEventListener('change',filter);filter();
+</script></html>

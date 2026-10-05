@@ -1,0 +1,110 @@
+{
+  "cards": [
+    {
+      "id": "GreatShuriken",
+      "source_sha256": "a4f39207e8bca8636199183c21d84a20f6468c477946047cc2ff6776b8dd3580",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "GrindingHalt",
+      "source_sha256": "49ea79dac569de69c95b88b8bffd1006b195f7b45ab1bcbc51a4fd246161341b",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "WideOrbit",
+      "source_sha256": "738ec325406dc3e793c35c755f72c025ab2f3b1f27e54365c73c4244f122cc16",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "BreakingWheel",
+      "source_sha256": "9e844f288fd60a783acbde3706a3278d81224268e5927764fd976d665688a523",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenTwin",
+      "source_sha256": "bfa2aac137ffcfdc6c2b2abf17ee3baa9cc6e711dccfdd6e21db617f9d1daa29",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenAssist",
+      "source_sha256": "50a459c1ae41c917aaa4212ed9a92caf4e1dddf94cfe66d2b93c3578686f94b8",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "SerratedEdge",
+      "source_sha256": "8f13ce25348b1330cee38477569b79692c755de6b82663aa8ec554e0b5d3e5e2",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenDamage",
+      "source_sha256": "659f55ab6b5d9f4f757bc297e96a594c01097d93a90918213cfce9ab0d3645b5",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenSpeed",
+      "source_sha256": "cfe8e986430054f4d3f7b0a0c236ed2433ce2c73a878095ac24abb08d7a48ad3",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenSize",
+      "source_sha256": "b2e54d4a4e21590c0611a3f1e5661f274a048428910deeca3e6a7078baf79a7e",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "LingeringShuriken",
+      "source_sha256": "1985ab28cfa0914adc5a7f14d3f61d8e819b12ed9c4e7e56049e73260d2ed16e",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenTempo",
+      "source_sha256": "2694175e30bfb10e558452152d3ca0096e51520d2f97c788ceefb10dd390f29e",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenGrindDuration",
+      "source_sha256": "3019b7e41ef8cb79e04b9ee39e17f436ef6d4a6269c71ef93e739acbd1ee4009",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenGrowth",
+      "source_sha256": "1319dafe2a42c25c8e0e84bb399baaa5eba2e4fd64cdcfcf598f3ee4344e09be",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenBurstPower",
+      "source_sha256": "b83200bd65cd5d9c30b59638f6b8dc41eaabf87ddfbcf5f681bdc1729da182dd",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenTwinFrequency",
+      "source_sha256": "b283457346e25bfcbb34934bd03c58757df40149b8b12d8128a6a5c651c8d324",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenAssistChance",
+      "source_sha256": "9975c67bdbdf92480617cfc73abae1ee6773c7af7a78a848cf5aa89f680fe235",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenGrooves",
+      "source_sha256": "696cea11294e483780ddcdfcd4cad58a5eb45ba3c5a6ecc51dd887062e199a15",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenOrbit",
+      "source_sha256": "dedb60a7eadada19e03fcdab99f02d3e2a8efaa81e420f3c289b0e0a947c2f75",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenHunger",
+      "source_sha256": "426414cf05ca0a852d34a19217fecd70af5976130bf7b9f97582877d32043800",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "ShurikenPulse",
+      "source_sha256": "4389d6dcb8acb5ae6e778cfc5d19499be23ec1f9f13c73871a90343f159bf14e",
+      "gameplay_preserved": true
+    }
+  ],
+  "backup": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Saved\\Backups\\ShurikenIcons\\20261005_170437_919854"
+}

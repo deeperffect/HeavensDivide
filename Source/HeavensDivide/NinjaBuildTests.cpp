@@ -82,16 +82,8 @@ bool FNinjaBuildsTest::RunTest(const FString&)
  Grant(TEXT("BarrageStance"));A->AttackInterval=1;A->NextAttackReadyTime=0;
  auto Kunais=[&](){int32 Count=0;for(TActorIterator<AAttackProjectileBase> It(World);It;++It)++Count;return Count;};
  const int32 Before=Kunais();A->bIsAttacking=true;A->bAttackNotifyConsumed=false;A->SpawnAutoAttackProjectile();TestEqual(TEXT("Barrage produces its actual extra projectiles"),Kunais()-Before,A->GetEffectiveProjectileCount());
- Grant(TEXT("NeedleRain"));Grant(TEXT("Crescendo"));B->VolleyCount=3;B->ConsecutiveVolleys=2;
- FVector Dir=FVector::ForwardVector;int32 Count=3;float Spacing=10;B->ModifyVolley(Dir,Count,Spacing);TestEqual(TEXT("Crescendo and fourth-volley burst combine"),Count,8);
- N->SetCharacterMode(ECharacterMode::Inactive);B->TickComponent(.1f,LEVELTICK_All,nullptr);TestEqual(TEXT("Swap preserves Crescendo"),B->ConsecutiveVolleys,3);N->SetCharacterMode(ECharacterMode::Active);
-
- B->VolleyCount=0;B->ConsecutiveVolleys=14;Count=3;B->ModifyVolley(Dir,Count,Spacing);
- TestEqual(TEXT("Peak volley includes the full rank-one cap"),Count,8);
- TestEqual(TEXT("Crescendo resets only after peak volley"),B->ConsecutiveVolleys,0);
- Grant(TEXT("Crescendo"));B->ConsecutiveVolleys=20;Count=3;B->ModifyVolley(Dir,Count,Spacing);
- TestEqual(TEXT("Rank two raises temporary cap to seven"),Count,10);
- Count=3;B->ModifyVolley(Dir,Count,Spacing);TestEqual(TEXT("Next volley starts a fresh buildup"),Count,3);
+ Grant(TEXT("NeedleRain"));B->VolleyCount=3;
+ int32 Count=3;float Spacing=10;B->ModifyVolley(Count,Spacing);TestEqual(TEXT("Fourth-volley burst doubles"),Count,6);
  TestTrue(TEXT("Acquire forking"),Grant(TEXT("ForkingProjectiles")));
  TestEqual(TEXT("Fork upgrade enables splitting"),A->GetEffectiveProjectileSplitBonus(),1);
  TSet<AAttackProjectileBase*> ExistingProjectiles;for(TActorIterator<AAttackProjectileBase> It(World);It;++It)ExistingProjectiles.Add(*It);
@@ -99,7 +91,7 @@ bool FNinjaBuildsTest::RunTest(const FString&)
  AAttackProjectileBase* Parent=nullptr;for(TActorIterator<AAttackProjectileBase> It(World);It;++It)if(!ExistingProjectiles.Contains(*It))Parent=*It;
  if(TestNotNull(TEXT("Fork parent spawned"),Parent))
  {
-  ExistingProjectiles.Add(Parent);Parent->HandleProjectileOverlap(nullptr,E,nullptr,0,false,FHitResult());
+  ExistingProjectiles.Add(Parent);Parent->bCanTriggerSplit=true;Parent->HandleProjectileOverlap(nullptr,E,nullptr,0,false,FHitResult());
   int32 Children=0;for(TActorIterator<AAttackProjectileBase> It(World);It;++It)if(!ExistingProjectiles.Contains(*It))
   {
    ++Children;TestEqual(TEXT("Fork deals half parent damage"),It->ProjectileDamage,20.f);
@@ -118,12 +110,12 @@ bool FNinjaBuildsTest::RunTest(const FString&)
   Wheel->Tick(.1f);TestEqual(TEXT("Per-enemy cooldown prevents every-frame damage"),E->GetHealthComponent()->GetCurrentHealth(),First);
   Wheel->Tick(.1f);Wheel->Tick(.1f);TestTrue(TEXT("Overlapping shuriken repeats hits"),E->GetHealthComponent()->GetCurrentHealth()<First&&First<HP);
   Grant(TEXT("WideOrbit"));const float OriginalRadius=Wheel->Radius;
-  Wheel->Tick(.1f);TestEqual(TEXT("Stationary shuriken does not grow"),Wheel->Radius,OriginalRadius);
+  Wheel->Tick(.1f);TestTrue(TEXT("Stationary shuriken grows with lifetime"),Wheel->Radius>OriginalRadius);
   Wheel->Speed=1000;Wheel->Tick(.1f);TestTrue(TEXT("Travelling shuriken grows"),Wheel->Radius>OriginalRadius);
   const FVector Extent=B->ShurikenMesh?B->ShurikenMesh->GetBounds().BoxExtent:FVector::ZeroVector;
   const float ExpectedScale=B->ShurikenMesh?Wheel->Radius/FMath::Max(1.f,FMath::Max(Extent.X,Extent.Y))*FMath::Max(.01f,B->ShurikenMeshScale):Wheel->Radius/50.f;
   TestTrue(TEXT("Visual size follows hit radius and configured mesh"),FMath::IsNearlyEqual(Wheel->Visual->GetComponentScale().X,ExpectedScale));
-  Grant(TEXT("BreakingWheel"));const int32 Old=B->Projectiles.Num();Wheel->Age=3;Wheel->Tick(.1f);TestTrue(TEXT("Shuriken expires without orbit and scatters blades"),Wheel->IsActorBeingDestroyed()&&B->Projectiles.Num()>Old);
+  Grant(TEXT("BreakingWheel"));const int32 Old=B->Projectiles.Num();Wheel->Age=3;Wheel->Tick(.1f);TestTrue(TEXT("Shuriken expires without scattering blades"),Wheel->IsActorBeingDestroyed()&&B->Projectiles.Num()==Old);
  }
  PC->NinjaBuildPreview(TEXT("Clear"));Grant(TEXT("EmbeddedBlades"));
  auto* Weak=Spawn(FVector(100,100,0),1);const int32 Old=B->Projectiles.Num();B->Hit(Weak,20);
@@ -132,7 +124,7 @@ bool FNinjaBuildsTest::RunTest(const FString&)
  TestEqual(TEXT("Embedded stacks have a finite cap"),B->Embedded.FindChecked(Tank).Count,12);
  auto* FragmentVictim=Spawn(FVector(800,0,0),1);const int32 Existing=B->Projectiles.Num();B->Hit(FragmentVictim,20,false);
  TestEqual(TEXT("Scattered blade kills cannot scatter recursively"),B->Projectiles.Num(),Existing);
- PC->NinjaBuildPreview(TEXT("Fang"));TestTrue(TEXT("Fang preview grants its branches"),B->Has(TEXT("CuttingReturn"))&&B->Has(TEXT("EmbeddedBlades")));
+ PC->NinjaBuildPreview(TEXT("Fang"));TestTrue(TEXT("Fang preview grants its branches"),B->Has(TEXT("FangResonance"))&&B->Has(TEXT("FangSplinter")));
  const int32 Mastery=U->GetNinjaMasteryPoints();PC->NinjaBuildPreview(TEXT("Fang"));TestEqual(TEXT("Preview does not farm mastery"),U->GetNinjaMasteryPoints(),Mastery);
  PC->NinjaBuildPreview(TEXT("Shuriken"));TestTrue(TEXT("Preview switches exclusive stances cleanly"),B->Has(TEXT("GreatShuriken"))&&!B->Has(TEXT("ReturningFang")));
 
@@ -267,22 +259,22 @@ bool FNinjaBuildsTest::RunTest(const FString&)
   A->bActiveAttackIsAssist=false;
  }
  PC->NinjaBuildPreview(TEXT("Clear"));
- auto* Heavy=U->FindUpgradeDefinition(TEXT("HeavyShuriken"));
+ auto* Heavy=U->FindUpgradeDefinition(TEXT("ShurikenTempo"));
  auto* Lingering=U->FindUpgradeDefinition(TEXT("LingeringShuriken"));
- if(TestNotNull(TEXT("Heavy Shuriken is in the saved pool"),Heavy)&&TestNotNull(TEXT("Lingering Shuriken is in the saved pool"),Lingering))
+ if(TestNotNull(TEXT("Cutting Tempo is in the saved pool"),Heavy)&&TestNotNull(TEXT("Lingering Shuriken is in the saved pool"),Lingering))
  {
-  TestFalse(TEXT("Heavy Shuriken requires its stance"),U->CanAcquireUpgrade(Heavy));
+  TestFalse(TEXT("Cutting Tempo requires its stance"),U->CanAcquireUpgrade(Heavy));
   TestFalse(TEXT("Lingering Shuriken requires its stance"),U->CanAcquireUpgrade(Lingering));
   Grant(TEXT("GreatShuriken"));
   const float BaseSpeed=B->GetShurikenTravelSpeed(),BaseLifetime=B->GetShurikenLifetime();
   for(int32 Rank=1;Rank<=3;++Rank)
   {
-   TestTrue(TEXT("Speed upgrade acquires another rank"),Grant(TEXT("HeavyShuriken")));
+   TestTrue(TEXT("Speed upgrade acquires another rank"),Grant(TEXT("ShurikenTempo")));
    TestTrue(TEXT("Lifetime upgrade acquires another rank"),Grant(TEXT("LingeringShuriken")));
-   TestTrue(TEXT("Speed reduction stacks multiplicatively"),FMath::IsNearlyEqual(B->GetShurikenTravelSpeed(),BaseSpeed*FMath::Pow(.8f,Rank)));
+   TestTrue(TEXT("Cutting Tempo preserves travel speed"),FMath::IsNearlyEqual(B->GetShurikenTravelSpeed(),BaseSpeed));
    TestTrue(TEXT("Lifetime bonus stacks additively"),FMath::IsNearlyEqual(B->GetShurikenLifetime(),BaseLifetime*(1+.3f*Rank)));
   }
-  TestFalse(TEXT("Heavy Shuriken stops at three ranks"),U->CanAcquireUpgrade(Heavy));
+  TestTrue(TEXT("Cutting Tempo has five ranks"),U->CanAcquireUpgrade(Heavy));
   TestFalse(TEXT("Lingering Shuriken stops at three ranks"),U->CanAcquireUpgrade(Lingering));
   auto* Blade=B->SpawnShuriken(FVector(10000,10000,0),FVector::ForwardVector,false);
   TestEqual(TEXT("Spawned shuriken uses upgraded speed"),Blade->Speed,B->GetShurikenTravelSpeed());

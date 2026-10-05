@@ -1,0 +1,317 @@
+[
+  {
+    "id": "BarrageStance",
+    "name": "Barrage Stance",
+    "description": "Gain 30% attack speed and 2 extra projectiles. Kunai inflict poison: each stack deals 5% of its hit damage over 5 seconds. Hits refresh all stacks, up to 20. Choose one Ninja stance per run.",
+    "kind": "stance",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "AttackSpeedBonus": 0.3,
+      "BonusProjectiles": 2,
+      "PoisonHitFraction": 0.05,
+      "PoisonCap": 20
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "NeedleRain",
+    "name": "Needle Rain",
+    "description": "Every fourth attack fires twice as many kunai.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {},
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "ForkingProjectiles",
+    "name": "Forked Blades",
+    "description": "Kunai have a 15% chance to split on impact into 2 blades dealing 50% damage each. Split blades apply poison but cannot split again.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "Chance": 0.15
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarragePool",
+    "name": "Toxic Ground",
+    "description": "Killing an enemy poisoned by your kunai leaves a puddle for 3 seconds. Every 0.5 seconds it applies 1 poison stack, matching the victim's average stack strength. Puddle poison alone cannot create another puddle.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "Duration": 3,
+      "Radius": 220
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageAssist",
+    "name": "Samurai Assist",
+    "description": "Each attack has a 5% chance to call a Samurai assist. An active assist cannot overlap itself.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "Chance": 0.05
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageCritical",
+    "name": "Critical Strike",
+    "description": "Kunai hits have a 15% chance to deal double damage. Poison inherits the increased hit damage.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "Chance": 0.15,
+      "DamageMultiplier": 2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageRush",
+    "name": "Viper's Rush",
+    "description": "Killing a poisoned enemy grants 20% movement speed for 3 seconds. Further kills refresh the duration.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "MoveSpeedBonus": 0.2,
+      "Duration": 3
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageDamage",
+    "name": "Kunai Damage",
+    "description": "Kunai deal 20% more damage.",
+    "kind": "normal",
+    "levels": 5,
+    "requires": [],
+    "balance": {},
+    "magnitudes": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "format": "Kunai deal {Percent}% more damage.",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageSpeed",
+    "name": "Attack Speed",
+    "description": "Attack 15% faster.",
+    "kind": "normal",
+    "levels": 5,
+    "requires": [],
+    "balance": {},
+    "magnitudes": [
+      0.15,
+      0.225,
+      0.3
+    ],
+    "format": "Attack {Percent}% faster.",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageRange",
+    "name": "Kunai Reach",
+    "description": "Kunai travel 15% farther.",
+    "kind": "normal",
+    "levels": 5,
+    "requires": [],
+    "balance": {},
+    "magnitudes": [
+      0.15,
+      0.225,
+      0.3
+    ],
+    "format": "Kunai travel {Percent}% farther.",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarragePoisonDuration",
+    "name": "Lingering Venom",
+    "description": "Poison lasts 2 seconds longer, dealing damage at the same rate.",
+    "kind": "normal",
+    "levels": 3,
+    "requires": [],
+    "balance": {
+      "PerRank": 2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarragePoisonLoad",
+    "name": "Venom Load",
+    "description": "Each kunai hit applies 2 additional poison stacks.",
+    "kind": "normal",
+    "levels": 3,
+    "requires": [],
+    "balance": {
+      "PerRank": 2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageRainFrequency",
+    "name": "Relentless Rain",
+    "description": "Needle Rain requires 1 fewer attack. At maximum rank, every attack fires twice as many kunai.",
+    "kind": "rare",
+    "levels": 3,
+    "requires": [
+      "NeedleRain"
+    ],
+    "balance": {
+      "PerRank": 1
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageSplitChance",
+    "name": "Branching Blades",
+    "description": "Kunai gain 10% split chance. With Serpent's Procession, each ricochet instead loses 2% less damage.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "ForkingProjectiles"
+    ],
+    "balance": {
+      "PerRank": 0.1
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageAssistChance",
+    "name": "Reinforcements",
+    "description": "Gain 5% chance to call a Samurai assist.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "BarrageAssist"
+    ],
+    "balance": {
+      "PerRank": 0.05
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarragePoolRadius",
+    "name": "Spreading Blight",
+    "description": "Poison puddles have 20% more radius.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "BarragePool"
+    ],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageCriticalChance",
+    "name": "Critical Precision",
+    "description": "Kunai gain 10% critical strike chance.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "BarrageCritical"
+    ],
+    "balance": {
+      "PerRank": 0.1
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarragePoisonCap",
+    "name": "Deep Venom",
+    "description": "Enemies can hold 4 additional poison stacks.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [],
+    "balance": {
+      "PerRank": 4
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarragePointBlank",
+    "name": "Point-Blank Barrage",
+    "description": "Gain 50% attack speed, but kunai travel 70% less distance.",
+    "kind": "shrine",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "AttackSpeedBonus": 0.5,
+      "RangeMultiplier": 0.3
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageProcession",
+    "name": "Serpent's Procession",
+    "description": "Fire kunai one after another in a straight line. They ricochet to 3 additional nearby enemies, losing 25% damage per bounce, but cannot split. Each 10% split chance reduces this loss by 2%.",
+    "kind": "shrine",
+    "levels": 1,
+    "requires": [],
+    "balance": {},
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  },
+  {
+    "id": "BarrageBloom",
+    "name": "Venom Bloom",
+    "description": "Puddles no longer apply poison. Every 0.5 seconds they instead deal 10% of each enemy's remaining poison damage without consuming its stacks.",
+    "kind": "shrine",
+    "levels": 1,
+    "requires": [
+      "BarragePool"
+    ],
+    "balance": {
+      "RemainingDamageFraction": 0.1
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "BarrageStance"
+  }
+]

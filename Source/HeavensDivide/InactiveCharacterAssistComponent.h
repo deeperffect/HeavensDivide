@@ -26,6 +26,9 @@ class HEAVENSDIVIDE_API UInactiveCharacterAssistComponent : public UActorCompone
 public:
 	UInactiveCharacterAssistComponent();
 	bool TryBloodAssist();
+    bool TryFangAssist();
+ bool TryBarrageAssist();
+ bool TryShurikenAssist();
 	bool bBloodAssistRequest = false;
 
 	virtual void BeginPlay() override;

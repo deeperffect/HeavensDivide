@@ -1,0 +1,9 @@
+{
+  "id": "ShurikenHunger",
+  "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenHunger.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenHunger",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken with crimson blade tips surrounding a single large crimson blood drop at its center.",
+  "mode": "builtin-imagegen",
+  "source_sha256": "426414cf05ca0a852d34a19217fecd70af5976130bf7b9f97582877d32043800",
+  "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-6c402c8d-691b-40b5-b48f-cb188a84ae50.png"
+}

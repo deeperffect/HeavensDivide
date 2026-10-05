@@ -6,14 +6,14 @@ import unreal as u
 lib=u.AnimationLibrary
 base='/Game/HeavensDivide/Blueprints/PlayerCharacters/Montages/Samurai/'
 normal=u.load_asset(base+'AM_AutoAttackSamurai')
-montage=u.load_asset(base+'AM_DoubleCutSamurai')
+montage=u.load_asset(base+'AM_DoubleCutBloodStance')
 source_notify=next(e.get_editor_property('notify') for e in lib.get_animation_notify_events(normal)
                   if isinstance(e.get_editor_property('notify'),u.AnimNotify_SpawnSamuraiSlashNiagara)
                   and e.get_editor_property('notify').get_editor_property('attach_to_character_mesh'))
 events=list(lib.get_animation_notify_events(montage))
 trace=next(e for e in events if isinstance(e.get_editor_property('notify'),u.AnimNotify_PerformAutoAttackTrace))
 time=lib.get_anim_notify_event_trigger_time(trace)
-source=Path(u.Paths.project_content_dir(),'HeavensDivide/Blueprints/PlayerCharacters/Montages/Samurai/AM_DoubleCutSamurai.uasset')
+source=Path(u.Paths.project_content_dir(),'HeavensDivide/Blueprints/PlayerCharacters/Montages/Samurai/AM_DoubleCutBloodStance.uasset')
 backup=Path(u.Paths.project_saved_dir(),'Backups/DoubleCut360',source.name)
 backup.parent.mkdir(parents=True,exist_ok=True)
 if not backup.exists(): shutil.copy2(source,backup)

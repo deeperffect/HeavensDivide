@@ -1,0 +1,9 @@
+{
+  "id": "BreakingWheel",
+  "file": "Art/UpgradeIcons/Generated/Shuriken/BreakingWheel.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BreakingWheel",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken at the center of one large jagged violet circular slash, bold radial burst silhouette.",
+  "mode": "builtin-imagegen",
+  "source_sha256": "9e844f288fd60a783acbde3706a3278d81224268e5927764fd976d665688a523",
+  "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-1d3d7677-dd31-4f26-9baf-708ef5f3adb6.png"
+}

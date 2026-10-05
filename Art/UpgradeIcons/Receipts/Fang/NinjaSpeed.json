@@ -1,0 +1,9 @@
+{
+  "id": "NinjaSpeed",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: Three ivory pointed kunai in a compact staggered horizontal volley with two broad violet motion streaks. Clean rapid attack-speed emblem, no circular return arrow, no character.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-19d32dc1-2a93-4031-a4da-dfd05f30a636.png",
+  "file": "Art/UpgradeIcons/Generated/Fang/NinjaSpeed.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NinjaSpeed",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "ed25d0d3ece4260ef862f194b66a2ee93fcf2dfe0f00229b88a538b6008d294a"
+}

@@ -31,6 +31,9 @@ class HEAVENSDIVIDE_API AAttackProjectileBase : public AActor
 public:
 	AAttackProjectileBase();
 	bool bAssistProjectile = false;
+ bool bBarrageProjectile = false;
+ float BarrageBounceRetention = 1.f;
+ friend class FBarrageBuildsTest;
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
 	void InitializeProjectile(

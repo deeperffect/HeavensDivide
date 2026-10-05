@@ -8,6 +8,7 @@ from datetime import datetime
 import unreal
 root=Path(unreal.Paths.project_dir()).resolve()
 rows=json.loads((root/'Tools/ninja_build_upgrades.json').read_text())
+rows=[r for r in rows if r['id'] not in {'CuttingReturn','FinalPursuit','FocusedVolley','Crescendo','HeavyShuriken'}]
 controller='/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController'
 folder='/Game/HeavensDivide/Upgrades/Ninja'
 validate='-ValidateNinjaBuilds' in unreal.SystemLibrary.get_command_line()
@@ -51,11 +52,19 @@ if not validate:
     assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==digest for p,digest in preserved.items())
     backup.mkdir(parents=True,exist_ok=True);(backup/'preserved_card_hashes.json').write_text(json.dumps(preserved,indent=2))
 pool=list(comp.get_editor_property('upgrade_pool'));ids=[str(a.get_editor_property('upgrade_id')) for a in pool if a]
-assert len(ids)==len(pool)==len(set(ids))==106
+assert len(ids)==len(pool)==len(set(ids))
 for r in rows:
     assert ids.count(r['id'])==1
     a=unreal.load_asset(folder+'/'+asset_name(r))
     assert a.get_editor_property('card_artwork') and a.get_editor_property('icon')
     assert set(str(k) for k in a.get_editor_property('prerequisite_upgrade_ids')).issubset(ids)
     if r.get('stance'):assert str(a.get_editor_property('exclusivity_group'))=='NinjaWeaponStance'
-unreal.log('NINJA_BUILDS_OK: 20 cards, 3 exclusive stances, 106 unique pool entries; existing card tuning preserved')
+unreal.log('NINJA_BUILDS_OK: 3 exclusive stances; existing card tuning preserved')
+if not validate:
+    exec(compile((root/'Tools/overhaul_fang.py').read_text(),str(root/'Tools/overhaul_fang.py'),'exec'),{})
+
+if not validate:
+    exec(compile((root/'Tools/overhaul_barrage.py').read_text(),str(root/'Tools/overhaul_barrage.py'),'exec'),{})
+
+if not validate:
+    exec(compile((root/'Tools/overhaul_shuriken.py').read_text(),str(root/'Tools/overhaul_shuriken.py'),'exec'),{})

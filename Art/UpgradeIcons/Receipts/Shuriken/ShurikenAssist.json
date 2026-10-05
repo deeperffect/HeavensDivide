@@ -1,0 +1,9 @@
+{
+  "id": "ShurikenAssist",
+  "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenAssist.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenAssist",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: A crimson samurai helmet beside a small ivory violet-hub shuriken, strong bold paired symbols.",
+  "mode": "builtin-imagegen",
+  "source_sha256": "50a459c1ae41c917aaa4212ed9a92caf4e1dddf94cfe66d2b93c3578686f94b8",
+  "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-283ed339-d3a2-4e84-a271-144ec5d5a92e.png"
+}

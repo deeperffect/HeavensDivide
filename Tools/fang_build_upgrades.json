@@ -1,0 +1,391 @@
+[
+  {
+    "id": "ReturningFang",
+    "name": "Returning Fang Stance",
+    "description": "Throw a homing Fang that strikes, returns harmlessly, and immediately launches again. Fighting close speeds up its cycle. Attack speed increases flight speed; extra projectiles grant 25% Fang damage each.",
+    "kind": "stance",
+    "requires": [],
+    "balance": {},
+    "art": "ReturningFang",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangTwin",
+    "name": "Twin Fang",
+    "description": "Every fourth launch sends 2 additional spectral Fangs, seeking different enemies when possible. Spectral Fangs return once and cannot summon more Fangs.",
+    "kind": "one_time",
+    "requires": [],
+    "balance": {},
+    "art": "NeedleRain",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "RelentlessFang",
+    "name": "Relentless Fang",
+    "description": "Consecutive hits from the same Fang against an enemy gain 15% damage per hit, up to 75%. Hitting another enemy resets the bonus.",
+    "kind": "one_time",
+    "requires": [],
+    "balance": {
+      "DamagePerHit": 0.15,
+      "MaxBonus": 0.75
+    },
+    "art": "ReturningFang",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangResonance",
+    "name": "Resonant Fang",
+    "description": "After striking an enemy, each returning Fang releases a burst around you for 50% Fang damage. Bursts cannot trigger Fang effects.",
+    "kind": "one_time",
+    "requires": [],
+    "balance": {
+      "Radius": 250,
+      "DamageFraction": 0.5
+    },
+    "art": "BreakingWheel",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangDeadeye",
+    "name": "Deadeye",
+    "description": "Fang hits have a 15% chance to deal double damage.",
+    "kind": "one_time",
+    "requires": [],
+    "balance": {
+      "Chance": 0.15,
+      "DamageMultiplier": 2
+    },
+    "art": "FocusedVolley",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangAssist",
+    "name": "Samurai Assist",
+    "description": "Completed main-Fang round trips have a 5% chance to call Samurai for an assist attack. Can trigger once per second.",
+    "kind": "one_time",
+    "requires": [],
+    "balance": {
+      "Chance": 0.05,
+      "Cooldown": 1
+    },
+    "art": "TagTeam",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangSplinter",
+    "name": "Splintering Fang",
+    "description": "Fang kills scatter one kunai for each direct Fang hit the enemy took, including the killing hit. Each kunai deals 40% Fang damage and cannot trigger Fang effects.",
+    "kind": "one_time",
+    "requires": [],
+    "balance": {
+      "DamageFraction": 0.4,
+      "Range": 700
+    },
+    "art": "EmbeddedBlades",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangDamage",
+    "name": "Fang Damage",
+    "description": "Fangs deal 20% more damage.",
+    "kind": "normal",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "art": "FragmentDamage",
+    "levels": 5,
+    "magnitudes": [
+      0.2,
+      0.30000000000000004,
+      0.4
+    ],
+    "format": "Fangs deal {Percent}% more damage."
+  },
+  {
+    "id": "FangSpeed",
+    "name": "Flight Speed",
+    "description": "Fangs travel 15% faster on outward and return trips.",
+    "kind": "normal",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "art": "AfterimageFrenzy",
+    "levels": 5,
+    "magnitudes": [
+      0.15,
+      0.22499999999999998,
+      0.3
+    ],
+    "format": "Fangs travel {Percent}% faster on outward and return trips."
+  },
+  {
+    "id": "FangRange",
+    "name": "Attack Range",
+    "description": "Fangs seek enemies 15% farther away.",
+    "kind": "normal",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "art": "FragmentReach",
+    "levels": 5,
+    "magnitudes": [
+      0.15,
+      0.22499999999999998,
+      0.3
+    ],
+    "format": "Fangs seek enemies {Percent}% farther away."
+  },
+  {
+    "id": "FangCloseQuarters",
+    "name": "Close Quarters",
+    "description": "Fang hits deal 10% more damage to enemies within 3 metres of you.",
+    "kind": "normal",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.1,
+      "Radius": 300
+    },
+    "art": "CuttingReturn",
+    "levels": 5,
+    "magnitudes": [
+      0.1,
+      0.15000000000000002,
+      0.2
+    ],
+    "format": "Fang hits deal {Percent}% more damage to enemies within 3 metres of you."
+  },
+  {
+    "id": "FangKillingEdge",
+    "name": "Killing Edge",
+    "description": "Fang hits deal 15% more damage to enemies below 30% health.",
+    "kind": "normal",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15,
+      "HealthThreshold": 0.3
+    },
+    "art": "FinalPursuit",
+    "levels": 5,
+    "magnitudes": [
+      0.15,
+      0.22499999999999998,
+      0.3
+    ],
+    "format": "Fang hits deal {Percent}% more damage to enemies below 30% health."
+  },
+  {
+    "id": "FangTwinFrequency",
+    "name": "Twin Fang Frequency",
+    "description": "Twin Fang requires 1 fewer launch, down to every launch.",
+    "kind": "rare",
+    "requires": [
+      "FangTwin"
+    ],
+    "balance": {
+      "PerRank": 0
+    },
+    "art": "NeedleRain",
+    "levels": 3,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangPressure",
+    "name": "Relentless Pressure",
+    "description": "Increases Relentless Fang's damage per stack and maximum bonus by 20% of their base values.",
+    "kind": "rare",
+    "requires": [
+      "RelentlessFang"
+    ],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "art": "RelentlessFang",
+    "levels": 5,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangResonantReach",
+    "name": "Resonant Reach",
+    "description": "Resonant Fang bursts have 15% more radius.",
+    "kind": "rare",
+    "requires": [
+      "FangResonance"
+    ],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "art": "FragmentReach",
+    "levels": 5,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangCriticalChance",
+    "name": "Deadeye Mastery",
+    "description": "Adds 10% critical-hit chance to Fang hits.",
+    "kind": "rare",
+    "requires": [
+      "FangDeadeye"
+    ],
+    "balance": {
+      "PerRank": 0.1
+    },
+    "art": "FocusedVolley",
+    "levels": 5,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangAssistChance",
+    "name": "Reinforcements",
+    "description": "Adds 5% chance to call Samurai on a completed main-Fang round trip.",
+    "kind": "rare",
+    "requires": [
+      "FangAssist"
+    ],
+    "balance": {
+      "PerRank": 0.05
+    },
+    "art": "TagTeam",
+    "levels": 5,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangSplinterPower",
+    "name": "Splinter Power",
+    "description": "Splintering Fang kunai deal 20% more damage.",
+    "kind": "rare",
+    "requires": [
+      "FangSplinter"
+    ],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "art": "FragmentDamage",
+    "levels": 5,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangFarstrider",
+    "name": "Farstrider",
+    "description": "Fangs travel 25% slower. Outward hits gain damage with distance travelled, up to 150% bonus damage at 10 metres.",
+    "kind": "shrine",
+    "requires": [],
+    "balance": {
+      "SpeedMultiplier": 0.75,
+      "DistanceForMaximum": 1000,
+      "MaxDamageBonus": 1.5
+    },
+    "art": "FragmentReach",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangRedline",
+    "name": "Redline",
+    "description": "Fangs travel 60% faster, but deal 30% less damage.",
+    "kind": "shrine",
+    "requires": [],
+    "balance": {
+      "SpeedMultiplier": 1.6,
+      "DamageMultiplier": 0.7
+    },
+    "art": "AfterimageFrenzy",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangPredator",
+    "name": "Predator's Price",
+    "description": "Fang critical hits deal 50% more damage, but noncritical hits deal 25% less damage.",
+    "kind": "shrine",
+    "requires": [
+      "FangDeadeye"
+    ],
+    "balance": {
+      "CriticalMultiplier": 1.5,
+      "NoncriticalMultiplier": 0.75
+    },
+    "art": "FocusedVolley",
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "NinjaDamage",
+    "name": "Attack Damage",
+    "description": "Ninja attacks deal 20% more damage.",
+    "kind": "basic",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "art": "FragmentDamage",
+    "levels": 5,
+    "magnitudes": [
+      0.2,
+      0.30000000000000004,
+      0.4
+    ],
+    "format": "Ninja attacks deal {Percent}% more damage."
+  },
+  {
+    "id": "NinjaSpeed",
+    "name": "Attack Speed",
+    "description": "Ninja attacks are 15% faster. Converts to Flight Speed with Returning Fang.",
+    "kind": "basic",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "art": "AfterimageFrenzy",
+    "levels": 5,
+    "magnitudes": [
+      0.15,
+      0.22499999999999998,
+      0.3
+    ],
+    "format": "Ninja attacks are {Percent}% faster. Converts to Flight Speed with Returning Fang."
+  },
+  {
+    "id": "NinjaCoverage",
+    "name": "Coverage",
+    "description": "Kunai and Great Shuriken are 15% larger. Converts to Attack Range with Returning Fang.",
+    "kind": "basic",
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "art": "WideOrbit",
+    "levels": 5,
+    "magnitudes": [
+      0.15,
+      0.22499999999999998,
+      0.3
+    ],
+    "format": "Kunai and Great Shuriken are {Percent}% larger. Converts to Attack Range with Returning Fang."
+  }
+]

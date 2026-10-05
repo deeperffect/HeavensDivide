@@ -100,6 +100,15 @@ void UEnemyLightweightMovementComponent::TickComponent(float DeltaTime, ELevelTi
 		return;
 	}
 
+	for (auto It = MovementHolds.CreateIterator(); It; ++It)
+		if (!It->IsValid()) It.RemoveCurrent();
+	if (!MovementHolds.IsEmpty())
+	{
+		CancelPushback();
+		StopMovement();
+		return;
+	}
+
 	if (PushbackRemaining > 0.0f)
 	{
 		const AEnemyBase* Enemy = Cast<AEnemyBase>(Owner);
@@ -266,6 +275,18 @@ void UEnemyLightweightMovementComponent::StopMovement()
 	bHasRequestedMove = false;
 	bLastMoveBlockedByWorldGeometry = false;
 	SetComponentTickEnabled(PushbackRemaining > 0.0f);
+}
+
+void UEnemyLightweightMovementComponent::SetMovementHeldBy(AActor* Source, bool bHeld)
+{
+	if (!Source) return;
+	if (bHeld)
+	{
+		MovementHolds.Add(Source);
+		CancelPushback();
+		StopMovement();
+	}
+	else MovementHolds.Remove(Source);
 }
 
 void UEnemyLightweightMovementComponent::ApplyPushback(FVector Direction, float Distance, float Duration)

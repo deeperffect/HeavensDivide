@@ -738,7 +738,8 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 		UScaleBox* ArtworkContainer = WidgetTree->ConstructWidget<UScaleBox>(
 			UScaleBox::StaticClass(), *FString::Printf(TEXT("UpgradeArtworkContainer_%d"), Index));
-		ArtworkContainer->SetStretch(EStretch::ScaleToFill);
+		// Upgrade symbols must remain fully visible inside the artwork panel.
+		ArtworkContainer->SetStretch(EStretch::ScaleToFit);
 		ArtworkContainer->SetStretchDirection(EStretchDirection::Both);
 		ArtworkContainer->SetClipping(EWidgetClipping::ClipToBounds);
 		ArtworkContainer->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -854,24 +855,9 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 				const int32 MaxLevel = FMath::Max(1, Upgrade->MaxLevel);
 				const int32 LevelAfterSelection = FMath::Clamp(
 					(PlayerUpgrades ? PlayerUpgrades->GetUpgradeLevel(Upgrade) : 0) + 1, 0, MaxLevel);
-				FLinearColor FilledDiamondColor;
-				switch (Upgrade->Category)
-				{
-				case EUpgradeCategory::Samurai: FilledDiamondColor = FLinearColor(0.96f, 0.20f, 0.24f); break;
-				case EUpgradeCategory::Ninja: FilledDiamondColor = FLinearColor(0.20f, 0.68f, 1.0f); break;
-				case EUpgradeCategory::Synergy: FilledDiamondColor = FLinearColor(0.82f, 0.28f, 0.96f); break;
-				default: FilledDiamondColor = FLinearColor(0.94f, 0.72f, 0.24f); break;
-				}
-				if (Offers.IsValidIndex(Index) && Offers[Index].bDisplaysRarity)
-				{
-					switch (Offers[Index].RolledRarity)
-					{
-					case EUpgradeRarity::Rare: FilledDiamondColor = FLinearColor(0.22f, 0.56f, 1.0f); break;
-					case EUpgradeRarity::Epic: FilledDiamondColor = FLinearColor(0.86f, 0.22f, 1.0f); break;
-					case EUpgradeRarity::Legendary: FilledDiamondColor = FLinearColor(1.0f, 0.62f, 0.12f); break;
-					default: break;
-					}
-				}
+				// Level progress uses one palette across all categories and rarities.
+				const FLinearColor FilledDiamondColor(0.94f, 0.87f, 0.72f);
+				const FLinearColor EmptyDiamondColor(0.55f, 0.57f, 0.62f);
 				for (int32 DiamondIndex = 0; DiamondIndex < MaxLevel; ++DiamondIndex)
 				{
 					const bool bFilled = DiamondIndex < LevelAfterSelection;
@@ -879,7 +865,7 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 					Diamond->SetText(FText::FromString(bFilled ? TEXT("\u25C6") : TEXT("\u25C7")));
 					Diamond->SetColorAndOpacity(FSlateColor(bFilled
 						? FilledDiamondColor
-						: FLinearColor(0.55f, 0.57f, 0.62f)));
+						: EmptyDiamondColor));
 					FSlateFontInfo DiamondFont = Diamond->GetFont();
 					DiamondFont.Size = 19;
 					Diamond->SetFont(DiamondFont);

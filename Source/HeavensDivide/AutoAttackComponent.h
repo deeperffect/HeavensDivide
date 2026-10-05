@@ -71,7 +71,10 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 	friend class FTagTeamRegressionTest;
  friend class UNinjaBuildComponent;
  friend class ANinjaBuildProjectile;
- friend class FNinjaBuildsTest;
+	friend class FNinjaBuildsTest;
+    friend class FFangBuildsTest;
+ friend class FBarrageBuildsTest;
+ friend class FShurikenBuildsTest;
 
 public:
 	UAutoAttackComponent();
@@ -139,7 +142,7 @@ public:
 
 	// Fires one Ninja projectile volley from an external origin without advancing
 	// player volley counters, assists, or swap synergies.
-	bool SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight, int32* CloneVolley=nullptr, int32* CloneConsecutive=nullptr);
+	bool SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight, int32* CloneVolley=nullptr);
 
 	UAnimMontage* GetAttackMontageForShadowClone() const { return AttackMontage; }
 
@@ -369,7 +372,9 @@ private:
 	bool StartDoubleCutFollowUp();
 	bool ConsumePendingDoubleCutFollowUp();
 	void HandleDoubleCutMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount);
+	TArray<FTimerHandle> PendingBarrageTimers;
+ void SpawnBarrageSequence(FVector Origin,FVector Direction,int32 Count,float Damage,float Speed,int32 Pierce);
+ void SpawnProjectileInstance(const FVector& SpawnLocation, const FVector& ProjectileDirection, float Damage, float Speed, int32 AdditionalPierceCount);
 	AEnemyBase* FindNearestEnemyTarget() const;
 	AEnemyBase* FindBestMeleeTarget(const FVector& SearchLocation, float SearchRadius) const;
 	float ScoreMeleeTarget(AEnemyBase* Candidate, const TArray<AEnemyBase*>& Candidates, const FVector& SearchLocation, float SearchRadius, int32& OutClusterCount, float& OutDistancePenalty, float& OutImmediateThreatBonus) const;

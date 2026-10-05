@@ -1,0 +1,9 @@
+{
+  "id": "ShurikenOrbit",
+  "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenOrbit.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenOrbit",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Small ivory shuriken revolving along a crimson circular orbit around a simple violet masked ninja head.",
+  "mode": "builtin-imagegen",
+  "source_sha256": "dedb60a7eadada19e03fcdab99f02d3e2a8efaa81e420f3c289b0e0a947c2f75",
+  "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-15a3bdbc-3105-41d1-9960-62de29302f53.png"
+}

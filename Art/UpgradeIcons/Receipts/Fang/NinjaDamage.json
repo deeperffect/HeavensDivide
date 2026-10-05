@@ -1,0 +1,9 @@
+{
+  "id": "NinjaDamage",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: Two crossed ivory pointed kunai with violet wrapped grips over one compact lavender impact star. A clean general Ninja attack-damage emblem, no arrows, no character.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-641c0e61-931c-4e24-b92b-862cb06de896.png",
+  "file": "Art/UpgradeIcons/Generated/Fang/NinjaDamage.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NinjaDamage",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "74f9734017a53f1b064764ef73ccd42033d606dde6436d8e78253ab76d288418"
+}

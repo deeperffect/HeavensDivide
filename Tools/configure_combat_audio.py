@@ -88,7 +88,7 @@ for path in sorted(refs):
   if event:assign(a,n,'sound',event);dirty=True
  if dirty:save(a)
 # Use the animation's role, not its old sound name (the Ninja throw used an impact sound).
-for folder,name,event in [('Ninja','AM_AutoAttackNinja','KunaiThrow'),('Samurai','AM_DoubleCutSamurai','DoubleCut')]:
+for folder,name,event in [('Ninja','AM_AutoAttackNinja','KunaiThrow'),('Samurai','AM_DoubleCutBloodStance','DoubleCut')]:
  a=u.load_asset('/Game/HeavensDivide/Blueprints/PlayerCharacters/Montages/'+folder+'/'+name)
  for e in u.AnimationLibrary.get_animation_notify_events(a):
   n=e.get_editor_property('notify')

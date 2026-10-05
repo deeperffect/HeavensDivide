@@ -2,6 +2,8 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
+#include "HealingPickup.h"
+#include "UObject/UnrealType.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
@@ -18,8 +20,12 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHealingBurstScaleTest, "HeavensDivide.Pickups.
 
 bool FHealingBurstScaleTest::RunTest(const FString&)
 {
-    auto* Asset = LoadObject<UNiagaraSystem>(nullptr,
-        TEXT("/Game/Assets/VFX/Basic_VFX/Niagara/NS_HealPickup.NS_HealPickup"));
+    const auto* PickupClass = LoadClass<AHealingPickup>(nullptr,
+        TEXT("/Game/HeavensDivide/Blueprints/BP_HealingPickup.BP_HealingPickup_C"));
+    if (!TestNotNull(TEXT("Saved healing pickup exists"), PickupClass)) return false;
+    const auto* BurstProperty = FindFProperty<FObjectProperty>(AHealingPickup::StaticClass(), TEXT("PickupBurstFX"));
+    if (!TestNotNull(TEXT("Healing pickup exposes its assigned effect"), BurstProperty)) return false;
+    auto* Asset = Cast<UNiagaraSystem>(BurstProperty->GetObjectPropertyValue_InContainer(PickupClass->GetDefaultObject()));
     if (!TestNotNull(TEXT("Healing burst exists"), Asset)) return false;
     auto* System = DuplicateObject<UNiagaraSystem>(Asset, GetTransientPackage());
     for (const auto& Handle : System->GetEmitterHandles())

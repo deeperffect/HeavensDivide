@@ -1,0 +1,9 @@
+{
+  "id": "FangTwinFrequency",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: Exactly three small ivory and lavender ring-handled kunai arranged in a fan inside one bold violet circular arrow, with two compact violet speed chevrons. A fast repeat-cycle symbol distinct from the three plain blades of Twin Fang.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-1b3d6c65-b8bb-4269-b8be-d09f94829096.png",
+  "file": "Art/UpgradeIcons/Generated/Fang/FangTwinFrequency.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangTwinFrequency",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "c75f4aed3a28a1dc10c61a31c087ba70cf13bafac651511c1d1e99939753f558"
+}

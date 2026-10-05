@@ -11,26 +11,26 @@ controller = '/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController'
 validate = '-ValidateIaijutsuBuild' in unreal.SystemLibrary.get_command_line()
 backup = root / 'Saved/Backups/IaijutsuBuild' / datetime.now().strftime('%Y%m%d_%H%M%S')
 rows = [
-    ('IaijutsuVacuumReach', 'Vacuum Reach', 5, 'Common', [], {'PerRank': 0.15}, '+15% Iaijutsu vacuum reach per rank. Maximum 5 ranks: base 60 cm reaches 105 cm. Does not increase the slash hitbox.'),
-    ('IaijutsuCascadePower', 'Cascade Power', 5, 'Rare', ['IaijutsuChain'], {'PerRank': 0.2}, '+20% Death Cascade attack damage per rank, including its crossing lanes and Endpoint Burst. Maximum 5 ranks. Cascaded attacks cannot cascade again.'),
-    ('IaijutsuDashPower', 'Dash Draw Power', 5, 'Rare', ['IaijutsuDash'], {'PerRank': 0.2}, '+20% Dash Draw attack damage per rank, including its crossing lanes and Endpoint Burst. Maximum 5 ranks. Does not increase normal or cascaded attack damage.'),
-    ('IaijutsuChain', 'Death Cascade', 1, 'Common', [], {}, 'On an Iaijutsu kill, launch another slash from the victim toward the nearest enemy. Cascaded attacks cannot trigger another cascade.'),
-    ('IaijutsuDoubleCut', 'Double Cut', 1, 'Common', [], {}, 'Every fourth Iaijutsu attack becomes two full-damage crossing slashes in an X.'),
-    ('IaijutsuInstant', 'Flash Draw', 1, 'Common', [], {'Chance': .15}, 'Iaijutsu attacks have a 15% chance to resolve instantly without charging.'),
-    ('IaijutsuAOE', 'Endpoint Burst', 1, 'Common', [], {'Chance': .15, 'Radius': 250.0}, '15% chance for a full-damage circular attack at the end of the Iaijutsu lane. Base radius 250 cm.'),
-    ('IaijutsuAssist', 'Ninja Assist', 1, 'Common', [], {'Chance': .05}, 'Every second, 5% chance to call Ninja\'s equipped assist while Samurai autoattacks are active. Busy assists cannot overlap.'),
-    ('IaijutsuDash', 'Dash Draw', 1, 'Common', [], {'DashDistanceBonus': 1.0}, '+100% Samurai dash distance in Iaijutsu Stance. Completing a dash charges an Iaijutsu slash along the path from its starting position to its actual endpoint.'),
-    ('IaijutsuDamage', 'Iaijutsu Damage', 5, 'Common', [], {'PerRank': .2}, '+20% Iaijutsu damage per rank. Maximum 5 ranks.'),
-    ('IaijutsuChargeSpeed', 'Iaijutsu Charge Speed', 5, 'Common', [], {'PerRank': .15}, '+15% Iaijutsu charge speed per rank. Maximum 5 ranks. Charge duration is divided by total charge speed.'),
-    ('IaijutsuWidth', 'Iaijutsu Width', 5, 'Common', [], {'PerRank': .25}, '+25% Iaijutsu lane width per rank. Maximum 5 ranks.'),
-    ('IaijutsuMarkDamage', 'Mark Damage', 5, 'Common', [], {'PerRank': .1}, '+10 percentage points damage taken by Iaijutsu-marked enemies per rank. Maximum 5 ranks. Unavailable with Relentless Steps.'),
-    ('IaijutsuDoubleCutFrequency', 'Double Cut Frequency', 3, 'Rare', ['IaijutsuDoubleCut'], {}, 'One fewer attack between Double Cuts per rank: 3/2/1. Maximum 3 ranks.'),
-    ('IaijutsuAOEChance', 'Endpoint Burst Chance', 5, 'Rare', ['IaijutsuAOE'], {'PerRank': .1}, '+10 percentage points Endpoint Burst chance per rank. Maximum 5 ranks.'),
-    ('IaijutsuInstantChance', 'Instant Cast Chance', 5, 'Rare', ['IaijutsuInstant'], {'PerRank': .1}, '+10 percentage points instant cast chance per rank. Maximum 5 ranks.'),
-    ('IaijutsuAssistChance', 'Assist Chance', 5, 'Rare', ['IaijutsuAssist'], {'PerRank': .05}, '+5 percentage points assist chance per second per rank. Maximum 5 ranks.'),
-    ('IaijutsuMarkPact', 'Focused Malice', 1, 'Rare', [], {}, '+100% mark damage bonus (doubles its vulnerability), -20% Iaijutsu width. Cannot combine with Relentless Steps. Iaijutsu Blood Shrine reward.'),
-    ('IaijutsuPowerPact', 'Patient Blade', 1, 'Rare', [], {}, '+50% Iaijutsu attack damage, +30% charge duration (slower charging). Iaijutsu Blood Shrine reward.'),
-    ('IaijutsuDashPact', 'Relentless Steps', 1, 'Rare', [], {}, 'Marks lose vulnerability; marked kills refund 0.3s dash recharge. Converts owned Mark Damage ranks into Iaijutsu Damage. Cannot combine with Focused Malice. Iaijutsu Blood Shrine reward.'),
+    ('IaijutsuVacuumReach', 'Gathering Wind', 5, 'Common', [], {'PerRank': 0.15}, 'Draw enemies into your Iaijutsu slash from 15% farther away.'),
+    ('IaijutsuCascadePower', 'Deadly Cascade', 5, 'Rare', ['IaijutsuChain'], {'PerRank': 0.2}, 'Death Cascade slashes and their Final Flourish deal 20% more damage.'),
+    ('IaijutsuDashPower', 'Driving Draw', 5, 'Rare', ['IaijutsuDash'], {'PerRank': 0.2}, 'Dash Draw slashes and their Final Flourish deal 20% more damage.'),
+    ('IaijutsuChain', 'Death Cascade', 1, 'Common', [], {}, 'The first kill from an Iaijutsu attack launches a slash from the fallen enemy toward the nearest foe. This slash cannot trigger Death Cascade.'),
+    ('IaijutsuDoubleCut', 'Double Cut', 1, 'Common', [], {}, 'Every fourth Iaijutsu attack releases 2 full-damage slashes in an X.'),
+    ('IaijutsuInstant', 'Flash Draw', 1, 'Common', [], {'Chance': .15}, 'Iaijutsu attacks have a 15% chance to strike instantly, without charging.'),
+    ('IaijutsuAOE', 'Final Flourish', 1, 'Common', [], {'Chance': .15, 'Radius': 250.0}, 'Iaijutsu attacks have a 15% chance to unleash a circular strike at the end of their path, dealing full attack damage within 2.5 meters.'),
+    ('IaijutsuAssist', 'Ninja Assist', 1, 'Common', [], {'Chance': .05}, 'While fighting in Iaijutsu Stance, you have a 5% chance each second to call Ninja for an assist attack.'),
+    ('IaijutsuDash', 'Dash Draw', 1, 'Common', [], {'DashDistanceBonus': 1.0}, 'Dash twice as far in Iaijutsu Stance. At the end of your dash, charge a slash along the path you travelled.'),
+    ('IaijutsuDamage', 'Iaijutsu Damage', 5, 'Common', [], {'PerRank': .2}, 'Iaijutsu attacks deal 20% more damage.'),
+    ('IaijutsuChargeSpeed', 'Charge Speed', 5, 'Common', [], {'PerRank': .15}, 'Iaijutsu slashes charge 15% faster.'),
+    ('IaijutsuWidth', 'Slash Width', 5, 'Common', [], {'PerRank': .25}, 'Iaijutsu slashes are 25% wider.'),
+    ('IaijutsuMarkDamage', 'Exposed Weakness', 5, 'Common', [], {'PerRank': .1}, 'Enemies marked by Iaijutsu take an additional 10% damage.'),
+    ('IaijutsuDoubleCutFrequency', 'Relentless Cuts', 3, 'Rare', ['IaijutsuDoubleCut'], {}, 'Double Cut requires 1 fewer attack, down to every attack.'),
+    ('IaijutsuAOEChance', 'Flourish Mastery', 5, 'Rare', ['IaijutsuAOE'], {'PerRank': .1}, '+10% chance to trigger Final Flourish.'),
+    ('IaijutsuInstantChance', 'Flash Mastery', 5, 'Rare', ['IaijutsuInstant'], {'PerRank': .1}, '+10% chance to trigger Flash Draw.'),
+    ('IaijutsuAssistChance', 'Reinforcements', 5, 'Rare', ['IaijutsuAssist'], {'PerRank': .05}, '+5% chance to trigger Ninja Assist.'),
+    ('IaijutsuMarkPact', 'Focused Malice', 1, 'Rare', [], {}, 'Double the damage bonus from Iaijutsu marks, but your slashes are 20% narrower.'),
+    ('IaijutsuPowerPact', 'Patient Blade', 1, 'Rare', [], {}, 'Iaijutsu slashes deal 50% more damage, but take 30% longer to charge.'),
+    ('IaijutsuDashPact', 'Relentless Steps', 1, 'Rare', [], {}, 'Your Iaijutsu marks no longer amplify damage. Killing a marked enemy reduces dash recharge by 0.3 seconds instead. Exposed Weakness ranks become Iaijutsu Damage.'),
 ]
 shrine = {'IaijutsuMarkPact', 'IaijutsuPowerPact', 'IaijutsuDashPact'}
 
@@ -102,7 +102,7 @@ elif not validate:
     balance = {str(k): v for k, v in card.get_editor_property('balance_parameters').items()}
     for key, value in {'VacuumReach': 60.0, 'VacuumSpeed': 240.0, 'MarkBonus': .5, 'MarkDuration': 3.0}.items():
         balance.setdefault(key, value)
-    props(card, balance_parameters=balance, description='Charge a 200 cm-wide spectral lane for 1 second, gently pulling nearby enemies into it. The lane hits instantly after charging and marks enemies for 3 seconds, making them take 50% more damage from subsequent hits. Choose one Samurai stance per run.')
+    props(card, balance_parameters=balance, description='Charge a slash for 1 second, drawing nearby enemies into its path. Strike the entire path and mark foes for 3 seconds. Marked foes take 50% more damage from later hits. Choose one Samurai stance per run.')
     assert unreal.EditorAssetLibrary.save_loaded_asset(card, False)
     upgrades.set_editor_property('upgrade_pool', pool)
     unreal.BlueprintEditorLibrary.compile_blueprint(bp)
@@ -112,7 +112,7 @@ elif not validate:
     unreal.log('IAIJUTSU_BUILD_BACKUP: ' + str(backup))
 
 ids = [str(a.get_editor_property('upgrade_id')) for a in pool if a]
-assert len(ids) == len(set(ids)) == 106, (len(ids), len(set(ids)))
+assert len(ids) == len(set(ids)) == 156, (len(ids), len(set(ids)))
 for uid, name, levels, rarity, requires, defaults, description in rows:
     card = next(a for a in pool if str(a.get_editor_property('upgrade_id')) == uid)
     if uid == 'IaijutsuChain':
@@ -121,4 +121,4 @@ for uid, name, levels, rarity, requires, defaults, description in rows:
     assert [str(x) for x in card.get_editor_property('prerequisite_upgrade_ids')] == ['Iaijutsu'] + requires
     assert card.get_editor_property('card_artwork')
     assert (card.get_editor_property('category') == unreal.UpgradeCategory.CURSED) == (uid in shrine)
-unreal.log('IAIJUTSU_BUILD_OK: 106 unique cards, 17 Iaijutsu upgrades, prerequisites and Shrine routing validated')
+unreal.log('IAIJUTSU_BUILD_OK: 156 unique cards, 17 Iaijutsu upgrades, prerequisites and Shrine routing validated')

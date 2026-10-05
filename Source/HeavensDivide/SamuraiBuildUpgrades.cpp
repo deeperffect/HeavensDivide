@@ -71,18 +71,6 @@ void UPlayerUpgradeComponent::HandleSamuraiDirectHit(AEnemyBase* Enemy,float Dam
  for(auto* Target:NearbySamuraiTargets(Enemy,Radius))Target->ApplyPlayerDamage(Overkill,EPlayerAttackSource::Samurai);
 }
 
-void UEnemyStatusEffectComponent::ReceiveBleedTransfer(UPlayerUpgradeComponent* Upgrades,float DamageBudget,float Duration)
-{
- if(!Upgrades||!FMath::IsFinite(DamageBudget)||DamageBudget<=0||!FMath::IsFinite(Duration)||Duration<=0)return;
- const float PreviousDuration=BleedState.RemainingDuration;
- const float PreviousWeight=BleedState.BleedBaseStackWeight;
- if(!ApplyStatus(EEnemyStatusEffect::Bleed,Upgrades,EPlayerAttackSource::Samurai,true))return;
- // A transferred stack represents only its finite budget, without a free base-damage stack.
- BleedState.BleedBaseStackWeight=PreviousWeight;
- BleedState.RemainingDuration=FMath::Max(PreviousDuration,Duration);
- BleedState.TransferredDamageRemaining+=DamageBudget;
-}
-
 void UEnemyStatusEffectComponent::ReceiveBloodStacks(UPlayerUpgradeComponent* Upgrades, int32 Stacks, float DamagePerTick, float Duration)
 {
  if (!Upgrades || !Upgrades->HasUpgradeId(TEXT("BattleStance")) || Stacks <= 0) return;

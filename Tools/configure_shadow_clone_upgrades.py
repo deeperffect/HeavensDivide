@@ -41,12 +41,12 @@ multiple.set_editor_property("uses_rolled_rarity", True)
 multiple.set_editor_property("prerequisite_upgrade_ids", ["ShadowStep"])
 multiple.set_editor_property("prerequisite_requirements", [])
 multiple.set_editor_property("special_effects", [])
-multiple.set_editor_property("rolled_description_format", "Shadow Clones perform +{Magnitude} additional attacks.")
+multiple.set_editor_property("rolled_description_format", "Shadow Clones perform {Magnitude} additional attacks.")
 entries = []
 for rarity, amount, description in (
-    (unreal.UpgradeRarity.COMMON, 1.0, "Shadow Clones perform +1 additional attack."),
-    (unreal.UpgradeRarity.RARE, 2.0, "Shadow Clones perform +2 additional attacks."),
-    (unreal.UpgradeRarity.EPIC, 3.0, "Shadow Clones perform +3 additional attacks."),
+    (unreal.UpgradeRarity.COMMON, 1.0, "Shadow Clones perform 1 additional attack."),
+    (unreal.UpgradeRarity.RARE, 2.0, "Shadow Clones perform 2 additional attacks."),
+    (unreal.UpgradeRarity.EPIC, 3.0, "Shadow Clones perform 3 additional attacks."),
 ):
     entry = unreal.UpgradeRarityMagnitude()
     entry.set_editor_property("rarity", rarity)

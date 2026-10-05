@@ -1,0 +1,9 @@
+{
+  "id": "BarragePoolRadius",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A small lime-green poison pool spreading into a larger ring, three bold outward violet arrows evenly spaced around it, simple expanding-radius symbol.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-76828344-591f-45c2-ad25-5408a5752c28.png",
+  "file": "Art/UpgradeIcons/Generated/Barrage/BarragePoolRadius.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePoolRadius",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "b8387b48ccb49ad201ce2fed8d3cfaf72fff72978c6a3138817c0cb60ef34466"
+}

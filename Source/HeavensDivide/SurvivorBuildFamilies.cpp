@@ -89,7 +89,7 @@ void USurvivorAbilityComponent::GrantBuildPreview(FString FamilyId, int32 Select
         for (int32 b = 0; b < 3; ++b)
             if (SelectedBranch == 0 || SelectedBranch == b + 1)
                 Grant(S.Branches[b], 1);
-        Controller->ClientMessage(FString::Printf(TEXT("%s ready. Support cards are temporarily disabled; only the base stance is granted. This run only."),
+        Controller->ClientMessage(FString::Printf(TEXT("%s ready with eligible selected branches. Disabled support cards are skipped. This run only."),
                                                   S.Title));
     }
 #endif

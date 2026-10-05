@@ -41,7 +41,8 @@ ANinjaBuildProjectile::ANinjaBuildProjectile()
 void ANinjaBuildProjectile::LaunchFang()
 {
     auto *B = Build.Get();
-    if (!B || !B->IsRunning() || !B->Attack() || (bCloneProjectile ? !Clone.IsValid() : (!bAssistProjectile && !B->IsActive())))
+    if (!B || !B->IsRunning() || !B->Attack() || (bCloneProjectile ? !Clone.IsValid()
+        : (!bAssistProjectile && (!B->IsActive() || !B->Attack()->IsAutoAttackEnabled()))))
     {
         Destroy();
         return;
@@ -60,7 +61,8 @@ void ANinjaBuildProjectile::LaunchFang()
         A->bGrandEntranceReady = false;
     }
     Damage = A->GetEffectiveAttackDamage() * (1 + Extra * B->Tune(TEXT("ReturningFang"), TEXT("CountDamage"), .25f));
-    Speed = A->GetEffectiveProjectileSpeed() * A->GetBaseAttackInterval() / A->GetEffectiveAttackInterval();
+    Damage *= B->FangDamageMultiplier();
+    Speed = B->FangSpeedMultiplier() * A->GetEffectiveProjectileSpeed() * A->GetBaseAttackInterval() / A->GetEffectiveAttackInterval();
     if (bCloneProjectile)
         Speed *= Clone->GetFangSpeedMultiplier();
     if (B->KunaiThrowSound && (!bCloneProjectile || FlightAge > 0))
@@ -68,16 +70,20 @@ void ANinjaBuildProjectile::LaunchFang()
     bReturning = false;
     bPursued = false;
     FlightAge = 0;
+    FangOutwardDistance = 0;
+    bFangHitThisTrip = false;
     LastHits.Reset();
     if (!bCloneProjectile && !bAssistProjectile)
         A->OnAutoAttack.Broadcast(A, EAutoAttackSource::NormalAutoAttack);
+    B->FangLaunched(this);
 }
 
 void ANinjaBuildProjectile::Finish()
 {
+    if (bFinished) return;
+    bFinished = true;
     auto *B = Build.Get();
-    if (Kind == ENinjaProjectileKind::GreatShuriken && B && B->IsRunning() && B->Has(TEXT("BreakingWheel")))
-        B->Scatter(GetActorLocation(), 6, Damage * .3f, 700);
+    if (Kind == ENinjaProjectileKind::GreatShuriken && B && B->IsRunning() && B->Has(TEXT("BreakingWheel"))) ShurikenBurst();
     Destroy();
 }
 
@@ -90,6 +96,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
         Destroy();
         return;
     }
+    if (Kind == ENinjaProjectileKind::GreatShuriken) { TickShuriken(Delta); return; }
     Delta = FMath::Min(Delta, .1f);
     Age += Delta;
     FlightAge += Delta;
@@ -108,7 +115,12 @@ void ANinjaBuildProjectile::Tick(float Delta)
             Destroy();
             return;
         }
-        if ((!bCloneProjectile && !bAssistProjectile && !B->IsActive()) || FlightAge > 4)
+        if (!bCloneProjectile && !bAssistProjectile && (!B->IsActive() || !B->Attack()->IsAutoAttackEnabled()))
+        {
+            bFangHitThisTrip = false;
+            bReturning = true;
+        }
+        if (FlightAge > 4)
             bReturning = true;
         if (!bReturning && (!Target.IsValid() || Target->IsDead()))
         {
@@ -124,7 +136,8 @@ void ANinjaBuildProjectile::Tick(float Delta)
         if (bReturning && Distance <= FMath::Max(25.f, Speed * Delta))
         {
             SetActorLocation(Goal);
-            if(bAssistProjectile) Destroy();
+            B->FangReturned(this);
+            if(bAssistProjectile || bSpectralFang) Destroy();
             else if (bCloneProjectile)
             {
                 if (Clone->CompleteFangCycle())
@@ -138,53 +151,20 @@ void ANinjaBuildProjectile::Tick(float Delta)
                 Destroy();
             return;
         }
+        if (!bReturning) FangOutwardDistance += FVector::Distance(Start, End);
         for (auto *E : B->Sweep(Start, End, Radius))
         {
-            if (bReturning)
-            {
-                if (!B->Has(TEXT("CuttingReturn")) || LastHits.Contains(E))
-                    continue;
-                LastHits.Add(E, Age);
-                B->Hit(E, Damage,true,bAssistProjectile);
-                continue;
-            }
-            Streak = LastVictim == E ? FMath::Min(Streak + 1, 5) : 0;
-            LastVictim = E;
-            B->Hit(E, Damage * (B->Has(TEXT("RelentlessFang")) ? 1 + Streak * .15f : 1),true,bAssistProjectile);
-            LastHits.Reset();
-            if (E->IsDead() && B->Has(TEXT("FinalPursuit")) && !bPursued)
-            {
-                Target = B->Nearest(E->GetActorLocation(), 350, E);
-                bPursued = true;
-                if (Target.IsValid())
-                    break;
-            }
+            if (bReturning) continue; // Returning is a reset, never a damaging pass.
+            // A homing Fang commits to its selected target, so spectral Fangs can reach separate enemies.
+            if (E != Target.Get()) continue;
+            B->FangHit(this, E);
             bReturning = true;
             break;
         }
     }
     else
     {
-        if (Kind == ENinjaProjectileKind::GreatShuriken &&
-            Age >= B->GetShurikenLifetime())
-        {
-            Finish();
-            return;
-        }
-        End = Start + Direction * Speed * Delta * (SlowRemaining > 0 ? .15f : 1.f);
-        if (Kind == ENinjaProjectileKind::GreatShuriken && B->Has(TEXT("WideOrbit")))
-        {
-            if (InitialRadius <= 0)
-                InitialRadius = Radius;
-            TravelDistance += FVector::Distance(Start, End);
-            const float Growth = FMath::Clamp(
-                TravelDistance / FMath::Max(1.f, B->Tune(TEXT("WideOrbit"), TEXT("GrowthDistance"), 1000.f)), 0.f, 1.f);
-            Radius =
-                InitialRadius *
-                FMath::Lerp(1.f, FMath::Clamp(B->Tune(TEXT("WideOrbit"), TEXT("MaxSizeMultiplier"), 2.f), 1.f, 4.f),
-                            Growth);
-            UpdateShurikenVisualScale();
-        }
+        End = Start + Direction * Speed * Delta;
         if (Kind == ENinjaProjectileKind::Fragment && Age > 2)
         {
             Destroy();

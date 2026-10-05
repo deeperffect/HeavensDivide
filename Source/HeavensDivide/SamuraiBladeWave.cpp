@@ -255,13 +255,23 @@ void ASamuraiBladeWave::SpawnSplitWaves(AActor* FirstTarget)
     const float DamageScale = FMath::Max(0.f, CrescentBuild::Value(U, TEXT("CrescentSplit"), TEXT("DamageMultiplier"), .5f));
     const float SizeScale = FMath::Max(.1f, CrescentBuild::Value(U, TEXT("CrescentSplit"), TEXT("SizeMultiplier"), .6f));
     const float RangeScale = FMath::Max(.1f, CrescentBuild::Value(U, TEXT("CrescentSplit"), TEXT("RangeMultiplier"), .6f));
-    const float Angle = CrescentBuild::Value(U, TEXT("CrescentSplit"), TEXT("Angle"), 35.f);
+    const float Angle = CrescentBuild::Value(U, TEXT("CrescentSplit"), TEXT("Angle"), 90.f);
+    // Branch from the struck enemy, at the travelling wave's ground height.
+    // The original keeps its velocity, remaining range and presentation intact.
+    FVector BranchOrigin = GetActorLocation();
+    if (FirstTarget)
+    {
+        BranchOrigin.X = FirstTarget->GetActorLocation().X;
+        BranchOrigin.Y = FirstTarget->GetActorLocation().Y;
+    }
+    const FVector TravelDirection = Movement->Velocity.IsNearlyZero()
+        ? GetActorForwardVector() : Movement->Velocity.GetSafeNormal2D();
     for (float Side : {-1.f, 1.f})
     {
-        const FVector Direction = GetActorForwardVector().RotateAngleAxis(Side * Angle, FVector::UpVector);
+        const FVector Direction = TravelDirection.RotateAngleAxis(Side * Angle, FVector::UpVector);
         FActorSpawnParameters Params; Params.Owner = SourceSamurai.Get(); Params.Instigator = SourceSamurai.Get();
         Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        if (auto* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(GetClass(), GetActorLocation(), Direction.Rotation(), Params))
+        if (auto* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(GetClass(), BranchOrigin, Direction.Rotation(), Params))
         {
             Wave->bCanSplit = false;
             Wave->HitThisPhase.Add(FirstTarget);

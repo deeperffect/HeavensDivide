@@ -9,6 +9,10 @@
 #include "Animation/Skeleton.h"
 #include "Engine/SkeletalMesh.h"
 #include "Misc/App.h"
+#include "AnimNotify_PlayNiagaraEffect.h"
+#include "AnimNotifyState_TimedNiagaraEffect.h"
+#include "AnimNotify_SpawnSamuraiSlashNiagara.h"
+#include "AnimNotifyState_SamuraiSlashNiagara.h"
 ASwapAfterimage::ASwapAfterimage()
 {
     PrimaryActorTick.bCanEverTick = true;
@@ -55,11 +59,17 @@ void ASwapAfterimage::Tick(float DeltaSeconds)
 void ASwapAfterimage::InitializeSwordDash(ACharacterBase* Source, UMaterialInterface* Material,
     UAnimMontage* Montage, FVector Direction, float Duration)
 {
+    if (!Source) { Destroy(); return; }
+    const FVector Destination = GetActorLocation();
+    // Initialization copies world-space meshes. Capture them around the source's
+    // pivot first, then transport the complete copy to the requested lane position.
+    SetActorLocation(Source->GetActorLocation());
     const FLinearColor Color(.2f, 1.5f, 3.f);
     const float Rate = Montage ? Montage->GetPlayLength() / FMath::Max(.01f, Duration * Montage->RateScale) : 1.f;
     if (!InitializeDeparture(Source, Material, Color, Montage, Rate, .08f))
         Initialize(Source, Material, Color, Duration + .08f);
     bGameTimeAnimation = true;
+    SetActorLocation(Destination);
     TrailDuration = .1f;
     // Rotate only the copied character; leave the real player's facing untouched.
     const float YawDelta = FMath::FindDeltaAngleDegrees(Source->GetVisualForwardVector().Rotation().Yaw, Direction.Rotation().Yaw);
@@ -81,6 +91,9 @@ void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
             Anim->UpdateMontageWeightForTimeSkip(DeltaSeconds);
             AnimatedMesh->TickAnimation(0.f,false);
             AnimatedMesh->RefreshBoneTransforms();
+            if (bCosmeticNiagaraNotifies)
+                AdvanceCosmeticNotifies(Age * DepartureRate,
+                    FMath::Min(Age + DeltaSeconds, DepartureDuration) * DepartureRate, DeltaSeconds);
         }
     }
     Age += DeltaSeconds;
@@ -101,6 +114,7 @@ void ASwapAfterimage::AdvanceVisual(float DeltaSeconds)
     if(AnimatedMesh && !bDepartureFinished && Age>=DepartureDuration)
     {
         bDepartureFinished=true;
+        EndCosmeticNotifies();
         TInlineComponentArray<UMeshComponent*> Meshes(this);
         for(auto* Mesh:Meshes)
             for(int32 Slot=0;Slot<Mesh->GetNumMaterials();++Slot) Mesh->SetMaterial(Slot,FadeMaterial);
@@ -173,7 +187,7 @@ bool ASwapAfterimage::InitializeDeparture(ACharacterBase* Source,UMaterialInterf
     for(auto* Mesh:Weapons)
     {
         if(!Mesh->GetStaticMesh() || !Mesh->IsVisible()) continue;
-        auto* Copy=NewObject<UStaticMeshComponent>(this);
+        auto* Copy=NewObject<UStaticMeshComponent>(this, Mesh->GetFName());
         Copy->SetStaticMesh(Mesh->GetStaticMesh());
         USceneComponent* Attachment=Mesh;
         while(Attachment->GetAttachParent() && Attachment->GetAttachParent()!=Source->GetMesh()) Attachment=Attachment->GetAttachParent();
@@ -188,4 +202,63 @@ bool ASwapAfterimage::InitializeDeparture(ACharacterBase* Source,UMaterialInterf
         for(int32 Slot=0;Slot<Copy->GetNumMaterials();++Slot) Copy->SetMaterial(Slot,Mesh->GetMaterial(Slot));
     }
     return true;
+}
+
+void ASwapAfterimage::AdvanceCosmeticNotifies(float PreviousTime, float CurrentTime, float DeltaSeconds)
+{
+    auto* Anim = AnimatedMesh ? AnimatedMesh->GetSingleNodeInstance() : nullptr;
+    auto* Montage = Anim ? Cast<UAnimMontage>(Anim->GetCurrentAsset()) : nullptr;
+    if (!Montage || CurrentTime <= PreviousTime) return;
+    const auto Gather = [&](float Start, float End, FAnimNotifyContext& Context)
+    {
+        Montage->GetAnimNotifiesFromDeltaPositions(Start, End, Context);
+        for (const auto& Slot : Montage->SlotAnimTracks)
+            Slot.AnimTrack.GetAnimNotifiesFromTrackPositions(Start, End, Context);
+    };
+    FAnimNotifyContext Crossed, Current;
+    Gather(PreviousTime == 0.f ? -KINDA_SMALL_NUMBER : PreviousTime, CurrentTime, Crossed);
+    Gather(CurrentTime, CurrentTime + KINDA_SMALL_NUMBER, Current);
+    for (const auto& Reference : Crossed.ActiveNotifies)
+    {
+        const auto* Event = Reference.GetNotify();
+        if (!Event) continue;
+        auto* Animation = const_cast<UAnimSequenceBase*>(Cast<UAnimSequenceBase>(Reference.GetSourceObject()));
+        if (auto* Notify = Event->Notify.Get(); Notify &&
+            (Notify->IsA<UAnimNotify_PlayNiagaraEffect>() || Notify->IsA<UAnimNotify_SpawnSamuraiSlashNiagara>()))
+            Notify->Notify(AnimatedMesh, Animation, Reference);
+        if (auto* State = Event->NotifyStateClass.Get(); State &&
+            (State->IsA<UAnimNotifyState_TimedNiagaraEffect>() || State->IsA<UAnimNotifyState_SamuraiSlashNiagara>()))
+        {
+            if (!ActiveCosmeticStates.Contains(Reference))
+            {
+                State->NotifyBegin(AnimatedMesh, Animation, Event->GetDuration(), Reference);
+                ActiveCosmeticStates.Add(Reference);
+            }
+            State->NotifyTick(AnimatedMesh, Animation, DeltaSeconds, Reference);
+        }
+    }
+    for (int32 Index = ActiveCosmeticStates.Num() - 1; Index >= 0; --Index)
+    {
+        const auto& Reference = ActiveCosmeticStates[Index];
+        if (Current.ActiveNotifies.Contains(Reference)) continue;
+        if (const auto* Event = Reference.GetNotify(); Event && Event->NotifyStateClass)
+            Event->NotifyStateClass->NotifyEnd(AnimatedMesh,
+                const_cast<UAnimSequenceBase*>(Cast<UAnimSequenceBase>(Reference.GetSourceObject())), Reference);
+        ActiveCosmeticStates.RemoveAt(Index);
+    }
+}
+
+void ASwapAfterimage::EndCosmeticNotifies()
+{
+    for (const auto& Reference : ActiveCosmeticStates)
+        if (const auto* Event = Reference.GetNotify(); Event && Event->NotifyStateClass && AnimatedMesh)
+            Event->NotifyStateClass->NotifyEnd(AnimatedMesh,
+                const_cast<UAnimSequenceBase*>(Cast<UAnimSequenceBase>(Reference.GetSourceObject())), Reference);
+    ActiveCosmeticStates.Reset();
+}
+
+void ASwapAfterimage::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    EndCosmeticNotifies();
+    Super::EndPlay(EndPlayReason);
 }

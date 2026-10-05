@@ -23,6 +23,7 @@ public:
 	void SetMoveSpeed(float NewMoveSpeed);
 	void RequestMove(const FVector& WorldDirection);
 	void StopMovement();
+	void SetMovementHeldBy(AActor* Source, bool bHeld);
 	void ApplyPushback(FVector Direction, float Distance, float Duration);
 	void CancelPushback();
 	void RefreshSpawnZ();
@@ -38,6 +39,7 @@ private:
 	// Queries are consumed before moving the actor or starting the next sweep.
 	// Retaining capacity avoids allocating hit storage on every movement tick.
 	TArray<FHitResult> MovementQueryHits;
+	TSet<TWeakObjectPtr<AActor>> MovementHolds;
 
 	FVector PushbackDirection = FVector::ZeroVector;
 	float PushbackDistance = 0.0f;

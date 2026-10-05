@@ -92,7 +92,7 @@ Crossing lanes can each hit the same enemy; one X attack creates at most one cas
 
 Taking Relentless Steps converts existing Mark Damage ranks into Iaijutsu Damage and removes Mark Damage from future offers. Focused Malice and Relentless Steps cannot be acquired together. Old mixed saves retain Relentless Steps and convert the ineffective Focused Malice purchase into one damage rank, removing its width penalty. Conversions retain invested strength and mastery, even when merged damage ranks reach the five-rank ceiling.
 
-Dash Draw also doubles Samurai dash distance while Iaijutsu is selected, keeping the original duration and charge cost. The slash uses the actual completed path, including wall-shortened dashes. Ninja does not receive the distance bonus. Cascade Power and Dash Draw Power each reach +100% damage for their own attack type, including crossing lanes and Endpoint Burst. Dash damage does not carry into a cascade. The vacuum compensates for opposing enemy movement and uses the enemy movement system's world sweep, so pursuit and floor contact do not cancel the pull.
+Dash Draw also doubles Samurai dash distance while Iaijutsu is selected, keeping the original duration and charge cost. The slash uses the actual completed path, including wall-shortened dashes. Ninja does not receive the distance bonus. Cascade Power and Dash Draw Power each reach +100% damage for their own attack type, including crossing lanes and Endpoint Burst. Dash damage does not carry into a cascade. The vacuum runs only during the final 0.2 seconds before impact and for 0.3 seconds after impact, at three times its authored pull speed (720 cm/s with the base 240 cm/s tuning). Enemies inside the lane are held against movement during that window. The post-hit lane stays fixed at the impact position, does not deal damage again, and releases its movement holds when it expires. Instant casts start the effect at impact without a simulated pre-hit pull. The vacuum compensates for opposing enemy movement and uses the enemy movement system's world sweep, so pursuit and floor contact do not cancel the pull.
 
 ## Crescent Stance
 
@@ -106,7 +106,7 @@ flowchart LR
  C --> SL["Increased Slow<br/>+5 percentage points ×5<br/>Maximum 55% slow"]
  C --> D["Double Cut<br/>Every fourth attack: four + waves"]
  D --> DF["Double Cut Frequency<br/>3 / 2 / 1 attacks · R ×3"]
- C --> SP["Splitting Waves<br/>15% first-hit chance<br/>Two smaller 50%-damage waves"]
+ C --> SP["Splitting Waves<br/>15% first-hit chance<br/>Two sideways 50%-damage waves<br/>Original wave continues"]
  SP --> SPC["Split Chance<br/>+15 percentage points ×5 · R"]
  C --> W["Lingering Wake<br/>15% chance per primary wave<br/>3s field · 30% wave damage per second"]
  W --> WC["Wake Chance<br/>+5 percentage points x5 - R<br/>Maximum 40%; splits inherit result"]
@@ -174,7 +174,7 @@ The field now covers the completed outbound path. The Development Editor build a
 
 The Development Editor build succeeded. All six balance regression suites passed: SamuraiStanceBalance, SamuraiBuilds, Iaijutsu, CrescentBuilds, SamuraiScalingConversion and TrialBuildRewards. Coverage includes saved three-rank caps, stale-reference rejection, both pact acquisition orders, real Shrine selection, normal/direct/repeat-trial offer exclusions, legacy conversions at the damage cap, repeated restoration, and actual field/eruption damage at every rank. Saved-asset validation passed for all nine updated cards; unrelated card hashes were preserved.
 
-Runtime ownership: `PlayerUpgradeComponent.cpp` handles conversion/offers/restoration; `IaijutsuBuild.h` and `CrescentBuild.h` read converted magnitudes; `SamuraiAutoAttack.cpp`, `SamuraiIaijutsu.cpp`, `SamuraiBladeWave.cpp`, `SamuraiWaveField.cpp`, `SamuraiBuildUpgrades.cpp` and enemy status code execute the effects.
+Runtime ownership: `PlayerUpgradeRunState.cpp` handles conversion/restoration and `PlayerUpgradeSelection.cpp` handles offers; `IaijutsuBuild.h` and `CrescentBuild.h` read converted magnitudes; `SamuraiAutoAttack.cpp`, `SamuraiIaijutsu.cpp`, `SamuraiBladeWave.cpp`, `SamuraiWaveField.cpp`, `SamuraiBuildUpgrades.cpp` and enemy status code execute the effects.
 
 Saved assets are migrated by `Tools/configure_samurai_shared_scaling.py` and `Tools/fix_ninja_alternate_montage.py`, both with backups and read-only validation flags. `SamuraiScalingConversion` exercises live pre-stance acquisition, all three trials, Rare investments, continued purchases, rank caps, banishment, repeated restoration and the old Heavy Blade save. `NinjaAlternatingThrow` verifies montage tracks, mirrored hand poses, alternation and projectile release sockets. Existing Samurai, Iaijutsu, Crescent, trial-routing and draft tests cover the surrounding behavior.
 

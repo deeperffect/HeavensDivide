@@ -1,0 +1,323 @@
+[
+  {
+    "id": "GreatShuriken",
+    "name": "Giant Shuriken Stance",
+    "description": "Throw massive piercing blades that repeatedly cut enemies. Gain 50% damage and throw 50% slower. Extra projectiles increase blade size. Choose one Ninja stance per run.",
+    "kind": "stance",
+    "levels": 1,
+    "requires": [],
+    "balance": {},
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "GrindingHalt",
+    "name": "Grinding Halt",
+    "description": "Each blade slows to 15% speed for 1 second on its first elite or boss hit.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "SlowDuration": 1,
+      "SpeedMultiplier": 0.15
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "WideOrbit",
+    "name": "Growing Shuriken",
+    "description": "Blades grow throughout their lifetime, reaching twice their starting size.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "MaxSizeMultiplier": 2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "BreakingWheel",
+    "name": "Breaking Wheel",
+    "description": "When a blade expires, it releases a circular slash dealing 75% blade damage. Larger blades create larger slashes.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "DamageFraction": 0.75,
+      "RadiusMultiplier": 2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenTwin",
+    "name": "Twin Wheel",
+    "description": "Every fourth throw launches an additional shuriken.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {},
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenAssist",
+    "name": "Samurai Assist",
+    "description": "Shuriken contact and burst kills have a 5% chance to call a Samurai assist.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "Chance": 0.05
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "SerratedEdge",
+    "name": "Serrated Edge",
+    "description": "Each blade gains 15% damage against an enemy for every previous contact hit, up to 75%. Bursts benefit from this bonus without increasing it.",
+    "kind": "one_time",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "DamagePerHit": 0.15,
+      "DamageCap": 0.75
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenDamage",
+    "name": "Shuriken Damage",
+    "description": "Increase blade and burst damage.",
+    "kind": "normal",
+    "levels": 5,
+    "requires": [],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "magnitudes": [
+      0.2,
+      0.3,
+      0.45
+    ],
+    "format": "Increase blade and burst damage. +{Percent}% per rank.",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenSpeed",
+    "name": "Attack Speed",
+    "description": "Throw shurikens more frequently.",
+    "kind": "normal",
+    "levels": 5,
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "magnitudes": [
+      0.15,
+      0.22,
+      0.3
+    ],
+    "format": "Throw shurikens more frequently. +{Percent}% per rank.",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenSize",
+    "name": "Shuriken Size",
+    "description": "Increase blade size and burst radius. With Blood Hunger, increase size gained per kill instead.",
+    "kind": "normal",
+    "levels": 5,
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "magnitudes": [
+      0.15,
+      0.22,
+      0.3
+    ],
+    "format": "Increase blade size and burst radius. With Blood Hunger, increase size gained per kill instead. +{Percent}% per rank.",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "LingeringShuriken",
+    "name": "Lingering Shuriken",
+    "description": "Blades last 30% longer per rank.",
+    "kind": "normal",
+    "levels": 3,
+    "requires": [],
+    "balance": {
+      "LifetimeBonusPerRank": 0.3
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenTempo",
+    "name": "Cutting Tempo",
+    "description": "Increase contact hit and pulse frequency by 15% per rank.",
+    "kind": "normal",
+    "levels": 5,
+    "requires": [],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenGrindDuration",
+    "name": "Persistent Grind",
+    "description": "Grinding Halt lasts 0.2 seconds longer per rank.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "GrindingHalt"
+    ],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenGrowth",
+    "name": "Unstoppable Growth",
+    "description": "Increase maximum blade growth by 20 percentage points per rank. Also raises Blood Hunger's growth cap.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "WideOrbit"
+    ],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenBurstPower",
+    "name": "Shattering Force",
+    "description": "Increase expiry slash and periodic burst damage by 15% per rank.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "BreakingWheel"
+    ],
+    "balance": {
+      "PerRank": 0.15
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenTwinFrequency",
+    "name": "Twin Frequency",
+    "description": "Twin Wheel triggers one throw sooner per rank: every third, second, then every throw.",
+    "kind": "rare",
+    "levels": 3,
+    "requires": [
+      "ShurikenTwin"
+    ],
+    "balance": {},
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenAssistChance",
+    "name": "Reinforcements",
+    "description": "Increase Samurai Assist chance by 5 percentage points per rank.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "ShurikenAssist"
+    ],
+    "balance": {
+      "PerRank": 0.05
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenGrooves",
+    "name": "Deep Grooves",
+    "description": "Serrated Edge gains 3 percentage points more damage per hit and a 15 percentage point higher cap per rank.",
+    "kind": "rare",
+    "levels": 5,
+    "requires": [
+      "SerratedEdge"
+    ],
+    "balance": {
+      "PerHitPerRank": 0.03,
+      "CapPerRank": 0.15
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenOrbit",
+    "name": "Bound Orbit",
+    "description": "Blades orbit around you instead of flying forward, but deal 30% less contact damage. Expiry slashes are retained.",
+    "kind": "shrine",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "ContactMultiplier": 0.7,
+      "OrbitRadius": 230
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenHunger",
+    "name": "Blood Hunger",
+    "description": "Blades start 30% smaller and grow 10% per kill, up to their growth cap. Size upgrades increase growth per kill instead of starting size. Growth resets for each blade.",
+    "kind": "shrine",
+    "levels": 1,
+    "requires": [],
+    "balance": {
+      "InitialSizeMultiplier": 0.7,
+      "GrowthPerKill": 0.1
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  },
+  {
+    "id": "ShurikenPulse",
+    "name": "Pulsing Core",
+    "description": "Blades release a circular burst every second, but deal 35% less contact damage. Cutting Tempo speeds up bursts. Expiry slashes are retained.",
+    "kind": "shrine",
+    "levels": 1,
+    "requires": [
+      "BreakingWheel"
+    ],
+    "balance": {
+      "ContactMultiplier": 0.65,
+      "Interval": 1
+    },
+    "magnitudes": [],
+    "format": "",
+    "art": "GreatShuriken"
+  }
+]

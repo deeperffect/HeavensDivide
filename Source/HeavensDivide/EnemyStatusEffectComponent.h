@@ -24,9 +24,10 @@ struct FEnemyDamageStatusState
 	TWeakObjectPtr<UPlayerUpgradeComponent> SourceUpgrades;
 	FTimerHandle TickTimer;
 	float ActiveTickInterval = 0.0f;
-	float BleedBaseStackWeight = 0.0f;
 	float BleedHitBonusPerTick = 0.0f;
-	float TransferredDamageRemaining = 0.0f;
+ bool bBarragePoison = false;
+ bool bDirectBarragePoison = false;
+ float PoisonDamagePerTick = 0.f;
 };
 
 /** Lightweight, timer-driven damage-over-time state owned by one enemy. */
@@ -37,16 +38,18 @@ class HEAVENSDIVIDE_API UEnemyStatusEffectComponent : public UActorComponent
 
 public:
 	friend class FSamuraiBuildsTest;
+ friend class FBarrageBuildsTest;
 	UEnemyStatusEffectComponent();
 
 	/** Intrinsic ability/assist statuses share all normal scaling and source restrictions, without requiring the basic-attack starter. */
 	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus = false, float ApplyingHitDamage = 0.0f);
-	/** Called once before death clears status state. Transfer keeps a finite damage budget. */
+	/** Called once before death clears status state. Transfers the current Blood Stance stacks. */
 	void TransferBleedOnDeath();
 	void GrantBloodRushOnDeath();
+ bool ApplyBarragePoison(UPlayerUpgradeComponent* U, float HitDamage, bool bFromPuddle = false);
+ void BarragePoisonDeath();
 	void TryBloodDetonation();
 	void ReceiveBloodStacks(UPlayerUpgradeComponent* Upgrades, int32 Stacks, float DamagePerTick, float Duration);
-	void ReceiveBleedTransfer(UPlayerUpgradeComponent* Upgrades, float DamageBudget, float RemainingDuration);
 
 	UFUNCTION(BlueprintPure, Category="Enemy|Status")
 	bool HasStatus(EEnemyStatusEffect Status) const;
@@ -70,16 +73,17 @@ public:
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Bleed", meta=(ClampMin="0.0"))
+	// Serialized compatibility only. Blood Stance now owns Bleed's damage and duration.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Legacy", meta=(AdvancedDisplay, DeprecatedProperty, DeprecationMessage="Bleed damage comes from the applying hit and Blood Stance."))
 	float BaseBleedDamagePerTick = 2.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Bleed", meta=(ClampMin="0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Legacy", meta=(AdvancedDisplay, DeprecatedProperty, DeprecationMessage="Blood Stance ticks every 0.5 seconds."))
 	float BleedTickInterval = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Bleed", meta=(ClampMin="0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Legacy", meta=(AdvancedDisplay, DeprecatedProperty, DeprecationMessage="Blood Stance and Lingering Wounds control Bleed duration."))
 	float BleedDuration = 10.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Bleed", meta=(ClampMin="0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Legacy", meta=(AdvancedDisplay, DeprecatedProperty, DeprecationMessage="Deep Cuts is retired."))
 	float DeepCutsDamagePerLevel = 0.25f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Poison", meta=(ClampMin="0.0"))
@@ -91,7 +95,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Poison", meta=(ClampMin="0.01"))
 	float PoisonDuration = 10.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Poison", meta=(ClampMin="0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Status|Legacy", meta=(AdvancedDisplay, DeprecatedProperty, DeprecationMessage="Potent Venom is retired."))
 	float PotentVenomDamagePerLevel = 0.25f;
 
 private:
@@ -102,8 +106,6 @@ private:
 	const FEnemyDamageStatusState& GetState(EEnemyStatusEffect Status) const;
 	float GetTickInterval(EEnemyStatusEffect Status) const;
 	float GetEffectiveTickInterval(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const;
-	float GetDuration(EEnemyStatusEffect Status) const;
-	void RefreshPoisonTickRate();
 	float CalculateStatusDamagePerTick(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const;
 	int32 CalculateRemainingTickCount(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const;
 	void TickBleed();

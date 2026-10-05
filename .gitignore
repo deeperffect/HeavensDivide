@@ -28,6 +28,10 @@ Build/
 *.log
 *.dmp
 
+# Python tool caches
+__pycache__/
+*.py[cod]
+
 # OS files
 Thumbs.db
 Desktop.ini

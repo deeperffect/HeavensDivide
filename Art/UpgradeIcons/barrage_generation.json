@@ -1,0 +1,193 @@
+{
+  "cards": [
+    {
+      "id": "BarrageStance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Three ivory kunai with violet grips flying in a broad fan, a single bright green poison drop on each blade.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-3b549950-a3f6-4306-92a8-22330e21d681.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageStance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageStance",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "c64a8dc19d563158d34eca89f6b39431989dfb8b4b5ee476f2b12f75fe583ac7"
+    },
+    {
+      "id": "NeedleRain",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Two staggered rows of three ivory kunai pointing diagonally downward, violet motion strokes, a clean doubled-volley emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-894ab1fa-6e11-4327-9182-0426887061b3.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/NeedleRain.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NeedleRain",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "8fd6f936d459fe62cbae88263c8f34c6b90ba316516149c6fe5ef29636cd9e45"
+    },
+    {
+      "id": "ForkingProjectiles",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: One ivory kunai divides into two smaller ivory kunai at a crisp lime-green impact spark, forming a clear Y silhouette.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-26fb9399-43bf-44be-a6c0-ea32cd336173.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/ForkingProjectiles.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ForkingProjectiles",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "39890af680051e293984b7c47b8689635a2eeb9639a812bedf25e9d2b853a33f"
+    },
+    {
+      "id": "BarragePool",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A shallow bright lime-green poison pool viewed obliquely from above, three large bubbles and one droplet, violet shadow beneath.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-3b4ff9a0-e073-43e4-a083-c3ba6fcca4af.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarragePool.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePool",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "39b573ccf5edf1c66d724405b9b380521d6d9f8a72fb5e5d001887b60a41d698"
+    },
+    {
+      "id": "BarrageAssist",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A bold red Samurai helmet with ivory horns appearing behind a small violet kunai, simple reinforcement emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-db42efde-27b4-438e-b3df-ad3676dc595b.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageAssist.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageAssist",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "d52601f6356b98ca1bc20eaeae6ca9957e800a14f64e6cc4ff34a9d6db4a83c3"
+    },
+    {
+      "id": "BarrageCritical",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: An ivory kunai point striking the exact center of a large violet four-point impact star, sharp lime-green inner accent, powerful critical-hit symbol.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-7f2080ea-68ff-4a2b-b94b-ed4bc9b841b0.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageCritical.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageCritical",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "48b91e1d65d4abadf1bee1f66b62f86a9f9ce6791dee8c194e15fa38fcaad9a2"
+    },
+    {
+      "id": "BarrageRush",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A violet ninja boot with a sweeping lime-green serpent-shaped motion ribbon behind it, clear fast movement silhouette.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-713421d7-1adb-4d5a-b4cf-e33a8c190497.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageRush.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageRush",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "6681c3144f85adfcee0e8b4e605c320e19e36f24e2e56206694f5e8540cee6b1"
+    },
+    {
+      "id": "BarrageDamage",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: One broad ivory kunai with violet grip cutting through a thick green diagonal slash mark, powerful simple weapon emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-3d4d351f-0ffc-46a5-af72-9c04f1eede18.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageDamage.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageDamage",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "fec01c6daa3455ec51ab4b4d1e5c87d59256655910381004b6ce9b0ea3ea14e2"
+    },
+    {
+      "id": "BarrageSpeed",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A diagonally flying ivory kunai with violet handle and three thick parallel lime-green speed strokes behind it.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-6d6ea8cc-e0b1-499b-8a6d-0bb3cc4263c2.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageSpeed.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageSpeed",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "a845f09e82b9534bbe061c9c9d933d3651774f0c94ea2f74fdce4214cf5b015e"
+    },
+    {
+      "id": "BarrageRange",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: An ivory kunai flying toward a distant small violet target ring, connected by one long sweeping green arrow; clear long-range symbol.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-e7a764a6-9492-4db0-bfe3-6b86ddd8bb4a.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageRange.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageRange",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "2d78b2ebf76714ab29067400d65b84c8c8f6731a8e10ddace52ad430d27ef854"
+    },
+    {
+      "id": "BarragePoisonDuration",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A violet hourglass filled with bright green poison instead of sand, one large green drop falling between its chambers.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-d3daf945-783b-4d77-a2cb-522d71b003a5.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarragePoisonDuration.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePoisonDuration",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "1b44185d6a030ce575056053db8961e3ba07958f7d08cc1cc0b36e7f6b673b48"
+    },
+    {
+      "id": "BarragePoisonLoad",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: One ivory kunai coated in three large overlapping lime-green poison drops, violet handle, simple abundant venom emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-3dc8968f-ecb5-414a-9f4a-9377319c2fe7.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarragePoisonLoad.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePoisonLoad",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "5f54ecbda799716793ddd2c76eedebd137cf836adbf0cc306fb0b353e100afbd"
+    },
+    {
+      "id": "BarrageRainFrequency",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Two ivory kunai in parallel enclosed by one bold violet circular arrow, green accent, symbol of repeating double volleys.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-8008b87f-a140-4a87-af7b-69d1d5a22202.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageRainFrequency.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageRainFrequency",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "a96ec234a929bb72a5789ddd2ca380f0f33fa0d7a345122e0a196170380fdd44"
+    },
+    {
+      "id": "BarrageSplitChance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A symmetrical branching lime-green Y arrow with two ivory kunai tips at its ends and a violet central joint, strong simple branching emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-4617be81-b168-4efc-a979-1330db542819.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageSplitChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageSplitChance",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "fc401173f6683cf0c02d178adbf3195657c753d0133b5607ec70a2f55e8baf26"
+    },
+    {
+      "id": "BarrageAssistChance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Two overlapping crimson Samurai helmets with ivory crescent crests, one large violet upward chevron below, reinforcement strength emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-3a2082c9-2d51-4af3-b197-2c621d17ca3c.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageAssistChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageAssistChance",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "0ed248eb154f42fca7fa56b5c59616af6dd43a41603364280fa95f6c0eaad12c"
+    },
+    {
+      "id": "BarragePoolRadius",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A small lime-green poison pool spreading into a larger ring, three bold outward violet arrows evenly spaced around it, simple expanding-radius symbol.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-76828344-591f-45c2-ad25-5408a5752c28.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarragePoolRadius.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePoolRadius",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "b8387b48ccb49ad201ce2fed8d3cfaf72fff72978c6a3138817c0cb60ef34466"
+    },
+    {
+      "id": "BarrageCriticalChance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: An ivory kunai piercing a violet circular bullseye at its center with a single lime-green four-point spark, precision critical-hit emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-7ea2ae47-4aa2-4b3c-b5b9-b99b452275d0.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageCriticalChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageCriticalChance",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "849b44939f2203c86c5485472bff74457f63ff16ee5748950c676459ada9456a"
+    },
+    {
+      "id": "BarragePoisonCap",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Three large stacked lime-green poison droplets in a violet open vessel, with one bold upward ivory chevron, symbol of greater venom capacity.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-6e1b9f98-0078-4e44-a02c-0521593b941c.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarragePoisonCap.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePoisonCap",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "9b9593b72b0fd9f79bc940c7ed0fe44643c221a89b64b937c04f046d707feb0e"
+    },
+    {
+      "id": "BarragePointBlank",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Three short ivory kunai striking a nearby crimson target disk, tightly packed violet speed chevrons behind them, close-range rapid barrage emblem. Crimson Shrine accents.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-7721c34e-26fa-4320-ba47-5f8d9458cd96.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarragePointBlank.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePointBlank",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "af63946d5102d9e3086bd050b538fc742e18e126c099c29f5ad95c5d29b4f7df"
+    },
+    {
+      "id": "BarrageProcession",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Three small ivory kunai following one another along a single crimson serpentine arrow which ricochets between three violet target dots. Simple readable zigzag procession, crimson Shrine accents.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-fb1dbc9c-0de4-46e7-8c0d-91986e7f6bf7.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageProcession.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageProcession",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "7f96664775acc37ac39869af72480ef9ea9d096c5fa383b02f8d6e199f09ab6b"
+    },
+    {
+      "id": "BarrageBloom",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A bold lime-green poisonous flower opening from a shallow violet puddle, crimson pointed petals around its green core, two clean outward pulse arcs. Venom Bloom Shrine emblem, no skull.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-85d3d61f-3fcf-4ac9-bbca-acb0585fbd25.png",
+      "file": "Art/UpgradeIcons/Generated/Barrage/BarrageBloom.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageBloom",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "c585c2af91ef6a4657e7724b9490c999ae41e1f46f585a0ddcea3cc54182c372"
+    }
+  ]
+}

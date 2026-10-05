@@ -12,23 +12,23 @@ controller = '/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController'
 validate = any(flag in unreal.SystemLibrary.get_command_line() for flag in ['-ValidateBloodStance','-ValidateSamuraiBuilds'])
 backup = root / 'Saved/Backups/BloodStance' / datetime.now().strftime('%Y%m%d_%H%M%S')
 rows = [
-    ('BloodRush', 'Blood Rush', 1, 'Common', [], 'Killing a bleeding enemy while Samurai is active grants +20% movement speed for 3 seconds. Refreshes without stacking. Also triggers on lethal Blood Detonation; ends on swap.'),
- ('BloodTransfer','Blood Transfer',1,'Common',[], 'Bleeding enemies spread their stacks to nearby enemies on death.'),
- ('DoubleCut','Double Cut',1,'Common',[], 'Every fourth attack becomes a full-damage 360-degree slash.'),
- ('BloodEcho','Echoing Slash',1,'Common',[], '15% chance to echo an attack after a short delay for 50% damage. Echoes apply Bleed and can critically strike.'),
- ('BloodCritical','Critical Strike',1,'Common',[], 'Attacks have a 15% chance to critically strike for double damage.'),
- ('BloodAssist','Ninja Assist',1,'Common',[], 'Attacks have a 5% chance to call a Ninja assist.'),
- ('LingeringWounds','Bleed Duration',3,'Common',[], '+1 second Bleed duration per rank. Maximum 3 ranks.'),
- ('Bloodletting','Bleed Stacks per Hit',5,'Common',[], '+1 Bleed stack per hit per rank. Maximum 5 ranks.'),
- ('BloodCapacity','Max Bleed Stacks',5,'Rare',[], '+1 maximum Bleed stack per rank, up to 10 stacks.'),
- ('BloodTransferArea','Blood Transfer Area',5,'Rare',[], '+10% Blood Transfer radius per rank. Requires Blood Transfer or Blood Detonation.'),
- ('DoubleCutFrequency','Double Cut Frequency',3,'Rare',['DoubleCut'], 'One fewer attack between Double Cuts per rank: 3/2/1. Maximum 3 ranks.'),
- ('BloodCriticalChance','Critical Chance',5,'Rare',['BloodCritical'], '+10 percentage points critical strike chance per rank.'),
- ('BloodEchoChance','Echo Chance',5,'Rare',['BloodEcho'], '+10 percentage points echo chance per rank.'),
- ('BloodAssistChance','Assist Chance',5,'Rare',['BloodAssist'], '+5 percentage points Ninja assist chance per rank.'),
- ('BloodPactPower','Crimson Power',1,'Rare',[], '+70% Bleed damage, -30% attack speed. Blood Shrine reward.'),
- ('BloodPactSpeed','Frenzied Blood',1,'Rare',[], '+40% attack speed, -25% attack damage. Blood Shrine reward.'),
- ('BloodDetonation','Blood Detonation',1,'Rare',[], 'Reaching maximum Bleed stacks consumes them and explodes for 200% of their remaining damage. Disables Blood Transfer. Transfer area upgrades affect the explosion.'),
+    ('BloodRush', 'Blood Rush', 1, 'Common', [], 'Killing a bleeding enemy grants 20% movement speed for 3 seconds. Further kills refresh the bonus. Swapping ends it.'),
+ ('BloodTransfer','Blood Transfer',1,'Common',[], 'When a bleeding enemy dies, its Bleed stacks spread to nearby enemies.'),
+ ('DoubleCut','Double Cut',1,'Common',[], 'Every fourth attack becomes a full-damage slash that strikes all around you.'),
+ ('BloodEcho','Echoing Slash',1,'Common',[], 'Attacks have a 15% chance to echo for 50% damage. Echoes can inflict Bleed and critically strike, but cannot create further echoes.'),
+ ('BloodCritical','Critical Strike',1,'Common',[], 'Attacks have a 15% chance to deal double damage.'),
+ ('BloodAssist','Ninja Assist',1,'Common',[], 'Each attack has a 5% chance to call Ninja for an assist attack.'),
+ ('LingeringWounds','Lingering Wounds',3,'Common',[], 'Bleed lasts 1 second longer and continues dealing damage.'),
+ ('Bloodletting','Bloodletting',5,'Common',[], 'Each hit applies 1 additional Bleed stack.'),
+ ('BloodCapacity','Deep Reserves',5,'Rare',[], 'Increase the maximum number of Bleed stacks on each enemy by 1.'),
+ ('BloodTransferArea','Crimson Reach',5,'Rare',[], '+10% Blood Transfer and Blood Detonation radius.'),
+ ('DoubleCutFrequency','Relentless Cuts',3,'Rare',['DoubleCut'], 'Double Cut requires 1 fewer attack, down to every attack.'),
+ ('BloodCriticalChance','Keen Edge',5,'Rare',['BloodCritical'], '+10% chance to trigger Critical Strike.'),
+ ('BloodEchoChance','Echo Mastery',5,'Rare',['BloodEcho'], '+10% chance to trigger Echoing Slash.'),
+ ('BloodAssistChance','Reinforcements',5,'Rare',['BloodAssist'], '+5% chance to trigger Ninja Assist.'),
+ ('BloodPactPower','Crimson Power',1,'Rare',[], 'Bleed deals 70% more damage, but you attack 30% slower.'),
+ ('BloodPactSpeed','Frenzied Blood',1,'Rare',[], 'Attack 40% faster, but deal 25% less attack damage.'),
+ ('BloodDetonation','Blood Detonation',1,'Rare',[], 'Enemies at maximum Bleed stacks explode for twice their remaining Bleed damage, hurting themselves and nearby foes. Consumes Bleed and replaces Blood Transfer.'),
 ]
 shrine = {'BloodPactPower','BloodPactSpeed','BloodDetonation'}
 retired = {'BleedingEdge','DeepCuts'}
@@ -66,9 +66,9 @@ if not validate:
             props(card,presentation=old_bleed.get_editor_property('presentation'))
             unreal.SystemLibrary.execute_console_command(None,'setnopec '+card.get_path_name()+' bHasRuntimePresentation True')
             balance=dict(card.get_editor_property('balance_parameters'));balance['BleedHitFraction']=.125
-            props(card,description='Normal melee attacks gain 35% area and 30% attack speed and apply Bleed. Each stack deals 12.5% of hit damage over 3 seconds, ticking every 0.5 seconds. Maximum 5 stacks; all stacks refresh on every application.',has_runtime_balance=True,balance_parameters=balance)
+            props(card,description="Gain 35% attack area and 30% attack speed. Attacks inflict Bleed: each stack deals 12.5% of the hit's damage over 3 seconds. Stacks up to 5 times; new hits refresh all stacks. Choose one Samurai stance per run.",has_runtime_balance=True,balance_parameters=balance)
         elif uid=='BladeWave':
-            props(card,description='Replaces normal melee attacks with traveling Blade Waves, without a melee swing. Wave hits slow enemies by 30% for 5 seconds. Choose one Samurai stance per run. Cannot apply Bleed.')
+            props(card,description='Replace melee attacks with piercing waves that deal 40% attack damage and slow enemies by 30% for 5 seconds. Choose one Samurai stance per run.')
         unreal.EditorAssetLibrary.save_loaded_asset(card,False)
     art=unreal.load_asset(folder+'DA_Upgrade_SamuraiDoubleCut').get_editor_property('card_artwork')
     for uid,name,levels,rarity,requires,description in rows:
@@ -97,7 +97,7 @@ if not validate:
         if card not in pool: pool.append(card)
     # Splinter remains a direct-damage wave burst; Bleed is exclusive to Blood.
     path=folder+'DA_Upgrade_SamuraiSplinterWave';save_backup(path);card=unreal.load_asset(path)
-    props(card,description='The first enemy hit on each wave pass releases a small 30%-damage burst. Does not apply Bleed.')
+    props(card,description="The first hit on each wave's outward and return flight bursts for 30% wave damage to nearby enemies.")
     unreal.EditorAssetLibrary.save_loaded_asset(card,False)
     pool=[a for a in pool if a and str(a.get_editor_property('upgrade_id')) not in retired]
     upgrades.set_editor_property('upgrade_pool',pool)
@@ -123,7 +123,7 @@ if not validate:
     unreal.log('BLOOD_STANCE_BACKUP: '+str(backup))
 
 ids=[str(a.get_editor_property('upgrade_id')) for a in pool if a]
-assert len(ids)==len(set(ids))==106,(len(ids),len(set(ids)))
+assert len(ids)==len(set(ids))==156,(len(ids),len(set(ids)))
 assert not retired.intersection(ids)
 for uid,name,levels,rarity,requires,description in rows:
     card=next(a for a in pool if str(a.get_editor_property('upgrade_id'))==uid)
@@ -131,4 +131,4 @@ for uid,name,levels,rarity,requires,description in rows:
     assert 'BattleStance' in [str(p) for p in card.get_editor_property('prerequisite_upgrade_ids')]
 for a in pool:
     assert set(str(p) for p in a.get_editor_property('prerequisite_upgrade_ids')).issubset(ids)
-unreal.log('BLOOD_STANCE_OK: 106 cards; Blood-only upgrades and Shrine tradeoffs validated')
+unreal.log('BLOOD_STANCE_OK: 156 cards; Blood-only upgrades and Shrine tradeoffs validated')

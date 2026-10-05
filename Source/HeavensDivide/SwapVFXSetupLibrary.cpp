@@ -92,19 +92,21 @@ bool USwapVFXSetupLibrary::CompleteGroundSlashEffects(UNiagaraSystem* System, UN
                 if (auto* Mesh = Cast<UNiagaraMeshRendererProperties>(Renderer))
                 {
                     Mesh->Modify();
-                    // Rotate only the crescent around its forward axis. Rolling
-                    // the Niagara component would tip the ground decals too.
+                    // The source crescent is upright in X/Z. Keep the correction
+                    // on its mesh renderer so ground trails retain their orientation.
                     for (auto& Entry : Mesh->Meshes)
                     {
-                        Entry.Rotation = FRotator(0.f, 0.f, 90.f);
+                        Entry.Rotation = FRotator::ZeroRotator;
                         if (!Entry.Mesh) return false;
-                        // The vertical asset's pivot is at its base. Center its
-                        // transverse axes before rolling it onto the ground;
-                        // mesh-space offsets follow particle rotation and scale.
-                        const FVector Center = Entry.Mesh->GetBounds().Origin * Entry.Scale;
+                        // Center across the trail and put the bottom, rather than
+                        // the middle, at ground height. Mesh-space offsets follow
+                        // particle rotation and scale, including split/return waves.
+                        const auto Bounds = Entry.Mesh->GetBounds();
+                        const FVector Center = Bounds.Origin * Entry.Scale;
+                        const float Bottom = Center.Z - Bounds.BoxExtent.Z * FMath::Abs(Entry.Scale.Z);
                         Entry.PivotOffsetSpace = ENiagaraMeshPivotOffsetSpace::Mesh;
-                        Entry.PivotOffset = FVector(0.f, -Center.Y, -Center.Z);
-                        UE_LOG(LogTemp, Display, TEXT("GroundSlash centered mesh: bounds=%s pivot=%s"),
+                        Entry.PivotOffset = FVector(0.f, -Center.Y, -Bottom);
+                        UE_LOG(LogTemp, Display, TEXT("GroundSlash upright mesh: bounds=%s pivot=%s"),
                             *Center.ToString(), *Entry.PivotOffset.ToString());
                     }
                     Mesh->PostEditChange();

@@ -114,10 +114,10 @@ void AShadowClone::HandleAttackProjectileNotify()
   if(auto* Target=SourceAttack->FindAssistTargetNearLocation(Origin,AttackRange))
   {
    FVector Direction=Target->GetActorLocation()-Origin;Direction.Z=0;
-   Spawned=Build->SpawnShuriken(Origin,Direction,false)!=nullptr;
+   if (auto* Blade=Build->SpawnShuriken(Origin,Direction,false)) { Blade->bCloneProjectile=true; Blade->Clone=this; Spawned=true; }
   }
  }
- else Spawned=SourceAttack->SpawnShadowCloneVolley(Origin, AttackRange, bExtraProjectileOnRight, &VolleyCount, &ConsecutiveVolleys);
+ else Spawned=SourceAttack->SpawnShadowCloneVolley(Origin, AttackRange, bExtraProjectileOnRight, &VolleyCount);
  if (!Spawned)
 	{
 		GetWorldTimerManager().SetTimer(AttackTimer, this, &AShadowClone::BeginAttack, FMath::Max(0.01f, TargetRetryInterval), false);

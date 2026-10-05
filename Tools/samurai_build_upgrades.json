@@ -2,7 +2,7 @@
   {
     "id": "BattleStance",
     "name": "Blood Stance",
-    "description": "Normal melee attacks gain 35% area and 30% attack speed and apply Bleed by default. Choose one stance per run.",
+    "description": "Gain 35% attack area and 30% attack speed. Attacks inflict Bleed: each stack deals 12.5% of the hit's damage over 3 seconds. Stacks up to 5 times; new hits refresh all stacks. Choose one Samurai stance per run.",
     "art": "Area",
     "role": "Starter",
     "stance": {
@@ -16,7 +16,7 @@
   {
     "id": "Iaijutsu",
     "name": "Iaijutsu Stance",
-    "description": "Charge a 200 cm-wide spectral lane for 1 second, gently pulling nearby enemies into it. The lane hits instantly after charging and marks enemies for 3 seconds, making them take 50% more damage from subsequent hits. Choose one Samurai stance per run.",
+    "description": "Charge a slash for 1 second, drawing nearby enemies into its path. Strike the entire path and mark foes for 3 seconds. Marked foes take 50% more damage from later hits. Choose one Samurai stance per run.",
     "art": "DoubleCut",
     "role": "Starter",
     "stance": {},
@@ -30,7 +30,7 @@
   {
     "id": "BloodTransfer",
     "name": "Blood Transfer",
-    "description": "On death, spread Bleed stacks to nearby enemies.",
+    "description": "When a bleeding enemy dies, its Bleed stacks spread to nearby enemies.",
     "art": "Cleaver",
     "role": "Mechanic",
     "requires": [
@@ -42,8 +42,8 @@
   },
   {
     "id": "Bloodletting",
-    "name": "Bleed Stacks per Hit",
-    "description": "+1 Bleed stack per hit per rank, up to five ranks.",
+    "name": "Bloodletting",
+    "description": "Each hit applies 1 additional Bleed stack.",
     "art": "BleedingEdge",
     "role": "Support",
     "requires": [
@@ -53,8 +53,8 @@
   },
   {
     "id": "LingeringWounds",
-    "name": "Bleed Duration",
-    "description": "+1 second Bleed duration per rank, up to three ranks.",
+    "name": "Lingering Wounds",
+    "description": "Bleed lasts 1 second longer and continues dealing damage.",
     "art": "DeepCuts",
     "role": "Support",
     "requires": [
@@ -65,7 +65,7 @@
   {
     "id": "SamuraiTempo",
     "name": "Attack Speed",
-    "description": "Increase Samurai attack speed.",
+    "description": "Samurai attacks are 10% faster. Adapts to charge speed or wave speed when you choose a stance.",
     "art": "DoubleCut",
     "role": "Stat",
     "levels": 5,
@@ -74,13 +74,13 @@
       0.15,
       0.22
     ],
-    "format": "+{Percent}% Samurai attack speed. Stance multipliers still apply.",
+    "format": "Samurai attacks are {Percent}% faster. Adapts to charge speed or wave speed when you choose a stance.",
     "stat": "AttackSpeedMultiplier"
   },
   {
     "id": "OverkillBurst",
     "name": "Overkill Burst",
-    "description": "Direct Samurai melee and Blade Wave killing blows explode for their excess damage in a 220 cm radius, scaling with Samurai area. A 150-damage hit killing a 40-HP enemy explodes for 110 damage. Assists, Bleed and explosion kills do not trigger explosions.",
+    "description": "Melee and wave kills explode, dealing excess damage to nearby enemies. These explosions cannot trigger more explosions.",
     "art": "Deathblow",
     "role": "Starter",
     "balance": {
@@ -91,7 +91,7 @@
   {
     "id": "BurstRadius",
     "name": "Expanding Ruin",
-    "description": "Increase Overkill Burst's explosion radius.",
+    "description": "Increase Overkill Burst's explosion radius by 12%.",
     "art": "Area",
     "role": "Support",
     "requires": [
@@ -103,12 +103,12 @@
       0.18,
       0.25
     ],
-    "format": "+{Percent}% Overkill Burst radius."
+    "format": "Increase Overkill Burst's explosion radius by {Percent}%."
   },
   {
     "id": "WaveMultishot",
     "name": "Wave Volley",
-    "description": "Each committed Samurai swing launches 1 additional Blade Wave per rank, up to 3 additional waves. Requires Blade Wave. Additional waves share normal wave damage, width, returning behavior and scaling. Combines with Crossing Blades.",
+    "description": "Fire 1 additional Blade Wave with each attack.",
     "art": "CrossingBlades",
     "role": "Mechanic",
     "requires": [

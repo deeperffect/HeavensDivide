@@ -231,6 +231,7 @@ private:
 	friend class FSamuraiScalingConversionTest;
 	/** Move the three shared investments to the selected stance's card IDs. */
 	void ConvertSamuraiScalingUpgrades();
+    void ConvertNinjaScalingUpgrades();
 	/** Preserve investments made ineffective by a stance tradeoff, including old saves. */
 	void NormalizeSamuraiTradeoffUpgrades();
 	bool HasSamuraiTradeoffConflict(FName UpgradeId) const;
@@ -239,7 +240,6 @@ private:
 	int32 RerollsUsed = 0;
 	int32 BanishesUsed = 0;
 	bool bDraftToolOffer = false;
-	float GetBaseCategoryWeight(EUpgradeCategory Category) const;
 	float GetCategoryRollWeight(EUpgradeCategory Category) const;
 	int32 GetCurrentPlayerLevel() const;
 	bool HasAcquiredUpgradeInCategory(EUpgradeCategory Category) const;
@@ -249,9 +249,12 @@ private:
 	FString CategoryToString(EUpgradeCategory Category) const;
 	FString UpgradeToLogString(const UUpgradeDefinition* Upgrade) const;
 	bool IsValidUpgradeDefinition(const UUpgradeDefinition* Upgrade) const;
+	bool IsUpgradeSuppressed(FName UpgradeId) const;
 	bool MeetsPrerequisites(const UUpgradeDefinition* Upgrade) const;
 	void RebuildUpgradeModifiers(UUpgradeDefinition* Upgrade, int32 NewLevel);
 	bool AcquireUpgradeResolved(UUpgradeDefinition* Upgrade, float ResolvedMagnitude, EUpgradeRarity Rarity);
+	/** Apply build conversions, mastery and notifications after either acquisition path. */
+	void FinalizeUpgradeAcquisition(UUpgradeDefinition* Upgrade, int32 NewLevel);
 	FUpgradeOffer MakeUpgradeOffer(UUpgradeDefinition* Upgrade) const;
 	EUpgradeRarity RollRarity() const;
 	float ResolveMagnitude(const UUpgradeDefinition* Upgrade, EUpgradeRarity Rarity) const;

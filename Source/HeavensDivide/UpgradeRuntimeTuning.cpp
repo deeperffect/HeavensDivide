@@ -2,7 +2,6 @@
 #include "PlayerUpgradeComponent.h"
 #include "UpgradeDefinition.h"
 #include "Engine/World.h"
-#include "EnemyStatusEffectComponent.h"
 
 UUpgradeDefinition* USurvivorAbilityComponent::TuningDefinition(int32 Family,int32 Slot) const
 {
@@ -45,11 +44,4 @@ AAbilityAccent* USurvivorAbilityComponent::FamilyAccent(int32 Family,FVector Pos
  const auto* Settings=FamilyPresentation(Family,Slot);
  if(Stage==2&&(!Settings||!Settings->ImpactSystem))return nullptr;
  return Accent(Position,End,Radius,Color,Duration,bBeam,Settings,Stage);
-}
-
-void USurvivorAbilityComponent::ApplyConfiguredStatus(int32 Family,AEnemyBase* Enemy,EEnemyStatusEffect Status,EPlayerAttackSource Source)
-{
- if(!IsValid(Enemy)||Enemy->IsDead())return;
- const int32 Count=FMath::Clamp(FMath::RoundToInt(Tuning(Family,TEXT("StatusStacks"),1,-1)),0,64);
- for(int32 i=0;i<Count&&!Enemy->IsDead();++i)Enemy->GetStatusEffectComponent()->ApplyStatus(Status,Upgrades,Source,true);
 }

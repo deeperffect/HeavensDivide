@@ -1,0 +1,193 @@
+{
+  "cards": [
+    {
+      "id": "GreatShuriken",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/GreatShuriken.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GreatShuriken",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: One massive ivory four-point curved shuriken with violet central hub and a single broad violet curved spin stroke.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "a4f39207e8bca8636199183c21d84a20f6468c477946047cc2ff6776b8dd3580",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-c159365e-5fe3-4688-ae5b-9627ea824c99.png"
+    },
+    {
+      "id": "GrindingHalt",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/GrindingHalt.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GrindingHalt",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken biting into a dark horned armor plate, two blunt violet braking strokes conveying sudden slow movement.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "49ea79dac569de69c95b88b8bffd1006b195f7b45ab1bcbc51a4fd246161341b",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-6bf80ffd-0505-45f3-a8b5-43bc906b49ed.png"
+    },
+    {
+      "id": "WideOrbit",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/WideOrbit.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_WideOrbit",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Three overlapping outlines of a four-point shuriken growing from small to large, largest ivory blade with violet hub.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "738ec325406dc3e793c35c755f72c025ab2f3b1f27e54365c73c4244f122cc16",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-c6f31772-cdf3-4903-b037-94b988199d0b.png"
+    },
+    {
+      "id": "BreakingWheel",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/BreakingWheel.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BreakingWheel",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken at the center of one large jagged violet circular slash, bold radial burst silhouette.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "9e844f288fd60a783acbde3706a3278d81224268e5927764fd976d665688a523",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-1d3d7677-dd31-4f26-9baf-708ef5f3adb6.png"
+    },
+    {
+      "id": "ShurikenTwin",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenTwin.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenTwin",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Two identical ivory shurikens staggered diagonally, violet hubs, one short curved trail.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "bfa2aac137ffcfdc6c2b2abf17ee3baa9cc6e711dccfdd6e21db617f9d1daa29",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-45649126-a5ae-4c39-b08b-c38e4b8fd2b1.png"
+    },
+    {
+      "id": "ShurikenAssist",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenAssist.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenAssist",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: A crimson samurai helmet beside a small ivory violet-hub shuriken, strong bold paired symbols.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "50a459c1ae41c917aaa4212ed9a92caf4e1dddf94cfe66d2b93c3578686f94b8",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-283ed339-d3a2-4e84-a271-144ec5d5a92e.png"
+    },
+    {
+      "id": "SerratedEdge",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/SerratedEdge.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SerratedEdge",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Close-up of one curved ivory shuriken edge with three deep violet notches, progressively larger cuts.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "8f13ce25348b1330cee38477569b79692c755de6b82663aa8ec554e0b5d3e5e2",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-de0e6071-bb7c-40ab-af0b-78b50be2052c.png"
+    },
+    {
+      "id": "ShurikenDamage",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenDamage.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenDamage",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: One ivory shuriken striking through a cracked crimson armor shield, bold impact wedge.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "659f55ab6b5d9f4f757bc297e96a594c01097d93a90918213cfce9ab0d3645b5",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-22fd5ce5-cb66-4ac2-8c40-e01534a16f06.png"
+    },
+    {
+      "id": "ShurikenSpeed",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenSpeed.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenSpeed",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: An ivory shuriken being thrown forward, three broad violet motion streaks trailing left.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "cfe8e986430054f4d3f7b0a0c236ed2433ce2c73a878095ac24abb08d7a48ad3",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-17f9e20b-de33-435d-a7db-e0ed37ede5c5.png"
+    },
+    {
+      "id": "ShurikenSize",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenSize.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenSize",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Large ivory shuriken surrounded by four bold violet outward pointing chevrons.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "b2e54d4a4e21590c0611a3f1e5661f274a048428910deeca3e6a7078baf79a7e",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-0514ffe4-466b-45a3-84cb-8e7163f70322.png"
+    },
+    {
+      "id": "LingeringShuriken",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/LingeringShuriken.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_LingeringShuriken",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: A violet hourglass containing an ivory shuriken silhouette, simple thick silhouette.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "1985ab28cfa0914adc5a7f14d3f61d8e819b12ed9c4e7e56049e73260d2ed16e",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-53fe799a-3c8e-443f-a805-256d5dee2f85.png"
+    },
+    {
+      "id": "ShurikenTempo",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenTempo.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenTempo",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken with three successive violet cutting arcs around its lower edge, rhythm of repeated contact.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "2694175e30bfb10e558452152d3ca0096e51520d2f97c788ceefb10dd390f29e",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-c15d96c9-3aae-4d04-b718-43110896c1cc.png"
+    },
+    {
+      "id": "ShurikenGrindDuration",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenGrindDuration.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenGrindDuration",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken lodged in a horned violet armor plate with a small simple hourglass at its side.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "3019b7e41ef8cb79e04b9ee39e17f436ef6d4a6269c71ef93e739acbd1ee4009",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-e40c9f1d-1693-460a-aa05-8dceaeae0b36.png"
+    },
+    {
+      "id": "ShurikenGrowth",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenGrowth.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenGrowth",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Oversized ivory shuriken breaking through a smaller violet circular boundary, bold upward chevron.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "1319dafe2a42c25c8e0e84bb399baaa5eba2e4fd64cdcfcf598f3ee4344e09be",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-b1d516e1-529a-4c60-8d44-46a3e2d9b9f4.png"
+    },
+    {
+      "id": "ShurikenBurstPower",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenBurstPower.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenBurstPower",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken encircled by two bold jagged violet shock rings, strong explosive shape.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "b83200bd65cd5d9c30b59638f6b8dc41eaabf87ddfbcf5f681bdc1729da182dd",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-23ab6504-4c58-4f60-b940-e2309f1cec70.png"
+    },
+    {
+      "id": "ShurikenTwinFrequency",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenTwinFrequency.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenTwinFrequency",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Two small ivory shurikens linked by a broad circular violet arrow, clean paired silhouettes.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "b283457346e25bfcbb34934bd03c58757df40149b8b12d8128a6a5c651c8d324",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-7cb9d8bd-de64-4089-bc30-d5be9cb56759.png"
+    },
+    {
+      "id": "ShurikenAssistChance",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenAssistChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenAssistChance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Crimson samurai helmet framed by two bold violet summoning arcs, ivory crest.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "9975c67bdbdf92480617cfc73abae1ee6773c7af7a78a848cf5aa89f680fe235",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-c487bca3-f6e4-4bef-8422-15d6e5471cf4.png"
+    },
+    {
+      "id": "ShurikenGrooves",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenGrooves.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenGrooves",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken carving three deep parallel violet grooves into an armor plate.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "696cea11294e483780ddcdfcd4cad58a5eb45ba3c5a6ecc51dd887062e199a15",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-1c630b14-72bb-4232-8452-800db668b74e.png"
+    },
+    {
+      "id": "ShurikenOrbit",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenOrbit.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenOrbit",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Small ivory shuriken revolving along a crimson circular orbit around a simple violet masked ninja head.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "dedb60a7eadada19e03fcdab99f02d3e2a8efaa81e420f3c289b0e0a947c2f75",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-15a3bdbc-3105-41d1-9960-62de29302f53.png"
+    },
+    {
+      "id": "ShurikenHunger",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenHunger.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenHunger",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken with crimson blade tips surrounding a single large crimson blood drop at its center.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "426414cf05ca0a852d34a19217fecd70af5976130bf7b9f97582877d32043800",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-6c402c8d-691b-40b5-b48f-cb188a84ae50.png"
+    },
+    {
+      "id": "ShurikenPulse",
+      "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenPulse.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenPulse",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken with a crimson core emitting two clean concentric violet pulse rings.",
+      "mode": "builtin-imagegen",
+      "source_sha256": "4389d6dcb8acb5ae6e778cfc5d19499be23ec1f9f13c73871a90343f159bf14e",
+      "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-4ca792e5-0964-4fdc-a04b-68b0e95c6870.png"
+    }
+  ]
+}

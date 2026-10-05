@@ -1,0 +1,9 @@
+{
+  "id": "BarrageRush",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: A violet ninja boot with a sweeping lime-green serpent-shaped motion ribbon behind it, clear fast movement silhouette.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-713421d7-1adb-4d5a-b4cf-e33a8c190497.png",
+  "file": "Art/UpgradeIcons/Generated/Barrage/BarrageRush.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageRush",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "6681c3144f85adfcee0e8b4e605c320e19e36f24e2e56206694f5e8540cee6b1"
+}

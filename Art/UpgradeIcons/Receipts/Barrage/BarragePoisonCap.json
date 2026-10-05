@@ -1,0 +1,9 @@
+{
+  "id": "BarragePoisonCap",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Three large stacked lime-green poison droplets in a violet open vessel, with one bold upward ivory chevron, symbol of greater venom capacity.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-6e1b9f98-0078-4e44-a02c-0521593b941c.png",
+  "file": "Art/UpgradeIcons/Generated/Barrage/BarragePoisonCap.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarragePoisonCap",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "9b9593b72b0fd9f79bc940c7ed0fe44643c221a89b64b937c04f046d707feb0e"
+}

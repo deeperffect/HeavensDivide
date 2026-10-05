@@ -59,7 +59,10 @@ private:
     TWeakObjectPtr<ASamuraiCharacter> SourceCharacter;
     FVector FirstKillLocation = FVector::ZeroVector;
     bool bKilledEnemy = false;
-    float VacuumElapsed = 0;
+    void ReleaseMovementHolds();
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    TSet<TWeakObjectPtr<class UEnemyLightweightMovementComponent>> HeldMovements;
+    float PostHitRemaining = .3f;
     bool bResolved = false;
     FVector Origin, End;
     FVector VisualDirection = FVector::ForwardVector;

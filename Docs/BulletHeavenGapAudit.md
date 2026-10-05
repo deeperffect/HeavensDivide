@@ -36,7 +36,7 @@ This is valuable to players and also supplies the measurements needed for balanc
 
 ### 3. Add limited control over upgrade randomness
 
-**Not found:** player-facing reroll, banish or skip controls. `PlayerUpgradeComponent.cpp::RollUpgradeChoices` already filters eligibility and offers role diversity; category weighting also exists. This is not an entirely uncontrolled draft.
+**Not found:** player-facing reroll, banish or skip controls. `PlayerUpgradeSelection.cpp::RollUpgradeChoices` already filters eligibility and offers role diversity; category weighting also exists. This is not an entirely uncontrolled draft.
 
 Start with a small reroll allowance and one deliberate way to remove an unwanted card for the current run. Preserve trial guarantees, stance restrictions and meta-unlock rules. Explain prerequisites on cards and distinguish “not unlocked,” “not eligible” and “maxed.” Do not silently present an upgrade that cannot benefit the current build.
 

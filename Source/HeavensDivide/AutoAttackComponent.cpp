@@ -1,6 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AutoAttackComponent.h"
+#include "FangBuild.h"
+#include "BarrageBuild.h"
+#include "InactiveCharacterAssistComponent.h"
 #include "SwapPresentationComponent.h"
 #include "NinjaBuildComponent.h"
 #include "CrescentBuild.h"
@@ -144,6 +147,8 @@ void UAutoAttackComponent::StopAutoAttack()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(AttackTimerHandle);
+        for(auto& Timer:PendingBarrageTimers)World->GetTimerManager().ClearTimer(Timer);
+        PendingBarrageTimers.Reset();
         World->GetTimerManager().ClearTimer(IaijutsuAssistTimer);
 		for (auto& Timer : PendingBladeWaveTimers) World->GetTimerManager().ClearTimer(Timer);
 		PendingBladeWaveTimers.Reset();
@@ -326,14 +331,25 @@ void UAutoAttackComponent::SpawnAutoAttackProjectile()
  {
   if(bActiveAttackIsAssist)
   {
-   int32 Volley=B->VolleyCount, Consecutive=B->ConsecutiveVolleys;
-   B->ModifyVolleyWithCounters(BaseDirection,EffectiveProjectileCount,VolleySpacing,Volley,Consecutive);
+   int32 Volley=B->VolleyCount;
+   B->ModifyVolleyWithCounter(EffectiveProjectileCount,VolleySpacing,Volley);
   }
-  else B->ModifyVolley(BaseDirection,EffectiveProjectileCount,VolleySpacing);
+  else
+  {
+   B->ModifyVolley(EffectiveProjectileCount,VolleySpacing);
+   if(B->Has(TEXT("BarrageStance")) && B->Has(TEXT("BarrageAssist")) && FMath::FRand()<BarrageBuild::Value(B->Upgrades(),TEXT("BarrageAssist"),TEXT("Chance"),.05f)+BarrageBuild::Scaling(B->Upgrades(),TEXT("BarrageAssistChance"),.05f))
+    if(auto* Assist=B->Upgrades()->GetOwner()->FindComponentByClass<UInactiveCharacterAssistComponent>())Assist->TryBarrageAssist();
+  }
  }
 	BuildCenteredProjectileSpreadDirections(BaseDirection, EffectiveProjectileCount, VolleySpacing, bNormalVolleyExtraProjectileOnRight, VolleyDirections);
 	if (EffectiveProjectileCount % 2 == 0) bNormalVolleyExtraProjectileOnRight = !bNormalVolleyExtraProjectileOnRight;
 
+	const auto* BarrageU=GetPlayerUpgradesForAutoAttackMarkedForDeath(this,OwnerCharacter);
+    if(BarrageU && BarrageU->HasUpgradeId(TEXT("BarrageProcession")))
+    {
+      SpawnBarrageSequence(SpawnLocation,BaseDirection,EffectiveProjectileCount,EffectiveAttackDamage,EffectiveProjectileSpeed,EffectiveProjectilePierceBonus);
+      CurrentAttackTarget.Reset();OwnerCharacter->ClearFacingOverride();return;
+    }
 	int32 SpawnedProjectileCount = 0;
 	for (int32 ProjectileIndex = 0; ProjectileIndex < VolleyDirections.Num(); ++ProjectileIndex)
 	{
@@ -415,7 +431,7 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 
 }
 
-bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight, int32* CloneVolley, int32* CloneConsecutive)
+bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, float SearchRange, bool& bExtraProjectileOnRight, int32* CloneVolley)
 {
     // Clone notifies may overlap a Tag Team animation on their source Ninja.
     TGuardValue<bool> CloneSourceGuard(bActiveAttackIsAssist,false);
@@ -440,7 +456,7 @@ bool UAutoAttackComponent::SpawnShadowCloneVolley(const FVector& SpawnLocation, 
 	TArray<FVector> VolleyDirections;
 	float Spacing=KunaiSpreadAngle;
  auto* Build=OwnerCharacter->FindComponentByClass<UNinjaBuildComponent>();
- if(Build&&CloneVolley&&CloneConsecutive)Build->ModifyVolleyWithCounters(BaseDirection,ProjectileCount,Spacing,*CloneVolley,*CloneConsecutive);
+ if(Build&&CloneVolley)Build->ModifyVolleyWithCounter(ProjectileCount,Spacing,*CloneVolley);
  BuildCenteredProjectileSpreadDirections(BaseDirection, ProjectileCount, Spacing, bExtraProjectileOnRight, VolleyDirections);
 	if (ProjectileCount % 2 == 0) bExtraProjectileOnRight = !bExtraProjectileOnRight;
 	int32 Spawned = 0;
@@ -626,6 +642,8 @@ void UAutoAttackComponent::ScheduleNextAttackTimer(float Delay)
 
 	const float SafeDelay = FMath::Max(0.01f, Delay);
 	World->GetTimerManager().ClearTimer(AttackTimerHandle);
+        for(auto& Timer:PendingBarrageTimers)World->GetTimerManager().ClearTimer(Timer);
+        PendingBarrageTimers.Reset();
 	World->GetTimerManager().SetTimer(
 		AttackTimerHandle,
 		this,
@@ -1129,7 +1147,12 @@ float UAutoAttackComponent::GetEffectiveAttackInterval() const
 	if (const auto* Iaijutsu = GetIaijutsuUpgrade())
 		return GetIaijutsuChargeDuration()
 			+ FMath::Max(.01f, Iaijutsu->GetBalanceValue(TEXT("Cooldown"), .5f) / FMath::Max(.01f, AttackSpeedMultiplier * GlobalAttackSpeedMultiplier));
-	return FMath::Max(0.01f, AttackInterval / FMath::Max(0.01f, AttackSpeedMultiplier * GlobalAttackSpeedMultiplier));
+	const auto* U = SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+    const float NinjaSpeed = OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>()
+        ? (1.f + FangBuild::Scaling(U, U && U->HasUpgradeId(TEXT("BarrageStance"))?TEXT("BarrageSpeed"): U && U->HasUpgradeId(TEXT("GreatShuriken"))?TEXT("ShurikenSpeed"):TEXT("NinjaSpeed"), .15f))
+          * (U && U->HasUpgradeId(TEXT("BarrageStance"))?1.f+BarrageBuild::Value(U,TEXT("BarrageStance"),TEXT("AttackSpeedBonus"),.3f):1.f)
+          * (U && U->HasUpgradeId(TEXT("BarragePointBlank"))?1.f+BarrageBuild::Value(U,TEXT("BarragePointBlank"),TEXT("AttackSpeedBonus"),.5f):1.f) : 1.f;
+    return FMath::Max(0.01f, AttackInterval / FMath::Max(0.01f, AttackSpeedMultiplier * GlobalAttackSpeedMultiplier * NinjaSpeed));
 }
 
 float UAutoAttackComponent::GetEffectiveAttackDamage() const
@@ -1146,7 +1169,10 @@ float UAutoAttackComponent::GetEffectiveAttackDamage() const
 		if (OwnerCharacter && OwnerCharacter->IsA<ASamuraiCharacter>()) PowerMultiplier = PlayerUpgrades->GetSamuraiPowerMultiplier();
 		else if (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>()) PowerMultiplier = PlayerUpgrades->GetNinjaPowerMultiplier();
 	}
-	return AttackDamage * DamageMultiplier * GlobalDamageMultiplier * PowerMultiplier;
+	const float NinjaDamage = OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>()
+        ? 1.f + FangBuild::Scaling(PlayerUpgrades, PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("ReturningFang"))
+            ? FName(TEXT("FangDamage")) : PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("BarrageStance"))?FName(TEXT("BarrageDamage")):PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("GreatShuriken"))?FName(TEXT("ShurikenDamage")):FName(TEXT("NinjaDamage")), .2f) : 1.f;
+    return AttackDamage * DamageMultiplier * GlobalDamageMultiplier * PowerMultiplier * NinjaDamage;
 }
 
 void UAutoAttackComponent::ArmGrandEntranceAfterSwap()
@@ -1198,7 +1224,10 @@ float UAutoAttackComponent::GetEffectiveTargetingRange() const
 		}
 	if (ProjectileClass)
 	{
-		return TargetingRange;
+        const auto* U = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+        if (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>() && U && U->HasUpgradeId(TEXT("BarrageStance"))) return TargetingRange * BarrageBuild::RangeMultiplier(U);
+        return TargetingRange * (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>() && U && U->HasUpgradeId(TEXT("ReturningFang"))
+            ? 1.f + FangBuild::Scaling(U, TEXT("FangRange"), .15f) : 1.f);
 	}
 
 	const float EffectiveMeleeReach = FMath::Max(0.0f, AttackForwardOffset) + GetEffectiveAttackRadius();
@@ -1209,7 +1238,8 @@ float UAutoAttackComponent::GetEffectiveTargetingRange() const
 int32 UAutoAttackComponent::GetEffectiveProjectileCount() const
 {
 	const UCharacterStatsComponent* CharacterStats = OwnerCharacter ? OwnerCharacter->GetCharacterStats() : nullptr;
-	return CharacterStats ? CharacterStats->GetFinalProjectileCount() : 1;
+	const auto* U = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+ return (CharacterStats ? CharacterStats->GetFinalProjectileCount() : 1) + (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>() && U && U->HasUpgradeId(TEXT("BarrageStance")) ? FMath::RoundToInt(BarrageBuild::Value(U,TEXT("BarrageStance"),TEXT("BonusProjectiles"),2)) : 0);
 }
 
 int32 UAutoAttackComponent::GetEffectiveProjectilePierceBonus() const
@@ -1488,4 +1518,24 @@ bool UAutoAttackComponent::CanAutoAttack() const
 		&& !IsOwningPlayerDead()
 		&& OwnerCharacter->GetCharacterMode() == ECharacterMode::Active
 		&& GetWorld();
+}
+
+void UAutoAttackComponent::SpawnBarrageSequence(FVector Origin,FVector Direction,int32 Count,float Damage,float Speed,int32 Pierce)
+{
+ auto& TM=GetWorld()->GetTimerManager();
+ PendingBarrageTimers.RemoveAll([&TM](const FTimerHandle& H){return !TM.IsTimerActive(H);});
+ const bool Assist=bActiveAttackIsAssist;
+ const float Spacing=FMath::Min(.05f,GetEffectiveAttackInterval()*.8f/FMath::Max(1,Count));
+ SpawnProjectileInstance(Origin,Direction,Damage,Speed,Pierce);
+ for(int32 I=1;I<Count;++I)
+ {
+  FTimerHandle Handle;
+  TM.SetTimer(Handle,FTimerDelegate::CreateWeakLambda(this,[this,Origin,Direction,Damage,Speed,Pierce,Assist]()
+  {
+   if(IsOwningPlayerDead())return;
+   TGuardValue<bool> SourceGuard(bActiveAttackIsAssist,Assist);
+   SpawnProjectileInstance(Origin,Direction,Damage,Speed,Pierce);
+  }),FMath::Max(.001f,Spacing*I),false);
+  PendingBarrageTimers.Add(Handle);
+ }
 }

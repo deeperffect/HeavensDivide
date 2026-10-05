@@ -30,7 +30,7 @@ public:
 	void HandleAttackProjectileNotify();
  bool CompleteFangCycle();
  float GetFangSpeedMultiplier() const;
- int32 VolleyCount=0,ConsecutiveVolleys=0;
+ int32 VolleyCount=0;
 
 	UPROPERTY(BlueprintAssignable, Category = "Shadow Clone|Events")
 	FOnShadowCloneEvent OnShadowCloneSpawned;

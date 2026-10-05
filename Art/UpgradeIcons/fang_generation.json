@@ -1,0 +1,220 @@
+{
+  "cards": [
+    {
+      "id": "ReturningFang",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One large ivory ring-handled kunai with a violet grip, pointing diagonally upward, wrapped by a single broad violet U-turn arrow that clearly returns toward its starting point. Elegant unmistakable returning-blade emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-eb768a5f-ae3a-4ec8-93a5-7a994522975f.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/ReturningFang.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ReturningFang",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "34b3ed0315584599ab0342e9a218ee7855ff32c8f6a2ccc3e17c2e292a622794"
+    },
+    {
+      "id": "FangTwin",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: exactly three ring-handled pointed kunai flying outward in a broad fan; the central kunai is solid ivory with violet handle, the two side kunai are lavender spectral copies. A single short purple motion stroke behind each blade. This represents Twin Fang, which launches two additional spectral Fangs.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-b48ac9bf-1f19-4b43-98ea-34fd2ce54b1d.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangTwin.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangTwin",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "14a594868a258058baf34d55b377f56b7e0107439f731f5373ee60156c8dd5e7"
+    },
+    {
+      "id": "RelentlessFang",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A single ivory ring-handled kunai striking a charcoal enemy-mask target, with three bold violet stepped pressure arcs behind the same impact point. One clear impact star; conveys repeated hits concentrating on one enemy.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-917fa270-6d57-413d-bc40-72736945f8fa.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/RelentlessFang.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_RelentlessFang",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "fad2055ede7854d6bf639542c9d5e6dd19fa33f302a17105b905fbff5cfba0b6"
+    },
+    {
+      "id": "FangResonance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A small charcoal masked ninja bust centered inside one broad lavender circular shockwave ring, with one ivory ring-handled kunai curling inward toward the ninja along a short purple return arrow. Clear symbolic return-triggered burst around the character; no hands.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-0bc21c94-ebbd-4b9d-a28f-06f449079d7c.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangResonance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangResonance",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "a99f4c4549871ece04bce9ab752350a9aed7b027d305b9f12a15839b6f4fc90f"
+    },
+    {
+      "id": "FangDeadeye",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A single sharp violet ninja eye inside a simple ivory targeting diamond, with an ivory pointed kunai aligned toward its center. Bold critical-strike emblem, no face or hands.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-54572c0d-9d37-4260-8cb1-220ce7a35ed2.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangDeadeye.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangDeadeye",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "0b9da5447a3f45d46de33e2589271aa335a9401a7163ec32c01bc13f30a4a63d"
+    },
+    {
+      "id": "FangAssist",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A bold crimson Samurai shoulder-and-head silhouette with spiky black hair, ivory fur collar, and a single violet summoning swoosh beneath it. No hands, no weapon, no extra characters.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-b2a7afa9-1353-44d5-94cf-773b8ad8e1b7.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangAssist.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangAssist",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "979cb96df24968a0120c697e32fee9acff1f3c541968f74c248ceeeb22a4653f"
+    },
+    {
+      "id": "FangSplinter",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One charcoal enemy-mask silhouette splitting apart into exactly five small ivory-and-violet ring-handled kunai pointing outward radially. One clean violet starburst behind the broken mask. No blood or gore.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-8e5d1d08-65c6-47cb-8920-3b5758bde6d5.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangSplinter.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangSplinter",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "0b478d8f4a042a5d4223b0c91a7d0ea94b1fefd8c1308b09445b8f31a3931ac0"
+    },
+    {
+      "id": "FangDamage",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One broad ivory ring-handled kunai slamming point-first into a charcoal target plate, a single large jagged violet impact wedge emphasizing raw power. No letters or numbers.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-de934d60-1af3-435f-ba19-7b27ebdf47df.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangDamage.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangDamage",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "48440b518519c22e373a5ba9071d7e31ae66ba4f91a6b680a8babd141ec91c27"
+    },
+    {
+      "id": "FangSpeed",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One ivory ring-handled kunai flying horizontally with two long tapered violet speed strokes, and a small curved return swoosh beneath it. Fast outward-and-return flight, one blade only.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-1825a4be-4b7d-42ac-915d-8ace6c7c9b7d.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangSpeed.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangSpeed",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "9b1ed65883bb8982d1f97762158ab6afe7fdf4760c6c7aad3a45665036ca2078"
+    },
+    {
+      "id": "FangRange",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A small violet ninja-mask emblem and a distant charcoal enemy-mask emblem separated by one long ivory pointed kunai flight line, with a broad lavender curved targeting arc beyond the enemy. Clean symbolic extended acquisition range, no ruler, text or numbers.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-9630210d-3e91-46f3-ae6b-310ad2a693eb.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangRange.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangRange",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "409bf7d67535bdc19d310ff8421a1a57eb2503a8a9539887dd0c8a9f9dab7b81"
+    },
+    {
+      "id": "FangCloseQuarters",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: An ivory ring-handled kunai and a charcoal enemy-mask silhouette pressed close together inside a tight violet circular arc, with one ivory impact spark at contact. Emphasize a short compact distance, not a distant throw.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-c5630d65-9828-4f04-9af2-f18422022cf0.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangCloseQuarters.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangCloseQuarters",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "ddbd5782fbbad9f9cf88422e8ae60b47748933413d5210c746bebfb352c759ed"
+    },
+    {
+      "id": "FangKillingEdge",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: An ivory ring-handled kunai above a charcoal cracked enemy mask, with a single small crimson wedge near the mask suggesting a wounded foe. Sharp violet finishing-strike arc. No blood, gore, letters, health bar or numerals.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-9dc812a9-fb7d-4e6b-855e-218d1b37b65c.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangKillingEdge.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangKillingEdge",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "a015b8977e574ab09d086719c502c807ea70125537b41efe7a37e0e025b1239c"
+    },
+    {
+      "id": "FangTwinFrequency",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: Exactly three small ivory and lavender ring-handled kunai arranged in a fan inside one bold violet circular arrow, with two compact violet speed chevrons. A fast repeat-cycle symbol distinct from the three plain blades of Twin Fang.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-1b3d6c65-b8bb-4269-b8be-d09f94829096.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangTwinFrequency.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangTwinFrequency",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "c75f4aed3a28a1dc10c61a31c087ba70cf13bafac651511c1d1e99939753f558"
+    },
+    {
+      "id": "FangPressure",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One ivory kunai tip pressing into a compact violet diamond target, backed by three broad ascending violet wedges that grow progressively larger. Simple emblem of increasing damage pressure, no graphs, text or numbers.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-ebf1a2dd-5dec-40c5-b584-28e4998f3a34.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangPressure.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangPressure",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "1d6b0fa5d60092c94e8c28ecbc9eb254a8bbcbc65f146a76eafe9e2debf56540"
+    },
+    {
+      "id": "FangResonantReach",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A small central violet return-burst star surrounded by two widely spaced broad lavender shockwave rings, with four short ivory outward arrowheads. Clear expanding burst radius, no character or weapon.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-6e3ae883-7488-4bc1-929e-eb272aa08616.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangResonantReach.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangResonantReach",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "9fa6d770cd230d26174b63cbc31c55d45aea74cc2ee00b89755ee46a5d701880"
+    },
+    {
+      "id": "FangCriticalChance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A bold violet eye with an ivory four-point glint at its pupil, embraced by two large lavender targeting brackets and a single compact upward chevron. Clear improved critical chance emblem, no kunai, no text.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-0f556988-e667-4e4c-b822-27d4a209e037.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangCriticalChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangCriticalChance",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "7a96428a1bf386c2902dfee32ad1fbb1014ad88ef158e9dbeab247422628bee8"
+    },
+    {
+      "id": "FangAssistChance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A small crimson Samurai head silhouette with spiky black hair and an ivory fur collar, above exactly three ascending lavender summoning chevrons. Compact reinforcement-call emblem, no hands or weapons.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-8eac2061-6d04-4f28-b165-daf894acdd20.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangAssistChance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangAssistChance",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "fcfce86757c1d75554eda842daebbb54565ab80d7525f22b908f3d1000725ec4"
+    },
+    {
+      "id": "FangSplinterPower",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: Exactly three ivory and violet small ring-handled kunai radiating from a single large angular violet impact star, their broad sharp tips emphasized with ivory edges. Powerful scattered-blade emblem, no character.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-1b9e267d-95cb-41b7-9f7f-073d0da61c5d.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangSplinterPower.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangSplinterPower",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "91cb660e0a9d1d0776aab6ed4c05007facbe53900219b4e91cc498fd82b2757e"
+    },
+    {
+      "id": "FangFarstrider",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One long ivory ring-handled kunai at the end of a sweeping violet flight arc, the arc growing thicker toward its tip and ending in a bold impact flare. One small distant charcoal target. Shrine tradeoff emblem with a restrained crimson accent.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-260439c7-7015-4e20-a3a4-ebd8bbe60e20.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangFarstrider.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangFarstrider",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "a8548277edc5a430f3a69a80ab512edf4897cc5fcb43338e56041bc1e4edcb96"
+    },
+    {
+      "id": "FangRedline",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One sharp ivory ring-handled kunai racing through a tight violet loop, with three bold crimson speed streaks and a small broken charcoal blade-chip trailing behind. High-speed risky attack emblem; no speedometer, text or numbers.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-3089a90f-932f-4fba-a275-92f98515038f.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangRedline.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangRedline",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "c96cf2a39d7c5ac23846ae8c06ef65a5d8d054cdae58dbcd11afcd6134ed6a01"
+    },
+    {
+      "id": "FangPredator",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A bold violet predatory eye above one ivory kunai whose tip makes a brilliant angular ivory critical-impact star; a second small charcoal dull blade silhouette beneath suggests the cost. Restrained crimson accent, clean risk-reward emblem.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-42a167c4-c19a-4e45-bebc-b5b11fa17018.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangPredator.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangPredator",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "22ef1beb825aee147b48fb99ce31d7a279a98abd05649ebdccb76641e9150bb6"
+    },
+    {
+      "id": "NinjaDamage",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: Two crossed ivory pointed kunai with violet wrapped grips over one compact lavender impact star. A clean general Ninja attack-damage emblem, no arrows, no character.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-641c0e61-931c-4e24-b92b-862cb06de896.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/NinjaDamage.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NinjaDamage",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "74f9734017a53f1b064764ef73ccd42033d606dde6436d8e78253ab76d288418"
+    },
+    {
+      "id": "NinjaSpeed",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: Three ivory pointed kunai in a compact staggered horizontal volley with two broad violet motion streaks. Clean rapid attack-speed emblem, no circular return arrow, no character.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-19d32dc1-2a93-4031-a4da-dfd05f30a636.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/NinjaSpeed.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NinjaSpeed",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "ed25d0d3ece4260ef862f194b66a2ee93fcf2dfe0f00229b88a538b6008d294a"
+    },
+    {
+      "id": "NinjaCoverage",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: One large ivory-and-violet kunai blade silhouette inside a larger lavender outline of the same blade, with two broad outward expansion arrowheads. General Ninja projectile coverage and size emblem, no character or text.",
+      "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-5c2796af-1b97-4213-9cbf-880939a1e0d5.png",
+      "file": "Art/UpgradeIcons/Generated/Fang/NinjaCoverage.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NinjaCoverage",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "cb18546e8f9759f6f53cf798a90033f2836d4be7db44d9fb236852ccd1b6962d"
+    }
+  ]
+}

@@ -3,22 +3,14 @@
 #include "EnemyStatusEffectComponent.h"
 
 #include "EnemyBase.h"
-#include "SurvivorPlayerController.h"
-#include "CharacterManagerComponent.h"
-#include "SamuraiCharacter.h"
 #include "SurvivorAbilityComponent.h"
-#include "Engine/OverlapResult.h"
-#include "HealthComponent.h"
 #include "PlayerUpgradeComponent.h"
 #include "TimerManager.h"
 #include "UpgradeDefinition.h"
 
 namespace StatusUpgradeIds
 {
-	static const FName BleedingEdge(TEXT("BleedingEdge"));
-	static const FName DeepCuts(TEXT("DeepCuts"));
 	static const FName VenomousKunai(TEXT("VenomousKunai"));
-	static const FName PotentVenom(TEXT("PotentVenom"));
 }
 
 UEnemyStatusEffectComponent::UEnemyStatusEffectComponent()
@@ -53,7 +45,7 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
         // 12.5% over six base ticks. Duration upgrades add ticks at this same rate.
         State.BleedHitBonusPerTick += FMath::Max(0.f, ApplyingHitDamage) * FMath::Max(0.f, Fraction) / 6.f * AcceptedStacks;
     }
-    State.RemainingDuration = bBleed ? 3.f + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("LingeringWounds")), 0, 3) : GetDuration(Status);
+    State.RemainingDuration = bBleed ? 3.f + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("LingeringWounds")), 0, 3) : PoisonDuration;
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(State.TickTimer))
 	{
@@ -65,7 +57,7 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 		GetWorld()->GetTimerManager().SetTimer(State.TickTimer, TickDelegate, State.ActiveTickInterval, true);
 	}
 	if (State.Stacks != PreviousStacks) OnStatusStacksChanged.Broadcast(Status, State.Stacks);
-	if (Status == EEnemyStatusEffect::Bleed) { RefreshPoisonTickRate(); TryBloodDetonation(); }
+	if (Status == EEnemyStatusEffect::Bleed) TryBloodDetonation();
 	return true;
 }
 
@@ -75,7 +67,7 @@ int32 UEnemyStatusEffectComponent::GetStatusStacks(EEnemyStatusEffect Status) co
 float UEnemyStatusEffectComponent::CalculateRemainingStatusDamage(EEnemyStatusEffect Status) const
 {
 	const FEnemyDamageStatusState& State = GetState(Status);
-	return CalculateStatusDamagePerTick(Status, State) * CalculateRemainingTickCount(Status, State) + State.TransferredDamageRemaining;
+	return CalculateStatusDamagePerTick(Status, State) * CalculateRemainingTickCount(Status, State);
 }
 
 bool UEnemyStatusEffectComponent::ConsumeStatus(EEnemyStatusEffect Status)
@@ -102,45 +94,23 @@ const FEnemyDamageStatusState& UEnemyStatusEffectComponent::GetState(EEnemyStatu
 float UEnemyStatusEffectComponent::GetTickInterval(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? .5f : PoisonTickInterval; }
 float UEnemyStatusEffectComponent::GetEffectiveTickInterval(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const
 {
+	if (Status == EEnemyStatusEffect::Poison && State.bBarragePoison) return .5f;
 	return GetTickInterval(Status);
-}
-float UEnemyStatusEffectComponent::GetDuration(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? BleedDuration : PoisonDuration; }
-
-void UEnemyStatusEffectComponent::RefreshPoisonTickRate()
-{
-	if (!GetWorld() || PoisonState.Stacks <= 0 || !GetWorld()->GetTimerManager().IsTimerActive(PoisonState.TickTimer)) return;
-	const float NewInterval = GetEffectiveTickInterval(EEnemyStatusEffect::Poison, PoisonState);
-	const float OldInterval = PoisonState.ActiveTickInterval > KINDA_SMALL_NUMBER ? PoisonState.ActiveTickInterval : PoisonTickInterval;
-	if (FMath::IsNearlyEqual(NewInterval, OldInterval)) return;
-	const float OldRemaining = GetWorld()->GetTimerManager().GetTimerRemaining(PoisonState.TickTimer);
-	const float NormalizedPhaseRemaining = FMath::Clamp(OldRemaining / OldInterval, 0.0f, 1.0f);
-	FTimerDelegate TickDelegate;
-	TickDelegate.BindUObject(this, &UEnemyStatusEffectComponent::TickPoison);
-	PoisonState.ActiveTickInterval = NewInterval;
-	GetWorld()->GetTimerManager().SetTimer(PoisonState.TickTimer, TickDelegate, NewInterval, true,
-		FMath::Max(KINDA_SMALL_NUMBER, NormalizedPhaseRemaining * NewInterval));
 }
 
 float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const
 {
 	const UPlayerUpgradeComponent* Upgrades = State.SourceUpgrades.Get();
 	if (!Upgrades || State.Stacks <= 0) return 0.0f;
+	if (Status == EEnemyStatusEffect::Poison && State.bBarragePoison) return State.PoisonDamagePerTick;
 	if (Status == EEnemyStatusEffect::Bleed)
-        return Upgrades->HasUpgradeId(TEXT("BattleStance")) ? State.BleedHitBonusPerTick
-            * (Upgrades->HasUpgradeId(TEXT("BloodPactPower")) ? 1.7f : 1.f)
-            * (1.f + Upgrades->GetMetaSkillBonus(TEXT("Bleed"))) : 0.f;
-    const float Power = Status == EEnemyStatusEffect::Bleed ? Upgrades->GetSamuraiPowerMultiplier() : Upgrades->GetNinjaPowerMultiplier();
-	const FName SupportId = Status == EEnemyStatusEffect::Bleed ? StatusUpgradeIds::DeepCuts : StatusUpgradeIds::PotentVenom;
-	const int32 SupportLevel = Upgrades->GetUpgradeLevelById(SupportId);
-	const float LegacyPerLevel = Status == EEnemyStatusEffect::Bleed ? DeepCutsDamagePerLevel : PotentVenomDamagePerLevel;
-	const float StoredMagnitude = Upgrades->GetAccumulatedUpgradeMagnitude(SupportId);
-	const float SupportMagnitude = StoredMagnitude > 0.0f ? StoredMagnitude : SupportLevel * FMath::Max(0.0f, LegacyPerLevel);
-	const float BaseTick = Status == EEnemyStatusEffect::Bleed ? BaseBleedDamagePerTick : BasePoisonDamagePerTick;
-	const float BaseDamage = Status == EEnemyStatusEffect::Bleed
-        ? BaseTick * FMath::Max(0.f, Power) * State.BleedBaseStackWeight + State.BleedHitBonusPerTick
-        : BaseTick * FMath::Max(0.f, Power) * State.Stacks;
-    return BaseDamage * (1.0f + SupportMagnitude)
-		* (1.f + Upgrades->GetMetaSkillBonus(Status == EEnemyStatusEffect::Bleed ? FName(TEXT("Bleed")) : FName(TEXT("Poison"))));
+	{
+		return Upgrades->HasUpgradeId(TEXT("BattleStance")) ? State.BleedHitBonusPerTick
+			* (Upgrades->HasUpgradeId(TEXT("BloodPactPower")) ? 1.7f : 1.f)
+			* (1.f + Upgrades->GetMetaSkillBonus(TEXT("Bleed"))) : 0.f;
+	}
+	return BasePoisonDamagePerTick * FMath::Max(0.f, Upgrades->GetNinjaPowerMultiplier()) * State.Stacks
+		* (1.f + Upgrades->GetMetaSkillBonus(TEXT("Poison")));
 }
 
 int32 UEnemyStatusEffectComponent::CalculateRemainingTickCount(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const
@@ -170,9 +140,7 @@ void UEnemyStatusEffectComponent::TickStatus(EEnemyStatusEffect Status)
 		return;
 	}
 
-	const float TransferTick = State.TransferredDamageRemaining / FMath::Max(1, CalculateRemainingTickCount(Status, State));
-    const float Damage = CalculateStatusDamagePerTick(Status, State) + TransferTick;
-    State.TransferredDamageRemaining = FMath::Max(0.f, State.TransferredDamageRemaining - TransferTick);
+	const float Damage = CalculateStatusDamagePerTick(Status, State);
     // Spend this tick before damage can invoke death and transfer the remaining budget.
     State.RemainingDuration -= State.ActiveTickInterval > KINDA_SMALL_NUMBER ? State.ActiveTickInterval : GetTickInterval(Status);
 	Enemy->ApplyStatusDamage(Damage, Source);
@@ -186,10 +154,10 @@ void UEnemyStatusEffectComponent::ClearStatus(EEnemyStatusEffect Status)
 	const bool bWasActive = State.Stacks > 0;
 	if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(State.TickTimer);
 	State.Stacks = 0;
-	State.BleedBaseStackWeight = State.BleedHitBonusPerTick = State.TransferredDamageRemaining = 0.f;
+ State.bBarragePoison = State.bDirectBarragePoison = false; State.PoisonDamagePerTick = 0.f;
+	State.BleedHitBonusPerTick = 0.f;
 	State.RemainingDuration = 0.0f;
 	State.ActiveTickInterval = 0.0f;
 	State.SourceUpgrades.Reset();
 	if (bWasActive) OnStatusStacksChanged.Broadcast(Status, 0);
-	if (Status == EEnemyStatusEffect::Bleed) RefreshPoisonTickRate();
 }

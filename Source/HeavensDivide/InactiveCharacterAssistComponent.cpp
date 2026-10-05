@@ -534,3 +534,42 @@ bool UInactiveCharacterAssistComponent::TryBloodAssist()
  bBloodAssistRequest = false;
  return Result;
 }
+
+bool UInactiveCharacterAssistComponent::TryFangAssist()
+{
+ SurvivorController = Cast<ASurvivorPlayerController>(GetOwner());
+ PlayerUpgrades = SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+ if (!PlayerUpgrades || !PlayerUpgrades->HasUpgradeId(TEXT("ReturningFang")) || !PlayerUpgrades->HasUpgradeId(TEXT("FangAssist"))) return false;
+ const auto* Manager = SurvivorController->GetCharacterManager();
+ if (!Manager || !Manager->GetActiveCharacter() || !Manager->GetActiveCharacter()->IsA<ANinjaCharacter>()) return false;
+ bBloodAssistRequest = true;
+ const bool Result = TryTriggerAssist();
+ bBloodAssistRequest = false;
+ return Result;
+}
+
+bool UInactiveCharacterAssistComponent::TryBarrageAssist()
+{
+ SurvivorController = Cast<ASurvivorPlayerController>(GetOwner());
+ PlayerUpgrades = SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+ if (!PlayerUpgrades || !PlayerUpgrades->HasUpgradeId(TEXT("BarrageStance")) || !PlayerUpgrades->HasUpgradeId(TEXT("BarrageAssist"))) return false;
+ const auto* Manager = SurvivorController->GetCharacterManager();
+ if (!Manager || !Manager->GetActiveCharacter() || !Manager->GetActiveCharacter()->IsA<ANinjaCharacter>()) return false;
+ bBloodAssistRequest = true;
+ const bool Result = TryTriggerAssist();
+ bBloodAssistRequest = false;
+ return Result;
+}
+
+bool UInactiveCharacterAssistComponent::TryShurikenAssist()
+{
+ SurvivorController = Cast<ASurvivorPlayerController>(GetOwner());
+ PlayerUpgrades = SurvivorController ? SurvivorController->GetPlayerUpgrades() : nullptr;
+ if (!PlayerUpgrades || !PlayerUpgrades->HasUpgradeId(TEXT("GreatShuriken")) || !PlayerUpgrades->HasUpgradeId(TEXT("ShurikenAssist"))) return false;
+ const auto* Manager = SurvivorController->GetCharacterManager();
+ if (!Manager || !Manager->GetActiveCharacter() || !Manager->GetActiveCharacter()->IsA<ANinjaCharacter>()) return false;
+ bBloodAssistRequest = true;
+ const bool Result = TryTriggerAssist();
+ bBloodAssistRequest = false;
+ return Result;
+}

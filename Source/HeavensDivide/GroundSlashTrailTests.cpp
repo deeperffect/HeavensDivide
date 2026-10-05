@@ -100,19 +100,29 @@ bool FGroundSlashFullEffectsTest::RunTest(const FString&)
      for(const auto& Entry:Mesh->Meshes)
      {
       ++MeshCount;
-      TestTrue(TEXT("Crescent is rolled horizontally"),Entry.Rotation.Equals(FRotator(0,0,90)));
       TestTrue(TEXT("Pivot correction follows mesh scale and direction"),Entry.PivotOffsetSpace==ENiagaraMeshPivotOffsetSpace::Mesh);
       if(TestNotNull(TEXT("Crescent mesh"),Entry.Mesh.Get()))
       {
-       const FVector Center=Entry.Rotation.RotateVector(Entry.Mesh->GetBounds().Origin*Entry.Scale+Entry.PivotOffset);
-       TestTrue(TEXT("Horizontal crescent is centered across the ground trail"),FMath::IsNearlyZero(Center.Y,.01));
-       TestTrue(TEXT("Center stays at the authored ground height"),FMath::IsNearlyZero(Center.Z,.01));
+       const auto Bounds=Entry.Mesh->GetBounds();
+       const FVector Center=Bounds.Origin*Entry.Scale+Entry.PivotOffset;
+       const FVector Extent=Bounds.BoxExtent*Entry.Scale.GetAbs();
+       const FBox MeshBox=FBox(Center-Extent,Center+Extent).TransformBy(FTransform(Entry.Rotation));
+       TestTrue(TEXT("Upright crescent is centered across the ground trail"),FMath::IsNearlyZero(MeshBox.GetCenter().Y,.01));
+       TestTrue(TEXT("Crescent bottom stays at the authored ground height"),FMath::IsNearlyZero(MeshBox.Min.Z,.01));
+       TestTrue(TEXT("Crescent rises above the trail instead of lying flat"),MeshBox.GetSize().Z>MeshBox.GetSize().Y);
+       for(float Yaw:{0.f,45.f,90.f,180.f,270.f})
+       {
+        const FRotator Heading(0,Yaw,0);
+        const FVector Normal=Heading.RotateVector(Entry.Rotation.RotateVector(FVector::YAxisVector));
+        TestTrue(TEXT("Slash plane stays vertical for sideways, diagonal and return headings"),FMath::IsNearlyZero(Normal.Z,.001));
+        TestTrue(TEXT("Slash plane follows travel direction"),FMath::IsNearlyZero(FVector::DotProduct(Normal,Heading.Vector()),.001));
+       }
       }
      }
  }
  TestEqual(TEXT("Four trails and four sources"),TrailCount,8);
  TestEqual(TEXT("Two original spark layers"),SparkCount,2);
- TestEqual(TEXT("One horizontal slash mesh"),MeshCount,1);
+ TestEqual(TEXT("One upright slash mesh"),MeshCount,1);
  const auto* LensFlare=IConsoleManager::Get().FindConsoleVariable(TEXT("r.LensFlareQuality"));
  TestTrue(TEXT("Project disables lens-flare post processing"),LensFlare && LensFlare->GetInt()==0);
  auto* World=UWorld::CreateWorld(EWorldType::Game,false);

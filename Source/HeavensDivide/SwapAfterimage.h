@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Animation/AnimNotifyQueue.h"
 #include "SwapAfterimage.generated.h"
 class ACharacterBase;
 class UMaterialInterface;
@@ -21,7 +22,13 @@ public:
     virtual void Tick(float DeltaSeconds) override;
     void SetPortalDestination(const FVector& Destination) { PortalStart = GetActorLocation(); PortalEnd = Destination; bPortalDash = true; }
     void EnablePortalTrail(float Duration) { TrailDuration = FMath::Clamp(Duration, .01f, .5f); }
+    void EnableCosmeticNiagaraNotifies() { bCosmeticNiagaraNotifies = true; }
 private:
+    void AdvanceCosmeticNotifies(float PreviousTime, float CurrentTime, float DeltaSeconds);
+    void EndCosmeticNotifies();
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    bool bCosmeticNiagaraNotifies = false;
+    TArray<FAnimNotifyEventReference> ActiveCosmeticStates;
     void SpawnTrailSnapshot();
     float TrailDuration = 0, LastTrailAge = 0;
     int32 TrailCount = 0;

@@ -1,0 +1,9 @@
+{
+  "id": "NeedleRain",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: Two staggered rows of three ivory kunai pointing diagonally downward, violet motion strokes, a clean doubled-volley emblem.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-894ab1fa-6e11-4327-9182-0426887061b3.png",
+  "file": "Art/UpgradeIcons/Generated/Barrage/NeedleRain.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NeedleRain",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "8fd6f936d459fe62cbae88263c8f34c6b90ba316516149c6fe5ef29636cd9e45"
+}

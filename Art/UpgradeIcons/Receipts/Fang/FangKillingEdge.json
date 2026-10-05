@@ -1,0 +1,9 @@
+{
+  "id": "FangKillingEdge",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: An ivory ring-handled kunai above a charcoal cracked enemy mask, with a single small crimson wedge near the mask suggesting a wounded foe. Sharp violet finishing-strike arc. No blood, gore, letters, health bar or numerals.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-9dc812a9-fb7d-4e6b-855e-218d1b37b65c.png",
+  "file": "Art/UpgradeIcons/Generated/Fang/FangKillingEdge.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangKillingEdge",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "a015b8977e574ab09d086719c502c807ea70125537b41efe7a37e0e025b1239c"
+}

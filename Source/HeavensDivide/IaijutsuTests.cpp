@@ -15,6 +15,8 @@
 #include "EngineUtils.h"
 #include "CharacterManagerComponent.h"
 #include "SwapAfterimage.h"
+#include "SwapPresentationComponent.h"
+#include "UObject/UObjectIterator.h"
 #include "UObject/UnrealType.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
@@ -217,7 +219,7 @@ bool FIaijutsuTest::RunTest(const FString&)
                 TestTrue(TEXT("Spectral visual follows current charge position"), Aimed->Visual->GetActorLocation().Equals(FVector(680,1000,0),.01f));
                 TestTrue(TEXT("Spectral visual turns with the lane"), FMath::IsNearlyEqual(FMath::FindDeltaAngleDegrees(GhostRotation.Yaw,Aimed->Visual->GetActorRotation().Yaw),90.f,.01f));
             }
-            TestTrue(TEXT("Vacuum follows the moved lane"), MovedVacuumTarget->GetActorLocation().Y<1140.f);
+            TestEqual(TEXT("Vacuum stays inactive before the final 0.2 seconds"), MovedVacuumTarget->GetActorLocation().Y, 1140.0);
             TestEqual(TEXT("Vacuum does not deal premature damage"), MovedVacuumTarget->GetHealthComponent()->GetCurrentHealth(),10000.f);
             // The final update must happen before the damage query, even in a frame
             // that advances past the end of the charge.
@@ -386,7 +388,7 @@ bool FIaijutsuTest::RunTest(const FString&)
     auto CountSlashes = [&]
     {
         int32 Count = 0;
-        for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It) ++Count;
+        for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It) if (!It->bResolved) ++Count;
         return Count;
     };
     ClearSlashes();
@@ -417,15 +419,15 @@ bool FIaijutsuTest::RunTest(const FString&)
         for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
         {
             It->Tick(.3f);
-            TestTrue(TEXT("Moving X lanes keep one shared midpoint"), ((It->Origin+It->End)*.5f).Equals(FVector(1000,1400,0),.01f));
-            TestTrue(TEXT("Moving X lanes retain their length"), FMath::IsNearlyEqual(FVector::Distance(It->Origin,It->End),800.f,.01f));
+            TestTrue(TEXT("Moving X lanes keep their farther shared midpoint"), ((It->Origin+It->End)*.5f).Equals(FVector(1000,1480,0),.01f));
+            TestTrue(TEXT("Moving X lanes retain their extended length"), FMath::IsNearlyEqual(FVector::Distance(It->Origin,It->End),1000.f,.01f));
         }
         PC->LastValidControllerAimDirection = -FVector::ForwardVector;
         ++GFrameCounter;
         for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
         {
             It->Tick(.2f);
-            TestTrue(TEXT("Both X lanes rotate around the updated aim midpoint"), ((It->Origin+It->End)*.5f).Equals(FVector(600,1000,0),.01f));
+            TestTrue(TEXT("Both X lanes rotate around the updated aim midpoint"), ((It->Origin+It->End)*.5f).Equals(FVector(520,1000,0),.01f));
         }
         PC->bControllerIsActiveTargetingDevice = false; SetAutoTargeting(true);
         Samurai->SetActorLocation(FVector::ZeroVector);
@@ -461,7 +463,8 @@ bool FIaijutsuTest::RunTest(const FString&)
             for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
             {
                 Directions.Add((It->End - It->Origin).GetSafeNormal());
-                TestTrue(TEXT("X lanes intersect at original midpoint"), ((It->End + It->Origin) * .5f).Equals(FVector(5400,0,0), .1f));
+                TestTrue(TEXT("X lanes intersect farther ahead"), ((It->End + It->Origin) * .5f).Equals(FVector(5480,0,0), .1f));
+                TestTrue(TEXT("Fixed X lanes are 25 percent longer"), FMath::IsNearlyEqual(FVector::Distance(It->Origin,It->End),1000.f,.01f));
             }
             if (Directions.Num() == 2) TestTrue(TEXT("Crossing lanes have different directions"), FVector::DotProduct(Directions[0], Directions[1]) < .9f);
         }
@@ -513,6 +516,20 @@ bool FIaijutsuTest::RunTest(const FString&)
     TestTrue(TEXT("Instant cast still animates the real Samurai"), SamuraiAnim->Montage_IsPlaying(Attack->IaijutsuMontage));
     TestEqual(TEXT("Instant cast animation uses authored speed"), SamuraiAnim->Montage_GetPlayRate(Attack->IaijutsuMontage), 1.f);
     TestEqual(TEXT("Instant cast resolves without a world tick"), CountSlashes(), 0);
+    int32 InstantIndicators = 0;
+    for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
+    {
+        ++InstantIndicators;
+        TestTrue(TEXT("Instant proc shows its lane immediately"), It->ChargeIndicator->IsVisible());
+        if (TestNotNull(TEXT("Instant proc has an indicator material"), It->ChargeMaterial.Get()))
+            TestEqual(TEXT("Instant indicator is fully charged"), It->ChargeMaterial->K2_GetScalarParameterValue(TEXT("FillAmount")), 1.f);
+        It->Tick(.29f);
+        TestTrue(TEXT("Instant indicator remains visible during post-hit window"), It->ChargeIndicator->IsVisible());
+        TestFalse(TEXT("Instant indicator survives until the window ends"), It->IsActorBeingDestroyed());
+        It->Tick(.02f);
+        TestTrue(TEXT("Instant indicator expires with the post-hit window"), It->IsActorBeingDestroyed());
+    }
+    TestEqual(TEXT("Instant proc presents one lane indicator"), InstantIndicators, 1);
     TestTrue(TEXT("Instant cast retains only cooldown"), FMath::IsNearlyEqual(Attack->NextAttackReadyTime - Attack->LastAttackStartTime, .5, .001));
     Instant->BalanceParameters = OldInstantBalance;
     Upgrades->RestoreRunState(Base);
@@ -531,10 +548,28 @@ bool FIaijutsuTest::RunTest(const FString&)
     Samurai->SetActorLocation(FVector(4000,4000,0));
     PC->LastValidControllerAimDirection = FVector::RightVector;
     auto* TrackedEndpointEnemy = SpawnEnemy(FVector(4200,4800,0));
+    auto* PlayerSideEnemy = SpawnEnemy(FVector(4200,4000,0));
+    const auto SavedEndpointMontage = Attack->IaijutsuEndpointMontage;
+    for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
+        It->EndpointMontage = SavedEndpointMontage ? SavedEndpointMontage.Get() : Attack->AttackMontage.Get();
+    TSet<ASwapAfterimage*> ExistingGhosts;
+    for (TActorIterator<ASwapAfterimage> It(World); It; ++It) ExistingGhosts.Add(*It);
     ++GFrameCounter;
     for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It) It->Tick(1.01f);
     TestTrue(TEXT("Endpoint burst follows the released lane"), TrackedEndpointEnemy->GetHealthComponent()->GetCurrentHealth()<10000.f);
-    TrackedEndpointEnemy->Destroy(); ClearSlashes();
+    TestEqual(TEXT("Endpoint burst does not damage an enemy beside the player"), PlayerSideEnemy->GetHealthComponent()->GetCurrentHealth(), 10000.f);
+    ASwapAfterimage* EndpointGhost = nullptr;
+    for (TActorIterator<ASwapAfterimage> It(World); It; ++It)
+        if (!ExistingGhosts.Contains(*It)) EndpointGhost = *It;
+    if (TestNotNull(TEXT("Endpoint burst spawns its montage ghost"), EndpointGhost))
+    {
+        TestTrue(TEXT("Endpoint ghost actor is at the released endpoint"), EndpointGhost->GetActorLocation().Equals(FVector(4000,4800,0), .01f));
+        auto* Mesh = EndpointGhost->FindComponentByClass<USkeletalMeshComponent>();
+        if (TestNotNull(TEXT("Endpoint montage mesh"), Mesh))
+            TestTrue(TEXT("Endpoint mesh is at endpoint, not the player's position"),
+                FVector::Dist2D(Mesh->GetComponentLocation(), FVector(4000,4800,0)) < 1.f);
+    }
+    PlayerSideEnemy->Destroy(); TrackedEndpointEnemy->Destroy(); ClearSlashes();
     Samurai->SetActorLocation(FVector::ZeroVector);
     PC->bControllerIsActiveTargetingDevice = false; SetAutoTargeting(true);
     AOE->BalanceParameters = OldAOEBalance;
@@ -571,17 +606,22 @@ bool FIaijutsuTest::RunTest(const FString&)
     ChainTarget->GetHealthComponent()->RestoreCurrentHealth(1.f);
     // In follow-up range but outside both the original and follow-up lanes.
     auto* ChainBystander = SpawnEnemy(FVector(15700,400,0));
+    Acquire(TEXT("IaijutsuDoubleCut"));
+    Attack->IaijutsuAttackCounter = 2;
     Attack->StopAutoAttack(); SamuraiAnim->Montage_Stop(0.f);
     Attack->SpawnIaijutsuSlashes(FVector(15000,0,0), FVector::ForwardVector, 800, 0.f, false);
+    TestEqual(TEXT("Originating kill advances Double Cut to three attacks"), Attack->IaijutsuAttackCounter, 3);
     ++GFrameCounter; // TimerManager advances only once per engine frame.
     World->Tick(LEVELTICK_All, .01f);
     TestEqual(TEXT("Kill schedules one follow-up"), CountSlashes(), 1);
+    TestEqual(TEXT("Death Cascade does not advance or consume Double Cut"), Attack->IaijutsuAttackCounter, 3);
     TestFalse(TEXT("Cascade does not restart the real Samurai's montage"), SamuraiAnim->Montage_IsPlaying(Attack->IaijutsuMontage));
     const FVector PositionBeforeCascadeCheck = Samurai->GetActorLocation();
     Samurai->SetActorLocation(FVector(1000,1000,0));
     ++GFrameCounter;
     for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
     {
+        if (It->bResolved) continue;
         It->Tick(.2f);
         TestTrue(TEXT("Follow-up originates at victim"), It->Origin.Equals(FVector(15200,0,0), 1.f));
         TestTrue(TEXT("Cascade Power doubles follow-up damage without adding Dash Draw Power"),
@@ -594,6 +634,10 @@ bool FIaijutsuTest::RunTest(const FString&)
     World->Tick(LEVELTICK_All, .01f);
     TestEqual(TEXT("Lethal cascaded attack cannot cascade again"), CountSlashes(), 0);
     TestEqual(TEXT("Enemy available for another cascade stays unharmed"), ChainBystander->GetHealthComponent()->GetCurrentHealth(), 10000.f);
+    ClearSlashes();
+    Attack->SpawnIaijutsuSlashes(FVector(18000,0,0), FVector::ForwardVector, 800, .5f, false);
+    TestEqual(TEXT("Next originating attack still triggers the earned Double Cut"), CountSlashes(), 2);
+    TestEqual(TEXT("Originating Double Cut resets its counter"), Attack->IaijutsuAttackCounter, 0);
     ClearSlashes();
     Acquire(TEXT("IaijutsuAssist"));
     for (int32 Rank = 0; Rank < 5; ++Rank) Acquire(TEXT("IaijutsuAssistChance"));
@@ -642,8 +686,10 @@ bool FIaijutsuTest::RunTest(const FString&)
         auto* PullSlash = World->SpawnActor<ASamuraiIaijutsu>(LaneOrigin, FRotator::ZeroRotator, Params);
         PullSlash->Initialize(nullptr, Upgrades, FVector::ForwardVector, 10, 800, 100, 1,
             nullptr, Attack->ImpactFeedback);
+        PullSlash->Tick(.79f);
+        TestEqual(TEXT("No early vacuum movement"), Moving->GetActorLocation(), LaneOrigin + FVector(400,140,0));
         const float Step = 1.f / FPS;
-        for (int32 Frame = 0; Frame < FPS; ++Frame)
+        for (int32 Frame = 0; Frame < FMath::CeilToInt(.21f * FPS); ++Frame)
         {
             Movement->RequestMove(FVector::RightVector); // Chase away from the committed lane.
             Movement->TickComponent(Step, LEVELTICK_All, nullptr);
@@ -655,6 +701,14 @@ bool FIaijutsuTest::RunTest(const FString&)
         TestEqual(TEXT("Vacuum preserves grounded height"), Moving->GetActorLocation().Z, LaneOrigin.Z);
         TestEqual(TEXT("Vacuum does not extend beyond its margin"), Outside->GetActorLocation(), LaneOrigin + FVector(600, 240, 0));
         TestEqual(TEXT("Vacuum respects character damage restrictions"), Immune->GetActorLocation(), ImmuneStart);
+        const FVector HeldPosition = Moving->GetActorLocation();
+        Movement->RequestMove(FVector::ForwardVector);
+        Movement->TickComponent(.1f, LEVELTICK_All, nullptr);
+        TestEqual(TEXT("Hitbox stops movement along the lane after impact"), Moving->GetActorLocation(), HeldPosition);
+        PullSlash->Tick(.29f);
+        TestFalse(TEXT("Post-hit vacuum lasts at least 0.29 seconds"), PullSlash->IsActorBeingDestroyed());
+        PullSlash->Tick(.011f);
+        TestTrue(TEXT("Post-hit vacuum ends after 0.3 seconds"), PullSlash->IsActorBeingDestroyed());
         const float ReleasedY = Moving->GetActorLocation().Y;
         Movement->RequestMove(FVector::RightVector);
         Movement->TickComponent(.1f, LEVELTICK_All, nullptr);
@@ -787,7 +841,7 @@ bool FIaijutsuPathVFXTest::RunTest(const FString&)
     { Origin = FinalOrigin; End = FinalEnd; });
     Slash->Tick(.5f);
     TestEqual(TEXT("Only the first burst fires at release"), Effects().Num(), 1);
-    TestTrue(TEXT("Gameplay actor resolves before trailing cosmetic bursts"), Slash->IsActorBeingDestroyed());
+    TestFalse(TEXT("Gameplay actor retains the post-hit vacuum"), Slash->IsActorBeingDestroyed());
     // Pending timers hold their own final transforms and settings, even after
     // destruction or a later attack changing the source configuration.
     Slash->ConfigurePathSlashes(nullptr, 0, 0.f, FRotator(90,90,90), 0.f, FRotator::ZeroRotator);
@@ -855,6 +909,42 @@ bool FIaijutsuPathVFXTest::RunTest(const FString&)
         Effect->AdvanceSimulation(150, .02f);
         TestTrue(TEXT("Release bursts finish naturally without a gameplay actor or timer"),
             !IsValid(Effect) || Effect->IsComplete());
+    }
+    auto* Source = World->SpawnActor<ASamuraiCharacter>(Class, FVector(4000,4000,0), FRotator::ZeroRotator);
+    Source->GetMesh()->InitAnim(true);
+    auto* EndpointMontage = Cast<UAnimMontage>(FindFProperty<FObjectProperty>(UAutoAttackComponent::StaticClass(),
+        TEXT("IaijutsuEndpointMontage"))->GetObjectPropertyValue_InContainer(Attack));
+    if (TestNotNull(TEXT("Saved endpoint montage"), EndpointMontage))
+    {
+        AddInfo(FString::Printf(TEXT("Endpoint montage: %s"), *EndpointMontage->GetPathName()));
+        TSet<UNiagaraComponent*> ExistingEffects;
+        for (TObjectIterator<UNiagaraComponent> It; It; ++It) ExistingEffects.Add(*It);
+        auto* Ghost = World->SpawnActor<ASwapAfterimage>(FVector(4800,4000,0), FRotator::ZeroRotator);
+        Ghost->InitializeSwordDash(Source, Source->SwapPresentation->GhostMaterial, EndpointMontage,
+            FVector::ForwardVector, EndpointMontage->GetPlayLength());
+        Ghost->EnableCosmeticNiagaraNotifies();
+        TSet<UNiagaraComponent*> SpawnedEffects;
+        int32 EndpointParticles = 0;
+        for (float Time = 0.f; Time < EndpointMontage->GetPlayLength(); Time += .02f)
+        {
+            Ghost->Tick(.02f);
+            for (TObjectIterator<UNiagaraComponent> It; It; ++It)
+            {
+                auto* Effect = *It;
+                if (Effect->GetWorld() != World || ExistingEffects.Contains(Effect) || SpawnedEffects.Contains(Effect)) continue;
+                SpawnedEffects.Add(Effect);
+                TestTrue(TEXT("Endpoint Niagara spawns near endpoint, away from player"),
+                    FVector::Dist2D(Effect->GetComponentLocation(), FVector(4800,4000,0)) < 400.f);
+                Effect->SetForceSolo(true);
+                Effect->AdvanceSimulation(6, .02f);
+                if (auto Controller = Effect->GetSystemInstanceController())
+                    if (auto* Instance = Controller->GetSystemInstance_Unsafe())
+                        for (const auto& Emitter : Instance->GetEmitters()) EndpointParticles += Emitter->GetNumParticles();
+            }
+        }
+        TestTrue(TEXT("Saved endpoint montage plays its Niagara notify"), SpawnedEffects.Num() > 0);
+        TestTrue(TEXT("Endpoint Niagara actually emits particles"), EndpointParticles > 0);
+        AddInfo(FString::Printf(TEXT("Endpoint VFX: %d effects, %d particles"), SpawnedEffects.Num(), EndpointParticles));
     }
     return true;
 }

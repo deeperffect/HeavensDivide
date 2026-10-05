@@ -37,7 +37,7 @@
 namespace SamuraiAutoAttackIds
 {
 static const FName MarkedBlade(TEXT("MarkedBlade"));
-static const FName BleedingEdge(TEXT("BattleStance"));
+static const FName BloodStance(TEXT("BattleStance"));
 } // namespace SamuraiAutoAttackIds
 static UPlayerUpgradeComponent *ResolveSamuraiUpgrades(const UObject *WorldContextObject,
                                                                              const AActor *PlayerCharacter)
@@ -159,6 +159,7 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
     if (!Samurai || !U || !GetIaijutsuUpgrade() || !CanAutoAttack()) return false;
     // One kill follow-up per originating attack, shared by both Double Cut lanes.
     // The cascaded attack inherits the exhausted budget and cannot cascade again.
+    const bool bKillFollowUp = ChainBudget.IsValid();
     if (!ChainBudget) ChainBudget = MakeShared<int32>(1);
     const auto ChainTriggered = MakeShared<bool>(false);
     float Damage = GetEffectiveAttackDamage() * (1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuDamage"), .2f))
@@ -169,7 +170,8 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
     if (U->HasUpgradeId(TEXT("IaijutsuMarkPact"))) Area *= .8f;
     const float Radius = IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("SlashRadius"), 100.f) * Area;
     bool bCross = false;
-    if (U->HasUpgradeId(TEXT("IaijutsuDoubleCut")))
+    // Death Cascade must not advance or consume the originating attack's cadence.
+    if (!bKillFollowUp && U->HasUpgradeId(TEXT("IaijutsuDoubleCut")))
     {
         const int32 Threshold = FMath::Max(1, 4 - U->GetUpgradeLevelById(TEXT("IaijutsuDoubleCutFrequency")));
         bCross = ++IaijutsuAttackCounter >= Threshold;
@@ -184,12 +186,14 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
     const auto ChargeAim = MakeShared<FChargeAim>();
     ChargeAim->Origin = Origin;
     ChargeAim->Direction = Direction;
+    const float SlashDistance = Distance * (bCross ? 1.25f : 1.f);
+    const float IntersectionDistance = Distance * (bCross ? .6f : .5f);
     TArray<ASamuraiIaijutsu*> Slashes;
     for (int32 Index = 0; Index < (bCross ? 2 : 1); ++Index)
     {
-        // Rotate around the lane midpoint so both lanes intersect in a true X.
+        // Longer X lanes share a midpoint slightly farther ahead of the character.
         const FVector SlashDirection = bCross ? Direction.RotateAngleAxis(Index ? 30.f : -30.f, FVector::UpVector) : Direction;
-        const FVector SlashOrigin = bCross ? Origin + (Direction - SlashDirection) * Distance * .5f : Origin;
+        const FVector SlashOrigin = Origin + Direction * IntersectionDistance - SlashDirection * SlashDistance * .5f;
         FActorSpawnParameters Params;
         Params.Owner = Samurai; Params.Instigator = Samurai;
         Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -199,7 +203,7 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
         Slash->ChainTriggered = ChainTriggered;
         Slash->bEndpointBurst = bEndpoint && Index == 0;
         Slash->EndpointMontage = IaijutsuEndpointMontage;
-        Slash->Initialize(Samurai, U, SlashDirection, Damage, Distance, Radius, ChargeDuration,
+        Slash->Initialize(Samurai, U, SlashDirection, Damage, SlashDistance, Radius, ChargeDuration,
             AttackMontage.Get(),
             ImpactFeedback, IaijutsuHitVFX, IaijutsuIndicatorMaterial, IaijutsuIndicatorColor);
         Slash->ConfigurePathSlashes(IaijutsuPathSlashVFX, IaijutsuPathSlashCount,
@@ -212,7 +216,7 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
             Slash->SetTickGroup(TG_PostPhysics);
             const float Angle = bCross ? (Index ? 30.f : -30.f) : 0.f;
             Slash->UpdateAim = FIaijutsuAimUpdate::CreateWeakLambda(this,
-                [this, ChargeAim, Distance, Angle](FVector& LaneOrigin, FVector& LaneEnd)
+                [this, ChargeAim, Distance, SlashDistance, IntersectionDistance, Angle](FVector& LaneOrigin, FVector& LaneEnd)
             {
                 if (!CanAutoAttack() || !GetIaijutsuUpgrade()) return;
                 if (ChargeAim->Frame != GFrameCounter)
@@ -226,8 +230,8 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
                     if (!OwnerCharacter->IsDashing()) OwnerCharacter->SetVisualFacingRotation(ChargeAim->Direction.Rotation());
                 }
                 const FVector LaneDirection = ChargeAim->Direction.RotateAngleAxis(Angle, FVector::UpVector);
-                LaneOrigin = ChargeAim->Origin + (ChargeAim->Direction - LaneDirection) * Distance * .5f;
-                LaneEnd = LaneOrigin + LaneDirection * Distance;
+                LaneOrigin = ChargeAim->Origin + ChargeAim->Direction * IntersectionDistance - LaneDirection * SlashDistance * .5f;
+                LaneEnd = LaneOrigin + LaneDirection * SlashDistance;
             });
         }
         if (Index == 0 && bNormalAttack) Slash->OnResolved = FSimpleDelegate::CreateWeakLambda(this, [this, ChargeAim]
@@ -329,7 +333,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
     const AActor *OwnerActor = OwnerCharacter->GetOwner();
     const EPlayerAttackSource AttackSource = AEnemyBase::ResolvePlayerAttackSource(OwnerCharacter);
     const bool bCanApplyBleed = AttackSource == EPlayerAttackSource::Samurai && PlayerUpgrades &&
-                                PlayerUpgrades->HasUpgradeId(SamuraiAutoAttackIds::BleedingEdge);
+                                PlayerUpgrades->HasUpgradeId(SamuraiAutoAttackIds::BloodStance);
     for (const FHitResult &HitResult : HitResults)
     {
         AActor *HitActor = HitResult.GetActor();

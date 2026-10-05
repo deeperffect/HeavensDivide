@@ -15,7 +15,7 @@ backup = root / 'Saved/Backups/SamuraiStanceTrees' / datetime.now().strftime('%Y
 rows = catalog['cards']
 paths = {row['id']: folder + 'DA_Upgrade_Samurai' + row['id'] for row in rows}
 pact_path = folder + 'DA_Upgrade_SamuraiCrescentEruptionPact'
-pact_text = 'Waves stop slowing. Fields erupt after 0.3s for their full total damage. Converts owned Increased Slow and Slow Duration ranks into Wave Damage. Crescent Blood Shrine reward.'
+pact_text = 'Your waves no longer slow enemies. Lingering Wake erupts after 0.3 seconds for all its damage at once. Your slow upgrades become Wave Damage.'
 
 def disk(path):
     return root / 'Content' / (path.removeprefix('/Game/').split('.')[0] + '.uasset')
@@ -106,4 +106,4 @@ for stance in ('BattleStance', 'Iaijutsu', 'BladeWave'):
     assert len(group) == 21 and categories == {'mechanics':6,'normal':5,'rare':6,'shrine':3}, (stance,len(group),categories)
     unreal.log('SAMURAI_TREE: ' + stance + ' ' + str(categories))
 for p, digest in preserved.items(): assert hashlib.sha256(p.read_bytes()).hexdigest() == digest, 'Unrelated card changed: ' + str(p)
-unreal.log('SAMURAI_TREES_OK: 106 unique cards, 98 enabled, three equal 21-card stance trees; other assets preserved')
+unreal.log('SAMURAI_TREES_OK: 156 unique cards, 148 enabled, three equal 21-card stance trees; other assets preserved')

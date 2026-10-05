@@ -5,7 +5,7 @@ the normal forward offset. Its radius is still `AttackRadius * AttackAreaMultipl
 Damage, proc cadence, secondary-target damage, pushback and status effects use
 the existing combat rules. Normal attacks retain their forward hitbox.
 
-`AM_DoubleCutSamurai` uses the autoattack's `NS_Slash_10` burst and scale settings,
+`AM_DoubleCutBloodStance` uses the autoattack's `NS_Slash_10` burst and scale settings,
 with **Radial Copies = 4** on its SpawnSamuraiSlashNiagara notify. Four identical
 arcs, spaced 90 degrees apart, form the circular effect at the same size.
 The notify is mesh-attached at the character center and starts on the damage

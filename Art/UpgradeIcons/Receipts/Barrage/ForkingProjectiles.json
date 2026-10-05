@@ -1,0 +1,9 @@
+{
+  "id": "ForkingProjectiles",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon matching the Samurai and Fang icons: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, dark uniform deep-teal background #102229. Violet and ivory kunai, bright lime-green poison accents. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles or fog. Subject: One ivory kunai divides into two smaller ivory kunai at a crisp lime-green impact spark, forming a clear Y silhouette.",
+  "source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-26fb9399-43bf-44be-a6c0-ea32cd336173.png",
+  "file": "Art/UpgradeIcons/Generated/Barrage/ForkingProjectiles.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ForkingProjectiles",
+  "mode": "Built-in image_gen.imagegen",
+  "source_sha256": "39890af680051e293984b7c47b8689635a2eeb9639a812bedf25e9d2b853a33f"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "ShurikenBurstPower",
+  "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenBurstPower.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenBurstPower",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken encircled by two bold jagged violet shock rings, strong explosive shape.",
+  "mode": "builtin-imagegen",
+  "source_sha256": "b83200bd65cd5d9c30b59638f6b8dc41eaabf87ddfbcf5f681bdc1729da182dd",
+  "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-23ab6504-4c58-4f60-b940-e2309f1cec70.png"
+}

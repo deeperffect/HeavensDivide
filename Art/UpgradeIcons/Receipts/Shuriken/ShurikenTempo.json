@@ -1,0 +1,9 @@
+{
+  "id": "ShurikenTempo",
+  "file": "Art/UpgradeIcons/Generated/Shuriken/ShurikenTempo.png",
+  "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShurikenTempo",
+  "prompt": "Use case: stylized-concept. Create ONE standalone square upgrade ICON for BLOODSHIFT. Clean hand-drawn game icon: bold slightly irregular black outlines, large flat matte shapes, one cel-shadow tone, uniform deep-teal background #102229. Violet and ivory metal shuriken, restrained crimson accents for tradeoffs. Center complete symbol within middle 64%, generous margins, readable at 64px. No text, numbers, logo, frame, realism, gradients, grain, splatter, tiny particles, fog. Subject: Ivory shuriken with three successive violet cutting arcs around its lower edge, rhythm of repeated contact.",
+  "mode": "builtin-imagegen",
+  "source_sha256": "2694175e30bfb10e558452152d3ca0096e51520d2f97c788ceefb10dd390f29e",
+  "original_source": "C:\\Users\\deepe\\.codex\\generated_images\\01a0fe4e-c581-7722-9a89-875760849015\\exec-c15d96c9-3aae-4d04-b718-43110896c1cc.png"
+}

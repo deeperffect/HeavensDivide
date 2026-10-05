@@ -10,6 +10,13 @@ import unreal
 
 root=Path(unreal.Paths.project_dir()).resolve()
 job=json.loads((root/'Art/UpgradeCards/GrandEntrance.json').read_text())
+# Prefer the current icon catalog when its texture has already been imported.
+# Keep the original illustration as the bootstrap fallback for a new checkout.
+icon_manifest=root/'Art/UpgradeIcons/manifest.json'
+if icon_manifest.exists():
+    icon_row=next(row for row in json.loads(icon_manifest.read_text(encoding='utf-8'))['cards'] if row['id']=='GrandEntrance')
+    if unreal.EditorAssetLibrary.does_asset_exist(icon_row['texture']):
+        job={**job, 'texture':icon_row['texture'], 'file':icon_row['file']}
 controller='/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController'
 validate='-ValidateGrandEntrance' in unreal.SystemLibrary.get_command_line()
 values={'SamuraiRadius':600.,'NinjaBonusProjectiles':8.,'NinjaFanAngle':100.}

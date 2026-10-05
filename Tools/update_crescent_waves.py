@@ -10,8 +10,8 @@ folder = '/Game/HeavensDivide/Upgrades/Samurai/'
 validate = '-ValidateCrescentWaves' in unreal.SystemLibrary.get_command_line()
 backup = root / 'Saved/Backups/CrescentWaves' / datetime.now().strftime('%Y%m%d_%H%M%S')
 changes = [
-    ('DA_Upgrade_SamuraiCrescentStance', {'SlowFraction': .3}, 'Replaces normal melee attacks with traveling Blade Waves, without a melee swing. Wave hits slow enemies by 30% for 5 seconds. Choose one Samurai stance per run. Cannot apply Bleed.'),
-    ('DA_Upgrade_SamuraiCrescentSlow', {}, '+5 percentage points slow per rank. Maximum 5 ranks; base 30% reaches 55%. Unavailable with Sudden Eruption.'),
+    ('DA_Upgrade_SamuraiCrescentStance', {'SlowFraction': .3}, 'Replace melee attacks with piercing waves that deal 40% attack damage and slow enemies by 30% for 5 seconds. Choose one Samurai stance per run.'),
+    ('DA_Upgrade_SamuraiCrescentSlow', {}, 'Waves slow enemies by an additional 5%.'),
 ]
 changed_paths = {root / 'Content/HeavensDivide/Upgrades/Samurai' / (name + '.uasset') for name, _, _ in changes}
 if not validate:

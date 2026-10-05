@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AttackProjectileBase.h"
+#include "FangBuild.h"
+#include "BarrageBuild.h"
 #include "NinjaBuildComponent.h"
 #include "SurvivorAbilityComponent.h"
 
@@ -104,7 +106,21 @@ void AAttackProjectileBase::InitializeProjectile(
 		SetInstigator(OwnerPawn);
 	}
 
-	ProjectileDamage = Damage;
+    if (InTargetType == EProjectileTargetType::Enemies && AEnemyBase::ResolvePlayerAttackSource(InGameplayOwner) == EPlayerAttackSource::Ninja)
+        SetActorScale3D(GetActorScale3D() * (1.f + FangBuild::Scaling(GetPlayerUpgradesForMarkedForDeath(this, InGameplayOwner), TEXT("NinjaCoverage"), .15f)));
+    const auto* BarrageU=GetPlayerUpgradesForMarkedForDeath(this,InGameplayOwner);
+    bBarrageProjectile=InTargetType==EProjectileTargetType::Enemies && AEnemyBase::ResolvePlayerAttackSource(InGameplayOwner)==EPlayerAttackSource::Ninja && BarrageU && BarrageU->HasUpgradeId(TEXT("BarrageStance"));
+    if(bBarrageProjectile)
+    {
+      bCanTriggerSplit=InSplitUpgradeLevel>0 && FMath::FRand()<BarrageBuild::SplitChance(BarrageU);
+      if(BarrageU->HasUpgradeId(TEXT("BarrageProcession")))
+      {
+        bCanTriggerSplit=false;RemainingBounces=3;
+        BarrageBounceRetention=FMath::Clamp(.75f+BarrageBuild::SplitChance(BarrageU)*.2f,0.f,1.f);
+      }
+      SetLifeSpan(FMath::Max(.01f,SourceTargetingRange/FMath::Max(1.f,Speed)));
+    }
+    ProjectileDamage = Damage;
 	ProjectileSpeed = Speed;
 
 	if (bFlattenLaunchDirection)
@@ -205,7 +221,13 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			FeedbackLocation = SweepResult.ImpactPoint;
 			ImpactNormal = SweepResult.ImpactNormal;
 		}
-		const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
+		if (bBarrageProjectile && PlayerUpgrades && EnemyHealth->IsDamageEnabled())
+        {
+          if(PlayerUpgrades->HasUpgradeId(TEXT("BarrageCritical")) && FMath::FRand()<BarrageBuild::Value(PlayerUpgrades,TEXT("BarrageCritical"),TEXT("Chance"),.15f)+BarrageBuild::Scaling(PlayerUpgrades,TEXT("BarrageCriticalChance"),.1f))
+            FinalDamage*=BarrageBuild::Value(PlayerUpgrades,TEXT("BarrageCritical"),TEXT("DamageMultiplier"),2.f);
+          HitEnemy->GetStatusEffectComponent()->ApplyBarragePoison(const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades),FinalDamage);
+        }
+        const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
 		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
@@ -369,6 +391,7 @@ bool AAttackProjectileBase::TryBounceFromImpact(const FVector& ImpactLocation)
 	}
 
 	--RemainingBounces;
+ if(bBarrageProjectile)ProjectileDamage*=BarrageBounceRetention;
 	RemainingEnemyHits = FMath::Max(1, 1 + AdditionalPierceCount);
 	SetActorLocation(ImpactLocation + BounceDirection * 20.0f);
 	SetActorRotation(BounceDirection.Rotation());

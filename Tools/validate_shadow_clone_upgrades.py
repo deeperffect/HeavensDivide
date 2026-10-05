@@ -36,9 +36,9 @@ entries = multiple.get_editor_property("rarity_magnitudes")
 values = [entry.get_editor_property("magnitude") for entry in entries]
 descriptions = [str(entry.get_editor_property("description_override")) for entry in entries]
 if values != [1.0, 2.0, 3.0] or descriptions != [
-    "Shadow Clones perform +1 additional attack.",
-    "Shadow Clones perform +2 additional attacks.",
-    "Shadow Clones perform +3 additional attacks.",
+    "Shadow Clones perform 1 additional attack.",
+    "Shadow Clones perform 2 additional attacks.",
+    "Shadow Clones perform 3 additional attacks.",
 ]:
     raise RuntimeError(f"Multiple Strikes rarity mismatch: values={values} descriptions={descriptions}")
 

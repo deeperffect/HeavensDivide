@@ -1,0 +1,872 @@
+{
+  "count": 108,
+  "mode": "import",
+  "cards": [
+    {
+      "id": "BloodDetonation",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodDetonation",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodDetonation.T_Upgrade_BloodDetonation",
+      "file": "Art/UpgradeIcons/Generated/BloodDetonation.png",
+      "source_sha256": "86f7374a26cbdcba752a5dc0c459fe5aca46d6dd716f72788f02180053a2dde8",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodPactPower",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodPactPower",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodPactPower.T_Upgrade_BloodPactPower",
+      "file": "Art/UpgradeIcons/Generated/BloodPactPower.png",
+      "source_sha256": "4ef86e60d508116b47b234a42accc66cfcb6987dcfe1e0ac1e79be1ef10d79a4",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodPactSpeed",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodPactSpeed",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodPactSpeed.T_Upgrade_BloodPactSpeed",
+      "file": "Art/UpgradeIcons/Generated/BloodPactSpeed.png",
+      "source_sha256": "e5ccf0b9c291243a2ee8ff98d449e714363d4b4ceabbee7d9fec731c35589a04",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentEruptionPact",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentEruptionPact",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentEruptionPact.T_Upgrade_CrescentEruptionPact",
+      "file": "Art/UpgradeIcons/Generated/CrescentEruptionPact.png",
+      "source_sha256": "447d2d75b3520db366f3e7a4885b27adfd256d361b68c64585cb8681d13b9d84",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentFieldPact",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentFieldPact",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentFieldPact.T_Upgrade_CrescentFieldPact",
+      "file": "Art/UpgradeIcons/Generated/CrescentFieldPact.png",
+      "source_sha256": "10c870bbc052734c015a492cd8581e731868035e2971da26d277ac94e1356700",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentPowerPact",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentPowerPact",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentPowerPact.T_Upgrade_CrescentPowerPact",
+      "file": "Art/UpgradeIcons/Generated/CrescentPowerPact.png",
+      "source_sha256": "9d7ba1105d68cf022765a18d5c4f9489f6d570c13c7263193eb87912c53cc569",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuDashPact",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuDashPact",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuDashPact.T_Upgrade_IaijutsuDashPact",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuDashPact.png",
+      "source_sha256": "bce106c328ef8b25fc6c98b1ca7f98a03516c3f053fb9024bf756126d220910f",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuMarkPact",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuMarkPact",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuMarkPact.T_Upgrade_IaijutsuMarkPact",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuMarkPact.png",
+      "source_sha256": "abdd1e3494689b99905a63d3ac96eecc311379ec9c0de43a6c6e41d1abfd14eb",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuPowerPact",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuPowerPact",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuPowerPact.T_Upgrade_IaijutsuPowerPact",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuPowerPact.png",
+      "source_sha256": "88cd5d0763d32f3ae6400b3df94731b74e457ecf18f3fc2109c942fa9f80dafc",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GlobalAttackSpeed",
+      "asset": "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalAttackSpeed",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GlobalAttackSpeed.T_Upgrade_GlobalAttackSpeed",
+      "file": "Art/UpgradeIcons/Generated/GlobalAttackSpeed.png",
+      "source_sha256": "848d7fba373ee2a692e2db104d14c7646160d4c8dbfb06ecc4686682cb62838e",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GlobalDamage",
+      "asset": "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalDamage",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GlobalDamage.T_Upgrade_GlobalDamage",
+      "file": "Art/UpgradeIcons/Generated/GlobalDamage.png",
+      "source_sha256": "45dc32b7de44d378f6c855c44a26ed1f576f12ebb1bd7f548a87b164541e4bbe",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GlobalDashCharge",
+      "asset": "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalDashCharge",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GlobalDashCharge.T_Upgrade_GlobalDashCharge",
+      "file": "Art/UpgradeIcons/Generated/GlobalDashCharge.png",
+      "source_sha256": "3bd4057379e433e7d621ee73df3de71dd98dd63758667ad9a2bcbb12bdad2225",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GlobalMaxHealth",
+      "asset": "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalMaxHealth",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GlobalMaxHealth.T_Upgrade_GlobalMaxHealth",
+      "file": "Art/UpgradeIcons/Generated/GlobalMaxHealth.png",
+      "source_sha256": "771d264fa4d9525442a3a4f43ccefc3f70431ed16153c91526f1aaebbccf6116",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GlobalMovespeed",
+      "asset": "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalMoveSpeed",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GlobalMovespeed.T_Upgrade_GlobalMovespeed",
+      "file": "Art/UpgradeIcons/Generated/GlobalMovespeed.png",
+      "source_sha256": "d2812c24abdcd198305c7a631e9153585ee1e1c43d9561a032deb3052b3dce85",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GlobalPickupRadius",
+      "asset": "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalPickupRadius",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GlobalPickupRadius.T_Upgrade_GlobalPickupRadius",
+      "file": "Art/UpgradeIcons/Generated/GlobalPickupRadius.png",
+      "source_sha256": "09570bb9f562a5e8960a1edad5e3f44cdb3a41160a0fa6494f055f27cbe36173",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "AfterimageFrenzy",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaAfterimageFrenzy",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_AfterimageFrenzy.T_Upgrade_AfterimageFrenzy",
+      "file": "Art/UpgradeIcons/Generated/AfterimageFrenzy.png",
+      "source_sha256": "bc6c0e5882468044ec25451ec8de26bbba6999d3d37eb07ed3a72c35f2d359aa",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BarrageStance",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaBarrageStance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BarrageStance.T_Upgrade_BarrageStance",
+      "file": "Art/UpgradeIcons/Generated/BarrageStance.png",
+      "source_sha256": "8b8376a1f3e7e52e4679542a5d152462f06dd8be0e5b67e2046680aa0f941013",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BreakingWheel",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaBreakingWheel",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BreakingWheel.T_Upgrade_BreakingWheel",
+      "file": "Art/UpgradeIcons/Generated/BreakingWheel.png",
+      "source_sha256": "980fc018b26ade24199042d44b8023942addbbbd33904bca6af6a0d0b7b06851",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "Crescendo",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaCrescendo",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_Crescendo.T_Upgrade_Crescendo",
+      "file": "Art/UpgradeIcons/Generated/Crescendo.png",
+      "source_sha256": "cd6ba390898e03399d32c4559d76ee8ccb6b49a775dd300d9211ccda282b5272",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CuttingReturn",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaCuttingReturn",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CuttingReturn.T_Upgrade_CuttingReturn",
+      "file": "Art/UpgradeIcons/Generated/CuttingReturn.png",
+      "source_sha256": "23c641caec7a8da6663169a6914222ee541ffbb77e22e9c1f43cc33d73da153a",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "EmbeddedBlades",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaEmbeddedBlades",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_EmbeddedBlades.T_Upgrade_EmbeddedBlades",
+      "file": "Art/UpgradeIcons/Generated/EmbeddedBlades.png",
+      "source_sha256": "f6b7be13ca71930502ba69963aa87b5bbae484afa0c23fa908e80ea5f3417f26",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "FinalPursuit",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFinalPursuit",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FinalPursuit.T_Upgrade_FinalPursuit",
+      "file": "Art/UpgradeIcons/Generated/FinalPursuit.png",
+      "source_sha256": "7f4c804c6d8ed25590f635fabf8af333b22d3233013e78820d187601a6ac95ea",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "FocusedVolley",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFocusedVolley",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FocusedVolley.T_Upgrade_FocusedVolley",
+      "file": "Art/UpgradeIcons/Generated/FocusedVolley.png",
+      "source_sha256": "3d321e59b50784bc3558a0ac260abeea24090782c9b2b311bbb9fb3ff8097abe",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "ForkingProjectiles",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaForkingProjectiles",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ForkingProjectiles.T_Upgrade_ForkingProjectiles",
+      "file": "Art/UpgradeIcons/Generated/ForkingProjectiles.png",
+      "source_sha256": "4a458348a29369b96c0ef4847da7a69d57a4d62f4c2d9c7f69024758bae3d974",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "FragmentDamage",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFragmentDamage",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FragmentDamage.T_Upgrade_FragmentDamage",
+      "file": "Art/UpgradeIcons/Generated/FragmentDamage.png",
+      "source_sha256": "4e2339a85e48328e7fde9d8830bd1c4b71c745d7ec1be2988bf2625a25eb6519",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "FragmentLoad",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFragmentLoad",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FragmentLoad.T_Upgrade_FragmentLoad",
+      "file": "Art/UpgradeIcons/Generated/FragmentLoad.png",
+      "source_sha256": "a044fe01787c4fa2c449e57ba111e4912a8865bdd8e61e9fa4cc6a1ab7ffdcc8",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "FragmentReach",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFragmentReach",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FragmentReach.T_Upgrade_FragmentReach",
+      "file": "Art/UpgradeIcons/Generated/FragmentReach.png",
+      "source_sha256": "d7d88de994a71e3ab7aa5535d4fd0876c23122453fb3c627b76444a123904384",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GreatShuriken",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaGreatShurikenStance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GreatShuriken.T_Upgrade_GreatShuriken",
+      "file": "Art/UpgradeIcons/Generated/GreatShuriken.png",
+      "source_sha256": "a8a098804cfd4801be0844e837af91b4b00ba7a3ee603b0b4cedc28e3ddc034e",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GrindingHalt",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaGrindingHalt",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GrindingHalt.T_Upgrade_GrindingHalt",
+      "file": "Art/UpgradeIcons/Generated/GrindingHalt.png",
+      "source_sha256": "7e8c3d48cf4753fb42fcbe18e334580d23a416d12393e31acd04cbfc31ce8bc6",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "HeavyShuriken",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaHeavyShuriken",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_HeavyShuriken.T_Upgrade_HeavyShuriken",
+      "file": "Art/UpgradeIcons/Generated/HeavyShuriken.png",
+      "source_sha256": "eb2298b8455c4919b5f5b196147637b7d1eb3fd6a37c69eb6ab150625296a2df",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "LingeringShuriken",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaLingeringShuriken",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_LingeringShuriken.T_Upgrade_LingeringShuriken",
+      "file": "Art/UpgradeIcons/Generated/LingeringShuriken.png",
+      "source_sha256": "69e2cb49ae87c99662f2ed828f5e8c3ebf24281fa53f260dd5d718632f514d04",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "MultipleStrikes",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaMultipleStrikes",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_MultipleStrikes.T_Upgrade_MultipleStrikes",
+      "file": "Art/UpgradeIcons/Generated/MultipleStrikes.png",
+      "source_sha256": "35ae838a1773d76655f2c3f39ff09c5d701918a77447cb3078fc61f70224e5af",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "NeedleRain",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaNeedleRain",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_NeedleRain.T_Upgrade_NeedleRain",
+      "file": "Art/UpgradeIcons/Generated/NeedleRain.png",
+      "source_sha256": "2ea1be4a204626704384781b0084b2b13d16721e55d6fc8f9f3dce6b500fb8c5",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "RelentlessFang",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaRelentlessFang",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_RelentlessFang.T_Upgrade_RelentlessFang",
+      "file": "Art/UpgradeIcons/Generated/RelentlessFang.png",
+      "source_sha256": "633a7f94c4ef4573af3869e48fb6e31a2fa23046023b28171391e0985e6a0e61",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "ReturningFang",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaReturningFangStance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ReturningFang.T_Upgrade_ReturningFang",
+      "file": "Art/UpgradeIcons/Generated/ReturningFang.png",
+      "source_sha256": "a24db92eb868769e2a81842aef90387c618d7d27336c14d2054d5856d211e455",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "SerratedEdge",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaSerratedEdge",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SerratedEdge.T_Upgrade_SerratedEdge",
+      "file": "Art/UpgradeIcons/Generated/SerratedEdge.png",
+      "source_sha256": "08523410b6fe82f0ca3930c8de03adfdd9ab73e05b25eb5f9c8fe58a20c81d96",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "ShadowStep",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaShadowStep",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ShadowStep.T_Upgrade_ShadowStep",
+      "file": "Art/UpgradeIcons/Generated/ShadowStep.png",
+      "source_sha256": "ac0c008d7686e0b98a0104cce19b7de8c9d4c3dc5ce7847086263bbeaca2b7b1",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "VenomousKunai",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaVenomousKunai",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_VenomousKunai.T_Upgrade_VenomousKunai",
+      "file": "Art/UpgradeIcons/Generated/VenomousKunai.png",
+      "source_sha256": "26818f422acc11e343f66ebc189f92a50e8c28b90903c6a013f67c45d226186f",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "WideOrbit",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaWideOrbit",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_WideOrbit.T_Upgrade_WideOrbit",
+      "file": "Art/UpgradeIcons/Generated/WideOrbit.png",
+      "source_sha256": "87b8a74e836971f82f6a5ded6300ff4238851a959f1a41d749b341b4b2d16916",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BattleStance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBattleStance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BattleStance.T_Upgrade_BattleStance",
+      "file": "Art/UpgradeIcons/Generated/BattleStance.png",
+      "source_sha256": "4c05aac40eefaffd11a6e1c023eef21612a44ff1115d11099a1e3e21cddb0a69",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BladeWave",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentStance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BladeWave.T_Upgrade_BladeWave",
+      "file": "Art/UpgradeIcons/Generated/BladeWave.png",
+      "source_sha256": "8c05ce2b67c1da92da5f659f77a3685289ff8a3d1d01854759d6b594a4153877",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BladeWaveHaste",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWaveHaste",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BladeWaveHaste.T_Upgrade_BladeWaveHaste",
+      "file": "Art/UpgradeIcons/Generated/BladeWaveHaste.png",
+      "source_sha256": "8e05616c2cf9d663fb0279108aa130554df64ecda1857c7a30dbf6a62647fbf5",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BladeWavePower",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWavePower",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BladeWavePower.T_Upgrade_BladeWavePower",
+      "file": "Art/UpgradeIcons/Generated/BladeWavePower.png",
+      "source_sha256": "6dd34410faecaeab9ebf035a24ce2c5e949e4b82b221064596c7c1e575875773",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BleedingEdge",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBleedingEdge",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BleedingEdge.T_Upgrade_BleedingEdge",
+      "file": "Art/UpgradeIcons/Generated/BleedingEdge.png",
+      "source_sha256": "98e0fc53f19529e9d6f2edf54a463a95af1e144e5b502c2c2bb2e4122a241c24",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodAssist",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodAssist",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodAssist.T_Upgrade_BloodAssist",
+      "file": "Art/UpgradeIcons/Generated/BloodAssist.png",
+      "source_sha256": "06f9f94548cc17e88a3fd302da942763204cdacae2ce2e8d2b94a46dcf00aa4c",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodAssistChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodAssistChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodAssistChance.T_Upgrade_BloodAssistChance",
+      "file": "Art/UpgradeIcons/Generated/BloodAssistChance.png",
+      "source_sha256": "c7c2c3284c6ede18221b20c867141e827dfc3d3d23a1aa69cf398eb9e1c9155c",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodCapacity",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodCapacity",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodCapacity.T_Upgrade_BloodCapacity",
+      "file": "Art/UpgradeIcons/Generated/BloodCapacity.png",
+      "source_sha256": "f0b4a49d523216515d4b0d24377ef4f69fb55057ab2e0767a0d1b4a7932eb491",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodCritical",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodCritical",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodCritical.T_Upgrade_BloodCritical",
+      "file": "Art/UpgradeIcons/Generated/BloodCritical.png",
+      "source_sha256": "49b287e8005d0b360e8b1a21c16075eea890f95284165c739b4ff8c167cea3f4",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodCriticalChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodCriticalChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodCriticalChance.T_Upgrade_BloodCriticalChance",
+      "file": "Art/UpgradeIcons/Generated/BloodCriticalChance.png",
+      "source_sha256": "b2eb2686988ce77ad32854505f0a69ffe4775579bdeabeac67b25d211f8330e7",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodEcho",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodEcho",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodEcho.T_Upgrade_BloodEcho",
+      "file": "Art/UpgradeIcons/Generated/BloodEcho.png",
+      "source_sha256": "5f0c099126b7f5dd0f969fc70b203e6b2c55b29ca69bfd65e9af1e9ccbf36274",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodEchoChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodEchoChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodEchoChance.T_Upgrade_BloodEchoChance",
+      "file": "Art/UpgradeIcons/Generated/BloodEchoChance.png",
+      "source_sha256": "b7b3d35eef5ebc8b44095163ebcc2cb33b36692f785eff07f39bf353f878041b",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodRush",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodRush",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodRush.T_Upgrade_BloodRush",
+      "file": "Art/UpgradeIcons/Generated/BloodRush.png",
+      "source_sha256": "e2ab12c59928a0272b64718eb5f7c4ca4dc3914d02c40310eed7d4d2f9da0303",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodTransfer",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodTransfer",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodTransfer.T_Upgrade_BloodTransfer",
+      "file": "Art/UpgradeIcons/Generated/BloodTransfer.png",
+      "source_sha256": "a2ca9434d3a9a009ade59eec57a8a9252a21119a177781f2691b5d5ef64eca8d",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BloodTransferArea",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodTransferArea",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BloodTransferArea.T_Upgrade_BloodTransferArea",
+      "file": "Art/UpgradeIcons/Generated/BloodTransferArea.png",
+      "source_sha256": "217a3a603366e9f264aea2fd71621ed9a0cd3b8ea04b9efbc5b9d2c77f277f2a",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "Bloodletting",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBloodletting",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_Bloodletting.T_Upgrade_Bloodletting",
+      "file": "Art/UpgradeIcons/Generated/Bloodletting.png",
+      "source_sha256": "03524791bd715349204b565fee7a1766345f542d2549e958f1048b511bee4e25",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "BurstRadius",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBurstRadius",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BurstRadius.T_Upgrade_BurstRadius",
+      "file": "Art/UpgradeIcons/Generated/BurstRadius.png",
+      "source_sha256": "07c7a9b1b063a8a31b5edc77eed1e449eb15982b70011a8f19d12fd0f0a241f2",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentArc",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentArc",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentArc.T_Upgrade_CrescentArc",
+      "file": "Art/UpgradeIcons/Generated/CrescentArc.png",
+      "source_sha256": "400738e5028242961ad2dc39df357cfd186a6057e34469af04525f6a3a47f55f",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentArcChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentArcChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentArcChance.T_Upgrade_CrescentArcChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentArcChance.png",
+      "source_sha256": "9889db230f5cef145dbea9954bbd21567923db884011cf689cd8bba385ae4353",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentAssist",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentAssist",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentAssist.T_Upgrade_CrescentAssist",
+      "file": "Art/UpgradeIcons/Generated/CrescentAssist.png",
+      "source_sha256": "a3e2d3b6d4a41f0870e77343f0e5f1249b45ace2adc759e9d32e83318a302007",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentAssistChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentAssistChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentAssistChance.T_Upgrade_CrescentAssistChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentAssistChance.png",
+      "source_sha256": "79a1c33c736c06d543cc1d10e9498eb3bb78098f59cea183548f329ca092f934",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentDamage",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentDamage",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentDamage.T_Upgrade_CrescentDamage",
+      "file": "Art/UpgradeIcons/Generated/CrescentDamage.png",
+      "source_sha256": "0759d26787a29fd9c31fed0e193064226c4959b4b2a2b3d79aae0c8291224b76",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentDoubleCut",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentDoubleCut",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentDoubleCut.T_Upgrade_CrescentDoubleCut",
+      "file": "Art/UpgradeIcons/Generated/CrescentDoubleCut.png",
+      "source_sha256": "599d8f50021cf9187bb005990af39d07e6eec492fcdca0125c5c59c8cd7e67de",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentDoubleCutFrequency",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentDoubleCutFrequency",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentDoubleCutFrequency.T_Upgrade_CrescentDoubleCutFrequency",
+      "file": "Art/UpgradeIcons/Generated/CrescentDoubleCutFrequency.png",
+      "source_sha256": "385ed346eb0a8816511250819b51c01ea3131e8db56d1c8d116554f5e154da1e",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentField",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentField",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentField.T_Upgrade_CrescentField",
+      "file": "Art/UpgradeIcons/Generated/CrescentField.png",
+      "source_sha256": "00bfeeef7c801038c76c0ef7eca287f6e60448556a1e69613f88378761ca0018",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentFieldChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentFieldChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentFieldChance.T_Upgrade_CrescentFieldChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentFieldChance.png",
+      "source_sha256": "61c5ae6b556d5346a848058079de656024dedd9c719c7c53b5e73a21b5611d6a",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentFieldPower",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentFieldPower",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentFieldPower.T_Upgrade_CrescentFieldPower",
+      "file": "Art/UpgradeIcons/Generated/CrescentFieldPower.png",
+      "source_sha256": "3846d3a28e5eca8c068c2f3f3c0fd5b033c6227eb73f8b62b939fa33fc3f2fa2",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentRange",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentRange",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentRange.T_Upgrade_CrescentRange",
+      "file": "Art/UpgradeIcons/Generated/CrescentRange.png",
+      "source_sha256": "814c2184119d83e8bf2b2568dcd1d63ea4b5ff4c16bacbe449d35669f456a986",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentSlow",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentSlow",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSlow.T_Upgrade_CrescentSlow",
+      "file": "Art/UpgradeIcons/Generated/CrescentSlow.png",
+      "source_sha256": "35ff1538fc99e17df668acbdfd2c67289ae0f91b9caaf0351efd9ea3f97f954f",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentSlowDuration",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentSlowDuration",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSlowDuration.T_Upgrade_CrescentSlowDuration",
+      "file": "Art/UpgradeIcons/Generated/CrescentSlowDuration.png",
+      "source_sha256": "4901a396edce1800f07ca119bf66b00994fe0b523b19807df31575f367de9e25",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentSpeed",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentSpeed",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSpeed.T_Upgrade_CrescentSpeed",
+      "file": "Art/UpgradeIcons/Generated/CrescentSpeed.png",
+      "source_sha256": "7fda918779c4c333ef3a3e975ee3faddf663bdb059f47cf8752932933268e4dd",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentSplit",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentSplit",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSplit.T_Upgrade_CrescentSplit",
+      "file": "Art/UpgradeIcons/Generated/CrescentSplit.png",
+      "source_sha256": "0cfc3c866cdce3d5f62ddeef54033c86a643e264f37123ab1068fcf9a6c9203d",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrescentSplitChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrescentSplitChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrescentSplitChance.T_Upgrade_CrescentSplitChance",
+      "file": "Art/UpgradeIcons/Generated/CrescentSplitChance.png",
+      "source_sha256": "baa1c8d10934327abe65a78135f3d9d781d855bf072781801ef6eb15edc8144c",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "CrossingBlades",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrossingBlades",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrossingBlades.T_Upgrade_CrossingBlades",
+      "file": "Art/UpgradeIcons/Generated/CrossingBlades.png",
+      "source_sha256": "d7a49750d12aa24d807c70274eb8017bad9844dfbe1f008af14ec34de4868d16",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "DeepCuts",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiDeepCuts",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_DeepCuts.T_Upgrade_DeepCuts",
+      "file": "Art/UpgradeIcons/Generated/DeepCuts.png",
+      "source_sha256": "a37d2aabff75b09b219282971717241414306d5493e72c1afaf10c0b8df768a0",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "DoubleCut",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiDoubleCut",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_DoubleCut.T_Upgrade_DoubleCut",
+      "file": "Art/UpgradeIcons/Generated/DoubleCut.png",
+      "source_sha256": "1ce99408809d33d2f89f2b5ddcd8055b164e0e8b8734f40301b3c28cdc576e28",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "DoubleCutFrequency",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiDoubleCutFrequency",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_DoubleCutFrequency.T_Upgrade_DoubleCutFrequency",
+      "file": "Art/UpgradeIcons/Generated/DoubleCutFrequency.png",
+      "source_sha256": "5297e4beec4a30f4f489cd84ae23732308035138c4d56843a61bee8ad37f90bd",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "Iaijutsu",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuStance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_Iaijutsu.T_Upgrade_Iaijutsu",
+      "file": "Art/UpgradeIcons/Generated/Iaijutsu.png",
+      "source_sha256": "9a0765a1ee6d7c2d341dc4c06e3caeacde062abf2979389ae204811b8d6545eb",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuAOE",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuAOE",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuAOE.T_Upgrade_IaijutsuAOE",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuAOE.png",
+      "source_sha256": "683888ef115d593977bed12afae9eb10871df50ddcb2fc89cacce9387cc030e1",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuAOEChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuAOEChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuAOEChance.T_Upgrade_IaijutsuAOEChance",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuAOEChance.png",
+      "source_sha256": "99151f013da835a76315c404e73659882424397ccb3de7ddbd5dc87d743d1ce0",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuAssist",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuAssist",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuAssist.T_Upgrade_IaijutsuAssist",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuAssist.png",
+      "source_sha256": "0e594920805d95e165da7f15a64b31f193503540800c0eea792a6dcbd56abe89",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuAssistChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuAssistChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuAssistChance.T_Upgrade_IaijutsuAssistChance",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuAssistChance.png",
+      "source_sha256": "7e40d486f4a09642b3d38014384bdf19100c632095aa0f9bb474b148989d5fdf",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuCascadePower",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuCascadePower",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuCascadePower.T_Upgrade_IaijutsuCascadePower",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuCascadePower.png",
+      "source_sha256": "e93130a4e87ff6fd4520712560d0583a81a63c0e617eee1c18bf85d5b2ab6109",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuChain",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuChain",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuChain.T_Upgrade_IaijutsuChain",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuChain.png",
+      "source_sha256": "86f432b88c592183d19dbdfeb790ba2dcc507b8acc42ae99c1fd241364c79666",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuChargeSpeed",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuChargeSpeed",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuChargeSpeed.T_Upgrade_IaijutsuChargeSpeed",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuChargeSpeed.png",
+      "source_sha256": "5a5e63d14ffc34912e048599fa670d04d8d681a2ba49ce529af7738e5bd14faa",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuDamage",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuDamage",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuDamage.T_Upgrade_IaijutsuDamage",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuDamage.png",
+      "source_sha256": "f04238bb5afff79571c5fc46c204586a474b49935fe124bc689e4b69bb7920b9",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuDash",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuDash",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuDash.T_Upgrade_IaijutsuDash",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuDash.png",
+      "source_sha256": "852761d3e0b35f5b666f8813ae89fff6820b18a36052133303ae5d128d7c2899",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuDashPower",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuDashPower",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuDashPower.T_Upgrade_IaijutsuDashPower",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuDashPower.png",
+      "source_sha256": "e0aa90af5b7e56adb87aef5ff11f64b7a3c2a7325db66321f5926bf9ef6a6847",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuDoubleCut",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuDoubleCut",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuDoubleCut.T_Upgrade_IaijutsuDoubleCut",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuDoubleCut.png",
+      "source_sha256": "a29ca3c4da7410debea769ca4e3625ce255f3c4030bf12f6bc9592399603c25b",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuDoubleCutFrequency",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuDoubleCutFrequency",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuDoubleCutFrequency.T_Upgrade_IaijutsuDoubleCutFrequency",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuDoubleCutFrequency.png",
+      "source_sha256": "9604097e8d4c68530f27c323cfcf9c7aa53134e0628e5d467aa331aa975f1620",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuInstant",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuInstant",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuInstant.T_Upgrade_IaijutsuInstant",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuInstant.png",
+      "source_sha256": "510b6633aae7a8a175549d296e71d2f1eeadb8006366e3647e6016a185922fe2",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuInstantChance",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuInstantChance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuInstantChance.T_Upgrade_IaijutsuInstantChance",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuInstantChance.png",
+      "source_sha256": "b2012c4109ca1471e29d13a48dfe114472fe2ae8d908d966cb31d4f6c502314d",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuMarkDamage",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuMarkDamage",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuMarkDamage.T_Upgrade_IaijutsuMarkDamage",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuMarkDamage.png",
+      "source_sha256": "c0722438aff17a1275f51bd53a595282b5deb6b8b862cd488b913c22f0ee498a",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuVacuumReach",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuVacuumReach",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuVacuumReach.T_Upgrade_IaijutsuVacuumReach",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuVacuumReach.png",
+      "source_sha256": "4d6efb567cb73d20870df96b3be42a8ea7926040f46bace04a99a0cb846cdba2",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "IaijutsuWidth",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiIaijutsuWidth",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_IaijutsuWidth.T_Upgrade_IaijutsuWidth",
+      "file": "Art/UpgradeIcons/Generated/IaijutsuWidth.png",
+      "source_sha256": "f83e7e38d3ab96f595f5bd74a24d39fce099deffe476b1ae30dea710ed8b8476",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "LingeringWounds",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiLingeringWounds",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_LingeringWounds.T_Upgrade_LingeringWounds",
+      "file": "Art/UpgradeIcons/Generated/LingeringWounds.png",
+      "source_sha256": "7b9d728038289e27cfd5a434d44290d63e2969f170966700b6f53ad2840e253e",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "OverkillBurst",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiOverkillBurst",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_OverkillBurst.T_Upgrade_OverkillBurst",
+      "file": "Art/UpgradeIcons/Generated/OverkillBurst.png",
+      "source_sha256": "de40ae30030417db0a033aab4215cd90b5551948a31728f38e54787384e7e5b8",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "ReturningBlade",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiReturningBlade",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_ReturningBlade.T_Upgrade_ReturningBlade",
+      "file": "Art/UpgradeIcons/Generated/ReturningBlade.png",
+      "source_sha256": "6dd9e3a753f61156ac843aceac863299f8a240a159229c0f2652beb77924f031",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "SamuraiArea",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiArea",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SamuraiArea.T_Upgrade_SamuraiArea",
+      "file": "Art/UpgradeIcons/Generated/SamuraiArea.png",
+      "source_sha256": "6c38360a5678ba0fbfbde621470ac3deb55aba08f8cc8114ea883e8e6b38a182",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "SamuraiHeavyBlade",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiHeavyBlade",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SamuraiHeavyBlade.T_Upgrade_SamuraiHeavyBlade",
+      "file": "Art/UpgradeIcons/Generated/SamuraiHeavyBlade.png",
+      "source_sha256": "092030f0227a611226dc4b49993e6b7729f29a86b28cec9e1e767916abc57bc4",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "SamuraiTempo",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiSamuraiTempo",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SamuraiTempo.T_Upgrade_SamuraiTempo",
+      "file": "Art/UpgradeIcons/Generated/SamuraiTempo.png",
+      "source_sha256": "faf0bc4f2bbaa870ae7e5935e045a72988cd9043397723ebc3ce1119294ffe1e",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "SplinterWave",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiSplinterWave",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SplinterWave.T_Upgrade_SplinterWave",
+      "file": "Art/UpgradeIcons/Generated/SplinterWave.png",
+      "source_sha256": "56e842f59906cba3fbe62e05aa8466e5cea97bf78c6f2cb861025dac86c2e8a4",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "WaveMultishot",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiWaveMultishot",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_WaveMultishot.T_Upgrade_WaveMultishot",
+      "file": "Art/UpgradeIcons/Generated/WaveMultishot.png",
+      "source_sha256": "5823470fe4e0c149a52135f2dc0c1dd21c86d383bb048cd2cf3480ac1fbedaac",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "WideArc",
+      "asset": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiWideArc",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_WideArc.T_Upgrade_WideArc",
+      "file": "Art/UpgradeIcons/Generated/WideArc.png",
+      "source_sha256": "4f23d59cfe242677c3856add813e90d77f424bc99030ee03ed3aa876bc28b3a8",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "GrandEntrance",
+      "asset": "/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_GrandEntrance",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_GrandEntrance.T_Upgrade_GrandEntrance",
+      "file": "Art/UpgradeIcons/Generated/GrandEntrance.png",
+      "source_sha256": "d9a2bf539c1d55fc71c60f1fb09154298376561c4b7ce58057ad6311344f3306",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "Handoff",
+      "asset": "/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_Handoff",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_Handoff.T_Upgrade_Handoff",
+      "file": "Art/UpgradeIcons/Generated/Handoff.png",
+      "source_sha256": "043084637485525ddb4310b8e0aa90fda77761773f0c896dc2802c5e61a9a0c1",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "MarkedBlade",
+      "asset": "/Game/HeavensDivide/Upgrades/Synergy/DA_Upgrade_SamuraiApplyMarks",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_MarkedBlade.T_Upgrade_MarkedBlade",
+      "file": "Art/UpgradeIcons/Generated/MarkedBlade.png",
+      "source_sha256": "3ad20b2ac8ac99d22e9d83866da24339a65e8a8274ad2753ed8e32344fffd2d1",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "SynergySwapRestoresDashCharge",
+      "asset": "/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_SwapRestoresDashCharge",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SynergySwapRestoresDashCharge.T_Upgrade_SynergySwapRestoresDashCharge",
+      "file": "Art/UpgradeIcons/Generated/SynergySwapRestoresDashCharge.png",
+      "source_sha256": "6dd5c0269812cf7156894cba81cc4e3a72c546c9aed123a6e5aacace2d5dcd10",
+      "non_art_settings_preserved": true
+    },
+    {
+      "id": "TagTeam",
+      "asset": "/Game/HeavensDivide/Upgrades/Synergy/DA_Synergy_TagTeam",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_TagTeam.T_Upgrade_TagTeam",
+      "file": "Art/UpgradeIcons/Generated/TagTeam.png",
+      "source_sha256": "a16a9891acac25be575c1278ec7428b347f13b96b42a31907561d86a70c3d509",
+      "non_art_settings_preserved": true
+    }
+  ],
+  "backup": "Saved\\Backups\\UpgradeIcons\\20261004_044826_465124",
+  "latest_texture_refresh": "Art/UpgradeIcons/crescent_shockwave_import_report.json"
+}

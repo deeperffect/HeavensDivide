@@ -1,0 +1,125 @@
+{
+  "cards": [
+    {
+      "id": "ReturningFang",
+      "source_sha256": "34b3ed0315584599ab0342e9a218ee7855ff32c8f6a2ccc3e17c2e292a622794",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangTwin",
+      "source_sha256": "14a594868a258058baf34d55b377f56b7e0107439f731f5373ee60156c8dd5e7",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "RelentlessFang",
+      "source_sha256": "fad2055ede7854d6bf639542c9d5e6dd19fa33f302a17105b905fbff5cfba0b6",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangResonance",
+      "source_sha256": "a99f4c4549871ece04bce9ab752350a9aed7b027d305b9f12a15839b6f4fc90f",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangDeadeye",
+      "source_sha256": "0b9da5447a3f45d46de33e2589271aa335a9401a7163ec32c01bc13f30a4a63d",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangAssist",
+      "source_sha256": "979cb96df24968a0120c697e32fee9acff1f3c541968f74c248ceeeb22a4653f",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangSplinter",
+      "source_sha256": "0b478d8f4a042a5d4223b0c91a7d0ea94b1fefd8c1308b09445b8f31a3931ac0",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangDamage",
+      "source_sha256": "48440b518519c22e373a5ba9071d7e31ae66ba4f91a6b680a8babd141ec91c27",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangSpeed",
+      "source_sha256": "9b1ed65883bb8982d1f97762158ab6afe7fdf4760c6c7aad3a45665036ca2078",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangRange",
+      "source_sha256": "409bf7d67535bdc19d310ff8421a1a57eb2503a8a9539887dd0c8a9f9dab7b81",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangCloseQuarters",
+      "source_sha256": "ddbd5782fbbad9f9cf88422e8ae60b47748933413d5210c746bebfb352c759ed",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangKillingEdge",
+      "source_sha256": "a015b8977e574ab09d086719c502c807ea70125537b41efe7a37e0e025b1239c",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangTwinFrequency",
+      "source_sha256": "c75f4aed3a28a1dc10c61a31c087ba70cf13bafac651511c1d1e99939753f558",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangPressure",
+      "source_sha256": "1d6b0fa5d60092c94e8c28ecbc9eb254a8bbcbc65f146a76eafe9e2debf56540",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangResonantReach",
+      "source_sha256": "9fa6d770cd230d26174b63cbc31c55d45aea74cc2ee00b89755ee46a5d701880",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangCriticalChance",
+      "source_sha256": "7a96428a1bf386c2902dfee32ad1fbb1014ad88ef158e9dbeab247422628bee8",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangAssistChance",
+      "source_sha256": "fcfce86757c1d75554eda842daebbb54565ab80d7525f22b908f3d1000725ec4",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangSplinterPower",
+      "source_sha256": "91cb660e0a9d1d0776aab6ed4c05007facbe53900219b4e91cc498fd82b2757e",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangFarstrider",
+      "source_sha256": "a8548277edc5a430f3a69a80ab512edf4897cc5fcb43338e56041bc1e4edcb96",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangRedline",
+      "source_sha256": "c96cf2a39d7c5ac23846ae8c06ef65a5d8d054cdae58dbcd11afcd6134ed6a01",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "FangPredator",
+      "source_sha256": "22ef1beb825aee147b48fb99ce31d7a279a98abd05649ebdccb76641e9150bb6",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "NinjaDamage",
+      "source_sha256": "74f9734017a53f1b064764ef73ccd42033d606dde6436d8e78253ab76d288418",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "NinjaSpeed",
+      "source_sha256": "ed25d0d3ece4260ef862f194b66a2ee93fcf2dfe0f00229b88a538b6008d294a",
+      "gameplay_preserved": true
+    },
+    {
+      "id": "NinjaCoverage",
+      "source_sha256": "cb18546e8f9759f6f53cf798a90033f2836d4be7db44d9fb236852ccd1b6962d",
+      "gameplay_preserved": true
+    }
+  ],
+  "backup": "C:\\Users\\deepe\\OneDrive\\Documents\\Unreal Projects\\HeavensDivide\\Saved\\Backups\\FangIcons\\20261005_020713_282263"
+}
