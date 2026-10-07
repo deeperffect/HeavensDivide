@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AttackProjectileBase.h"
+#include "UpgradeProcVFX.h"
 #include "FangBuild.h"
 #include "BarrageBuild.h"
 #include "NinjaBuildComponent.h"
@@ -221,13 +222,15 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 			FeedbackLocation = SweepResult.ImpactPoint;
 			ImpactNormal = SweepResult.ImpactNormal;
 		}
+        bool bBarrageCritical = false;
 		if (bBarrageProjectile && PlayerUpgrades && EnemyHealth->IsDamageEnabled())
         {
           if(PlayerUpgrades->HasUpgradeId(TEXT("BarrageCritical")) && FMath::FRand()<BarrageBuild::Value(PlayerUpgrades,TEXT("BarrageCritical"),TEXT("Chance"),.15f)+BarrageBuild::Scaling(PlayerUpgrades,TEXT("BarrageCriticalChance"),.1f))
-            FinalDamage*=BarrageBuild::Value(PlayerUpgrades,TEXT("BarrageCritical"),TEXT("DamageMultiplier"),2.f);
+            { bBarrageCritical=true; FinalDamage*=BarrageBuild::Value(PlayerUpgrades,TEXT("BarrageCritical"),TEXT("DamageMultiplier"),2.f); }
           HitEnemy->GetStatusEffectComponent()->ApplyBarragePoison(const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades),FinalDamage);
         }
         const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
+        if (bDamageApplied && bBarrageCritical) PlayUpgradeProcVFX(PlayerUpgrades,TEXT("BarrageCritical"),FeedbackLocation);
 		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
@@ -240,6 +243,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
 				? HitEnemy->GetActorLocation()
 				: FVector(SweepResult.ImpactPoint);
 			bCanTriggerSplit = false;
+            if (bBarrageProjectile) PlayUpgradeProcVFX(PlayerUpgrades,TEXT("ForkingProjectiles"),SplitImpactLocation,45.f);
 			TrySpawnSplitProjectiles(HitEnemy, SplitImpactLocation);
 		}
 

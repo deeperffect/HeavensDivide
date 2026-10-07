@@ -29,6 +29,8 @@
 #include "InputActionValue.h"
 #include "InputCoreTypes.h"
 #include "LevelUpWidget.h"
+#include "NiagaraSystem.h"
+#include "Misc/App.h"
 #include "PlayerCameraRig.h"
 #include "PlayerHUDWidget.h"
 #include "PlayerUpgradeComponent.h"
@@ -117,6 +119,9 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 		TEXT("/Game/HeavensDivide/Blueprints/UI/WBP_GameOver"));
 	if (GameOverWidgetBlueprint.Succeeded()) GameOverWidgetClass = GameOverWidgetBlueprint.Class;
 	VictoryWidgetClass = UVictoryWidget::StaticClass();
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> LevelUpParticle(
+		TEXT("/Game/Assets/VFX/VerticalBeamsV1/Particles/NiagaraSystems/NS_VerticalBeam22_Cosmic"));
+	LevelUpVFX = LevelUpParticle.Object;
 }
 
 void ASurvivorPlayerController::BeginPlay()
@@ -224,6 +229,7 @@ void ASurvivorPlayerController::BuildRuntimeKeyMappings(const UHeavensDivideGame
 
 void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    CancelLevelUpPresentation();
     ClosePauseMenu();
 	if(const auto* InputPlayer=GetLocalPlayer())if(auto* Subsystem=InputPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 		if(RuntimeMappingContext)Subsystem->RemoveMappingContext(RuntimeMappingContext);
@@ -242,6 +248,7 @@ void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason
 void ASurvivorPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+	UpdateLevelUpPresentation(static_cast<float>(FApp::GetDeltaTime()));
 
 	UpdateManualTargetingInput();
 	UpdateMouseFacingTarget();
@@ -879,6 +886,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 
 void ASurvivorPlayerController::StopRunGameplay(bool bPlayDeathPresentation)
 {
+    CancelLevelUpPresentation();
     ClosePauseMenu();
 	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
 		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
@@ -1019,7 +1027,6 @@ void ASurvivorPlayerController::PresentVictory()
 void ASurvivorPlayerController::HandlePlayerLevelUp(int32 NewLevel)
 {
 	if (RunEndState != ERunEndState::Playing) return;
-	UCombatAudioLibrary::PlayEvent(this, TEXT("LevelUp"), FVector::ZeroVector, true);
 	++PendingLevelUpChoices;
 	UE_LOG(LogTemp, Log, TEXT("LEVEL UP RECEIVED: NewLevel=%d"), NewLevel);
 	UE_LOG(LogTemp, Log, TEXT("Pending selections = %d"), PendingLevelUpChoices);
@@ -1163,10 +1170,12 @@ void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
 
 void ASurvivorPlayerController::StartNextUpgradeSelection()
 {
-	if (RunEndState != ERunEndState::Playing) return;
+	if (RunEndState != ERunEndState::Playing || bLevelUpPresentationActive) return;
 	if (PendingLevelUpChoices > 0)
 	{
-		StartNextLevelUpSelection();
+		// Celebrate once per batch; consecutive choices stay in the menu.
+		if (!bLevelUpSelectionActive) BeginLevelUpPresentation();
+		else StartNextLevelUpSelection();
 		return;
 	}
 

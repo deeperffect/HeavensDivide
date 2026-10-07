@@ -16,6 +16,7 @@ protected:
  virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 private:
  UPROPERTY() TObjectPtr<UStaticMeshComponent> Visual;
+ UPROPERTY() TObjectPtr<class UNiagaraComponent> PoolVFX;
  TWeakObjectPtr<UPlayerUpgradeComponent> Source;
  FTimerHandle PulseTimer;
  float HitDamage=0.f, Radius=220.f;

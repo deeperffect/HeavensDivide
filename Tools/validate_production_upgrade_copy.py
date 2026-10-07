@@ -77,12 +77,12 @@ for uid, card in sorted(assets.items()):
     assert str(card.get_editor_property('display_name')) == row['name'], uid
     assert str(card.get_editor_property('description')) == description, uid
     assert str(card.get_editor_property('rolled_description_format')) == fmt, uid
-    assert 0 < len(row['name']) <= 30 and 0 < len(description) <= 220, uid
+    assert 0 < len(row['name']) <= 30 and 0 < len(description) <= 160, uid
     for variant in variants:
         expected_override = row.get('overrides', {}).get(rarity(variant), '')
         assert str(variant.get_editor_property('description_override')) == expected_override, uid
         text = resolved(variant)
-        assert 0 < len(text) <= 220 and '{' not in text and '}' not in text, uid
+        assert 0 < len(text) <= 160 and '{' not in text and '}' not in text, uid
         variant_count += 1
     for key in ('icon', 'card_artwork'):
         texture = card.get_editor_property(key)

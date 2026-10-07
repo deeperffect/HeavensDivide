@@ -52,6 +52,18 @@ class HEAVENSDIVIDE_API UNinjaBuildComponent : public UActorComponent
     /** Cosmetic scale after fitting the mesh to the attack radius; does not change hit detection. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Shuriken", meta=(ClampMin="0.01"))
     float ShurikenMeshScale = 1.f;
+    /** Looping ground effect for Toxic Ground. Empty retains the placeholder. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Barrage")
+    TObjectPtr<class UNiagaraSystem> ToxicGroundVFX;
+    /** Looping replacement for Toxic Ground when Venom Bloom is active. Empty retains the purple placeholder. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Barrage")
+    TObjectPtr<class UNiagaraSystem> VenomBloomVFX;
+    /** Authored radius in cm at scale 1. Both effects scale uniformly to the gameplay radius. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Barrage", meta=(ClampMin="1.0", Units="cm"))
+    float PoisonPoolVFXReferenceRadius = 100.f;
+    /** Compress smoke height without changing the pool radius or hitbox. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Barrage", meta=(ClampMin="0.001"))
+    float PoisonPoolVFXHeightScale = .005f;
     void ModifyVolley(int32 &Count, float &Spacing);
     void ModifyVolleyWithCounter(int32 &Count, float &Spacing, int32 &Volley);
     float Hit(AEnemyBase *Enemy, float Damage, bool bEmbed = true, bool bAssist = false, bool bShuriken = false);

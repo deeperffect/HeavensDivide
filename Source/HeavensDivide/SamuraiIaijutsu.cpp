@@ -1,4 +1,5 @@
 #include "SamuraiIaijutsu.h"
+#include "UpgradeProcVFX.h"
 #include "SamuraiCharacter.h"
 #include "AutoAttackComponent.h"
 #include "IaijutsuBuild.h"
@@ -256,6 +257,7 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
                 nullptr, FColor::Cyan, Duration, true);
         }
 #endif
+        PlayUpgradeProcVFX(SourceUpgrades.Get(),TEXT("IaijutsuAOE"),End,Radius);
         TArray<FOverlapResult> Overlaps;
         GetWorld()->OverlapMultiByObjectType(Overlaps, End, FQuat::Identity, Objects, FCollisionShape::MakeSphere(Radius), Query);
         TSet<AEnemyBase*> Seen;

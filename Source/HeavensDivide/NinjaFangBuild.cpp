@@ -1,4 +1,5 @@
 #include "NinjaBuildComponent.h"
+#include "UpgradeProcVFX.h"
 #include "AutoAttackComponent.h"
 #include "AttackProjectileBase.h"
 #include "Components/StaticMeshComponent.h"
@@ -86,6 +87,9 @@ float UNinjaBuildComponent::FangHit(ANinjaBuildProjectile* P, AEnemyBase* Enemy)
     const FVector Position = Enemy->GetActorLocation() + FVector(0, 0, 45);
     const float Dealt = Hit(Enemy, HitDamage, false, P->bAssistProjectile);
     P->bFangHitThisTrip |= Dealt > 0;
+    if (Dealt > 0 && Critical) PlayUpgradeProcVFX(Upgrades(), TEXT("FangDeadeye"), Position);
+    if (Dealt > 0 && Has(TEXT("RelentlessFang")) && P->Streak == 5)
+        PlayUpgradeProcVFX(Upgrades(), TEXT("RelentlessFang"), Position, 45.f);
     if (Enemy->IsDead())
     {
         FangVictimHits.Remove(Enemy);
@@ -109,8 +113,7 @@ void UNinjaBuildComponent::FangReturned(ANinjaBuildProjectile* P)
         const float Damage = P->Damage * Tune(TEXT("FangResonance"), TEXT("DamageFraction"), .5f);
         for (auto* Enemy : Targets(Origin, Radius)) Hit(Enemy, Damage, false);
         if (FangReturnBurstVFX)
-            UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FangReturnBurstVFX, Origin, FRotator::ZeroRotator,
-                FVector(Radius / 250.f));
+            PlayScaledUpgradeBurst(this, FangReturnBurstVFX, Origin, Radius / 250.f);
         else if (auto* FX = Upgrades()->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
             FX->UpgradeAccent(TEXT("FangResonance"), Origin, Radius, FLinearColor(.65f,.25f,1.f));
     }
@@ -124,6 +127,7 @@ void UNinjaBuildComponent::FangReturned(ANinjaBuildProjectile* P)
 
 void UNinjaBuildComponent::ScatterFangKunai(FVector Position, int32 Count, float Damage)
 {
+    PlayUpgradeProcVFX(Upgrades(), TEXT("FangSplinter"), Position, 90.f);
     PendingFangScatter.Add({Position, Count, Damage});
     ProcessFangScatter();
 }

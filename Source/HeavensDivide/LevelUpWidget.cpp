@@ -660,7 +660,7 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 	constexpr float CardHeight = CardWidth * 1.5f;
 	constexpr float CardVisualScale = 1.15f;
 	constexpr float ArtworkInset = 22.0f;
-	constexpr float TextInset = 26.0f;
+	constexpr float TextWidth = CardWidth - 2.f * (ArtworkInset + 18.f);
 
 	for (int32 Index = 0; Index < 3; ++Index)
 	{
@@ -738,8 +738,8 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 		UScaleBox* ArtworkContainer = WidgetTree->ConstructWidget<UScaleBox>(
 			UScaleBox::StaticClass(), *FString::Printf(TEXT("UpgradeArtworkContainer_%d"), Index));
-		// Upgrade symbols must remain fully visible inside the artwork panel.
-		ArtworkContainer->SetStretch(EStretch::ScaleToFit);
+		// Cover the panel without distorting the artwork; clip excess at its edges.
+		ArtworkContainer->SetStretch(EStretch::ScaleToFill);
 		ArtworkContainer->SetStretchDirection(EStretchDirection::Both);
 		ArtworkContainer->SetClipping(EWidgetClipping::ClipToBounds);
 		ArtworkContainer->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -778,26 +778,38 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		UTextBlock* UpgradeTitle = WidgetTree->ConstructWidget<UTextBlock>(
 			UTextBlock::StaticClass(), *FString::Printf(TEXT("UpgradeCardTitle_%d"), Index));
 		UpgradeTitle->SetJustification(ETextJustify::Center);
-		UpgradeTitle->SetAutoWrapText(true);
+		UpgradeTitle->SetAutoWrapText(false);
+		UpgradeTitle->SetWrapTextAt(TextWidth);
 		UpgradeTitle->SetColorAndOpacity(AuthoredTitle ? AuthoredTitle->GetColorAndOpacity() : FSlateColor(FLinearColor::White));
 		FSlateFontInfo TitleFont = AuthoredTitle ? AuthoredTitle->GetFont() : UpgradeTitle->GetFont();
-		TitleFont.Size = FMath::Max(24, TitleFont.Size);
+		TitleFont.Size = 24;
 		UpgradeTitle->SetFont(TitleFont);
-		InformationContent->AddChildToVerticalBox(UpgradeTitle)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 10.0f));
+		USizeBox* TitleBounds = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		TitleBounds->SetWidthOverride(TextWidth);
+		TitleBounds->SetHeightOverride(70.f);
+		TitleBounds->SetContent(UpgradeTitle);
+		InformationContent->AddChildToVerticalBox(TitleBounds)->SetPadding(FMargin(0.f, 0.f, 0.f, 6.f));
 
 		UTextBlock* UpgradeDescription = WidgetTree->ConstructWidget<UTextBlock>(
 			UTextBlock::StaticClass(), *FString::Printf(TEXT("UpgradeCardDescription_%d"), Index));
 		UpgradeDescription->SetJustification(ETextJustify::Center);
-		UpgradeDescription->SetAutoWrapText(true);
-		UpgradeDescription->SetWrapTextAt(CardWidth - (TextInset * 2.0f));
+		// Keep wrapping independent of text scaling and the authored Blueprint font size.
+		UpgradeDescription->SetAutoWrapText(false);
+		UpgradeDescription->SetWrapTextAt(TextWidth);
 		UpgradeDescription->SetColorAndOpacity(AuthoredDescription ? AuthoredDescription->GetColorAndOpacity() : FSlateColor(FLinearColor(0.88f, 0.88f, 0.9f)));
 		FSlateFontInfo DescriptionFont = AuthoredDescription ? AuthoredDescription->GetFont() : UpgradeDescription->GetFont();
-		DescriptionFont.Size = FMath::Max(17, DescriptionFont.Size);
+		DescriptionFont.Size = 14;
 		UpgradeDescription->SetFont(DescriptionFont);
-		UVerticalBoxSlot* DescriptionSlot = InformationContent->AddChildToVerticalBox(UpgradeDescription);
-		DescriptionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		USizeBox* DescriptionBounds = WidgetTree->ConstructWidget<USizeBox>(
+			USizeBox::StaticClass(), *FString::Printf(TEXT("UpgradeDescriptionFit_%d"), Index));
+		DescriptionBounds->SetWidthOverride(TextWidth);
+		DescriptionBounds->SetHeightOverride(135.f);
+		DescriptionBounds->SetClipping(EWidgetClipping::ClipToBounds);
+		DescriptionBounds->SetContent(UpgradeDescription);
+		UVerticalBoxSlot* DescriptionSlot = InformationContent->AddChildToVerticalBox(DescriptionBounds);
+		DescriptionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
 		DescriptionSlot->SetHorizontalAlignment(HAlign_Fill);
-		DescriptionSlot->SetVerticalAlignment(VAlign_Center);
+		DescriptionSlot->SetVerticalAlignment(VAlign_Fill);
 
 		UHorizontalBox* DiamondRow = WidgetTree->ConstructWidget<UHorizontalBox>(
 			UHorizontalBox::StaticClass(), *FString::Printf(TEXT("UpgradeLevelDiamonds_%d"), Index));

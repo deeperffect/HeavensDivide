@@ -1,4 +1,5 @@
 #include "PlayerUpgradeComponent.h"
+#include "UpgradeProcVFX.h"
 #include "CrescentBuild.h"
 #include "EnemyStatusEffectComponent.h"
 #include "EnemyBase.h"
@@ -9,9 +10,19 @@
 #include "SurvivorAbilityComponent.h"
 #include "Engine/World.h"
 #include "Engine/OverlapResult.h"
+#include "AutoAttackComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
+#include "TimerManager.h"
+#include "DrawDebugHelpers.h"
+#include "HAL/IConsoleManager.h"
 
 namespace
 {
+#if !UE_BUILD_SHIPPING
+TAutoConsoleVariable<int32> CVarBloodDetonationDebug(TEXT("bloodshift.DebugBloodDetonation"),0,
+ TEXT("Draw Blood Detonation: yellow=pending, red=damage sphere, green=hit enemies."),ECVF_Cheat);
+#endif
 void GrantBloodRush(UPlayerUpgradeComponent* Upgrades)
 {
  if (!Upgrades || !Upgrades->HasUpgradeId(TEXT("BattleStance")) || !Upgrades->HasUpgradeId(TEXT("BloodRush"))) return;
@@ -19,6 +30,7 @@ void GrantBloodRush(UPlayerUpgradeComponent* Upgrades)
  auto* Samurai = PC && PC->GetCharacterManager() ? Cast<ASamuraiCharacter>(PC->GetCharacterManager()->GetActiveCharacter()) : nullptr;
  if (!Samurai || PC->IsPlayerDead()) return;
  const auto* Card = Upgrades->FindUpgradeDefinition(TEXT("BloodRush"));
+ PlayUpgradeProcVFX(Upgrades,TEXT("BloodRush"),Samurai->GetActorLocation()-FVector(0,0,80),90.f);
  Samurai->ApplyBloodRush(Card ? Card->GetBalanceValue(TEXT("MoveSpeedBonus"), .2f) : .2f,
      Card ? Card->GetBalanceValue(TEXT("Duration"), 3.f) : 3.f);
 }
@@ -93,13 +105,51 @@ void UEnemyStatusEffectComponent::TryBloodDetonation()
      BleedState.Stacks < 5 + FMath::Clamp(Upgrades->GetUpgradeLevelById(TEXT("BloodCapacity")),0,5)) return;
  const float Damage = 2.f * CalculateRemainingStatusDamage(EEnemyStatusEffect::Bleed);
  const float Radius = 300.f * SamuraiArea(Upgrades) * (1.f + .1f * Upgrades->GetUpgradeLevelById(TEXT("BloodTransferArea")));
- ClearStatus(EEnemyStatusEffect::Bleed); // Consume before any lethal damage invokes death callbacks.
- ShowProc(Upgrades,TEXT("BloodDetonation"),Enemy->GetActorLocation(),Radius,FLinearColor(3.f,.05f,.1f));
- const auto Targets = NearbySamuraiTargets(Enemy,Radius);
- Enemy->ApplyPlayerDamage(Damage,EPlayerAttackSource::Samurai);
- // The detonation consumed this victim's Bleed before its death callback.
- if (Enemy->IsDead()) GrantBloodRush(Upgrades);
- for(auto* Target:Targets) if(IsValid(Target) && !Target->IsDead()) Target->ApplyPlayerDamage(Damage,EPlayerAttackSource::Samurai);
+ const FVector Origin=Enemy->GetActorLocation();
+ auto* PC=Cast<ASurvivorPlayerController>(Upgrades->GetOwner());
+ auto* Samurai=PC&&PC->GetCharacterManager()?PC->GetCharacterManager()->GetSamurai():nullptr;
+ auto* Attack=Samurai?Samurai->FindComponentByClass<UAutoAttackComponent>():nullptr;
+ const float Delay=Attack&&FMath::IsFinite(Attack->BloodDetonationExplosionDelay)?FMath::Max(0.f,Attack->BloodDetonationExplosionDelay):0.f;
+ ClearStatus(EEnemyStatusEffect::Bleed); // Snapshot and consume now; each capped application can schedule one blast.
+ if(Attack&&Attack->BloodDetonationVFX && GetWorld()->GetNetMode()!=NM_DedicatedServer)
+  UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),Attack->BloodDetonationVFX,Origin-FVector(0,0,70),FRotator::ZeroRotator,
+   FVector(Radius/FMath::Max(1.f,Attack->BloodDetonationVFXReferenceRadius)),true);
+#if !UE_BUILD_SHIPPING
+ if(CVarBloodDetonationDebug.GetValueOnGameThread())DrawDebugSphere(GetWorld(),Origin,Radius,32,FColor::Yellow,false,FMath::Max(.1f,Delay),0,2.f);
+#endif
+ const TWeakObjectPtr<UWorld> WeakWorld=GetWorld();
+ const TWeakObjectPtr<UPlayerUpgradeComponent> WeakUpgrades=Upgrades;
+ const TWeakObjectPtr<AEnemyBase> OriginalVictim=Enemy;
+ auto Explode=[WeakWorld,WeakUpgrades,OriginalVictim,Origin,Radius,Damage]() {
+  auto* World=WeakWorld.Get();auto* Source=WeakUpgrades.Get();
+  if(!World||!Source||!Source->HasUpgradeId(TEXT("BloodDetonation"))||!Source->HasUpgradeId(TEXT("BattleStance")))return;
+  auto* Controller=Cast<ASurvivorPlayerController>(Source->GetOwner());
+  if(Controller&&Controller->IsPlayerDead())return;
+  TArray<FOverlapResult> Hits;FCollisionObjectQueryParams Objects;
+  Objects.AddObjectTypesToQuery(ECC_Pawn);Objects.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+  World->OverlapMultiByObjectType(Hits,Origin,FQuat::Identity,Objects,FCollisionShape::MakeSphere(Radius),FCollisionQueryParams(SCENE_QUERY_STAT(BloodDetonation),false));
+  TSet<AEnemyBase*> Seen;
+#if !UE_BUILD_SHIPPING
+  const bool Debug=CVarBloodDetonationDebug.GetValueOnGameThread()!=0;
+  if(Debug)DrawDebugSphere(World,Origin,Radius,32,FColor::Red,false,2.f,0,2.f);
+#endif
+  for(const auto& Hit:Hits) {
+   auto* Target=Cast<AEnemyBase>(Hit.GetActor());
+   if(!IsValid(Target)||Target->IsDead()||Seen.Contains(Target)||!Target->CanReceivePlayerDamage(EPlayerAttackSource::Samurai))continue;
+   Seen.Add(Target);
+#if !UE_BUILD_SHIPPING
+   if(Debug)DrawDebugLine(World,Origin,Target->GetActorLocation(),FColor::Green,false,2.f,0,2.f);
+#endif
+   Target->ApplyPlayerDamage(Damage,EPlayerAttackSource::Samurai);
+   if(Target==OriginalVictim.Get()&&Target->IsDead())GrantBloodRush(Source);
+  }
+ };
+ if(Delay<=0.f)Explode();
+ else {
+  FTimerHandle Timer;
+  // Bind to the source, not the victim: death/destruction of the victim cannot cancel a committed blast.
+  GetWorld()->GetTimerManager().SetTimer(Timer,FTimerDelegate::CreateWeakLambda(Upgrades,Explode),Delay,false);
+ }
 }
 
 void UEnemyStatusEffectComponent::TransferBleedOnDeath()

@@ -560,3 +560,38 @@ Reward cards describe their active effect after a Shrine tradeoff, while retaini
 With Sudden Eruption, Enduring Wake becomes **Violent Wake**, increasing eruption damage, and Restless Wake becomes **Restless Eruption**. Blood Hunger changes Shuriken Size to **Ravenous Growth**, increasing size gained per kill. Venom Bloom changes Spreading Blight to **Spreading Bloom**. Crimson Reach describes detonation radius when Blood Detonation is active. These are presentation changes; useful upgrades remain obtainable.
 
 `HeavensDivide.Combat.StanceDependencies` checks all six stances, mechanic prerequisites, incompatible rewards, retained tradeoff benefits, save restoration, and contextual card presentation.
+
+### Barrage poison pool visuals
+
+In **BP_Ninja > NinjaBuildComponent > Ninja Builds > Barrage**, assign **Toxic Ground VFX** and **Venom Bloom VFX** (Niagara). The active tradeoff selects its own slot. An empty slot retains that pool's colored placeholder; an assigned effect hides the placeholder.
+
+Use looping effects authored on the XY ground plane. **Poison Pool VFX Reference Radius** is their radius in cm at scale 1 (default 100); the component scales uniformly to the upgraded pool radius. Optional `User.Radius` and `User.Duration` float parameters provide the world radius in cm and actual lifetime in seconds before activation. Avoid applying radius scaling a second time in a local-space emitter. Effects spawn at the pool's grounded location and are removed with the pool after its final damage pulse, including early cleanup. No additional tick is used.
+
+### Stance VFX authoring and coverage
+
+`Tools/configure_stance_vfx.py` fills empty presentation slots using project-owned variants of the assets under `/Game/Assets/VFX`. It preserves existing artist assignments, backs up changed Blueprints and cards under `Saved/Backups/StanceVFX`, and verifies that vendor assets are unchanged. `-ValidateStanceVFX` checks saved assignments without editing. Generated effects live in `/Game/HeavensDivide/VFX/Stances`.
+
+| Tree | Newly wired or assigned effects | Existing presentation retained |
+| --- | --- | --- |
+| Blood | Critical-hit flash, Blood Detonation, Blood Rush, empty Echo VFX slot | Melee/Double Cut montage slashes, Bleed, Blood Transfer, assists |
+| Iaijutsu | Optional Final Flourish card pulse hook | Charge indicator, moving lane, staggered release slashes, endpoint montage notifies, cascade/dash/crossed lanes, marks, assists |
+| Crescent | No extra ground overlay | Yellow shockwaves, branching waves, cross/fan volleys, debris only on field-triggered waves and inherited split fields |
+| Returning Fang | Critical hit, full-pressure hit, Splintering Fang kill burst, Resonant Fang return burst | Returning projectile, spectral Twin Fangs, regular scattered kunai, assists |
+| Barrage | Poison application, critical hit, splitting impact, Toxic Ground and Venom Bloom clouds | Double volleys, serial ricochets, projectile trails/impacts, assists |
+| Giant Shuriken | Grinding Halt, stacked-hit feedback, Blood Hunger kill cue, Breaking Wheel/Pulsing Core burst | Mesh growth, Twin Wheel, orbiting flight, assists |
+
+For per-upgrade triggers, open the corresponding upgrade DA and use **Runtime VFX > Pulse System**. Blood Detonation instead uses its dedicated Cascade slot on Samurai, described below. Its scale, authored radius, rotation, lifetime, color parameters and minimum spawn interval are editable there. Stat/rank upgrades strengthen the same mechanic and inherit its effects; they do not emit acquisition-only VFX. Crit and rapid-hit cues are rate-limited through the shared 64-accent budget. Existing combo ability VFX and montage notifies remain authored on their existing character settings.
+
+Ninja's **Toxic Ground VFX**, **Venom Bloom VFX**, **Fang Return Burst VFX**, and **Shuriken Burst VFX** are in **BP_Ninja > NinjaBuildComponent** under the corresponding build categories. Pool clouds use local-space looping smoke and match the pool lifetime. **Poison Pool VFX Height Scale** controls their vertical extent without changing damage. Burst slots honor a vendor `User.Scale` parameter when present, so radius upgrades scale those effects correctly.
+
+`HeavensDivide.Combat.StanceVFX` verifies saved slots, simulates the new effects, checks that pools remain emitting and bursts finish, and exports top-down previews under `Saved/StanceVFXAudit/Previews`. The same folder records asset assignments and source assets.
+
+Poison pools and Venom Bloom use a thin local-space smoke layer (height scale 0.005) at ground level, with a dedicated `M_PoisonGround` / `MI_PoisonGround` material that flattens rotated smoke vertices in world Z, allowing enemies to occlude it through normal depth testing. Original vendor materials are unchanged. Viper's Rush has no slash cue; Barrage kills only grant its movement buff. Resonant Fang's return slash remains conditional on Returning Fang and the Resonant Fang unlock.
+
+### Blood Detonation: Cascade, delay, and radius debug
+
+In **BP_Samurai > AutoAttackComponent > Samurai > Blood Stance > Detonation**, **Blood Detonation VFX** uses `P_AoE_BloodBall01_BloodDetonation` (Cascade). **Blood Detonation Explosion Delay** is the time in seconds between consuming capped Bleed/starting the effect and dealing explosion damage; default **0** preserves immediate damage. **Blood Detonation VFX Reference Radius** controls visual scaling only (default 300 cm).
+
+The blast snapshots remaining Bleed damage and its radius when triggered, stays at that location, and hits valid enemies inside the sphere when the delay expires. Enemies can leave or enter before impact. The original victim dying or being destroyed does not cancel the committed blast. Radius remains 300 cm multiplied by Samurai area and Blood Transfer Area ranks.
+
+In a development/editor run, enter `bloodshift.DebugBloodDetonation 1` in the console: yellow shows the pending damage sphere, red shows the resolved sphere for two seconds, and green lines identify enemies hit. Enter `bloodshift.DebugBloodDetonation 0` to disable it. The sphere shows the actual damage query, independent of visual scale. `Tools/configure_blood_detonation_vfx.py` assigns the Cascade effect with backups and preserves existing delay tuning.

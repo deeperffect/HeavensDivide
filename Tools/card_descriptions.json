@@ -1,7 +1,7 @@
 {
   "BloodDetonation": {
     "name": "Blood Detonation",
-    "description": "Enemies at maximum Bleed stacks explode for twice their remaining Bleed damage, hurting themselves and nearby foes. Consumes Bleed and replaces Blood Transfer.",
+    "description": "At full Bleed stacks, consume Bleed to explode for twice its remaining damage. Replaces Blood Transfer.",
     "format": ""
   },
   "BloodPactPower": {
@@ -16,7 +16,7 @@
   },
   "CrescentEruptionPact": {
     "name": "Sudden Eruption",
-    "description": "Your waves no longer slow enemies. Lingering Wake erupts after 0.3 seconds for all its damage at once. Your slow upgrades become Wave Damage.",
+    "description": "Trails erupt after 0.3s for their full damage. Waves no longer slow; slow upgrades become Wave Damage.",
     "format": ""
   },
   "CrescentFieldPact": {
@@ -31,7 +31,7 @@
   },
   "IaijutsuDashPact": {
     "name": "Relentless Steps",
-    "description": "Your Iaijutsu marks no longer amplify damage. Killing a marked enemy reduces dash recharge by 0.3 seconds instead. Exposed Weakness ranks become Iaijutsu Damage.",
+    "description": "Marked kills restore 0.3s of dash recharge. Marks no longer amplify damage; Exposed Weakness becomes Iaijutsu Damage.",
     "format": ""
   },
   "IaijutsuMarkPact": {
@@ -81,7 +81,7 @@
   },
   "BarrageStance": {
     "name": "Barrage Stance",
-    "description": "Gain 30% attack speed and 2 extra projectiles. Kunai inflict poison: each stack deals 5% of its hit damage over 5 seconds. Hits refresh all stacks, up to 20. Choose one Ninja stance per run.",
+    "description": "+30% attack speed and 2 extra kunai. Hits poison: 5% hit damage per stack over 5s. Up to 20 stacks; hits refresh them.",
     "format": ""
   },
   "BreakingWheel": {
@@ -91,7 +91,7 @@
   },
   "Crescendo": {
     "name": "Crescendo",
-    "description": "Gain 1 extra projectile every 3 attacks, up to 5. Fire at full strength, then build up again. Each additional rank raises the limit by 2.",
+    "description": "Gain 1 extra projectile every 3 attacks, up to 5, then restart. Each further rank raises the cap by 2.",
     "format": ""
   },
   "CuttingReturn": {
@@ -101,7 +101,7 @@
   },
   "EmbeddedBlades": {
     "name": "Embedded Blades",
-    "description": "Ninja hits embed blades in enemies, up to 12 per enemy. On death, they scatter toward nearby foes for 40% of their original hit damage. Scattered blades cannot embed again.",
+    "description": "Hits embed up to 12 blades per enemy. On death, blades scatter for 40% of their original hit damage. Scattered blades cannot embed.",
     "format": ""
   },
   "FinalPursuit": {
@@ -116,7 +116,7 @@
   },
   "ForkingProjectiles": {
     "name": "Forked Blades",
-    "description": "Kunai have a 15% chance to split on impact into 2 blades dealing 50% damage each. Split blades apply poison but cannot split again.",
+    "description": "15% chance to split on impact into 2 poisoned kunai at 50% damage. Split kunai cannot split again.",
     "format": ""
   },
   "FragmentDamage": {
@@ -136,7 +136,7 @@
   },
   "GreatShuriken": {
     "name": "Giant Shuriken Stance",
-    "description": "Throw massive piercing blades that repeatedly cut enemies. Gain 50% damage and throw 50% slower. Extra projectiles increase blade size. Choose one Ninja stance per run.",
+    "description": "Throw piercing blades that hit repeatedly. +50% damage, -50% attack speed. Extra projectiles increase blade size.",
     "format": ""
   },
   "GrindingHalt": {
@@ -171,17 +171,17 @@
   },
   "RelentlessFang": {
     "name": "Relentless Fang",
-    "description": "Consecutive hits from the same Fang against an enemy gain 15% damage per hit, up to 75%. Hitting another enemy resets the bonus.",
+    "description": "Repeated hits from the same Fang gain +15% damage per hit, up to +75%. Changing targets resets the bonus.",
     "format": ""
   },
   "ReturningFang": {
     "name": "Returning Fang Stance",
-    "description": "Throw a homing Fang that strikes, returns harmlessly, and immediately launches again. Fighting close speeds up its cycle. Attack speed increases flight speed; extra projectiles grant 25% Fang damage each.",
+    "description": "Fangs hit and return. Stay close for faster attacks. Attack speed boosts flight speed; extra projectiles add 25% damage.",
     "format": ""
   },
   "SerratedEdge": {
     "name": "Serrated Edge",
-    "description": "Each blade gains 15% damage against an enemy for every previous contact hit, up to 75%. Bursts benefit from this bonus without increasing it.",
+    "description": "Each blade gains +15% damage per contact hit against the same enemy, up to +75%. Bursts share this bonus.",
     "format": ""
   },
   "ShadowStep": {
@@ -201,12 +201,12 @@
   },
   "BattleStance": {
     "name": "Blood Stance",
-    "description": "Gain 35% attack area and 30% attack speed. Attacks inflict Bleed: each stack deals 12.5% of the hit's damage over 3 seconds. Stacks up to 5 times; new hits refresh all stacks. Choose one Samurai stance per run.",
+    "description": "+35% area and +30% attack speed. Hits inflict Bleed: 12.5% hit damage per stack over 3s. Up to 5 stacks; hits refresh them.",
     "format": ""
   },
   "BladeWave": {
     "name": "Crescent Stance",
-    "description": "Replace melee attacks with piercing waves that deal 40% attack damage and slow enemies by 30% for 5 seconds. Choose one Samurai stance per run.",
+    "description": "Replace melee attacks with piercing waves: 40% attack damage and a 30% slow for 5s.",
     "format": ""
   },
   "BladeWaveHaste": {
@@ -251,7 +251,7 @@
   },
   "BloodEcho": {
     "name": "Echoing Slash",
-    "description": "Attacks have a 15% chance to echo for 50% damage. Echoes can inflict Bleed and critically strike, but cannot create further echoes.",
+    "description": "15% chance to repeat an attack at 50% damage. Echoes can Bleed and crit, but cannot echo again.",
     "format": ""
   },
   "BloodEchoChance": {
@@ -261,7 +261,7 @@
   },
   "BloodRush": {
     "name": "Blood Rush",
-    "description": "Killing a bleeding enemy grants 20% movement speed for 3 seconds. Further kills refresh the bonus. Swapping ends it.",
+    "description": "Bleeding kills grant +20% movement speed for 3s. Kills refresh it; swapping ends it.",
     "format": ""
   },
   "BloodTransfer": {
@@ -321,7 +321,7 @@
   },
   "CrescentField": {
     "name": "Lingering Wake",
-    "description": "Waves have a 15% chance to leave a trail along their full path after travelling outward. Trails deal 30% wave damage per second for 3 seconds. Their split waves share the effect.",
+    "description": "15% chance to leave a trail along the wave path: 30% wave damage per second for 3s. Split waves share the effect.",
     "format": ""
   },
   "CrescentFieldChance": {
@@ -356,7 +356,7 @@
   },
   "CrescentSplit": {
     "name": "Splitting Waves",
-    "description": "The first enemy hit has a 15% chance to launch 2 smaller waves sideways while the original continues. Side waves deal 50% damage, have 60% width and range, and cannot split again.",
+    "description": "First hit: 15% chance to send 2 smaller waves sideways at 50% damage. The main wave continues; side waves cannot split.",
     "format": ""
   },
   "CrescentSplitChance": {
@@ -386,12 +386,12 @@
   },
   "Iaijutsu": {
     "name": "Iaijutsu Stance",
-    "description": "Charge a slash for 1 second, drawing nearby enemies into its path. Strike the entire path and mark foes for 3 seconds. Marked foes take 50% more damage from later hits. Choose one Samurai stance per run.",
+    "description": "Charge a slash for 1s, pulling enemies into its path. Hits mark enemies for 3s, making them take 50% more damage from later hits.",
     "format": ""
   },
   "IaijutsuAOE": {
     "name": "Final Flourish",
-    "description": "Iaijutsu attacks have a 15% chance to unleash a circular strike at the end of their path, dealing full attack damage within 2.5 meters.",
+    "description": "15% chance to finish a slash with a circular strike: full attack damage in a 2.5m radius.",
     "format": ""
   },
   "IaijutsuAOEChance": {
@@ -401,7 +401,7 @@
   },
   "IaijutsuAssist": {
     "name": "Ninja Assist",
-    "description": "While fighting in Iaijutsu Stance, you have a 5% chance each second to call Ninja for an assist attack.",
+    "description": "While fighting, roll a 5% chance each second to call a Ninja assist.",
     "format": ""
   },
   "IaijutsuAssistChance": {
@@ -416,7 +416,7 @@
   },
   "IaijutsuChain": {
     "name": "Death Cascade",
-    "description": "The first kill from an Iaijutsu attack launches a slash from the fallen enemy toward the nearest foe. This slash cannot trigger Death Cascade.",
+    "description": "The first kill from a slash launches another slash toward the nearest foe. This follow-up cannot cascade.",
     "format": ""
   },
   "IaijutsuChargeSpeed": {
@@ -431,7 +431,7 @@
   },
   "IaijutsuDash": {
     "name": "Dash Draw",
-    "description": "Dash twice as far in Iaijutsu Stance. At the end of your dash, charge a slash along the path you travelled.",
+    "description": "Double your dash distance. Dashing charges an Iaijutsu slash along the path travelled.",
     "format": ""
   },
   "IaijutsuDashPower": {
@@ -491,8 +491,8 @@
   },
   "SamuraiArea": {
     "name": "Attack Area",
-    "description": "Increase Samurai attack area by 15%. Adapts to slash width or wave range when you choose a stance.",
-    "format": "Increase Samurai attack area by {Percent}%. Adapts to slash width or wave range when you choose a stance."
+    "description": "+15% Samurai attack area. Becomes slash width or wave range with your stance.",
+    "format": "+{Percent}% Samurai attack area. Becomes slash width or wave range with your stance."
   },
   "SamuraiHeavyBlade": {
     "name": "Attack Damage",
@@ -501,8 +501,8 @@
   },
   "SamuraiTempo": {
     "name": "Attack Speed",
-    "description": "Samurai attacks are 10% faster. Adapts to charge speed or wave speed when you choose a stance.",
-    "format": "Samurai attacks are {Percent}% faster. Adapts to charge speed or wave speed when you choose a stance."
+    "description": "+10% Samurai attack speed. Becomes charge speed or wave speed with your stance.",
+    "format": "+{Percent}% Samurai attack speed. Becomes charge speed or wave speed with your stance."
   },
   "SplinterWave": {
     "name": "Splinter Wave",
@@ -521,7 +521,7 @@
   },
   "GrandEntrance": {
     "name": "Grand Entrance",
-    "description": "After swapping, empower your next attack. Samurai strikes all around him within 6 meters. Ninja gains 8 extra projectiles, converted to damage for Returning Fang or size for Great Shuriken. Does not stack.",
+    "description": "Swapping empowers your next attack: Samurai gains a 6m circular slash; Ninja gains 8 projectiles (Fang damage or Shuriken size instead).",
     "format": ""
   },
   "Handoff": {
@@ -541,17 +541,17 @@
   },
   "TagTeam": {
     "name": "Tag Team",
-    "description": "Every 5 normal attacks, your partner joins the fight. Ninja uses her current weapon; Samurai slashes and knocks enemies back.",
+    "description": "Every 5 normal attacks, your partner attacks: Ninja uses her weapon; Samurai slashes and knocks foes back.",
     "format": ""
   },
   "FangTwin": {
     "name": "Twin Fang",
-    "description": "Every fourth launch sends 2 additional spectral Fangs, seeking different enemies when possible. Spectral Fangs return once and cannot summon more Fangs.",
+    "description": "Every fourth launch sends 2 extra spectral Fangs, seeking different targets when possible.",
     "format": ""
   },
   "FangResonance": {
     "name": "Resonant Fang",
-    "description": "After striking an enemy, each returning Fang releases a burst around you for 50% Fang damage. Bursts cannot trigger Fang effects.",
+    "description": "A Fang returning after a hit bursts around you for 50% Fang damage. Bursts cannot trigger Fang effects.",
     "format": ""
   },
   "FangDeadeye": {
@@ -561,12 +561,12 @@
   },
   "FangAssist": {
     "name": "Samurai Assist",
-    "description": "Completed main-Fang round trips have a 5% chance to call Samurai for an assist attack. Can trigger once per second.",
+    "description": "Main-Fang round trips have a 5% chance to call Samurai. Can trigger once per second.",
     "format": ""
   },
   "FangSplinter": {
     "name": "Splintering Fang",
-    "description": "Fang kills scatter one kunai for each direct Fang hit the enemy took, including the killing hit. Each kunai deals 40% Fang damage and cannot trigger Fang effects.",
+    "description": "Fang kills scatter 1 kunai per Fang hit taken, each dealing 40% Fang damage. These kunai cannot trigger Fang effects.",
     "format": ""
   },
   "FangDamage": {
@@ -656,12 +656,12 @@
   },
   "BarragePool": {
     "name": "Toxic Ground",
-    "description": "Killing an enemy poisoned by your kunai leaves a puddle for 3 seconds. Every 0.5 seconds it applies 1 poison stack, matching the victim's average stack strength. Puddle poison alone cannot create another puddle.",
+    "description": "Kunai-poisoned kills leave a 3s puddle, applying poison every 0.5s at the victim's stack strength. Puddle poison cannot spread puddles.",
     "format": ""
   },
   "BarrageAssist": {
     "name": "Samurai Assist",
-    "description": "Each attack has a 5% chance to call a Samurai assist. An active assist cannot overlap itself.",
+    "description": "Each attack has a 5% chance to call a Samurai assist.",
     "format": ""
   },
   "BarrageCritical": {
@@ -671,7 +671,7 @@
   },
   "BarrageRush": {
     "name": "Viper's Rush",
-    "description": "Killing a poisoned enemy grants 20% movement speed for 3 seconds. Further kills refresh the duration.",
+    "description": "Poisoned kills grant +20% movement speed for 3s. Further kills refresh it.",
     "format": ""
   },
   "BarrageDamage": {
@@ -701,12 +701,12 @@
   },
   "BarrageRainFrequency": {
     "name": "Relentless Rain",
-    "description": "Needle Rain requires 1 fewer attack. At maximum rank, every attack fires twice as many kunai.",
+    "description": "Needle Rain requires 1 fewer attack, down to every attack.",
     "format": ""
   },
   "BarrageSplitChance": {
     "name": "Branching Blades",
-    "description": "Kunai gain 10% split chance. With Serpent's Procession, each ricochet instead loses 2% less damage.",
+    "description": "+10% kunai split chance.",
     "format": ""
   },
   "BarrageAssistChance": {
@@ -736,12 +736,12 @@
   },
   "BarrageProcession": {
     "name": "Serpent's Procession",
-    "description": "Fire kunai in a straight sequence. They ricochet to 3 additional enemies, losing 25% damage per bounce, and cannot split. Split upgrades become ricochet upgrades that reduce damage lost per bounce.",
+    "description": "Fire kunai in a line, bouncing to 3 more foes and losing 25% damage per bounce. No splitting; split upgrades reduce this damage loss.",
     "format": ""
   },
   "BarrageBloom": {
     "name": "Venom Bloom",
-    "description": "Puddles no longer apply poison. Every 0.5 seconds they instead deal 10% of each enemy's remaining poison damage without consuming its stacks.",
+    "description": "Puddles stop applying poison. Every 0.5s, they deal 10% of each foe's remaining poison damage without consuming it.",
     "format": ""
   },
   "ShurikenTwin": {
@@ -756,18 +756,18 @@
   },
   "ShurikenDamage": {
     "name": "Shuriken Damage",
-    "description": "Increase blade and burst damage.",
-    "format": "Increase blade and burst damage. +{Percent}% per rank."
+    "description": "Blades and bursts deal 20% more damage.",
+    "format": "Blades and bursts deal {Percent}% more damage."
   },
   "ShurikenSpeed": {
     "name": "Attack Speed",
-    "description": "Throw shurikens more frequently.",
-    "format": "Throw shurikens more frequently. +{Percent}% per rank."
+    "description": "Throw shurikens 15% faster.",
+    "format": "Throw shurikens {Percent}% faster."
   },
   "ShurikenSize": {
     "name": "Shuriken Size",
-    "description": "Increase blade size and burst radius. With Blood Hunger, increase size gained per kill instead.",
-    "format": "Increase blade size and burst radius. With Blood Hunger, increase size gained per kill instead. +{Percent}% per rank."
+    "description": "Blades and their bursts are 15% larger.",
+    "format": "Blades and their bursts are {Percent}% larger."
   },
   "ShurikenTempo": {
     "name": "Cutting Tempo",
@@ -781,7 +781,7 @@
   },
   "ShurikenGrowth": {
     "name": "Unstoppable Growth",
-    "description": "Increase maximum blade growth by 20 percentage points per rank. Also raises Blood Hunger's growth cap.",
+    "description": "+20 percentage points to maximum blade growth, including Blood Hunger's cap.",
     "format": ""
   },
   "ShurikenBurstPower": {
@@ -791,32 +791,32 @@
   },
   "ShurikenTwinFrequency": {
     "name": "Twin Frequency",
-    "description": "Twin Wheel triggers one throw sooner per rank: every third, second, then every throw.",
+    "description": "Twin Wheel requires 1 fewer throw, down to every throw.",
     "format": ""
   },
   "ShurikenAssistChance": {
     "name": "Reinforcements",
-    "description": "Increase Samurai Assist chance by 5 percentage points per rank.",
+    "description": "+5% chance to trigger Samurai Assist.",
     "format": ""
   },
   "ShurikenGrooves": {
     "name": "Deep Grooves",
-    "description": "Serrated Edge gains 3 percentage points more damage per hit and a 15 percentage point higher cap per rank.",
+    "description": "Serrated Edge gains +3% damage per hit and +15% to its damage cap.",
     "format": ""
   },
   "ShurikenOrbit": {
     "name": "Bound Orbit",
-    "description": "Blades orbit around you instead of flying forward, but deal 30% less contact damage. Expiry slashes are retained.",
+    "description": "Blades orbit you but deal 30% less contact damage. Expiry slashes still trigger.",
     "format": ""
   },
   "ShurikenHunger": {
     "name": "Blood Hunger",
-    "description": "Blades start 30% smaller and grow 10% per kill, up to their growth cap. Size upgrades increase growth per kill instead of starting size. Growth resets for each blade.",
+    "description": "Blades start 30% smaller and grow 10% per kill, up to their growth cap. Size upgrades boost growth per kill instead.",
     "format": ""
   },
   "ShurikenPulse": {
     "name": "Pulsing Core",
-    "description": "Blades release a circular burst every second, but deal 35% less contact damage. Cutting Tempo speeds up bursts. Expiry slashes are retained.",
+    "description": "Blades burst every second but deal 35% less contact damage. Cutting Tempo speeds up bursts; expiry slashes still trigger.",
     "format": ""
   }
 }

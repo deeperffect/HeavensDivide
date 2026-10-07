@@ -15,3 +15,11 @@ The latest import result is `Art/UpgradeCards/import_report.json`, with explicit
 Grand Entrance adds a separate shared synergy illustration at `Art/UpgradeCards/Generated/GrandEntrance.png`, assigned to both Card Artwork and Icon. Its source reference, exact prompt and imported asset paths are in `Art/UpgradeCards/GrandEntrance.json`. It was generated with the built-in imagegen tool. `Tools/configure_grand_entrance.py` creates and validates this card and artwork without changing the 7-card family manifest.
 
 The ten Samurai route cards use existing matching CardArt2/Samurai illustrations. Their assignments are maintained in `Tools/samurai_build_upgrades.json`; they do not add image-generation jobs to the family manifest.
+
+## Upgrade card layout and copy
+
+`LevelUpWidget` fills each upgrade artwork panel using proportional cover scaling and clips only the excess image edges. The description wraps to the inner panel width (320 authored pixels), uses a consistent 14-point font, and occupies a fixed 135-pixel-high region between the title and rank markers. Titles use 24 points.
+
+`Tools/card_descriptions.json` holds concise player-facing copy for all 163 saved cards. Run `Tools/publish_upgrade_copy.py` after gameplay authoring to publish it with backups; `Tools/validate_production_upgrade_copy.py` verifies saved text, rarity variants, and preservation of gameplay/artwork. Copy is limited to 160 characters. Run-specific tradeoff descriptions remain in `PlayerUpgradeSelection.cpp`.
+
+`HeavensDivide.UI.UpgradeCardLayout` renders the saved pool and checks description bounds, writing sample cards to `Saved/UpgradeCardsPolished0.png` and `Saved/UpgradeCardsPolished1.png`.

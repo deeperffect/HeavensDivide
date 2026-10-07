@@ -1,4 +1,5 @@
 #include "SwapPresentationComponent.h"
+#include "UpgradeProcVFX.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "AutoAttackComponent.h"
@@ -313,7 +314,8 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
     const bool bBlood = !bActiveAttackIsAssist && PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("BattleStance"));
     const float CritChance = bBlood && PlayerUpgrades->HasUpgradeId(TEXT("BloodCritical"))
         ? .15f + .1f * PlayerUpgrades->GetUpgradeLevelById(TEXT("BloodCriticalChance")) : 0.f;
-    const float EffectiveAttackDamage = BaseDamage * (FMath::FRand() < CritChance ? 2.f : 1.f);
+    const bool bCritical = FMath::FRand() < CritChance;
+    const float EffectiveAttackDamage = BaseDamage * (bCritical ? 2.f : 1.f);
     const bool bCanApplyMarkedBlade =
         PlayerUpgrades && PlayerUpgrades->HasUpgradeId(SamuraiAutoAttackIds::MarkedBlade);
 
@@ -403,6 +405,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
         const bool bApplied = Enemy->ApplyPlayerDamage(Damage, AttackSource);
         if (bApplied)
         {
+            if (bCritical) PlayUpgradeProcVFX(PlayerUpgrades,TEXT("BloodCritical"),Location,60.f);
             if (!bActiveAttackIsAssist && PlayerUpgrades)
                 const_cast<UPlayerUpgradeComponent *>(PlayerUpgrades)
                     ->HandleSamuraiDirectHit(Enemy, Damage, HealthBeforeHit);

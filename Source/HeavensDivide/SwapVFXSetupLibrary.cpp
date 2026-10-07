@@ -1,6 +1,7 @@
 #include "SwapVFXSetupLibrary.h"
 #include "NiagaraSystem.h"
 #include "NiagaraDataInterfaceColorCurve.h"
+#include "NiagaraDataInterfaceCurve.h"
 #if WITH_EDITOR
 #include "NiagaraEmitterHandle.h"
 #include "NiagaraEmitter.h"
@@ -482,4 +483,62 @@ bool USwapVFXSetupLibrary::RebuildSystem(UNiagaraSystem* System, FLinearColor Pr
     }
 #endif
     return false;
+}
+
+
+bool USwapVFXSetupLibrary::ConfigureStanceEffect(UNiagaraSystem* System, FLinearColor Color, bool bPoisonPool)
+{
+#if WITH_EDITOR
+ if (!System || !System->GetPathName().StartsWith(TEXT("/Game/HeavensDivide/VFX/Stances/"))) return false;
+ System->Modify();
+ auto& Parameters=System->GetExposedParameters();
+ auto Float=[&](const TCHAR* Name,float Value) {
+  const FNiagaraVariable Variable(FNiagaraTypeDefinition::GetFloatDef(),FName(Name));
+  if(Parameters.IndexOf(Variable)!=INDEX_NONE) Parameters.SetParameterValue<float>(Value,Variable);
+ };
+ for(const TCHAR* Name:{TEXT("User.Color 1"),TEXT("User.Color 2"),TEXT("User.Color 01"),TEXT("User.color 02"),TEXT("User.ColorSlash"),TEXT("User.ColorSparks"),TEXT("User.ColorGroundMark")})
+ {
+  const FNiagaraVariable Variable(FNiagaraTypeDefinition::GetColorDef(),FName(Name));
+  if(Parameters.IndexOf(Variable)!=INDEX_NONE) Parameters.SetParameterValue<FLinearColor>(Color,Variable);
+ }
+ if(!bPoisonPool)
+  for(auto& Handle:System->GetEmitterHandles())
+   if(Handle.GetName().ToString().Contains(TEXT("GroundMark")) || Handle.GetName()==TEXT("Debris"))
+    Handle.SetIsEnabled(false,*System,false);
+ if(bPoisonPool)
+ {
+  Float(TEXT("User._Scale"),1.f);
+  Float(TEXT("User.User_SmokeRadius"),70.f);
+  Float(TEXT("User.User_SmokeRate"),24.f);
+  Float(TEXT("User.User_SmokeScale_Min"),.3f);
+  Float(TEXT("User.User_SmokeScale_Max"),.6f);
+  const FNiagaraVariable Velocity(FNiagaraTypeDefinition(UNiagaraDataInterfaceCurve::StaticClass()),TEXT("User.User_VelocityStrenght"));
+  if(auto* Curve=Cast<UNiagaraDataInterfaceCurve>(Parameters.GetDataInterface(Velocity)))
+  {
+   Curve->Modify();Curve->CurveAsset=nullptr;Curve->Curve.Reset();Curve->Curve.AddKey(0,0);Curve->Curve.AddKey(1,0);
+   Curve->UpdateLUT();Curve->PostEditChange();
+  }
+  Float(TEXT("User.User_SmokeLifetime_Min"),.8f);
+  Float(TEXT("User.User_SmokeLifetime_Max"),1.4f);
+  const FNiagaraVariable Wind(FNiagaraTypeDefinition::GetVec3Def(),TEXT("User.User_Wind"));
+  if(Parameters.IndexOf(Wind)!=INDEX_NONE) Parameters.SetParameterValue<FVector3f>(FVector3f::ZeroVector,Wind);
+  if(!TintSmokeSystem(System,Color))return false;
+  PreparePortalLocalSpace(System);
+  // Niagara mesh orientation can preserve tall geometry despite component Z scale.
+  // Flatten vertices in world Z after particle rotation, using a project-owned material.
+  auto* GroundMaterial=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/VFX/Stances/MI_PoisonGround.MI_PoisonGround"));
+  if(!GroundMaterial)return false;
+  for(auto& Handle:System->GetEmitterHandles())if(auto* Data=Handle.GetEmitterData())
+   for(auto* Renderer:Data->GetRenderers())if(auto* Mesh=Cast<UNiagaraMeshRendererProperties>(Renderer)) {
+    Mesh->Modify();Mesh->bOverrideMaterials=true;
+    if(Mesh->OverrideMaterials.IsEmpty())Mesh->OverrideMaterials.AddDefaulted();
+    for(auto& Override:Mesh->OverrideMaterials)Override.ExplicitMat=GroundMaterial;
+    Mesh->PostEditChange();
+   }
+ }
+ System->PostEditChange();System->RequestCompile(true);System->WaitForCompilationComplete(true,false);
+ return System->IsValid();
+#else
+ return false;
+#endif
 }

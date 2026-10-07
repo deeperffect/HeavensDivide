@@ -22,7 +22,8 @@
 
 void USurvivorAbilityComponent::UpgradeAccent(FName UpgradeId,FVector Position,float Radius,FLinearColor Color)
 {
-    const auto* Card=Upgrades?Upgrades->FindUpgradeDefinition(UpgradeId):nullptr;
+    const auto* Source = Upgrades ? Upgrades.Get() : GetOwner()->FindComponentByClass<UPlayerUpgradeComponent>();
+    const auto* Card=Source?Source->FindUpgradeDefinition(UpgradeId):nullptr;
     Accent(Position,Position,Radius,Color,.65f,false,Card?&Card->Presentation:nullptr);
 }
 

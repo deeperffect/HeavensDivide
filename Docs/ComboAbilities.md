@@ -50,3 +50,17 @@ Adjust **Player HUD > Combo** position, size, colors, **Combo Ink Texture**, **C
 A custom HUD can supply `ComboMeterBar` (Progress Bar) and `ComboAbilityText` (Text Block), or disable the native meter and use **Get Combo Percent**, **Is Combo Ready**, and the component's **On Combo Changed** event.
 
 Automation coverage: `HeavensDivide.Combat.ComboAbility`, `HeavensDivide.Combat.ComboHUD`, `HeavensDivide.ImpactFeedback.SwapFreeze`, and `HeavensDivide.Settings.Keybinds`. Run ComboHUD with `-ComboMeterScreenshots` and an active rendering backend to export empty, half-full, and ready previews into `Saved/ComboMeter`.
+
+### Samurai beam and level-up presentation
+
+Samurai's assigned `NS_VerticalBeam19_Spirals1` plays once at its spawn location. In **BP_Samurai > Class Defaults > Combo Ability > Presentation**, **Attach VFX To Character** and **Spawn VFX Every Pulse** are disabled. Radius/Duration parameter names are empty and VFX Scale is 1, preserving the Niagara asset's authored appearance. VFX Visibility Duration 0 uses the ability duration before graceful deactivation. These settings affect presentation; damage pulses retain their existing behavior. Ninja uses montage-authored effects, as described below.
+
+The level-up burst uses `NS_VerticalBeam22_Cosmic` (Niagara), configurable in **BP_SurvivorPlayerController > Player > Level Up > Presentation**. It retains the presentation delay, active-character following, real-time playback during slow motion, and cleanup before the upgrade menu opens. `Tools/configure_level_up_and_samurai_vfx.py` updates the two Blueprint assignments with backups.
+
+### Ninja montage VFX
+
+**BP_Ninja > Combo Ability > Presentation > Enable Code VFX** is disabled; the optional code VFX slot is retained but emits neither Niagara nor fallback rings. `AM_AbilityNinja` owns four **Ability Niagara (Freeze Aware)** notifies at the authored timings (approximately 0.095 / 0.251 / 0.438 / 0.642 seconds), with their original 0.3 scale.
+
+The notifies register Niagara with the activation-freeze clock before playback. Each slash snapshots the mesh/socket transform and remains at that transform. `/Game/HeavensDivide/VFX/Abilities/NS_NinjaAbilitySlash` is a project-owned copy of `NS_CrossSlash03` with consistent local emitter space so its mesh and particle motion rotate together. Original vendor assets are unchanged. Edit effect/offset/rotation/scale directly on each montage notify. `Tools/configure_ninja_ability_vfx.py` preserves event timing and unrelated notifies, with backups under `Saved/Backups/NinjaAbilityVFX`.
+
+`HeavensDivide.Combat.NinjaAbilityVFX` verifies four independent montage effects, freeze cleanup, fixed spawn transforms, and matching local slash positions/orientations at four facing directions.

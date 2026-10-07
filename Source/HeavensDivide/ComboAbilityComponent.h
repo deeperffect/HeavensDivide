@@ -37,8 +37,12 @@ struct FComboAbilitySettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0")) float SoundVolume = 1.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") TObjectPtr<USoundBase> PulseSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(ClampMin="0")) float PulseSoundVolume = 1.f;
+    /** Disable when the montage owns all ability VFX. Also suppresses the fallback effect. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") bool bEnableCodeVFX = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") TObjectPtr<UNiagaraSystem> VFX;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation", meta=(DisplayName="Spawn VFX Every Pulse", ToolTip="Spawn a separate Niagara effect on every damage pulse. Each instance uses VFX Visibility Duration; zero uses Pulse Interval in this mode.")) bool bSpawnVFXEveryPulse = false;
+    /** Attached effects follow the character; detached effects keep their spawn transform. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") bool bAttachVFXToCharacter = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FVector VFXOffset = FVector::ZeroVector;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FRotator VFXRotation = FRotator::ZeroRotator;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Combo Ability|Presentation") FVector VFXScale = FVector::OneVector;

@@ -13,6 +13,7 @@
 #include "HealthComponent.h"
 #include "BarrageBuild.h"
 #include "BarragePoisonPool.h"
+#include "NiagaraComponent.h"
 #include "EnemyStatusEffectComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -94,9 +95,15 @@ bool FBarrageBuildsTest::RunTest(const FString&)
  auto* PuddleOnly=Spawn(FVector(1000,0,0),1);PuddleOnly->GetStatusEffectComponent()->ApplyBarragePoison(U,100,true);const int BeforeChain=Pools();PuddleOnly->ApplyStatusDamage(100,EPlayerAttackSource::Ninja);TestEqual(TEXT("Puddle-only poison cannot chain pools"),Pools(),BeforeChain);
  E=Spawn(FVector(300,0,0),100000);S=E->GetStatusEffectComponent();S->ApplyBarragePoison(U,100);
  Grant(TEXT("BarrageBloom"));auto* Pool=World->SpawnActor<ABarragePoisonPool>(FVector(300,0,0),FRotator::ZeroRotator,Params);Pool->Initialize(U,100);
+ auto* PoolEffect=Pool->FindComponentByClass<UNiagaraComponent>();
+ if(TestNotNull(TEXT("Pool owns Niagara component"),PoolEffect)) {
+  TestEqual(TEXT("Bloom selects its distinct VFX slot"),PoolEffect->GetAsset(),B->VenomBloomVFX.Get());
+  TestTrue(TEXT("Pool VFX scales with radius"),FMath::IsNearlyEqual(PoolEffect->GetComponentScale().X,220.f/B->PoisonPoolVFXReferenceRadius));
+ }
  const float HP=E->GetHealthComponent()->GetCurrentHealth(),Budget=S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison);Pool->Pulse();
  TestTrue(TEXT("Bloom deals ten percent remaining damage"),FMath::IsNearlyEqual(HP-E->GetHealthComponent()->GetCurrentHealth(),Budget*.1f,.01f));TestEqual(TEXT("Bloom does not consume poison"),S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison),Budget);TestEqual(TEXT("Bloom adds no stack"),S->GetStatusStacks(EEnemyStatusEffect::Poison),1);
  for(int I=0;I<5;++I)Pool->Pulse();TestTrue(TEXT("Pool ends after six pulses"),Pool->IsActorBeingDestroyed());
+ TestFalse(TEXT("Pool VFX is unregistered at pool expiry"),PoolEffect && PoolEffect->IsRegistered());
  for(auto* C:U->RollUpgradeChoices(EUpgradeCategory::Ninja,100))TestFalse(TEXT("Shrines excluded from ordinary rewards"),BarrageBuild::IsShrine(C->UpgradeId));
  // A serial volley emits at intervals and cancellation removes all pending throws.
  auto Kunais=[&](){int C=0;for(TActorIterator<AAttackProjectileBase> I(World);I;++I)if(I->GetActorLocation().X>=7999)++C;return C;};

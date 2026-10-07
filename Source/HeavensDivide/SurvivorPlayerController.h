@@ -16,6 +16,9 @@ class USurvivorAbilityComponent;
 class UGameOverWidget;
 class UVictoryWidget;
 class ULevelUpWidget;
+class UNiagaraSystem;
+class UNiagaraComponent;
+class UAudioComponent;
 class UPlayerUpgradeComponent;
 class UPlayerHUDWidget;
 class USharedPlayerStatsComponent;
@@ -62,6 +65,7 @@ private:
 	friend class FGrandEntranceTest;
 	friend class FKeybindSettingsTest;
     friend class FPauseMenuTest;
+	friend class FLevelUpPresentationTest;
 	void HandleCameraShakeIntensityChanged(float Intensity);
 	TWeakObjectPtr<class UCameraShakeBase> ActiveGameplayShake;
 	float ActiveGameplayShakeBaseScale = 0.0f;
@@ -330,6 +334,19 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Level-up upgrade selection widget class shown when the player gains a level."))
 	TSubclassOf<ULevelUpWidget> LevelUpWidgetClass;
 
+	/** Niagara burst played at the active character's feet before upgrade choices appear. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Level Up|Presentation")
+	TObjectPtr<UNiagaraSystem> LevelUpVFX;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Level Up|Presentation", meta = (ClampMin = "0.0", Units = "s", ToolTip = "Real seconds to show the burst while gameplay continues. Gameplay freezes when upgrade choices open. Zero opens choices immediately."))
+	float LevelUpPresentationDuration = 1.5f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Level Up|Presentation", meta = (ClampMin = "0.01"))
+	float LevelUpVFXScale = 1.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player|Level Up|Presentation")
+	FVector LevelUpVFXOffset = FVector::ZeroVector;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Run-over screen shown once after shared player death."))
 	TSubclassOf<UGameOverWidget> GameOverWidgetClass;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "Victory screen shown once after the final boss is defeated."))
@@ -370,8 +387,15 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Rewards")
 	int32 PendingNinjaTrialRewards = 0;
 
-	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "True while the level-up upgrade selection UI is open and gameplay is frozen."))
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Player|Level Up", meta = (ToolTip = "True while upgrade selection is active and gameplay is frozen. False during the preceding level-up effects."))
 	bool bLevelUpSelectionActive = false;
+
+	bool bLevelUpPresentationActive = false;
+	float LevelUpPresentationRemaining = 0.0f;
+	UPROPERTY(Transient)
+	TObjectPtr<UNiagaraComponent> LevelUpEffect;
+	UPROPERTY(Transient)
+	TObjectPtr<UAudioComponent> LevelUpAudio;
 
 	float PreviousLevelUpGlobalTimeDilation = 1.0f;
 	bool bLevelUpTimeDilationApplied = false;
@@ -417,6 +441,9 @@ protected:
 	UFUNCTION()
 	void HandleSharedPlayerStatsChanged();
 	void StartNextLevelUpSelection();
+	void BeginLevelUpPresentation();
+	void UpdateLevelUpPresentation(float RealDeltaTime);
+	void CancelLevelUpPresentation();
 	void StartNextUpgradeSelection();
 	bool EnsureLevelUpWidget();
 	void PauseForLevelUpSelection();

@@ -14,7 +14,14 @@ bool FComboAbilityVFXTest::RunTest(const FString&)
     auto* Combo = NewObject<UComboAbilityComponent>();
     Combo->ActiveSettings = Class->GetDefaultObject<ACharacterBase>()->ComboAbility;
     if(!TestNotNull(TEXT("Authored ability Niagara exists"),Combo->ActiveSettings.VFX.Get()))return false;
-    TestFalse(TEXT("Uses authored Niagara scaling input"),Combo->ActiveSettings.VFXRadiusParameter.IsNone());
+    TestFalse(TEXT("Samurai effect stays in world space"),Combo->ActiveSettings.bAttachVFXToCharacter);
+    TestFalse(TEXT("Samurai effect plays once"),Combo->ActiveSettings.bSpawnVFXEveryPulse);
+    TestTrue(TEXT("Samurai preserves authored Niagara scale"),Combo->ActiveSettings.VFXRadiusParameter.IsNone());
+    TestTrue(TEXT("Samurai preserves authored Niagara timing"),Combo->ActiveSettings.VFXDurationParameter.IsNone());
+    // Exercise optional radius scaling independently of the Samurai's authored-look configuration.
+    Combo->ActiveSettings.VFX=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/HeavensDivide/VFX/Upgrades/NS_SamuraiActive.NS_SamuraiActive"));
+    Combo->ActiveSettings.VFXRadiusParameter=TEXT("User._Scale");
+    Combo->ActiveSettings.bVFXRadiusParameterIsScale=true;
     const float ReferenceRadius = Combo->ActiveSettings.VFXReferenceRadius;
     TestTrue(TEXT("Reference radius is positive"), ReferenceRadius > 0.f);
     auto* FX = NewObject<UNiagaraComponent>();

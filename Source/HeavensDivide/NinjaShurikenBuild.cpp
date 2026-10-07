@@ -1,4 +1,5 @@
 #include "NinjaBuildProjectile.h"
+#include "UpgradeProcVFX.h"
 #include "NinjaBuildComponent.h"
 #include "NinjaCharacter.h"
 #include "ShadowClone.h"
@@ -49,15 +50,21 @@ void ANinjaBuildProjectile::ShurikenHit(AEnemyBase* Enemy, bool bBurst)
  const bool bGrind=!bBurst && !bGrindingUsed && B->Has(TEXT("GrindingHalt")) && Enemy->GetDropCategory()!=EEnemyDropCategory::Normal;
  const float Dealt=B->Hit(Enemy,Amount,false,bAssistProjectile,true);
  if (Dealt<=0) return;
- if (!bBurst) ++HitCounts.FindOrAdd(Enemy);
+ if (!bBurst) {
+     ++HitCounts.FindOrAdd(Enemy);
+     if (B->Has(TEXT("SerratedEdge")) && SerrationBonus(Enemy) >= 1.f+B->Tune(TEXT("SerratedEdge"),TEXT("DamageCap"),.75f))
+         PlayUpgradeProcVFX(B->Upgrades(), TEXT("SerratedEdge"), Enemy->GetActorLocation(), 45.f);
+ }
  if (bGrind)
  {
      bGrindingUsed=true;
+     PlayUpgradeProcVFX(B->Upgrades(), TEXT("GrindingHalt"), GetActorLocation(), Radius);
      SlowRemaining=B->Tune(TEXT("GrindingHalt"),TEXT("SlowDuration"),1.f)
          +FangBuild::Scaling(B->Upgrades(),TEXT("ShurikenGrindDuration"),.2f);
  }
  if (!Enemy->IsDead()) return;
  ++ShurikenKills;
+ if (B->Has(TEXT("ShurikenHunger"))) PlayUpgradeProcVFX(B->Upgrades(), TEXT("ShurikenHunger"), GetActorLocation(), Radius*.5f);
  // Contact and burst kills share procs. Neither kill path creates another burst.
  if (!bCloneProjectile && !bAssistProjectile && B->IsActive() && B->Has(TEXT("ShurikenAssist"))
      && FMath::FRand()<FMath::Clamp(B->Tune(TEXT("ShurikenAssist"),TEXT("Chance"),.05f)
@@ -71,7 +78,7 @@ void ANinjaBuildProjectile::ShurikenBurst()
  const float BurstRadius=Radius*B->Tune(TEXT("BreakingWheel"),TEXT("RadiusMultiplier"),2.f);
  for (auto* Enemy:B->Targets(GetActorLocation(),BurstRadius)) ShurikenHit(Enemy,true);
  if (B->ShurikenBurstVFX)
-     UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,B->ShurikenBurstVFX,GetActorLocation(),FRotator::ZeroRotator,FVector(BurstRadius/190.f));
+     PlayScaledUpgradeBurst(this,B->ShurikenBurstVFX,GetActorLocation(),BurstRadius/190.f);
  else if (auto* FX=B->Upgrades()->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
      FX->UpgradeAccent(TEXT("BreakingWheel"),GetActorLocation(),BurstRadius,FLinearColor(.65f,.25f,1.f));
  UpdateShurikenGrowth();

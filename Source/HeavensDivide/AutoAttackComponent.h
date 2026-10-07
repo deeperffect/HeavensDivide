@@ -354,6 +354,14 @@ private:
     int32 GetDoubleCutThreshold() const;
     void ExecuteBloodEcho(FVector Origin, FVector Direction, float Damage, float Radius, bool bCircular);
     void RollBloodAssist();
+public:
+    /** Cascade anticipation/explosion effect; starts when capped Bleed is consumed. */
+    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance|Detonation") TObjectPtr<class UParticleSystem> BloodDetonationVFX;
+    /** Seconds from the effect starting until damage resolves at its original location. */
+    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance|Detonation", meta=(ClampMin="0", Units="s")) float BloodDetonationExplosionDelay = 0.f;
+    /** Visual radius of the Cascade asset at scale 1. Does not change the damage radius. */
+    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance|Detonation", meta=(ClampMin="1", Units="cm")) float BloodDetonationVFXReferenceRadius = 300.f;
+private:
     UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance") TObjectPtr<UNiagaraSystem> BloodEchoVFX;
     UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance", meta=(ClampMin="0.01")) float BloodEchoDelay = .15f;
     bool bBloodCircularAttack = false;

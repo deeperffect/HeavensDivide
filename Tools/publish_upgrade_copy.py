@@ -97,7 +97,7 @@ for uid, row in catalog.items():
     assert 0 < len(row['name']) <= 30, uid
     for field in ('description', 'format'):
         text = row.get(field, '')
-        assert len(text) <= 220, (uid, field)
+        assert len(text) <= 160, (uid, field)
         assert set(re.findall(r'\{([^{}]+)\}', text)) <= {'Magnitude', 'Percent'}, uid
         assert not re.search(r'\b(?:hitbox|runtime|Blueprint|RNG|proc|deprecated|retired)\b|Blood Shrine reward|Maximum \d+ ranks', text, re.I), uid
 
@@ -154,7 +154,7 @@ for uid, asset in sorted(assets.items()):
     for variant, override in zip(variants, overrides):
         magnitude = variant.get_editor_property('magnitude')
         rendered = override or fmt.replace('{Magnitude}', f'{magnitude:g}').replace('{Percent}', str(round(magnitude * 100)))
-        assert '{' not in rendered and '}' not in rendered and len(rendered) <= 220, uid
+        assert '{' not in rendered and '}' not in rendered and len(rendered) <= 160, uid
     report.append(dict(id=uid, changed=changed, before=old, **new, variants=overrides, non_copy_properties_preserved=True))
 
 assert all(digest(root / p) == h for p, h in protected_hashes.items()), 'Pool, UI or artwork changed'

@@ -16,6 +16,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "Misc/App.h"
 #include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FComboAbilityTest, "HeavensDivide.Combat.ComboAbility",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -70,8 +71,25 @@ bool FComboAbilityTest::RunTest(const FString&)
     TestFalse(TEXT("Disabled ability preserves full meter"), Combo->TryActivateAbility());
     TestTrue(TEXT("Rejected activation does not spend charge"), Combo->IsFull());
     Samurai->ComboAbility.bEnabled = true;
+    auto* SamuraiBP=LoadClass<ACharacterBase>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai.BP_Samurai_C"));
+    if(TestNotNull(TEXT("Saved Samurai"),SamuraiBP)) {
+        const auto& Saved=SamuraiBP->GetDefaultObject<ACharacterBase>()->ComboAbility;
+        Samurai->ComboAbility.VFX=Saved.VFX;
+        Samurai->ComboAbility.bAttachVFXToCharacter=Saved.bAttachVFXToCharacter;
+        Samurai->ComboAbility.bSpawnVFXEveryPulse=Saved.bSpawnVFXEveryPulse;
+        Samurai->ComboAbility.VFXRadiusParameter=Saved.VFXRadiusParameter;
+        Samurai->ComboAbility.VFXDurationParameter=Saved.VFXDurationParameter;
+    }
     const FRotator InitialRotation = Samurai->GetMesh()->GetRelativeRotation();
     TestTrue(TEXT("Full meter activates Tornado"), Combo->TryActivateAbility());
+    auto* StationaryFX=Combo->ActiveVFX.Get();
+    if(TestNotNull(TEXT("Samurai spawns its saved effect"),StationaryFX)) {
+        const FTransform Before=StationaryFX->GetComponentTransform();
+        TestNull(TEXT("Samurai VFX has no character attachment"),StationaryFX->GetAttachParent());
+        Samurai->AddActorWorldOffset(FVector(400,300,0));
+        TestTrue(TEXT("Movement leaves Samurai VFX at its original transform"),StationaryFX->GetComponentTransform().Equals(Before));
+        Samurai->AddActorWorldOffset(FVector(-400,-300,0));
+    }
     TestEqual(TEXT("Activation consumes full meter"), Combo->GetCombo(), 0.f);
     TestTrue(TEXT("Tornado initial pulse damages nearby enemy"), Near->GetHealthComponent()->GetCurrentHealth() < 10000.f);
     TestEqual(TEXT("Tornado starts too small for distant enemy"), Far->GetHealthComponent()->GetCurrentHealth(), 10000.f);
@@ -83,17 +101,20 @@ bool FComboAbilityTest::RunTest(const FString&)
     Combo->TickComponent(.7f, LEVELTICK_All, nullptr);
     TestTrue(TEXT("Tornado leaves spinning to the montage"), Samurai->GetMesh()->GetRelativeRotation().Equals(InitialRotation));
     Combo->TickComponent(2.4f, LEVELTICK_All, nullptr);
+    TestEqual(TEXT("Damage pulses do not duplicate Samurai VFX"),Combo->PendingVFX.Num(),1);
     TestTrue(TEXT("Expanding Tornado reaches distant enemy"), Far->GetHealthComponent()->GetCurrentHealth() < 10000.f);
     TestFalse(TEXT("Ability finishes"), Combo->IsAbilityActive());
     TestTrue(TEXT("Mesh orientation restored"), Samurai->GetMesh()->GetRelativeRotation().Equals(InitialRotation));
+    Combo->UpdateVFXLifetime(10.f); // Let the Samurai effect finish before testing independent Ninja pulses.
     SetActive(Ninja);
     auto* NinjaBP = LoadClass<ACharacterBase>(nullptr, TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Ninja.BP_Ninja_C"));
     if (TestNotNull(TEXT("Ninja blueprint"), NinjaBP))
     {
         const auto& Settings = NinjaBP->GetDefaultObject<ACharacterBase>()->ComboAbility;
-        TestTrue(TEXT("Saved Ninja inherits per-pulse VFX"), Settings.bSpawnVFXEveryPulse);
-        Ninja->ComboAbility.VFX = Settings.VFX;
-        TestNotNull(TEXT("Ninja has an authored pulse effect"), Settings.VFX.Get());
+        TestFalse(TEXT("Saved Ninja disables code-spawned VFX"), Settings.bEnableCodeVFX);
+        Ninja->ComboAbility.bEnableCodeVFX = true; // Explicitly exercise the optional code-spawned path.
+        Ninja->ComboAbility.VFX = LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/Assets/VFX/CrossSlashesV1/Particles/NiagaraSystems/NS_CrossSlash01.NS_CrossSlash01"));
+        TestNotNull(TEXT("Optional code-spawned path has a test effect"), Ninja->ComboAbility.VFX.Get());
     }
     for (int32 Index = 0; Index < 4; ++Index)
     {

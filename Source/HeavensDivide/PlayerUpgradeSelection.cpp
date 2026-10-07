@@ -37,12 +37,12 @@ bool TradeoffCopy(const UPlayerUpgradeComponent* U, const UUpgradeDefinition* Ca
   if (Id == TEXT("CrescentFieldPower"))
    return Copy(TEXT("Violent Wake"), FString::Printf(TEXT("Increase Sudden Eruption damage by %s%% per rank."), *Percent(Card->GetBalanceValue(TEXT("PerRank"), .15f))));
   if (Id == TEXT("CrescentFieldChance"))
-   return Copy(TEXT("Restless Eruption"), TEXT("Gain 5 percentage points of chance to leave an erupting trail. Split waves share the trigger."));
+   return Copy(TEXT("Restless Eruption"), TEXT("+5% chance to leave an erupting trail. Split waves share the effect."));
  }
  if (U->HasUpgradeId(TEXT("BarrageBloom")) && Id == TEXT("BarragePoolRadius"))
   return Copy(TEXT("Spreading Bloom"), FString::Printf(TEXT("Increase Venom Bloom puddle radius by %s%% per rank."), *Percent(Card->GetBalanceValue(TEXT("PerRank"), .2f))));
  if (U->HasUpgradeId(TEXT("ShurikenHunger")) && Id == TEXT("ShurikenSize"))
-  return Copy(TEXT("Ravenous Growth"), FString::Printf(TEXT("Increase blade size gained per kill by %s%% per rank. Growth remains limited by the blade's growth cap."), *Percent(Magnitude)));
+  return Copy(TEXT("Ravenous Growth"), FString::Printf(TEXT("Gain %s%% more blade size per kill, up to the blade's growth cap."), *Percent(Magnitude)));
  return false;
 }
 }

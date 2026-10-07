@@ -12,6 +12,9 @@ class USwapVFXSetupLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+    /** Configure duplicated vendor effects for stance procs; never pass the source asset. */
+    UFUNCTION(BlueprintCallable, Category="Editor|Upgrade VFX")
+    static bool ConfigureStanceEffect(UNiagaraSystem* System, FLinearColor Color, bool bPoisonPool);
     UFUNCTION(BlueprintCallable, Category="Editor|Upgrade VFX")
     static bool TintSmokeSystem(UNiagaraSystem* System, FLinearColor Color);
     UFUNCTION(BlueprintCallable, Category="Editor|Swap VFX")

@@ -121,11 +121,20 @@ void UComboAbilityComponent::ExecuteEffect()
     if (!bEffectExecuted && ActiveSettings.Sound)
         ActiveAudio = UGameplayStatics::SpawnSoundAttached(ActiveSettings.Sound, Character->GetRootComponent(), NAME_None,
             FVector::ZeroVector, EAttachLocation::KeepRelativeOffset, true, FMath::Max(0.f, ActiveSettings.SoundVolume));
-    const bool bSpawnVFX = ActiveSettings.VFX && (!bEffectExecuted || ActiveSettings.bSpawnVFXEveryPulse);
+    const bool bSpawnVFX = ActiveSettings.bEnableCodeVFX && ActiveSettings.VFX && (!bEffectExecuted || ActiveSettings.bSpawnVFXEveryPulse);
     if (bSpawnVFX)
     {
-        ActiveVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(ActiveSettings.VFX, Character->GetVisualRoot(), NAME_None,
-            ActiveSettings.VFXOffset, ActiveSettings.VFXRotation, EAttachLocation::KeepRelativeOffset, false, false);
+        if (ActiveSettings.bAttachVFXToCharacter)
+            ActiveVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(ActiveSettings.VFX, Character->GetVisualRoot(), NAME_None,
+                ActiveSettings.VFXOffset, ActiveSettings.VFXRotation, EAttachLocation::KeepRelativeOffset, false, false);
+        else
+        {
+            const auto Transform = Character->GetVisualRoot()->GetComponentTransform();
+            ActiveVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ActiveSettings.VFX,
+                Transform.TransformPositionNoScale(ActiveSettings.VFXOffset),
+                (Transform.GetRotation() * ActiveSettings.VFXRotation.Quaternion()).Rotator(),
+                FVector::OneVector, false, false, ENCPoolMethod::None, false);
+        }
         if (ActiveVFX)
         {
             const float Visibility = ActiveSettings.VFXVisibilityDuration > 0.f
@@ -148,7 +157,7 @@ void UComboAbilityComponent::ExecuteEffect()
     if (ActiveSettings.PulseSound)
         UGameplayStatics::PlaySoundAtLocation(this, ActiveSettings.PulseSound, Character->GetActorLocation(), ActiveSettings.PulseSoundVolume);
     bEffectExecuted = true;
-    if (!ActiveSettings.VFX)
+    if (ActiveSettings.bEnableCodeVFX && !ActiveSettings.VFX)
     {
         if (auto* Accent = GetWorld()->SpawnActor<AAbilityAccent>(Character->GetActorLocation(), FRotator::ZeroRotator))
             Accent->Initialize(Character->GetActorLocation(), Radius, ActiveSettings.FallbackColor, .2f, false);

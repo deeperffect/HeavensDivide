@@ -160,6 +160,22 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
  TestFalse(TEXT("Explosion consumes capped Bleed"),Bomb->HasStatus(EEnemyStatusEffect::Bleed));
  TestTrue(TEXT("Explosion hits origin for twice remaining damage"),FMath::IsNearlyEqual(Bomb->GetHealthComponent()->GetCurrentHealth(),9900.f,.02f));
  TestTrue(TEXT("Explosion hits neighbors"),FMath::IsNearlyEqual(BlastTarget->GetHealthComponent()->GetCurrentHealth(),9900.f,.02f));
+ ++GFrameCounter;World->Tick(LEVELTICK_All,.001f); // Prime the timer manager before scheduling.
+ Attack->BloodDetonationExplosionDelay=.3f;
+ auto* DelayedBomb=Spawn(FVector(50000,0,0),10000);
+ auto* Leaving=Spawn(FVector(50100,0,0),10000);
+ auto* Entering=Spawn(FVector(52000,0,0),10000);
+ for(int32 i=0;i<5;++i)DelayedBomb->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed,U,EPlayerAttackSource::Samurai,false,80);
+ TestFalse(TEXT("Delayed explosion consumes Bleed immediately"),DelayedBomb->HasStatus(EEnemyStatusEffect::Bleed));
+ TestEqual(TEXT("Damage waits for explosion delay"),Leaving->GetHealthComponent()->GetCurrentHealth(),10000.f);
+ DelayedBomb->Destroy(); // A committed blast must survive its original victim.
+ Leaving->SetActorLocation(FVector(52000,0,0));Entering->SetActorLocation(FVector(50100,0,0));
+ ++GFrameCounter;World->Tick(LEVELTICK_All,.15f);
+ TestEqual(TEXT("No early detonation"),Entering->GetHealthComponent()->GetCurrentHealth(),10000.f);
+ ++GFrameCounter;World->Tick(LEVELTICK_All,.2f);
+ TestTrue(TEXT("Delayed blast hits enemies entering original radius"),FMath::IsNearlyEqual(Entering->GetHealthComponent()->GetCurrentHealth(),9900.f,.02f));
+ TestEqual(TEXT("Enemies leaving before detonation escape"),Leaving->GetHealthComponent()->GetCurrentHealth(),10000.f);
+ Attack->BloodDetonationExplosionDelay=0.f;
  U->RestoreRunState(Empty);U->AcquireUpgrade(Card(TEXT("BattleStance")));U->AcquireUpgrade(Card(TEXT("DoubleCut")));
  Attack->DoubleCutPrimaryAttackCounter=0;
  TestEqual(TEXT("Double Cut starts every four attacks"),Attack->GetDoubleCutThreshold(),4);
