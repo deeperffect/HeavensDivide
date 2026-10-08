@@ -5,7 +5,10 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/StaticMeshComponent.h"
+#include "Materials/Material.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/SkeletalMesh.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "EngineUtils.h"
@@ -25,6 +28,43 @@ bool FSwapDepartureTest::RunTest(const FString&)
         FActorSpawnParameters Params;Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         auto* Source=World->SpawnActor<ACharacterBase>(Class,FVector::ZeroVector,FRotator::ZeroRotator,Params);
         if(!TestNotNull(Name+TEXT(" source"),Source)) continue;
+        // Read the saved usage before a render proxy can auto-enable it in the editor.
+        // A slot can hold the correct MID while the renderer substitutes opaque grey
+        // for clothing, so pointer equality alone cannot catch this regression.
+        auto* GhostMaterial=Source->SwapPresentation->GhostMaterial.Get();
+        if(!TestNotNull(Name+TEXT(" ghost material"),GhostMaterial)) continue;
+        TestTrue(Name+TEXT(" saved ghost supports skeletal meshes"),GhostMaterial->GetUsageByFlag(MATUSAGE_SkeletalMesh));
+        TestTrue(Name+TEXT(" saved ghost supports cloth sections"),GhostMaterial->GetUsageByFlag(MATUSAGE_Clothing));
+        TestTrue(Name+TEXT(" fixture includes simulated clothing"),!Source->GetMesh()->GetSkeletalMeshAsset()->GetMeshClothingAssets().IsEmpty());
+        const auto CheckFadeMaterials=[&](ASwapAfterimage* Afterimage,const FString& Phase)
+        {
+            TestEqual(Name+Phase+TEXT(" uses the saved material as a valid parent"),Afterimage->FadeMaterial->Parent.Get(),GhostMaterial);
+            TestTrue(Name+Phase+TEXT(" fade supports clothing"),Afterimage->FadeMaterial->GetUsageByFlag(MATUSAGE_Clothing));
+            TestEqual(Name+Phase+TEXT(" preserves character tint"),Afterimage->FadeMaterial->K2_GetVectorParameterValue(TEXT("Tint")),Source->SwapPresentation->GetPresentationColor());
+            TInlineComponentArray<USkinnedMeshComponent*> Meshes(Afterimage);
+            TestFalse(Name+Phase+TEXT(" has a character mesh"),Meshes.IsEmpty());
+            for(auto* Mesh:Meshes)
+            {
+                TestEqual(Name+Phase+TEXT(" retains body and cloth slots"),Mesh->GetNumMaterials(),Source->GetMesh()->GetNumMaterials());
+                for(int32 Slot=0;Slot<Mesh->GetNumMaterials();++Slot)
+                    TestEqual(Name+Phase+FString::Printf(TEXT(" slot %d shares fade opacity and tint"),Slot),
+                        Mesh->GetMaterial(Slot),static_cast<UMaterialInterface*>(Afterimage->FadeMaterial));
+            }
+            TInlineComponentArray<UStaticMeshComponent*> Weapons(Afterimage);
+            for(auto* Weapon:Weapons)
+            {
+                TestTrue(Name+Phase+TEXT(" weapon copy supports translucent rendering"),Weapon->IsDisallowNanite());
+                for(int32 Slot=0;Slot<Weapon->GetNumMaterials();++Slot)
+                    TestEqual(Name+Phase+TEXT(" weapon shares character fade"),Weapon->GetMaterial(Slot),static_cast<UMaterialInterface*>(Afterimage->FadeMaterial));
+            }
+        };
+        auto* Snapshot=World->SpawnActor<ASwapAfterimage>();
+        Snapshot->Initialize(Source,GhostMaterial,Source->SwapPresentation->GetPresentationColor(),.2f);
+        Snapshot->AdvanceVisual(.1f);
+        CheckFadeMaterials(Snapshot,TEXT(" static snapshot"));
+        TestTrue(Name+TEXT(" snapshot fades halfway"),FMath::IsNearlyEqual(Snapshot->FadeMaterial->K2_GetScalarParameterValue(TEXT("Opacity")),.65f*.25f,.0001f));
+        Snapshot->AdvanceVisual(.11f);
+        TestTrue(Name+TEXT(" snapshot body and cloth expire together"),Snapshot->IsActorBeingDestroyed());
         // Existing compatible montages are fixtures only, not character default changes.
         auto* Montage=LoadObject<UAnimMontage>(nullptr,Name==TEXT("Ninja") ?
             TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/Montages/Ninja/AM_NinjaSwapArrival") :
@@ -46,9 +86,11 @@ bool FSwapDepartureTest::RunTest(const FString&)
         if(!TestNotNull(Name+TEXT(" animated mesh"),Copy->AnimatedMesh.Get())) continue;
         auto* Anim=Copy->AnimatedMesh->GetSingleNodeInstance();
         TestEqual(TEXT("Copy plays assigned montage"),Anim->GetAnimationAsset(),static_cast<UAnimationAsset*>(Montage));
-        TestEqual(TEXT("Departure starts with normal materials"),Copy->AnimatedMesh->GetMaterial(0),Source->GetMesh()->GetMaterial(0));
+        for(int32 Slot=0;Slot<Source->GetMesh()->GetNumMaterials();++Slot)
+            TestEqual(TEXT("Departure starts with normal body and cloth materials"),Copy->AnimatedMesh->GetMaterial(Slot),Source->GetMesh()->GetMaterial(Slot));
         Copy->AdvanceVisual(.1f);
-        TestEqual(TEXT("Normal materials remain during montage"),Copy->AnimatedMesh->GetMaterial(0),Source->GetMesh()->GetMaterial(0));
+        for(int32 Slot=0;Slot<Source->GetMesh()->GetNumMaterials();++Slot)
+            TestEqual(TEXT("Normal body and cloth materials remain during montage"),Copy->AnimatedMesh->GetMaterial(Slot),Source->GetMesh()->GetMaterial(Slot));
         TestTrue(TEXT("Departure advances in real time"),Anim->GetCurrentTime()>.05f);
         TestTrue(TEXT("Outgoing gameplay character stays hidden"),Source->IsHidden());
         TestFalse(TEXT("Outgoing gameplay collision stays disabled"),Source->GetActorEnableCollision());
@@ -58,6 +100,9 @@ bool FSwapDepartureTest::RunTest(const FString&)
         TestTrue(TEXT("Departure reaches its final frame"),FMath::IsNearlyEqual(Anim->GetCurrentTime(),Montage->GetPlayLength()));
         TestEqual(TEXT("Color starts after montage completion"),Copy->AnimatedMesh->GetMaterial(0),static_cast<UMaterialInterface*>(Copy->FadeMaterial));
         TestFalse(TEXT("Completed montage retains a separate fade tail"),Copy->IsActorBeingDestroyed());
+        Copy->AdvanceVisual((Copy->Lifetime-Copy->DepartureDuration)*.5f-.001f);
+        CheckFadeMaterials(Copy,TEXT(" animated departure"));
+        TestTrue(Name+TEXT(" departure fades halfway"),FMath::IsNearlyEqual(Copy->FadeMaterial->K2_GetScalarParameterValue(TEXT("Opacity")),.65f*.25f,.0001f));
         Copy->AdvanceVisual(Copy->Lifetime-Copy->Age+.01f);
         TestTrue(TEXT("Departure copy expires"),Copy->IsActorBeingDestroyed());
 
@@ -101,6 +146,9 @@ bool FSwapDepartureTest::RunTest(const FString&)
                 {
                     ++TrailSamples;
                     TestFalse(TEXT("Trail samples have no collision"),It->GetActorEnableCollision());
+                    It->AdvanceVisual(.08f);
+                    CheckFadeMaterials(*It,TEXT(" portal trail"));
+                    TestTrue(Name+TEXT(" trail fades halfway"),FMath::IsNearlyEqual(It->FadeMaterial->K2_GetScalarParameterValue(TEXT("Opacity")),.35f*.25f,.0001f));
                     It->AdvanceVisual(.2f);
                     TestTrue(TEXT("Trail samples expire independently"),It->IsActorBeingDestroyed());
                 }

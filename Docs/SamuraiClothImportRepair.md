@@ -1,5 +1,9 @@
 # Samurai two-material mesh repair (2026-09-28)
 
+Update 2026-10-08: cloth simulation has since been authored on the repaired mesh.
+See [CharacterClothAndHair.md](CharacterClothAndHair.md) for the active setup.
+The notes below describe the earlier import repair.
+
 Active mesh: `/Game/Assets/PlayerCharacters/Samurai/fdsafdsa`.
 Retained slots: `Fbx_Default_Material_0` and `SamuraiClothes`.
 Animation skeleton: `SamuraiCharacterV4_Skeleton`.

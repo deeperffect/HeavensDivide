@@ -1,0 +1,10 @@
+Edited using the built-in image_gen tool.
+
+Use case: precise-object-edit.
+Edit target: the attached full-body front-view ninja character reference.
+Change ONLY the two long loose ends of her purple NECK SCARF. They currently extend diagonally outward behind her arms as though wind is blowing. Remove that floating, windblown shape and redraw both scarf tails as soft fabric hanging naturally under gravity in completely still air.
+
+Keep the thick purple scarf wrapped around her neck exactly as it is. Its loose ends should fall from behind the neck/shoulders vertically down her back, hanging close to her back and torso with relaxed soft folds and slight natural waviness. Their tips point toward the floor around upper/mid thigh height. In this straight-on front view, the scarf ends should be mostly occluded by her body; only narrow vertical portions may be visible just behind the sides of her torso and hips. They must NOT extend sideways beyond her arms, spread like wings, form a cape, float diagonally, or curl upward. Keep the original scarf fabric color and approximately the original fabric length. Let occlusion look physically correct; do not force the entire scarf to remain visible from the front.
+
+Do not confuse the scarf tails with her floral right sleeve, waist sash tails, or ponytail ribbons: preserve those other parts unchanged. Preserve her exact face, hair, gold hair ornament, purple eyes, anatomical proportions, straight-on gaze and frontal head alignment, neutral A-pose, hands, black-and-purple outfit, single gold-edged right shoulder armor, floral sleeve, waist knot, trousers, shin armor, boots, lighting, art style, neutral gray background, framing, resolution and full-body scale.
+Single character. No added items, no text, no crop. This is a targeted scarf drape correction for a 3D-model reference.

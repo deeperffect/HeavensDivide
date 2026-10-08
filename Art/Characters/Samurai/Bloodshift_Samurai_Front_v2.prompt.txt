@@ -1,0 +1,20 @@
+Generated using the built-in image_gen tool.
+
+Use case: identity-preserve.
+Asset type: corrected orthographic front reference for 3D modeling.
+EDIT TARGET: the attached full-body samurai reference. Correct ONLY the anatomical orientation and camera alignment. Preserve this exact character design, identity, outfit, materials, colors, full-body framing, neutral gray background, and illustration/render style.
+
+The current image subtly turns the man's head and gaze toward the viewer's left, and his feet point outward. This must be corrected visibly. Rebuild the face in a TRUE DEAD-CENTER FRONTAL projection. The character is looking DIRECTLY AT THE VIEWER, not just holding his head forward while glancing sideways.
+
+Mandatory geometric alignment:
+- Zero head yaw, zero head roll, zero head pitch. Absolutely no three-quarter face or side glance.
+- Nose bridge, centered nose tip, philtrum, middle of closed mouth, chin tip, throat, sternum, navel, and pelvis all line up on the same vertical centerline.
+- Both eyes have equal visible widths and heights, at exactly the same height; pupils centered in their respective eye openings and directed straight into the camera.
+- Both cheekbones, jaw angles, and ears appear equally in frontal view; neither side of the face is foreshortened. Keep the face anatomically symmetric, with the existing asymmetric hairstyle layered over it. Move the side fringe just enough to make both eyes clearly visible.
+- Clavicles, shoulders, chest, hips, knees, and ankles face the viewer with no twist, lean, perspective, contrapposto or weight shift.
+- Both feet are PARALLEL, pointing straight toward the camera; the boot tips face forward with matching foreshortening, not splayed sideways. Kneecaps and shin guards face straight ahead.
+- Balanced neutral A-pose with arms 30 degrees from the torso, hands at the same height, feet hip-width apart. Full figure, from highest hair tip through both soles, centered on the canvas with margins.
+- Use an orthographic front camera at zero azimuth/elevation; technical model turnaround alignment, not a flattering portrait angle.
+
+Preserve his sharp stern anime face, tan skin, black spiky tied hair with red streaks, ivory fur collar, red-and-black wrap robe, flame tattoo on anatomical LEFT chest, gold-edged shoulder armor on anatomical RIGHT shoulder ONLY (viewer-left), gold fasteners, braided red ropes and waist knot, black hand wraps, layered coat skirts, dark pants, red-and-gold shin guards, and black split-toe boots. Do not symmetrize the costume or add shoulder armor to the other side. The underlying anatomy is frontal and symmetric while the original asymmetric outfit remains asymmetric.
+Soft even light. Single character only. No labels, no arrows, no centerline drawn on the image, no side views, no watermark.

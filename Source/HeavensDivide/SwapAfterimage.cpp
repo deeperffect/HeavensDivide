@@ -41,6 +41,8 @@ void ASwapAfterimage::Initialize(ACharacterBase* Source, UMaterialInterface* Mat
     {
         if (!Mesh->GetStaticMesh() || !Mesh->IsVisible()) continue;
         auto* Copy = NewObject<UStaticMeshComponent>(this);
+        // The departure fade is translucent, which Nanite cannot render.
+        Copy->bDisallowNanite = true;
         Copy->SetStaticMesh(Mesh->GetStaticMesh());
         Copy->SetupAttachment(RootComponent);
         Copy->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -133,7 +135,10 @@ void ASwapAfterimage::SpawnTrailSnapshot()
     Trail->Lifetime = TrailDuration;
     Trail->bRealTimeFade = true;
     Trail->bGameTimeAnimation = bGameTimeAnimation;
-    Trail->FadeMaterial = UMaterialInstanceDynamic::Create(FadeMaterial,Trail);
+    // Dynamic instances cannot parent another MID. Share the asset parent and
+    // copy the tint/parameters so each trail still fades independently.
+    Trail->FadeMaterial = UMaterialInstanceDynamic::Create(FadeMaterial->Parent,Trail);
+    Trail->FadeMaterial->CopyInterpParameters(FadeMaterial);
     Trail->FadeMaterial->SetScalarParameterValue(TEXT("Opacity"),.35f);
     auto* Pose = NewObject<UPoseableMeshComponent>(Trail);
     Pose->SetupAttachment(Trail->GetRootComponent());
@@ -188,6 +193,7 @@ bool ASwapAfterimage::InitializeDeparture(ACharacterBase* Source,UMaterialInterf
     {
         if(!Mesh->GetStaticMesh() || !Mesh->IsVisible()) continue;
         auto* Copy=NewObject<UStaticMeshComponent>(this, Mesh->GetFName());
+        Copy->bDisallowNanite=true; // This copy switches to a translucent fade.
         Copy->SetStaticMesh(Mesh->GetStaticMesh());
         USceneComponent* Attachment=Mesh;
         while(Attachment->GetAttachParent() && Attachment->GetAttachParent()!=Source->GetMesh()) Attachment=Attachment->GetAttachParent();

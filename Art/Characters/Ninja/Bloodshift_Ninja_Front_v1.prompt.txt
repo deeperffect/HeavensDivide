@@ -1,0 +1,24 @@
+Generated using the built-in image_gen tool.
+
+Use case: stylized-concept.
+Asset type: full-body orthographic FRONT character reference for 3D modeling and image-to-3D generation.
+Input image 1: Bloodshift game artwork. Use ONLY the adult female NINJA on the RIGHT as the exact character identity, hairstyle, costume, palette, and design reference.
+Input image 2: the corrected full-body samurai reference. Use ONLY its straight-on camera alignment, neutral A-pose, full-body portrait framing, softly cel-shaded sculptural rendering, and neutral gray background. Do NOT copy his male anatomy, red outfit, fur, or heavy armor.
+
+Create exactly ONE full-body female ninja, hair ornament through both boot soles completely visible, centered in portrait 2:3 framing with clear margins. Preserve the original ninja's confident, focused face: warm light-tan complexion, sharp almond-shaped purple eyes, dark defined eyebrows, slim angular jaw, natural red lips, and adult athletic feminine proportions about 7.5 heads tall. Preserve deep black-purple hair swept into a high voluminous long ponytail, purple binding and ribbons, asymmetric face-framing bangs, and the distinctive triangular gold hair ornament at the ponytail base.
+
+Costume must faithfully extend the original artwork:
+- Rich purple scarf wrapped around the neck; its long ends hang naturally behind the shoulders and away from the body silhouette, with no windblown action.
+- Fitted black sleeveless wrap tunic with purple edging and the original V neckline.
+- Three small overlapping black lacquer shoulder plates edged in gold on her anatomical RIGHT shoulder only (viewer-left); do not mirror this armor onto the other shoulder.
+- Loose dark-purple fabric sleeve/panel with a few small lavender five-petal blossom motifs on the right arm, as in the reference; left upper arm exposed with a long black forearm gauntlet outlined in gold. Matching black fingerless hand coverings, hands empty.
+- Wide layered purple obi waist sash with its distinctive tied floral knot and trailing purple bands. Preserve the floral motif sparingly, not all over the outfit.
+Extend the unseen lower body logically: short layered black-and-purple split tunic skirts/hip panels over charcoal fitted ninja trousers, separate readable legs, restrained purple leg bindings and small black shin guards with thin gold edging, flat black split-toe ninja boots. Agile practical silhouette, no heels, no bulky samurai leg armor, no bare midriff. Keep the upper-body identity from image 1.
+
+ABSOLUTE FRONTAL ALIGNMENT is essential:
+Head, eyes, shoulders, chest, hips, knees, ankles and both feet point directly at the viewer. Zero yaw, zero head tilt, no twist or contrapposto. Nose bridge, nose tip, philtrum, chin, throat and sternum align on a central vertical axis. Both eyes show equal width at the same height, with pupils aimed directly at the camera; no sideways glance or three-quarter face. Both jaw angles have equal visibility, allowing the hairstyle itself to remain asymmetric.
+Balanced neutral A-pose with arms straight about 30 degrees away from torso, elbows relaxed but extended, hands at equal height, empty relaxed open hands with distinct thumbs and slightly separated fingers. Legs hip-width apart. Feet parallel and aimed STRAIGHT TOWARD THE CAMERA, not turned outward. Underlying anatomy frontal and balanced; original asymmetric costume remains asymmetric.
+Orthographic camera at zero azimuth and elevation. The reference must read as a technical frontal model view, not an action or promotional pose.
+
+Style: match the clean polished stylized game character rendering in image 2, soft cel shading, clear sculptural volume and crisp material boundaries, painted anime materials, balanced soft studio light, minimal ambient occlusion, no gritty surface noise, no heavy contour ink. Plain light neutral gray background.
+No weapons, scabbards, other characters, logo, labels, text, diagrams, watermark, scene, pedestal, perspective distortion, cropped hair, cropped hands, or cropped feet.

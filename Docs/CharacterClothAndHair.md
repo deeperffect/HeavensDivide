@@ -1,59 +1,100 @@
 # Character cloth and ninja hair
 
-The active Samurai mesh is `/Game/Assets/PlayerCharacters/Samurai/fdsafdsa`.
-The active Ninja mesh is `/Game/Assets/PlayerCharacters/Ninja/NinjaCharacterV3`.
-The generated cloth was removed from both meshes after the visual issues reported
-in testing. Both material slots, imported geometry, skin weights, and skeletons
-are preserved. Both sections now use ordinary skeletal animation. The Ninja hair
-changes below remain active.
+## Cloth pass 2 — 2026-10-08
 
-The original generated setup used inferred seam pins, geodesic distance masks,
-and existing body collision. Its numerical stability test did not establish visual
-quality, attachment correctness, or reliable body collision. Skin weighting can
-affect the animated cloth attachment pose, but it was not established as the root
-cause here. Re-author attachment masks and collision while watching the actual
-animations before enabling cloth again. Material slot separation alone does not
-define the cloth attachment constraints.
+Cloth is enabled on the separately selected material sections of both active meshes:
 
-In `ABP_Ninja`, the AnimDynamics node immediately before the cached locomotion pose
-is disabled. The final AnimDynamics node after the animation blends is the only
-active ponytail simulation, covering `Ponytail1` through `Ponytail5`.
-It uses component space, zero linear constraint travel, the original body inertia,
-progressively looser angular limits, stronger damping, half-strength gravity, and
-8/2 solver iterations. Additional world-motion forces and angular springs are
-disabled. The simulation responds to the animated head movement without adding
-large forces from sudden character turns.
-Edit this final node to tune the hair. Keep the earlier duplicate disabled.
-Linear damping is 0.85 and angular damping is 0.9; keep these values between 0
-and 1. AnimDynamics uses fractional damping, and values above 1 produce invalid
-transforms in the solver.
+| Character | Mesh | Material slot | Panels | Simulation vertices | Fixed vertices |
+| --- | --- | --- | ---: | ---: | ---: |
+| Samurai | /Game/Assets/PlayerCharacters/Samurai/fdsafdsa | SamuraiClothes | 4 | 409 | 20 |
+| Ninja | /Game/Assets/PlayerCharacters/Ninja/NinjaCharacterV3 | CharacterClothes | 3 | 265 | 19 |
 
-`ACharacterBase::SetCharacterMode` resets cloth and animation dynamics when leaving
-Inactive mode, after the incoming character has been placed at the swap location.
-This avoids carrying old secondary motion across an offscreen teleport.
+The original render geometry, material-slot selections, skeletons, and imported skin
+weights are preserved. The additional vertices and attachment-weight corrections
+exist only inside the cloth simulation mesh.
 
-Original meshes and `ABP_Ninja` are backed up in
-`Saved/Backups/CharacterSimulation20260928`.
+The previous pass used very large character collision capsules, guessed attachment
+pins on some panels, and imported weights that attached some loose ribbon tips to
+unrelated leg bones. This pass uses actual shared garment seams, fixed attachment
+bands, a smooth transition toward free ends, and animation targets derived from each
+panel's attachment. Every disconnected panel must have a real seam; authoring fails
+instead of guessing a top edge.
 
-Setup utilities (run with the editor closed, using `UnrealEditor-Cmd.exe` and the
-project path; include `-unattended -RenderOffscreen -AllowCommandletRendering`):
+Long ribbons need room to hang under gravity. A very short max-distance sphere around
+the attachment-driven animation target held them sideways in bent poses. The new
+max-distance masks grow along the garment, capped at 120 cm for Samurai and 60 mesh
+cm for Ninja (whose component scale is 2). These are allowable travel bounds, not
+intended sway amplitudes. Stiff geodesic tethers preserve garment length; damping,
+limited inherited motion, and stronger animation drive near the seams control sway.
 
-- `-run=CharacterSimulationSetup` recreates the old generated cloth; do not run it
-  as a routine fix. It is retained as an authoring utility only.
-- `-run=pythonscript -script=Tools/configure_ninja_hair_simulation.py` configures the ponytail.
-- `Tools/finalize_character_simulation.py` requires existing generated cloth and
-  is not applicable to the current reverted setup.
-- `-run=CharacterSimulationSetup -Verify` steps both characters through idle,
-  movement, rapid turns, a swap teleport, and slower frames; it checks for missing
-  cloth output, non-finite/exploding cloth positions, and excessive hair stretching.
+Collision uses dedicated bone-aligned capsules in PA_SamuraiCloth and PA_NinjaCloth
+beside the corresponding skeletal meshes. The gameplay/ragdoll physics assets are
+unchanged. Swept collision is disabled: it caused severe dragging and stretching on
+Samurai's rapid poses. The solver uses substeps instead. Self-collision and environment
+collision are not enabled by this pass.
 
-Reports and per-vertex cloth masks are written under `Saved/CharacterSimulation`.
+| Solver setting | Samurai | Ninja |
+| --- | ---: | ---: |
+| Iterations / maximum | 20 / 40 | 12 / 24 |
+| Substeps | 6 | 4 |
+| Global / local damping | 0.30 / 0.15 | 0.30 / 0.15 |
+| Gravity scale | 1.0 | 1.0 |
 
-Historical validation of the now-removed cloth: both characters completed 240 simulation steps covering movement,
-rapid turns, a 100m+ swap teleport, and 15fps frames. The Samurai produced 22,320
-cloth particle samples and the Ninja 25,680; neither cloth simulation produced
-non-finite or exploding positions. The maximum measured ninja hair segment length
-was 1.257 times its reference length under this stress test, within the 1.5 limit.
-The same checks passed again after reloading the saved assets in a fresh Unreal process.
-This is a numerical stability check; the final amount of sway can still be tuned
-to taste in the editor.
+SamuraiClothes now inherits SamuraiCharacterV4_Mat instead of using default imported
+textures. Both cloth materials support clothing shaders and two-sided rendering.
+The material-slot names and selected polygons remain unchanged.
+
+## Validation and tuning
+
+The editor module builds successfully. The saved assets are tested in an offscreen
+Unreal game world for 420 steps per character: idle, running, rapid turns, a 100 m+
+swap teleport, 15 fps frames, and three real attack montages (including a double-speed
+attack). Checks require bound cloth with the expected particle count, finite positions,
+fixed pins, bounded travel, limited edge stretching, capsule collision, and intact
+Ninja hair. Front/back/side captures compare the same poses with skinning and cloth.
+
+Reports, weight masks, and rendered comparisons are under Saved/CharacterSimulation/Pass2.
+The geometric audit compares the saved mesh exports against the Before directory;
+protected_assets.json records the unchanged gameplay physics and ABP_Ninja hashes.
+This is a scripted simulation and visual review, not a full manual gameplay session
+or a guarantee against every possible cloth/body intersection.
+
+For tuning in the Skeletal Mesh Editor, edit the masks named
+Pass2_FixedSeam_To_FreeEdge_cm and Pass2_Attachment_AnimationDrive. Keep the seam band
+at zero distance. Adjust the dedicated cloth physics asset rather than the character's
+gameplay physics asset. Recheck attacks and swaps after changes.
+
+Commandlet options (editor closed; UnrealEditor-Cmd.exe followed by the project path;
+include -unattended -RenderOffscreen -AllowCommandletRendering -noraytracing):
+
+- -run=CharacterSimulationSetup -Inspect exports mesh, bone, and collision data.
+- -run=CharacterSimulationSetup -Verify checks both saved simulations.
+- -run=CharacterSimulationSetup -Review also renders pose comparisons.
+- -run=CharacterSimulationSetup -Apply authors this pass on a clean baseline. It refuses
+  to overwrite existing cloth or dedicated physics assets. Do not run it as routine tuning.
+- -run=pythonscript -script=Tools/configure_character_cloth_materials.py finishes the
+  cloth material setup. Use forward slashes in absolute Python script paths.
+
+The earlier finalize_character_simulation.py and configure_ninja_hair_simulation.py
+utilities also touch the hair setup; they are not required for cloth tuning.
+
+Pre-pass backups are in Saved/Backups/CharacterClothPass2_20261008. Original meshes,
+gameplay physics, and ABP_Ninja are copied with their Content paths; changed materials
+are backed up under Materials. The discarded first iteration is kept in the Pass2
+report directory for diagnosis. Older backups in CharacterSimulation20260928 remain.
+
+## Ninja hair and swap reset
+
+In ABP_Ninja, the AnimDynamics node immediately before the cached locomotion pose is
+disabled. The final AnimDynamics node after the animation blends remains the only
+active ponytail simulation, covering Ponytail1 through Ponytail5. This pass does not
+modify ABP_Ninja or its hair settings.
+
+The hair uses component space, zero linear constraint travel, progressively looser
+angular limits, half-strength gravity, and 8/2 solver iterations. Extra world-motion
+forces and angular springs remain disabled. Linear damping is 0.85 and angular damping
+is 0.9; these fractional damping values must remain between 0 and 1.
+
+ACharacterBase::SetCharacterMode resets cloth and animation dynamics when leaving
+Inactive mode, after the incoming character has been placed at its swap location.
+This existing behavior remains in place and is included in the cloth regression.
