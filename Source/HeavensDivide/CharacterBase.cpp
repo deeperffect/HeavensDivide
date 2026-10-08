@@ -125,6 +125,11 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 		{
 			MovementComponent->StopMovementImmediately();
 		}
+		if (USkeletalMeshComponent* MeshComponent = GetMesh())
+		{
+			// Cloth has its own tick; disabling the actor tick does not stop it.
+			MeshComponent->SuspendClothingSimulation();
+		}
 		break;
 
 	case ECharacterMode::Assisting:
@@ -150,6 +155,7 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 	{
 		if (USkeletalMeshComponent* MeshComponent = GetMesh())
 		{
+			MeshComponent->ResumeClothingSimulation();
 			MeshComponent->ForceClothNextUpdateTeleportAndReset();
 			if (UAnimInstance* AnimInstance = MeshComponent->GetAnimInstance())
 			{

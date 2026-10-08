@@ -89,6 +89,23 @@ void AExperiencePickup::Tick(float DeltaSeconds)
 		return;
 	}
 
+	// A short, planar kick away from the player gives the pull a readable anticipation.
+	// Consume only this phase's time so hitches do not delay the homing phase.
+	float RemainingTime = DeltaSeconds;
+	if (BounceElapsed < BounceDuration)
+	{
+		const float BounceStep = FMath::Min(RemainingTime, BounceDuration - BounceElapsed);
+		BounceElapsed += BounceStep;
+		RemainingTime -= BounceStep;
+		const float Alpha = FMath::Clamp(BounceElapsed / BounceDuration, 0.0f, 1.0f);
+		const float EaseOut = 1.0f - FMath::Square(1.0f - Alpha);
+		SetActorLocation(BounceStart + BounceDirection * FMath::Max(0.0f, BounceDistance) * EaseOut);
+		if (RemainingTime <= 0.0f)
+		{
+			return;
+		}
+	}
+
 	const FVector CurrentLocation = GetActorLocation();
 	FVector ToPlayer = ActiveCharacter->GetActorLocation() - CurrentLocation;
 	const float Distance = ToPlayer.Size();
@@ -104,8 +121,21 @@ void AExperiencePickup::Tick(float DeltaSeconds)
 		return;
 	}
 
-	const float StepDistance = FMath::Min(AttractionSpeed * DeltaSeconds, Distance);
+	const float MaxSpeed = FMath::Max(0.0f, AttractionSpeed) * FMath::Max(1.0f, MaxAttractionSpeedMultiplier);
+	const float Acceleration = FMath::Max(0.0f, AttractionAcceleration);
+	const float AcceleratingTime = Acceleration > 0.0f
+		? FMath::Min(RemainingTime, FMath::Max(0.0f, MaxSpeed - CurrentAttractionSpeed) / Acceleration)
+		: 0.0f;
+	const float NextSpeed = FMath::Min(MaxSpeed, CurrentAttractionSpeed + Acceleration * AcceleratingTime);
+	const float TravelDistance = (CurrentAttractionSpeed + NextSpeed) * 0.5f * AcceleratingTime
+		+ NextSpeed * (RemainingTime - AcceleratingTime);
+	CurrentAttractionSpeed = NextSpeed;
+	const float StepDistance = FMath::Min(TravelDistance, Distance);
 	SetActorLocation(CurrentLocation + ToPlayer * StepDistance, false, nullptr, ETeleportType::None);
+	if (Distance - StepDistance <= PickupRadius)
+	{
+		Collect();
+	}
 }
 
 void AExperiencePickup::LaunchFromChest(FVector Landing,float Duration,float Height)
@@ -153,7 +183,23 @@ ACharacterBase* AExperiencePickup::GetActiveCharacter() const
 
 void AExperiencePickup::BeginAttraction()
 {
+	const ACharacterBase* ActiveCharacter = GetActiveCharacter();
+	if (bAttracting || bCollected || bRewardFlight || !ActiveCharacter)
+	{
+		return;
+	}
+
 	bAttracting = true;
+	BounceStart = GetActorLocation();
+	BounceDirection = (BounceStart - ActiveCharacter->GetActorLocation()).GetSafeNormal2D();
+	if (BounceDirection.IsNearlyZero())
+	{
+		BounceDirection = -ActiveCharacter->GetActorForwardVector().GetSafeNormal2D();
+	}
+	BounceElapsed = 0.0f;
+	CurrentAttractionSpeed = FMath::Max(0.0f, AttractionSpeed);
+	// Once claimed, keep following the active character even outside the initial radius.
+	PickupCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	SetActorTickEnabled(true);
 }
 
@@ -194,7 +240,7 @@ void AExperiencePickup::Collect()
 
 void AExperiencePickup::CacheSharedPlayerState()
 {
-	if (ExperienceComponent && CharacterManager)
+	if (ExperienceComponent && CharacterManager && SharedPlayerStats)
 	{
 		return;
 	}
@@ -259,12 +305,6 @@ void AExperiencePickup::CheckInitialActiveCharacterProximity()
 	}
 
 	const float DistanceSquared = FVector::DistSquared(GetActorLocation(), ActiveCharacter->GetActorLocation());
-	if (DistanceSquared <= FMath::Square(PickupRadius))
-	{
-		Collect();
-		return;
-	}
-
 	if (DistanceSquared <= FMath::Square(AttractionRadius))
 	{
 		BeginAttraction();

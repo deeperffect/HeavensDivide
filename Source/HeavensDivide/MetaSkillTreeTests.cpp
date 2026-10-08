@@ -124,6 +124,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	auto* Upgrades=PC->GetPlayerUpgrades();
 	Upgrades->RebuildAllUpgradeModifiers();
 	TestTrue(TEXT("Shared health modifier applies"),FMath::IsNearlyEqual(PC->GetSharedPlayerStats()->GetFinalMaxHealthMultiplier(),1.27f));
+	TestTrue(TEXT("Pickup passives double each rank's bonus"),FMath::IsNearlyEqual(PC->GetSharedPlayerStats()->GetFinalPickupRadiusMultiplier(),1.88f));
 	TestTrue(TEXT("Samurai direct damage applies"),FMath::IsNearlyEqual(Samurai->GetCharacterStats()->GetFinalDamageMultiplier(),1.24f));
 	TestTrue(TEXT("Ninja direct damage applies"),FMath::IsNearlyEqual(Ninja->GetCharacterStats()->GetFinalDamageMultiplier(),1.24f));
 	TestEqual(TEXT("Ninja projectile capstone applies"),Ninja->GetCharacterStats()->GetFinalProjectileCount(),2);

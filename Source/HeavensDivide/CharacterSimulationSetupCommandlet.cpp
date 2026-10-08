@@ -206,8 +206,9 @@ UPhysicsAsset* MakeClothCollision(USkeletalMesh* Mesh,bool bNinja)
 bool Cloth(USkeletalMesh* Mesh,float MaxTravel)
 {
  if(!Mesh||!Mesh->GetImportedModel()||Mesh->GetMaterials().Num()!=2||!Backup(Mesh))return false;
- const bool bNinja=Mesh->GetName()==TEXT("NinjaCharacterV3");
- const FName Material=bNinja?TEXT("CharacterClothes"):TEXT("SamuraiClothes");
+ const bool bV6=Mesh->GetName()==TEXT("SK_NinjaV6");
+ const bool bNinja=bV6||Mesh->GetName()==TEXT("NinjaCharacterV3");
+ const FName Material=bV6?TEXT("M_NinjaV6_ScarfRibbons"):(bNinja?TEXT("CharacterClothes"):TEXT("SamuraiClothes"));
  const int32 MaterialIndex=Mesh->GetMaterials().IndexOfByPredicate([&](const FSkeletalMaterial& Slot){return Slot.MaterialSlotName==Material;});
  if(MaterialIndex==INDEX_NONE||!Mesh->GetMeshClothingAssets().IsEmpty())return false;
  Mesh->Modify();auto& Model=Mesh->GetImportedModel()->LODModels[0];
@@ -231,8 +232,14 @@ bool Cloth(USkeletalMesh* Mesh,float MaxTravel)
   Mesh->AddClothingAsset(Asset);auto& Lod=Asset->LodData[0];auto& Physical=Lod.PhysicalMeshData;
   const int32 SourceCount=Physical.Vertices.Num();
   TArray<bool> Seam;Seam.Init(false,SourceCount);
-  for(int32 I=0;I<SourceCount;++I)for(const FVector3f& B:Body)
-   if(FVector3f::DistSquared(B,Physical.Vertices[I])<.1225f){Seam[I]=true;break;}
+  for(int32 I=0;I<SourceCount;++I)
+  {
+   // V6's two detached scarf panels overlap the neck wrap rather than sharing
+   // its vertices. Their inspected attachment band is z=77.5..79.25 cm.
+   if(bV6){Seam[I]=Physical.Vertices[I].Z>=77.5f;continue;}
+   for(const FVector3f& B:Body)
+    if(FVector3f::DistSquared(B,Physical.Vertices[I])<.1225f){Seam[I]=true;break;}
+  }
   if(!RefineCloth(Physical,Seam,bNinja?3.f:5.f))return false;
   const int32 N=Physical.Vertices.Num();TArray<TArray<int32>> Adj;Adj.SetNum(N);
   for(int32 I=0;I<Physical.Indices.Num();I+=3)for(int32 E=0;E<3;++E)
@@ -245,7 +252,7 @@ bool Cloth(USkeletalMesh* Mesh,float MaxTravel)
    auto [D,V]=Queue.top();Queue.pop();if(D>Distance[V])continue;
    for(int32 B:Adj[V]){const float Next=D+FVector3f::Distance(Physical.Vertices[V],Physical.Vertices[B]);if(Next<Distance[B]){Distance[B]=Next;Queue.push({Next,B});}}
   }
-  // Every inspected ribbon must have a real body seam. No guessed top-edge fallback.
+  // Every inspected ribbon must have a connected, explicitly identified attachment.
   const float PinBand=bNinja?1.6f:4.f;
   TArray<bool> Seen;Seen.Init(false,N);int32 Panels=0;
   for(int32 Seed=0;Seed<N;++Seed)
@@ -266,7 +273,7 @@ bool Cloth(USkeletalMesh* Mesh,float MaxTravel)
    for(int32 V:Panel)if(Distance[V]>PinBand)
     Physical.BoneData[V]=BlendBoneData(Physical.BoneData[V],Attachment,FMath::Clamp((Distance[V]-PinBand)/(PinBand*2.f),0.f,1.f));
   }
-  if(Panels!=(bNinja?3:4))return false;
+  if(Panels!=(bV6?2:(bNinja?3:4)))return false;
   FPointWeightMap MaxDistance(N),Drive(N);
   MaxDistance.Name=TEXT("Pass2_FixedSeam_To_FreeEdge_cm");MaxDistance.CurrentTarget=(uint8)EWeightMapTargetCommon::MaxDistance;MaxDistance.bEnabled=true;
   Drive.Name=TEXT("Pass2_Attachment_AnimationDrive");Drive.CurrentTarget=(uint8)EWeightMapTargetCommon::AnimDriveStiffness;Drive.bEnabled=true;
@@ -370,7 +377,8 @@ bool Verify(const FString& OnlyCharacter=FString(),bool bCapture=false)
   FAssetCompilingManager::Get().FinishAllCompilation();
   FActorSpawnParameters Spawn;Spawn.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
   auto* Character=World->SpawnActor<ACharacterBase>(Class,FVector::ZeroVector,FRotator::ZeroRotator,Spawn);
-  auto* Component=Character->GetMesh();auto* Mesh=Component->GetSkeletalMeshAsset();
+  auto* Component=Character->GetMesh();
+  auto* Mesh=Component->GetSkeletalMeshAsset();
   if(!Mesh||Mesh->GetMeshClothingAssets().Num()!=1){Passed=false;Character->Destroy();continue;}
   if(!Inspect(Mesh)){Passed=false;Character->Destroy();continue;}
   auto* Asset=Cast<UClothingAssetCommon>(Mesh->GetMeshClothingAssets()[0]);
@@ -381,9 +389,13 @@ bool Verify(const FString& OnlyCharacter=FString(),bool bCapture=false)
   Character->SetCharacterMode(ECharacterMode::Active);
   Component->VisibilityBasedAnimTickOption=EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
   Component->bEnableUpdateRateOptimizations=false;Component->SetForcedLOD(1);Component->InitAnim(true);
+  // This isolated world does not dispatch BeginPlay; register ticks explicitly
+  // so mode-transition checks exercise the normal cloth registration lifecycle.
+  Component->RegisterAllComponentTickFunctions(true);
   bool Valid=Bound&&Component->GetAnimInstance()&&Component->ClothBlendWeight>.99f;
   float MaxHairRatio=0;int32 ClothSamples=0,Frames=0,Attacks=0;
   double MaxDrift=0,MaxPinError=0,MaxLimitExcess=0,MaxEdgeRatio=0,MaxExtraPenetration=0;
+  TArray<double> ClothTimes;
   FString CSV=TEXT("frame,phase,particles,max_drift_cm,pin_error_cm,limit_excess_cm,edge_stretch_ratio,extra_capsule_penetration_cm,hair_length_ratio\n");
   FVector Location=FVector::ZeroVector;float Facing=0;
   auto* AttacksComponent=Character->FindComponentByClass<UAutoAttackComponent>();
@@ -415,8 +427,10 @@ bool Verify(const FString& OnlyCharacter=FString(),bool bCapture=false)
     ++Attacks;UE_LOG(LogTemp,Display,TEXT("CLOTH_TEST_ANIMATION %s %s"),Name,*Montage->GetName());
    }
    Component->TickAnimation(Dt,false);Component->RefreshBoneTransforms();
+   const double ClothStart=FPlatformTime::Seconds();
    Component->bWaitForParallelClothTask=false;Component->TickClothing(Dt,Component->ClothTickFunction);
    Component->WaitForExistingParallelClothSimulation_GameThread();Component->bWaitForParallelClothTask=true;
+   if(Frame>=10&&!(Frame>=210&&Frame<240))ClothTimes.Add((FPlatformTime::Seconds()-ClothStart)*1000.);
    const auto& Data=Component->GetCurrentClothingData_GameThread();
    const FClothSimulData* Sim=Data.Find(0);
    if(!Sim||Sim->Positions.Num()!=Physical.Vertices.Num()){Valid=false;break;}
@@ -475,10 +489,31 @@ bool Verify(const FString& OnlyCharacter=FString(),bool bCapture=false)
   const FString Dir=FPaths::ProjectSavedDir()/TEXT("CharacterSimulation/Pass2");IFileManager::Get().MakeDirectory(*Dir,true);
   FFileHelper::SaveStringToFile(CSV,*(Dir/FString::Printf(TEXT("%s_stability.csv"),Name)));
   UE_LOG(LogTemp,Display,TEXT("CHARACTER_CLOTH_VERIFY_PASS2 %s valid=%d frames=%d attacks=%d samples=%d drift=%.4f pins=%.4f limitExcess=%.4f edgeRatio=%.4f extraPenetration=%.4f hair=%.4f"),Name,Valid,Frames,Attacks,ClothSamples,MaxDrift,MaxPinError,MaxLimitExcess,MaxEdgeRatio,MaxExtraPenetration,MaxHairRatio);
+  // Inactive characters must not retain the expensive independent cloth tick.
+  Character->SetCharacterMode(ECharacterMode::Inactive);
+  Component->TickComponent(1.f/60.f,LEVELTICK_All,nullptr);
+  const bool HiddenStopped=Component->IsClothingSimulationSuspended()&&!Component->ClothTickFunction.IsTickFunctionRegistered();
+  Character->SetCharacterMode(ECharacterMode::Assisting);
+  Component->TickComponent(1.f/60.f,LEVELTICK_All,nullptr);
+  const bool AssistingResumed=!Component->IsClothingSimulationSuspended()&&Component->ClothTickFunction.IsTickFunctionRegistered();
+  Character->SetCharacterMode(ECharacterMode::Inactive);
+  Character->SetCharacterMode(ECharacterMode::Active);
+  Component->TickComponent(1.f/60.f,LEVELTICK_All,nullptr);
+  const bool ActiveResumed=!Component->IsClothingSimulationSuspended()&&Component->ClothTickFunction.IsTickFunctionRegistered();
+  Valid&=HiddenStopped&&AssistingResumed&&ActiveResumed;
+  UE_LOG(LogTemp,Display,TEXT("CHARACTER_CLOTH_MODE_CHECK %s hidden_stopped=%d assisting_resumed=%d active_resumed=%d pass=%d"),Name,HiddenStopped,AssistingResumed,ActiveResumed,Valid);
+  ClothTimes.Sort();double Sum=0;for(double T:ClothTimes)Sum+=T;
+  const double ClothMeanMs=ClothTimes.IsEmpty()?DBL_MAX:Sum/ClothTimes.Num();
+  const auto* Quality=Asset->GetClothConfig<UChaosClothSharedSimConfig>();
+  const FString Perf=FString::Printf(TEXT("%s,%d,%d,%d,%d,%.4f,%.4f,%d\n"),*Mesh->GetName(),Physical.Vertices.Num(),Quality->IterationCount,Quality->MaxIterationCount,Quality->SubdivisionCount,ClothMeanMs,ClothTimes.IsEmpty()?0:ClothTimes[FMath::Min(ClothTimes.Num()-1,FMath::FloorToInt(ClothTimes.Num()*.95))],Valid);
+  const FString PerfDir=FPaths::ProjectSavedDir()/TEXT("CharacterSimulation/Performance");IFileManager::Get().MakeDirectory(*PerfDir,true);
+  FFileHelper::SaveStringToFile(Perf,*(PerfDir/TEXT("ClothTiming.csv")),FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM,&IFileManager::Get(),FILEWRITE_Append);
+  UE_LOG(LogTemp,Display,TEXT("CHARACTER_CLOTH_TIMING %s"),*Perf);
   Passed&=Valid;Character->Destroy();
  }
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return Passed;
 }
+
 
 }
 #endif
@@ -543,6 +578,10 @@ int32 UCharacterSimulationSetupCommandlet::Main(const FString& Params)
 {
 #if WITH_EDITOR
  using namespace CharacterSimulationSetup;
+ if(FParse::Param(*Params,TEXT("NinjaV6Apply")))
+  return Cloth(LoadObject<USkeletalMesh>(nullptr,TEXT("/Game/Assets/PlayerCharacters/Ninja/V6/SK_NinjaV6.SK_NinjaV6")),45.f)?0:7;
+ if(FParse::Param(*Params,TEXT("NinjaV6Review")))
+  return Verify(TEXT("Ninja"),true)?0:8;
  if(FParse::Param(*Params,TEXT("TuneSamurai")))
  {
   auto* Mesh=LoadObject<USkeletalMesh>(nullptr,TEXT("/Game/Assets/PlayerCharacters/Samurai/fdsafdsa.fdsafdsa"));

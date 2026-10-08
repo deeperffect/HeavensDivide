@@ -9,7 +9,7 @@ CONFIG = {
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalDamage": ([0.10, 0.15, 0.25], "Increase damage by {Percent}%."),
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalMaxHealth": ([0.05, 0.08, 0.12], "Increase maximum health by {Percent}%."),
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalMoveSpeed": ([0.05, 0.08, 0.12], "Increase movement speed by {Percent}%."),
-    "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalPickupRadius": ([0.15, 0.25, 0.40], "Increase pickup radius by {Percent}%."),
+    "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalPickupRadius": ([0.30, 0.50, 0.80], "Increase pickup radius by {Percent}%."),
 }
 
 rarities = [unreal.UpgradeRarity.COMMON, unreal.UpgradeRarity.RARE, unreal.UpgradeRarity.EPIC]

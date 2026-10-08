@@ -1,0 +1,87 @@
+{
+  "blender": "5.2.1 LTS",
+  "bounds": {
+    "min": [
+      -0.2219238132238388,
+      -0.210205078125,
+      -9.188355853950725e-09
+    ],
+    "max": [
+      0.2219238430261612,
+      0.21020512282848358,
+      0.99951171875
+    ]
+  },
+  "objects": [
+    {
+      "name": "NinjaV6",
+      "type": "MESH",
+      "dimensions": [
+        0.44384765625,
+        0.42041015625,
+        0.99951171875
+      ],
+      "location": [
+        1.4901161193847656e-08,
+        7.450580596923828e-09,
+        0.0
+      ],
+      "rotation": [
+        -4.371138828673793e-08,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parent": null,
+      "vertices": 16162,
+      "polygons": 17497,
+      "uv_layers": [
+        "tripo_5675f327_ee11_40e1_940b_c54aa77f5052_NewUVMap"
+      ],
+      "material_slots": [
+        "tripo_mat_c3ad1023"
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "tripo_mat_c3ad1023",
+      "nodes": [
+        {
+          "name": "Principled BSDF",
+          "type": "BSDF_PRINCIPLED",
+          "image": null
+        },
+        {
+          "name": "Material Output",
+          "type": "OUTPUT_MATERIAL",
+          "image": null
+        },
+        {
+          "name": "Normal Map",
+          "type": "NORMAL_MAP",
+          "image": null
+        },
+        {
+          "name": "Image Texture",
+          "type": "TEX_IMAGE",
+          "image": "base_color_texture"
+        }
+      ]
+    }
+  ],
+  "images": [
+    {
+      "name": "base_color_texture",
+      "path": "C:\\Users\\deepe\\OneDrive\\Desktop\\NinjaV6\\tripo_convert_c3ad1023-aa67-4cc0-af6f-2eec6c6f23d5.fbm\\tripo_image_c3ad1023-aa67-4cc0-af6f-2eec6c6f23d5_0_0.jpg",
+      "size": [
+        2048,
+        2048
+      ]
+    }
+  ]
+}

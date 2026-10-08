@@ -71,7 +71,7 @@
   },
   "GlobalPickupRadius": {
     "name": "Magnetism",
-    "description": "Increase pickup range by 15%.",
+    "description": "Increase pickup range by 30%.",
     "format": "Increase pickup range by {Percent}%."
   },
   "AfterimageFrenzy": {

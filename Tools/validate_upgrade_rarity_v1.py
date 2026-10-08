@@ -9,7 +9,7 @@ EXPECTED = {
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalDamage": [0.10, 0.15, 0.25],
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalMaxHealth": [0.05, 0.08, 0.12],
     "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalMoveSpeed": [0.05, 0.08, 0.12],
-    "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalPickupRadius": [0.15, 0.25, 0.40],
+    "/Game/HeavensDivide/Upgrades/Global/DA_Upgrade_GlobalPickupRadius": [0.30, 0.50, 0.80],
 }
 
 for path, values in EXPECTED.items():

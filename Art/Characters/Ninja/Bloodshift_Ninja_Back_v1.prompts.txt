@@ -1,0 +1,32 @@
+Generated with the built-in image_gen tool.
+
+BACK VIEW PROMPT
+
+Use case: identity-preserve.
+Asset type: full-body orthographic BACK character reference for 3D modeling, matching an existing front reference.
+Input image: the attached Bloodshift ninja front reference is the exact character, costume, proportions, pose, and rendering reference.
+
+Create exactly ONE image of this SAME adult female ninja rotated exactly 180 degrees, seen directly from behind. This is the matching REAR ELEVATION, not a new costume and not a three-quarter rear portrait. Head, back, pelvis, knees and heels point squarely away from the viewer. No face, eyes, cheek, nose, cleavage or front chest visible. Head faces directly away with zero tilt, yaw offset, twist or over-the-shoulder look. Shoulders and hips level, balanced neutral A-pose, arms extended about 30 degrees away from the torso, hands at equal height, feet hip-width apart and parallel. Show the backs of the heels, not forward-facing toes. Same full-body figure height and body proportions as the reference, from top of hair through boot soles, centered with clear margins on the same neutral light gray background. Portrait 2:3, matching the 1024x1536 reference composition.
+
+Maintain anatomical asymmetry correctly when rotating:
+- The three overlapping black lacquer shoulder plates with gold edging stay on her anatomical RIGHT shoulder. In this BACK view that shoulder is on the VIEWER'S RIGHT.
+- Her loose purple sleeve with lavender five-petal floral motifs stays on the anatomical RIGHT arm, therefore viewer-right in this rear view. Show its actual rear surface, with consistent sleeve volume and a few matching blossom motifs.
+- Anatomical LEFT upper arm is bare and has the long black gold-edged forearm gauntlet: viewer-left in this rear view.
+- Preserve the black fingerless gloves, gold wrist accents, layered black and purple tunic skirts/hip panels, charcoal trousers, purple thigh band on the correct anatomical right thigh, purple leg bindings and black-and-gold shin armor with logical straps at the back, and flat black split-toe boots viewed from behind.
+- Wide purple obi sash wraps around the waist. The floral knot belongs on the FRONT and must NOT be duplicated on the back. Render a plausible plain wrapped rear sash with the same material and height. No new giant bow, rope knot, backpack, belt pouches or new ornaments.
+
+Hair and scarf:
+Preserve the high black-purple ponytail, gold triangular hair ornament at its base, purple hair tie and ribbons. Seen from behind, the long ponytail falls naturally down to the mid-back, slightly toward her anatomical RIGHT, matching the visible hair from the front reference. Preserve the full volume and tapered locks without turning it into a completely different hairstyle.
+Preserve the purple scarf wrapped around the neck. Its TWO loose fabric ends must hang naturally DOWNWARD under gravity along her back, reaching approximately mid-thigh. Show soft vertical folds, slight natural waviness, and believable overlap with hair and sash. One end may be partly covered by the ponytail. No wind. The scarf ends must NOT extend diagonally outward or beyond her arms, float, spread like wings, or form a broad cape. They are narrow scarf strips with the same width, length, color and soft fabric as the approved reference.
+
+Infer the unseen garment back conservatively: black fitted upper-back fabric with restrained purple edging and plausible seams, preserving the existing garment construction. No extra shoulder armor, no exposed-back redesign, no fur, no weapons.
+Same polished stylized anime game-character rendering, soft cel shading and clear sculptural volumes, crisp material boundaries, even neutral studio lighting. No dramatic shadows, no gritty texture. This should look like the exact same 3D-ready character simply turned around.
+No text, labels, watermark, second figure, front-view inset, pedestal, scenery, perspective distortion, cropped hair or cropped feet.
+
+REAR LEG DETAIL REFINEMENT
+
+Use case: precise-object-edit.
+Edit target: the most recently generated full-body BACK view of the purple Bloodshift ninja.
+Make ONE localized consistency correction: the rear LOWER LEGS, from just below the knees down to the ankles. This is a rear orthographic view, but the current image incorrectly repeats the decorative front-facing gold Y-shaped shin plates on the backs of both calves.
+Replace those rear-calf gold Y/front-shin designs with plain charcoal-black flexible fabric/leather backing, fitted to each calf, secured by the existing purple bands. Show simple practical purple fastening straps crossing or wrapping around the backs of the calves, with discreet dark seams. The gold-edged rigid shin armor belongs on the FRONT of each leg and must not be visible across the back of the calves; at most a very slim gold edge may appear at the outer sides. Keep the same calf thickness, leg length, knee and ankle positions, foot alignment and boot heels. Do not add new armor, logos or decoration.
+Preserve EVERYTHING ELSE exactly: the straight-on rear camera, the head and purple ponytail, gold hair ornament, purple scarf with its two ends falling vertically under gravity, black upper back, purple waist sash, viewer-right shoulder armor and flowered sleeve, viewer-left bare upper arm and gauntlet, hands, skirt panels, trousers, boots, A-pose, full-body framing, neutral gray background, lighting and rendering style. Single character. No text, no labels, no new items.

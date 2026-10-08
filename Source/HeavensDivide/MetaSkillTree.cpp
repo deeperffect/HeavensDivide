@@ -16,13 +16,13 @@ const TArray<FMetaSkillNode>& MetaSkillTree::Nodes()
 			Result.Add(N);
 		};
 		Add(TEXT("Root.Vitality"), TEXT("Living Flame"), TEXT("+4% maximum health per rank."), 0,0,0,TEXT(""),TEXT("Health"),.04f);
-		Add(TEXT("Root.Gather"), TEXT("Ember Reach"), TEXT("+8% XP pickup radius per rank."), 0,0,1,TEXT(""),TEXT("Pickup"),.08f);
+		Add(TEXT("Root.Gather"), TEXT("Ember Reach"), TEXT("+16% XP pickup radius per rank."), 0,0,1,TEXT(""),TEXT("Pickup"),.16f);
 		Add(TEXT("Root.Strength"), TEXT("Inner Fire"), TEXT("+3% damage for both characters per rank."), 0,1,0,TEXT("Root.Vitality"),TEXT("Damage"),.03f);
 		Add(TEXT("Root.Step"), TEXT("Pilgrim's Step"), TEXT("+2% movement speed per rank."), 0,1,1,TEXT("Root.Gather"),TEXT("Move"),.02f);
 		Add(TEXT("Root.Tempo"), TEXT("Steady Breath"), TEXT("+2% basic attack speed for both characters per rank."), 0,2,0,TEXT("Root.Strength"),TEXT("Attack"),.02f);
 		Add(TEXT("Root.Endurance"), TEXT("Deep Reserves"), TEXT("+5% maximum health per rank."), 0,2,1,TEXT("Root.Step"),TEXT("Health"),.05f);
 		Add(TEXT("Root.Dash"), TEXT("Second Wind"), TEXT("+1 maximum dash charge."), 0,3,0,TEXT("Root.Tempo"),TEXT("Dash"),1,1);
-		Add(TEXT("Root.Horizon"), TEXT("Far Horizon"), TEXT("+20% XP pickup radius."), 0,3,1,TEXT("Root.Endurance"),TEXT("Pickup"),.2f,1);
+		Add(TEXT("Root.Horizon"), TEXT("Far Horizon"), TEXT("+40% XP pickup radius."), 0,3,1,TEXT("Root.Endurance"),TEXT("Pickup"),.4f,1);
 		Add(TEXT("Steel.Edge"), TEXT("Tempered Edge"), TEXT("+4% Samurai direct damage per rank."), 1,0,0,TEXT("Root.Vitality"),TEXT("SteelDamage"),.04f);
 		Add(TEXT("Steel.Blood"), TEXT("Crimson Oath"), TEXT("+5% Bleed damage per rank. Does not grant Bleed."), 1,0,1,TEXT("Root.Vitality"),TEXT("Bleed"),.05f);
 		Add(TEXT("Steel.Reach"), TEXT("Sweeping Steel"), TEXT("+5% Samurai basic melee area scale per rank."), 1,1,0,TEXT("Steel.Edge"),TEXT("SteelArea"),.05f);

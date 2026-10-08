@@ -52,11 +52,24 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttractionSpeed = 900.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup|Motion", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float BounceDistance = 55.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup|Motion", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float BounceDuration = 0.14f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup|Motion", meta = (ClampMin = "0.0", UIMin = "0.0"))
+	float AttractionAcceleration = 6000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup|Motion", meta = (ClampMin = "1.0", UIMin = "1.0"))
+	float MaxAttractionSpeedMultiplier = 3.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience Pickup|Audio", meta = (ToolTip = "Fire-and-forget sound played when this pickup reaches the player and is collected."))
 	TObjectPtr<USoundBase> PickupSound;
 
 private:
 	friend class FEliteRewardTest;
+	friend class FExperiencePickupMotionTest;
 	UFUNCTION()
 	void HandlePickupOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
@@ -81,6 +94,10 @@ private:
 	TObjectPtr<USharedPlayerStatsComponent> SharedPlayerStats;
 
 	bool bAttracting = false;
+	FVector BounceStart = FVector::ZeroVector;
+	FVector BounceDirection = FVector::ZeroVector;
+	float BounceElapsed = 0.0f;
+	float CurrentAttractionSpeed = 0.0f;
 	bool bRewardFlight = false;
 	FVector FlightStart, FlightLanding;
 	float FlightElapsed=0, FlightDuration=1, FlightHeight=100;

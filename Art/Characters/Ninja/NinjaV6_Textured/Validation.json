@@ -1,0 +1,104 @@
+{
+  "blender_version": "5.2.1 LTS",
+  "texture_checks": [
+    {
+      "name": "T_NinjaV6_BaseColor",
+      "size": [
+        2048,
+        2048
+      ],
+      "colorspace": "sRGB",
+      "pre_repack_disk_max_difference": 0.0,
+      "repacked_from_verified_png": true
+    },
+    {
+      "name": "T_NinjaV6_Specular",
+      "size": [
+        2048,
+        2048
+      ],
+      "colorspace": "Non-Color",
+      "pre_repack_disk_max_difference": 0.0,
+      "repacked_from_verified_png": true
+    },
+    {
+      "name": "T_NinjaV6_ORM",
+      "size": [
+        2048,
+        2048
+      ],
+      "colorspace": "Non-Color",
+      "pre_repack_disk_max_difference": 0.0,
+      "repacked_from_verified_png": true
+    }
+  ],
+  "geometry_checks": {
+    "vertices": 16162,
+    "polygons": 17497,
+    "vertices_unchanged": true,
+    "uv_coordinates_unchanged": true,
+    "armature_present": false
+  },
+  "glb": {
+    "meshes": 1,
+    "materials": 1,
+    "images": 3,
+    "embedded_images": true,
+    "has_base_color": true,
+    "has_roughness_metallic": true
+  },
+  "outputs": {
+    "Bloodshift_NinjaV6_Textured.blend": {
+      "bytes": 9423304,
+      "sha256": "3e1d3585e08e0b15a14b76c1dc323a5a14fe9dfac0a88d541a8ff63d07881501"
+    },
+    "Bloodshift_NinjaV6_Textured.glb": {
+      "bytes": 8508592,
+      "sha256": "55c8989cd3cdeadd5ff38a9479b9a2c62619e26cf5a0be1eba43c85b24dd0ef9"
+    },
+    "Bloodshift_NinjaV6_Textured.fbx": {
+      "bytes": 8458012,
+      "sha256": "79d63b99fe3e7158bffb8126b21d67341979806a361404ca6f4903e5fa569162"
+    }
+  },
+  "final_reopen_checks": [
+    {
+      "image": "T_NinjaV6_BaseColor",
+      "packed": true,
+      "max_difference_from_png": 0.0
+    },
+    {
+      "image": "T_NinjaV6_Specular",
+      "packed": true,
+      "max_difference_from_png": 0.0
+    },
+    {
+      "image": "T_NinjaV6_ORM",
+      "packed": true,
+      "max_difference_from_png": 0.0
+    }
+  ],
+  "glb_roundtrip": {
+    "mesh_count": 1,
+    "polygons": 31172,
+    "material": "M_Bloodshift_Ninja_PBR",
+    "texture_images": [
+      "T_NinjaV6_BaseColor",
+      "T_NinjaV6_ORM",
+      "T_NinjaV6_Specular"
+    ],
+    "all_images_loaded": true
+  },
+  "fbx_roundtrip": {
+    "mesh_count": 1,
+    "polygons": 17497,
+    "material": "M_Bloodshift_Ninja_PBR",
+    "texture_images": [
+      "T_NinjaV6_BaseColor",
+      "T_NinjaV6_Specular",
+      "T_NinjaV6_Roughness.png",
+      "T_NinjaV6_Metallic.png"
+    ],
+    "all_images_loaded": true
+  }
+}
