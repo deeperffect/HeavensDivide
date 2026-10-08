@@ -23,6 +23,11 @@ void USwapPresentationComponent::StartEntrance()
     EntranceRate=FMath::Max(.01f,EntrancePlayRate*EntranceMontage->RateScale);
     PreviousAnimationMode=static_cast<uint8>(Mesh->GetAnimationMode());
     bPreviousMeshTickEnabled=Mesh->IsComponentTickEnabled();
+    bPreviousClothTickEnabled=Mesh->ClothTickFunction.IsTickFunctionEnabled();
+    Mesh->WaitForExistingParallelClothSimulation_GameThread();
+    Mesh->ClothTickFunction.SetTickFunctionEnable(false);
+    Mesh->ResumeClothingSimulation();
+    Mesh->ForceClothNextUpdateTeleportAndReset();
     PreviousVisibilityBasedAnimTickOption=static_cast<uint8>(Mesh->VisibilityBasedAnimTickOption);
     bEntranceOwnsPose=true;
     EntrancePosition=0;
@@ -59,12 +64,25 @@ void USwapPresentationComponent::UpdateEntrance(float RealDelta)
     auto* Mesh=Character ? Character->GetMesh() : nullptr;
     auto* Anim=Mesh ? Mesh->GetSingleNodeInstance() : nullptr;
     if(!Anim) { StopEntrance(); return; }
+    Mesh->WaitForExistingParallelClothSimulation_GameThread();
     EntrancePosition=FMath::Min(EntranceMontage->GetPlayLength(),EntrancePosition+FMath::Max(0.f,RealDelta)*EntranceRate);
     EntranceRemaining=FMath::Max(SMALL_NUMBER,(EntranceMontage->GetPlayLength()-EntrancePosition)/EntranceRate);
     Anim->SetPosition(EntrancePosition,false);
     Anim->UpdateMontageWeightForTimeSkip(FMath::Max(.01f,EntranceMontage->BlendIn.GetBlendTime()));
     Mesh->TickAnimation(0.f,false);
     Mesh->RefreshBoneTransforms();
+    // The entrance owns pose evaluation while world time is frozen. Cloth must
+    // use the same real-time clock, once per frame, after the new pose is ready.
+    if (RealDelta > 0.f && Mesh->GetSkeletalMeshAsset()->GetMeshClothingAssets().Num() > 0)
+    {
+        const bool bPreviousWait = Mesh->bWaitForParallelClothTask;
+        Mesh->bWaitForParallelClothTask = false; // There is no scheduled tick completion handle here.
+        if (RealDelta > .1f) Mesh->ForceClothNextUpdateTeleportAndReset();
+        Mesh->TickClothing(FMath::Min(RealDelta, 1.f / 30.f), Mesh->ClothTickFunction);
+        Mesh->WaitForExistingParallelClothSimulation_GameThread();
+        Mesh->bWaitForParallelClothTask = bPreviousWait;
+        Mesh->MarkRenderDynamicDataDirty();
+    }
     if (bEnableSound && bPlayEntranceSoundNotifies)
         for (int32 Index=0; Index<EntranceMontage->Notifies.Num(); ++Index)
         {
@@ -90,6 +108,7 @@ void USwapPresentationComponent::StopEntrance()
                 Mesh->SetAnimationMode(static_cast<EAnimationMode::Type>(PreviousAnimationMode));
                 Mesh->VisibilityBasedAnimTickOption=static_cast<EVisibilityBasedAnimTickOption>(PreviousVisibilityBasedAnimTickOption);
                 Mesh->SetComponentTickEnabled(bPreviousMeshTickEnabled);
+                Mesh->ClothTickFunction.SetTickFunctionEnable(bPreviousClothTickEnabled);
             }
     bEntranceOwnsPose=false;
     EntranceRemaining=0;

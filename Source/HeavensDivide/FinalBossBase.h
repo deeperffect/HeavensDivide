@@ -32,8 +32,8 @@ public:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
-	UFUNCTION(BlueprintCallable, Category="Boss|Testing") void StartBossCombat();
-	UFUNCTION(BlueprintCallable, Category="Boss|Testing") void StopBossCombat();
+	UFUNCTION(BlueprintCallable, Category="Boss|Testing") virtual void StartBossCombat();
+	UFUNCTION(BlueprintCallable, Category="Boss|Testing") virtual void StopBossCombat();
 	UFUNCTION(BlueprintCallable, Category="Boss|Testing") void DebugForceAttack(EFinalBossAttack Attack = EFinalBossAttack::ForwardCleave);
 	UFUNCTION(BlueprintCallable, CallInEditor, Category="Boss|Testing") void DebugForceForwardCleave();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category="Boss|Testing") void ForcePhase2();

@@ -117,6 +117,7 @@ private:
     friend class FSwapFreezeTest;
     friend class FSwapCameraTest;
     friend class FSwapEntranceTest;
+    friend class FSwapClothEntranceTest;
     friend class FFangBuildsTest;
     friend class FSwapWeaponDrawTest;
     void StartEntranceWeaponDraw();
@@ -131,6 +132,7 @@ private:
     void UpdateEntrance(float RealDelta);
     bool bEntranceOwnsPose = false;
     bool bPreviousMeshTickEnabled = true;
+    bool bPreviousClothTickEnabled = true;
     uint8 PreviousAnimationMode = 0;
     uint8 PreviousVisibilityBasedAnimTickOption = 0;
     float EntrancePosition = 0;

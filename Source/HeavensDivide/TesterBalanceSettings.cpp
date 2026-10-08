@@ -85,6 +85,10 @@ TArray<TPair<FString, FString>> UTesterBalanceSettings::Roster()
     Add(TEXT("Ogre"), TEXT("EnemyCharacters/Elites"), TEXT("BP_EnemyOgre"));
     Add(TEXT("Gorilla"), TEXT("EnemyCharacters/Elites"), TEXT("BP_EnemyGorilla"));
     Add(TEXT("Samurai Boss"), TEXT("EnemyCharacters/Bosses/SamuraiBoss"), TEXT("BP_SamuraiBoss"));
+    Add(TEXT("Cinder Oracle Boss"), TEXT("EnemyCharacters/Bosses/CinderOracle"), TEXT("BP_CinderOracle"));
+    for (const TCHAR* Name : {TEXT("AshSeer"), TEXT("HexSniper"), TEXT("MireWeaver"), TEXT("HornLancer"), TEXT("FangStalker"),
+        TEXT("GraveCantor"), TEXT("WarDrummer"), TEXT("OgreWarden"), TEXT("StormGorilla"), TEXT("FrostOracle"), TEXT("AshenMarcher")})
+        Add(Name, TEXT("EnemyCharacters/Tactical"), *(FString(TEXT("BP_")) + Name));
     Add(TEXT("Twin Soul Crimson"), TEXT("Objectives/TwinSoulTrial"), TEXT("BP_TwinSoulCrimson"));
     Add(TEXT("Twin Soul Violet"), TEXT("Objectives/TwinSoulTrial"), TEXT("BP_TwinSoulViolet"));
     Add(TEXT("Test Dummy"), TEXT("EnemyCharacters/Mobs"), TEXT("BP_TestDummy"));

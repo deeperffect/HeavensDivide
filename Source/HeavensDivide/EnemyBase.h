@@ -58,6 +58,7 @@ class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
 	GENERATED_BODY()
 	friend class FEnemyHitFlashTest;
 	friend class FEnemyDeathTest;
+	friend class FEncounterExpansionTest;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") bool bEnableHitFlash = true;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash", meta=(ClampMin="0.0", Units="s")) float HitFlashDuration = 0.08f;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") FLinearColor HitFlashColor = FLinearColor::White;
@@ -179,7 +180,7 @@ public:
 	EEnemyDropCategory GetDropCategory() const { return DropCategory; }
 
 	UFUNCTION(BlueprintPure, Category = "Enemy|Movement")
-	FVector GetEnemyMovementVelocity() const;
+	virtual FVector GetEnemyMovementVelocity() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Enemy|Mark", meta = (ToolTip = "Broadcast when this enemy becomes Marked for Death."))
 	FEnemyMarkStateChanged OnMarked;

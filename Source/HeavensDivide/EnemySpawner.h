@@ -228,6 +228,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Run")
 	bool IsTrialSuspended() const { return bTrialSuspended; }
 
+	bool IsEncounterDirectorEnabled() const { return bSpawningEnabled && !bTrialSuspended && !bRunTimeFrozen; }
+
 	UFUNCTION(BlueprintCallable, Category = "Spawner|Run Scaling|Modifiers")
 	void SetSpawnPressureModifier(FName ModifierId, float Multiplier);
 
