@@ -9,8 +9,8 @@
 namespace
 {
 	const FVector2D MapCenter(500, 390);
-	const FLinearColor Ivory(.93f, .93f, .87f);
-	const FLinearColor Gold(.74f, .70f, .59f);
+	const FLinearColor Ivory(.94f, .86f, .69f);
+	const FLinearColor Gold(.68f, .46f, .20f);
 	FLinearColor PathColor(int32 Branch)
 	{
 		const FLinearColor Colors[] = {Gold, FLinearColor(.7f,.32f,.23f), FLinearColor(.42f,.47f,.74f), FLinearColor(.27f,.61f,.56f)};
@@ -208,7 +208,7 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
 			const auto* Parent=MetaSkillTree::Find(ParentId);if(!Parent)continue;
 			const bool bActive=Ancestors.Contains(N.Id)&&Ancestors.Contains(ParentId);
 			const bool bLearned=Meta&&Meta->GetSkillRank(N.Id)>0&&Meta->GetSkillRank(ParentId)>0;
-			FLinearColor Color=bActive?Alpha(Ivory,.85f):bLearned?Alpha(Ivory,.8f):FLinearColor(.29f,.29f,.26f);
+			FLinearColor Color=bActive?Alpha(Ivory,.85f):bLearned?Alpha(Ivory,.8f):FLinearColor(.16f,.29f,.30f);
 			const FVector2D A=Position(*Parent);
 			if(Parent->Branch==N.Branch)
 			{
@@ -255,9 +255,9 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
 			Arc(P,Radius+8,0,360,Alpha(Ivory,bSelected?.95f:.5f),bSelected?2.f:1.f,3);
 		}
 		if(N.MaxRank==1)Arc(P,Radius+5,0,360,Alpha(Accent,.23f),1.f,2);
-		Disc(P,Radius,Rank>0?Ivory:FLinearColor(.06f,.06f,.057f),3);
-		Arc(P,Radius,0,360,Rank>0?Ivory:bOpen?Alpha(Accent,.9f):FLinearColor(.22f,.22f,.20f),bOpen?1.8f:1.2f,4);
-		const FLinearColor Ink=Rank>0?FLinearColor(.04f,.04f,.036f):bOpen?Ivory:FLinearColor(.38f,.38f,.34f);
+		Disc(P,Radius,Rank>0?Gold:bOpen?FLinearColor(.035f,.095f,.105f):FLinearColor(.014f,.032f,.040f),3);
+		Arc(P,Radius,0,360,Rank>0?Gold:bOpen?Alpha(Accent,1.f):FLinearColor(.13f,.23f,.25f),bOpen?1.8f:1.2f,4);
+		const FLinearColor Ink=Rank>0?FLinearColor(.04f,.04f,.036f):bOpen?Ivory:FLinearColor(.34f,.45f,.46f);
 		auto Glyph=[&](std::initializer_list<FVector2D> Points)
 		{
 			TArray<FVector2D> Path;for(auto V:Points)Path.Add(P+V*14.);Stroke(Path,Ink,1.65f,5);
@@ -321,10 +321,10 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
 			Disc(P+FVector2D(FMath::Cos(A),FMath::Sin(A))*(Radius+5),2.6f,I<Rank?Accent:FLinearColor(.18f,.18f,.16f),6);
 		}
 	}
-	Text(FVector2D(124,22),TEXT("W A Y  O F  S T E E L"),12,PathColor(1));
-	Text(FVector2D(662,22),TEXT("W A Y  O F  S H A D O W"),12,PathColor(2));
-	Text(FVector2D(124,738),TEXT("S H A R E D  R O O T S"),12,PathColor(0));
-	Text(FVector2D(662,738),TEXT("T W I N  S O U L  B O N D"),12,PathColor(3));
+	Text(FVector2D(124,22),TEXT("WAY OF STEEL"),18,PathColor(1));
+	Text(FVector2D(662,22),TEXT("WAY OF SHADOW"),18,PathColor(2));
+	Text(FVector2D(124,738),TEXT("SHARED ROOTS"),18,PathColor(0));
+	Text(FVector2D(662,738),TEXT("TWIN SOUL BOND"),18,PathColor(3));
 
 	return Layer+7;
 }

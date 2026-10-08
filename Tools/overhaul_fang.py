@@ -72,5 +72,5 @@ for r in rows:
  assert set(str(x) for x in a.get_editor_property('prerequisite_upgrade_ids'))==set(([] if r['kind'] in ('stance','basic') else ['ReturningFang'])+r['requires'])
  assert (a.get_editor_property('category')==unreal.UpgradeCategory.CURSED)==(r['kind']=='shrine')
 for p,h in protected.items():assert digest(Path(p))==h,'Unrelated asset changed: '+p
-assert {k:sum(r['kind']==k for r in rows) for k in ('one_time','normal','rare','shrine')}==dict(one_time=6,normal=5,rare=6,shrine=3)
-unreal.log('FANG_BUILD_OK: 6 / 5 / 6 / 3, three convertible basic investments, '+str(len(ids))+' unique pool cards; protected assets unchanged')
+assert {k:sum(r['kind']==k for r in rows) for k in ('one_time','normal','rare','shrine')}==dict(one_time=7,normal=5,rare=7,shrine=3)
+unreal.log('FANG_BUILD_OK: 7 / 5 / 7 / 3, three convertible basic investments, '+str(len(ids))+' unique pool cards; protected assets unchanged')

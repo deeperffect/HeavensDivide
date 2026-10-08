@@ -12,6 +12,9 @@ class USwapVFXSetupLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+    /** Bind full-circle material variants on the Fang copy of Slash 15. */
+    UFUNCTION(BlueprintCallable, Category="Editor|Upgrade VFX")
+    static bool ConfigureFangCircleSlash(UNiagaraSystem* System);
     /** Configure duplicated vendor effects for stance procs; never pass the source asset. */
     UFUNCTION(BlueprintCallable, Category="Editor|Upgrade VFX")
     static bool ConfigureStanceEffect(UNiagaraSystem* System, FLinearColor Color, bool bPoisonPool);

@@ -25,6 +25,39 @@
 #include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
 #endif
 
+bool USwapVFXSetupLibrary::ConfigureFangCircleSlash(UNiagaraSystem* System)
+{
+#if WITH_EDITOR
+    if (!System || System->GetPathName() != TEXT("/Game/HeavensDivide/VFX/Stances/NS_FangSlash_360.NS_FangSlash_360")) return false;
+    System->Modify();
+    int32 Count = 0;
+    for (auto& Handle : System->GetEmitterHandles())
+    {
+        if (!Handle.GetIsEnabled()) continue;
+        auto* Data = Handle.GetEmitterData();
+        if (!Data) continue;
+        for (auto* Renderer : Data->GetRenderers())
+            if (auto* Mesh = Cast<UNiagaraMeshRendererProperties>(Renderer))
+                for (auto& Override : Mesh->OverrideMaterials)
+                {
+                    auto* Old = Override.ExplicitMat.Get();
+                    if (!Old) continue;
+                    FString Name = Old->GetName();
+                    if (Name.StartsWith(TEXT("MI_Fang360_"))) { ++Count; continue; }
+                    if (Name != TEXT("MI_MasterStrip_ADD5") && Name != TEXT("MI_MasterStrip_AB")) continue;
+                    auto* Material = LoadObject<UMaterialInterface>(nullptr, *(TEXT("/Game/HeavensDivide/VFX/Stances/MI_Fang360_") + Name));
+                    if (!Material) return false;
+                    Mesh->Modify();Override.ExplicitMat = Material;Mesh->PostEditChange();++Count;
+                }
+    }
+    if (Count != 2) return false;
+    System->PostEditChange();System->RequestCompile(true);System->WaitForCompilationComplete(true,false);
+    return System->IsValid();
+#else
+    return false;
+#endif
+}
+
 bool USwapVFXSetupLibrary::TintSmokeSystem(UNiagaraSystem* System,FLinearColor Color)
 {
 #if WITH_EDITOR

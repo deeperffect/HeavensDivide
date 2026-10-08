@@ -63,6 +63,24 @@ void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& Stat
 			Remove(Id);
 	ConvertSamuraiScalingUpgrades();
 	ConvertNinjaScalingUpgrades();
+	// The former low-health scaler is now a one-time pursuit unlock. Preserve
+	// additional purchased ranks in its chance branch, once, without adding mastery.
+	if (Owned(TEXT("ReturningFang")) && UpgradeLevels.FindRef(TEXT("FangKillingEdge")) > 0
+	    && (UpgradeLevels.FindRef(TEXT("FangKillingEdge")) > 1 || AccumulatedUpgradeMagnitudes.FindRef(TEXT("FangKillingEdge")) > 0.f))
+	{
+		if (auto* Chance = FindUpgradeDefinition(TEXT("FangPursuitChance")))
+		{
+			const int32 Extra = UpgradeLevels.FindRef(TEXT("FangKillingEdge")) - 1;
+			if (Extra > 0)
+			{
+				UpgradeLevels.FindOrAdd(TEXT("FangPursuitChance")) = FMath::Min(Chance->MaxLevel,
+				    UpgradeLevels.FindRef(TEXT("FangPursuitChance")) + Extra);
+				AcquiredUpgradeDefinitions.Add(TEXT("FangPursuitChance"), Chance);
+			}
+			UpgradeLevels[TEXT("FangKillingEdge")] = 1;
+			AccumulatedUpgradeMagnitudes.Remove(TEXT("FangKillingEdge"));
+		}
+	}
 	TArray<FName> RestoredIds;
 	UpgradeLevels.GetKeys(RestoredIds);
 	for (FName Id : RestoredIds)

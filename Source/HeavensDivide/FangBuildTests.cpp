@@ -12,6 +12,11 @@
 #include "EnemyBase.h"
 #include "HealthComponent.h"
 #include "FangBuild.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "SwapPresentationComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "UObject/UnrealType.h"
@@ -34,14 +39,60 @@ bool FFangBuildsTest::RunTest(const FString&)
  FindFProperty<FObjectProperty>(UCharacterManagerComponent::StaticClass(),TEXT("ActiveCharacter"))->SetObjectPropertyValue_InContainer(Manager,N);
  auto* B=N->FindComponentByClass<UNinjaBuildComponent>();auto* A=N->FindComponentByClass<UAutoAttackComponent>();auto* U=PC->GetPlayerUpgrades();
  A->OwnerCharacter=N;A->ProjectileClass=AAttackProjectileBase::StaticClass();
+ TestNotNull(TEXT("Dedicated Fang projectile assigned"),B->FangProjectileClass.Get());
+ TestTrue(TEXT("Dedicated Fang projectile is user asset"),B->FangProjectileClass && B->FangProjectileClass->GetName()==TEXT("BP_NinjaProjectileFang_C"));
+ TestNotNull(TEXT("Fang montage assigned"),A->FangMontage.Get());
+ TestNotNull(TEXT("Mirrored Fang montage assigned"),A->FangAlternateMontage.Get());
+ TestTrue(TEXT("Fang montages differ"),A->FangMontage!=A->FangAlternateMontage);
+ if(auto* Anim=N->GetMesh()->GetAnimInstance())
+ {
+  A->PlayFangMontage(FRotator::ZeroRotator);
+  TestTrue(TEXT("First Fang uses original montage"),Anim->Montage_IsPlaying(A->FangMontage));
+  A->PlayFangMontage(FRotator::ZeroRotator);
+  TestTrue(TEXT("Second Fang uses mirrored montage"),Anim->Montage_IsPlaying(A->FangAlternateMontage));
+  A->PlayFangMontage(FRotator::ZeroRotator);
+  TestTrue(TEXT("Third Fang alternates back"),Anim->Montage_IsPlaying(A->FangMontage));
+  A->StopAutoAttack();
+  TestFalse(TEXT("Stopping attacks stops cosmetic Fang montage"),Anim->Montage_IsPlaying(A->FangMontage));
+ }
+ else AddError(TEXT("Saved Ninja has no animation instance for Fang presentation"));
  FPlayerUpgradeRunState Empty;U->CaptureRunState(Empty);
  auto Grant=[&](FName Id){auto* Card=U->FindUpgradeDefinition(Id);TestNotNull(*Id.ToString(),Card);return U->AcquireUpgrade(Card);};
  TArray<AEnemyBase*> Enemies;
  auto Spawn=[&](FVector Pos,float HP){auto* E=World->SpawnActor<AEnemyBase>(Pos,FRotator::ZeroRotator,Params);E->ConfigureObjectiveEnemy(HP,EPlayerAttackSource::Other,nullptr,FLinearColor::White);E->GetHealthComponent()->RestoreCurrentHealth(HP);FScriptDelegate D;D.BindUFunction(E,TEXT("HandleDeath"));E->GetHealthComponent()->OnDeath.AddUnique(D);Enemies.Add(E);return E;};
  auto Reset=[&](){B->ClearProjectiles();for(auto* E:Enemies)if(IsValid(E))E->Destroy();Enemies.Reset();U->RestoreRunState(Empty);Grant(TEXT("ReturningFang"));};
- const FName OneTime[]={TEXT("FangTwin"),TEXT("RelentlessFang"),TEXT("FangResonance"),TEXT("FangDeadeye"),TEXT("FangAssist"),TEXT("FangSplinter")};
- const FName Rare[]={TEXT("FangTwinFrequency"),TEXT("FangPressure"),TEXT("FangResonantReach"),TEXT("FangCriticalChance"),TEXT("FangAssistChance"),TEXT("FangSplinterPower")};
- for(int32 i=0;i<6;++i)
+ // Exercise the real saved arrival while Fang's independent scheduler has a target.
+ Reset();Spawn(FVector(100,0,0),10000);
+ auto* Arrival=N->SwapPresentation.Get();
+ TestNotNull(TEXT("Saved Ninja arrival montage assigned"),Arrival->EntranceMontage.Get());
+ Arrival->PrepareArrival();
+ B->TickComponent(.2f,LEVELTICK_All,nullptr);
+ TestFalse(TEXT("Fang waits for pending arrival"),B->Fang.IsValid());
+ Arrival->PlayArrival();
+ auto* EntranceAnim=N->GetMesh()->GetSingleNodeInstance();
+ if(TestNotNull(TEXT("Saved arrival owns Ninja pose"),EntranceAnim))
+ {
+  B->TickComponent(.2f,LEVELTICK_All,nullptr);
+  TestFalse(TEXT("Fang does not launch during arrival"),B->Fang.IsValid());
+  A->PlayFangMontage(FRotator::ZeroRotator);A->PlayFangSlashMontage();
+  Arrival->UpdateEntrance(.1f);
+  TestNotNull(TEXT("Fang cannot interrupt arrival montage"),EntranceAnim->GetActiveInstanceForMontage(Arrival->EntranceMontage));
+  TestFalse(TEXT("Throw does not play on arrival instance"),EntranceAnim->Montage_IsPlaying(A->FangMontage));
+  TestFalse(TEXT("Burst does not play on arrival instance"),EntranceAnim->Montage_IsPlaying(A->FangSlashMontage));
+  auto* Early=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));Early->LaunchFang();
+  TestTrue(TEXT("Direct Fang launch also respects arrival"),Early->IsActorBeingDestroyed());
+  Arrival->UpdateSwapFreeze(10.f);
+  Arrival->UpdateEntrance(10.f);
+  B->TickComponent(.2f,LEVELTICK_All,nullptr);
+  TestFalse(TEXT("Final arrival pose remains protected"),B->Fang.IsValid());
+  Arrival->UpdateEntrance(0.f);
+  B->TickComponent(.2f,LEVELTICK_All,nullptr);
+  TestTrue(TEXT("Fang launches after arrival settles"),B->Fang.IsValid());
+ }
+ Arrival->FinishSwapFreeze();Reset();U->RestoreRunState(Empty);
+ const FName OneTime[]={TEXT("FangTwin"),TEXT("RelentlessFang"),TEXT("FangResonance"),TEXT("FangDeadeye"),TEXT("FangAssist"),TEXT("FangSplinter"),TEXT("FangKillingEdge")};
+ const FName Rare[]={TEXT("FangTwinFrequency"),TEXT("FangPressure"),TEXT("FangResonantReach"),TEXT("FangCriticalChance"),TEXT("FangAssistChance"),TEXT("FangSplinterPower"),TEXT("FangPursuitChance")};
+ for(int32 i=0;i<7;++i)
  {
   TestFalse(TEXT("Unlock unavailable before stance"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(OneTime[i])));
   TestFalse(TEXT("Rare unavailable before unlock"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(Rare[i])));
@@ -65,7 +116,7 @@ bool FFangBuildsTest::RunTest(const FString&)
  U->RestoreRunState(Basic);Grant(TEXT("ReturningFang"));
  TestFalse(TEXT("Basic investments excluded after stance"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("NinjaSpeed"))));
  TestFalse(TEXT("Legacy shared tree excluded from Fang"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("EmbeddedBlades"))));
- for(int32 i=0;i<6;++i)
+ for(int32 i=0;i<7;++i)
  {
   TestTrue(TEXT("Unlock acquired"),Grant(OneTime[i]));
   TestTrue(TEXT("Matching rare becomes available"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(Rare[i])));
@@ -77,6 +128,22 @@ bool FFangBuildsTest::RunTest(const FString&)
  for(int32 i=0;i<10;++i)
   for(auto* Card:U->RollUpgradeChoices(EUpgradeCategory::Ninja,100))TestFalse(TEXT("Shrine cards excluded from ordinary offers"),FangBuild::IsShrine(Card->UpgradeId));
 
+ Reset();
+ TestTrue(TEXT("Fang range halved"),FMath::IsNearlyEqual(A->GetEffectiveTargetingRange(),A->TargetingRange*.5f));
+ auto* CloseEnemy=Spawn(FVector(30,0,0),100000);
+ auto* Capped=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));Capped->LaunchFang();
+ const float ExpectedSpeed=.5f*A->GetEffectiveProjectileSpeed()*A->GetBaseAttackInterval()/A->GetEffectiveAttackInterval();
+ TestTrue(TEXT("Fang flight speed halved"),FMath::IsNearlyEqual(Capped->Speed,ExpectedSpeed,.01f));
+ // Artificially huge travel speed must not bypass the launch-rate limit.
+ Capped->Speed=100000.f;const int32 InitialLaunches=B->FangLaunchCount;
+ for(int32 i=0;i<20;++i)Capped->Tick(.01f);
+ TestEqual(TEXT("Point-blank return waits before relaunch"),B->FangLaunchCount,InitialLaunches);
+ TestTrue(TEXT("Waiting Fang has returned"),Capped->bReturning);
+ for(int32 i=0;i<7;++i)Capped->Tick(.01f);
+ TestEqual(TEXT("Relaunch allowed after quarter second"),B->FangLaunchCount,InitialLaunches+1);
+ const int32 BeforeSustained=B->FangLaunchCount;
+ for(int32 i=0;i<100;++i){Capped->Speed=100000.f;Capped->Tick(.01f);}
+ TestTrue(TEXT("Sustained point-blank rate capped at four launches per second"),B->FangLaunchCount-BeforeSustained<=4);
  Reset();auto* E=Spawn(FVector(300,0,0),100000);auto* Other=Spawn(FVector(300,200,0),100000);auto* Third=Spawn(FVector(300,-200,0),100000);
  Grant(TEXT("FangTwin"));B->FangLaunchCount=3;
  auto* P=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));P->LaunchFang();
@@ -104,12 +171,71 @@ bool FFangBuildsTest::RunTest(const FString&)
   TestTrue(FString::Printf(TEXT("Pressure remains capped at 190 (actual %.6f)"),CappedHit),FMath::IsNearlyEqual(CappedHit,190.f,.001f));
 
  Reset();E=Spawn(FVector(150,0,0),100000);P=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));P->Damage=100;
+ A->StopAutoAttack();
  Grant(TEXT("FangResonance"));const float BeforeBurst=E->GetHealthComponent()->GetCurrentHealth();
  B->FangReturned(P);TestEqual(TEXT("Canceled trips give no return burst"),E->GetHealthComponent()->GetCurrentHealth(),BeforeBurst);
+ TestFalse(TEXT("Canceled return does not play slash"),N->GetMesh()->GetAnimInstance()->Montage_IsPlaying(A->FangSlashMontage));
  P->bFangHitThisTrip=true;B->FangReturned(P);
+ TestNotNull(TEXT("Saved Fang slash montage assigned"),A->FangSlashMontage.Get());
+ TestTrue(TEXT("Return burst plays slash montage"),N->GetMesh()->GetAnimInstance()->Montage_IsPlaying(A->FangSlashMontage));
+ A->PlayFangMontage(FRotator::ZeroRotator);
+ TestTrue(TEXT("Immediate relaunch preserves slash montage"),N->GetMesh()->GetAnimInstance()->Montage_IsPlaying(A->FangSlashMontage));
  TestEqual(TEXT("Return burst deals half Fang damage"),E->GetHealthComponent()->GetCurrentHealth(),BeforeBurst-50);
  TestEqual(TEXT("Burst does not count as direct Fang hit"),B->FangVictimHits.Num(),0);
+ auto* BurstAnim=N->GetMesh()->GetAnimInstance();
+ BurstAnim->Montage_SetPosition(A->FangSlashMontage,.4f);
+ TestTrue(TEXT("Slash progressed before second burst"),BurstAnim->Montage_GetPosition(A->FangSlashMontage)>.3f);
+ P->bFangHitThisTrip=true;B->FangReturned(P);
+ TestTrue(TEXT("Second burst restarts slash"),BurstAnim->Montage_IsPlaying(A->FangSlashMontage));
+ TestTrue(TEXT("Restart begins at zero"),FMath::IsNearlyZero(BurstAnim->Montage_GetPosition(A->FangSlashMontage)));
+ TestEqual(TEXT("Restarted burst still deals damage once"),E->GetHealthComponent()->GetCurrentHealth(),BeforeBurst-100);
 
+ // Saved pool offers Reach after Resonance, and its rank changes the real damage radius.
+ auto Offers=U->RollUpgradeChoices(EUpgradeCategory::Ninja,100);
+ TestTrue(TEXT("Resonant Reach present in eligible ordinary offers"),Offers.Contains(U->FindUpgradeDefinition(TEXT("FangResonantReach"))));
+ Other=Spawn(FVector(400,0,0),100000);
+ const float OutsideHealth=Other->GetHealthComponent()->GetCurrentHealth();
+ P->bFangHitThisTrip=true;B->FangReturned(P);
+ TestEqual(TEXT("Outside base burst radius"),Other->GetHealthComponent()->GetCurrentHealth(),OutsideHealth);
+ for(int32 i=0;i<5;++i)TestTrue(TEXT("Reach rank acquired"),Grant(TEXT("FangResonantReach")));
+ TestFalse(TEXT("Reach capped at five ranks"),Grant(TEXT("FangResonantReach")));
+ P->bFangHitThisTrip=true;B->FangReturned(P);
+ TestEqual(TEXT("Reach hits at 400cm after five ranks"),Other->GetHealthComponent()->GetCurrentHealth(),OutsideHealth-50);
+ for(int32 i=0;i<10;++i)TestTrue(TEXT("Burst power rank acquired"),Grant(TEXT("FangBurstPower")));
+ TestFalse(TEXT("Burst power capped at ten ranks"),Grant(TEXT("FangBurstPower")));
+ P->bFangHitThisTrip=true;B->FangReturned(P);
+ TestEqual(TEXT("Ten burst ranks triple burst damage"),Other->GetHealthComponent()->GetCurrentHealth(),OutsideHealth-200);
+
+ // Deterministically exercise a kill followed by two nonlethal target hits.
+ Reset();Grant(TEXT("FangKillingEdge"));
+ auto* Edge=U->FindUpgradeDefinition(TEXT("FangKillingEdge"));const auto EdgeBalance=Edge->BalanceParameters;
+ Edge->BalanceParameters.Add(TEXT("Chance"),1.f);
+ E=Spawn(FVector(300,0,0),1);Other=Spawn(FVector(500,0,0),10000);Third=Spawn(FVector(700,0,0),10000);
+ P=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(300,0,45));P->Target=E;P->Damage=100;P->Speed=1000;
+ P->Tick(.01f);
+ TestTrue(TEXT("Kill starts pursuit"),E->IsDead()&&!P->bReturning&&P->Target==Other);
+ P->SetActorLocation(Other->GetActorLocation()+FVector(0,0,45));P->Tick(.01f);
+ TestTrue(TEXT("Nonlethal follow-up continues to second target"),!P->bReturning&&P->Target==Third);
+ P->SetActorLocation(Third->GetActorLocation()+FVector(0,0,45));P->Tick(.01f);
+ TestTrue(TEXT("Exactly two follow-ups then return"),P->bReturning&&P->LastHits.Num()==3);
+ TestEqual(TEXT("First follow-up takes full Fang damage"),Other->GetHealthComponent()->GetCurrentHealth(),9900.f);
+ TestEqual(TEXT("Second follow-up takes full Fang damage"),Third->GetHealthComponent()->GetCurrentHealth(),9900.f);
+ Edge->BalanceParameters.Add(TEXT("Chance"),0.f);
+ E=Spawn(FVector(300,200,0),1);P->Target=E;P->bReturning=false;P->bPursued=false;P->FangPursuitTargetsRemaining=0;
+ P->SetActorLocation(E->GetActorLocation()+FVector(0,0,45));P->Tick(.01f);
+ TestTrue(TEXT("Failed roll returns immediately"),P->bReturning);
+ Edge->BalanceParameters=EdgeBalance;
+ for(int32 i=0;i<5;++i)TestTrue(TEXT("Pursuit chance rank acquired"),Grant(TEXT("FangPursuitChance")));
+ TestFalse(TEXT("Pursuit chance capped at five"),Grant(TEXT("FangPursuitChance")));
+ TestTrue(TEXT("Pursuit chance reaches 65 percent"),FMath::IsNearlyEqual(.15f+FangBuild::Scaling(U,TEXT("FangPursuitChance"),.1f),.65f));
+ FPlayerUpgradeRunState OldEdge;U->CaptureRunState(OldEdge);OldEdge.Levels[TEXT("FangKillingEdge")]=5;
+ OldEdge.Levels.Remove(TEXT("FangPursuitChance"));OldEdge.AccumulatedMagnitudes.Add(TEXT("FangKillingEdge"),.75f);
+ U->RestoreRunState(OldEdge);
+ TestEqual(TEXT("Old Killing Edge becomes unlock"),U->GetUpgradeLevelById(TEXT("FangKillingEdge")),1);
+ TestEqual(TEXT("Old extra ranks preserved as chance"),U->GetUpgradeLevelById(TEXT("FangPursuitChance")),4);
+ FPlayerUpgradeRunState NewEdge;U->CaptureRunState(NewEdge);U->RestoreRunState(NewEdge);
+ TestEqual(TEXT("Conversion is idempotent"),U->GetUpgradeLevelById(TEXT("FangPursuitChance")),4);
+ TestEqual(TEXT("Conversion preserves mastery"),U->GetNinjaMasteryPoints(),OldEdge.NinjaMastery);
  Reset();E=Spawn(FVector(150,0,0),250);Other=Spawn(FVector(400,0,0),100000);
  Grant(TEXT("FangSplinter"));P=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));P->Damage=100;
  B->FangHit(P,E);B->FangHit(P,E);const int32 BeforeSplit=B->Projectiles.Num();B->FangHit(P,E);
@@ -124,8 +250,8 @@ bool FFangBuildsTest::RunTest(const FString&)
 
  Reset();E=Spawn(FVector(150,0,0),100000);P=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));P->Damage=100;
  Grant(TEXT("FangFarstrider"));P->FangOutwardDistance=1000;
- TestEqual(TEXT("Farstrider max-distance damage"),B->FangHit(P,E),250.f);P->FangOutwardDistance=5000;
- TestEqual(TEXT("Farstrider distance bonus capped"),B->FangHit(P,E),250.f);
+ TestEqual(TEXT("Farstrider max-distance damage"),B->FangHit(P,E),500.f);P->FangOutwardDistance=5000;
+ TestEqual(TEXT("Farstrider distance bonus capped"),B->FangHit(P,E),500.f);
  TestEqual(TEXT("Farstrider flight cost"),B->FangSpeedMultiplier(),.75f);
  Grant(TEXT("FangRedline"));TestTrue(TEXT("Shrine speed tradeoffs combine"),FMath::IsNearlyEqual(B->FangSpeedMultiplier(),1.2f));
  TestEqual(TEXT("Redline damage cost"),B->FangDamageMultiplier(),.7f);

@@ -138,6 +138,10 @@ void UAutoAttackComponent::StopAutoAttack()
 			Anim->Montage_Stop(.1f, ActiveCrescentMontage);
 	}
 	ActiveCrescentMontage = nullptr;
+	if (ActiveFangMontage && OwnerCharacter && OwnerCharacter->GetMesh())
+		if (auto* Anim = OwnerCharacter->GetMesh()->GetAnimInstance())
+			Anim->Montage_Stop(.1f, ActiveFangMontage);
+	ActiveFangMontage = nullptr;
 	if (ActiveIaijutsuMontage && OwnerCharacter && OwnerCharacter->GetMesh())
 	{
 		if (auto* Anim = OwnerCharacter->GetMesh()->GetAnimInstance())
@@ -775,6 +779,35 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 	return bStarted;
 }
 
+void UAutoAttackComponent::PlayFangMontage(FRotator Facing)
+{
+	if (OwnerCharacter && OwnerCharacter->SwapPresentation && OwnerCharacter->SwapPresentation->IsBlockingAttacks()) return;
+	UAnimMontage* Montage = bNextFangUsesAlternate && FangAlternateMontage ? FangAlternateMontage.Get() : FangMontage.Get();
+	if (!Montage) Montage = FangAlternateMontage;
+	auto* Anim = OwnerCharacter && OwnerCharacter->GetMesh() ? OwnerCharacter->GetMesh()->GetAnimInstance() : nullptr;
+	if (!Montage || !Anim) return;
+	if (FangSlashMontage && Anim->Montage_IsPlaying(FangSlashMontage)) return;
+	// Close-range relaunches may interrupt the pose, but never delay the actual Fang.
+	if (Anim->Montage_Play(Montage, CalculateAttackMontagePlayRate(Montage)) <= 0.f) return;
+	if (auto* Instance = Anim->GetActiveInstanceForMontage(Montage)) Instance->PushDisableRootMotion();
+	ActiveFangMontage = Montage;
+	bNextFangUsesAlternate = Montage != FangAlternateMontage;
+	OwnerCharacter->SetVisualFacingRotation(Facing);
+}
+
+void UAutoAttackComponent::PlayFangSlashMontage()
+{
+	if (OwnerCharacter && OwnerCharacter->SwapPresentation && OwnerCharacter->SwapPresentation->IsBlockingAttacks()) return;
+	auto* Anim = OwnerCharacter && OwnerCharacter->GetMesh() ? OwnerCharacter->GetMesh()->GetAnimInstance() : nullptr;
+	if (!FangSlashMontage || !Anim) return;
+	// Each return burst cancels the previous slash and starts a fresh animation.
+	Anim->Montage_Stop(0.f, FangSlashMontage);
+	if (Anim->Montage_Play(FangSlashMontage, CalculateAttackMontagePlayRate(FangSlashMontage),
+		EMontagePlayReturnType::MontageLength, 0.f) <= 0.f) return;
+	if (auto* Instance = Anim->GetActiveInstanceForMontage(FangSlashMontage)) Instance->PushDisableRootMotion();
+	ActiveFangMontage = FangSlashMontage;
+}
+
 void UAutoAttackComponent::PlayCrescentMontage()
 {
 	UAnimMontage* Montage = bNextCrescentUsesAlternate && CrescentAlternateMontage
@@ -1226,8 +1259,13 @@ float UAutoAttackComponent::GetEffectiveTargetingRange() const
 	{
         const auto* U = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
         if (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>() && U && U->HasUpgradeId(TEXT("BarrageStance"))) return TargetingRange * BarrageBuild::RangeMultiplier(U);
-        return TargetingRange * (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>() && U && U->HasUpgradeId(TEXT("ReturningFang"))
-            ? 1.f + FangBuild::Scaling(U, TEXT("FangRange"), .15f) : 1.f);
+        if (OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>() && U && U->HasUpgradeId(TEXT("ReturningFang")))
+        {
+            const auto* Stance = U->FindUpgradeDefinition(TEXT("ReturningFang"));
+            return TargetingRange * (Stance ? Stance->GetBalanceValue(TEXT("TargetingRangeMultiplier"), .5f) : .5f)
+                * (1.f + FangBuild::Scaling(U, TEXT("FangRange"), .15f));
+        }
+        return TargetingRange;
 	}
 
 	const float EffectiveMeleeReach = FMath::Max(0.0f, AttackForwardOffset) + GetEffectiveAttackRadius();

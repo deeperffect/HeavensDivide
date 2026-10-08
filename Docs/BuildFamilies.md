@@ -260,7 +260,7 @@ Completing a Ninja trial offers three Rare weapon-route cards that replace or mo
 
 ### Returning Fang
 
-Returning Fang uses **6 one-time mechanics, 5 normal scalable upgrades, 6 rare scalable branches, and 3 Shrine-only tradeoffs**. Outward hits damage the selected enemy; returning blades deal no contact damage. Staying close shortens each attack cycle. Additional projectile bonuses still become 25% Fang damage each.
+Returning Fang uses **7 one-time mechanics, 5 normal scalable upgrades, 7 rare scalable branches, and 3 Shrine-only tradeoffs**. Outward hits damage the selected enemy; returning blades deal no contact damage. Staying close shortens each attack cycle, capped at **4 launches per second** per repeating Fang. Base targeting range and outward/return flight speed are half their former values; upgrades still scale those reduced bases. Additional projectile bonuses still become 25% Fang damage each.
 
 Before choosing a Ninja stance, **Attack Damage**, **Attack Speed**, and **Coverage** are available. Choosing Fang converts their ranks, rolled strength, and banishment into **Fang Damage**, **Flight Speed**, and **Attack Range**. Other Ninja routes retain attack-speed scaling; Coverage scales normal kunai and Great Shuriken size.
 
@@ -274,6 +274,7 @@ Before choosing a Ninja stance, **Attack Damage**, **Attack Speed**, and **Cover
 | Deadeye (`FangDeadeye`) | Fang hits have a 15% chance to deal double damage. | 1 |
 | Samurai Assist (`FangAssist`) | Completed main-Fang round trips have a 5% chance to call Samurai for an assist attack. Can trigger once per second. | 1 |
 | Splintering Fang (`FangSplinter`) | Fang kills scatter one kunai for each direct Fang hit the enemy took, including the killing hit. Each kunai deals 40% Fang damage and cannot trigger Fang effects. | 1 |
+| Killing Edge (`FangKillingEdge`) | Fang kills have a 15% chance to strike 2 additional distinct enemies before returning. Follow-up kills cannot extend the chain. | 1 |
 
 #### Normal scalable upgrades
 
@@ -283,7 +284,7 @@ Before choosing a Ninja stance, **Attack Damage**, **Attack Speed**, and **Cover
 | Flight Speed (`FangSpeed`) | Fangs travel 15% faster on outward and return trips. | 5 |
 | Attack Range (`FangRange`) | Fangs seek enemies 15% farther away. | 5 |
 | Close Quarters (`FangCloseQuarters`) | Fang hits deal 10% more damage to enemies within 3 metres of you. | 5 |
-| Killing Edge (`FangKillingEdge`) | Fang hits deal 15% more damage to enemies below 30% health. | 5 |
+| Resonant Power (`FangBurstPower`) | Resonant Fang bursts deal 20% more damage per rank. Requires Resonant Fang. | 10 |
 
 #### Rare scalable upgrades
 
@@ -295,16 +296,17 @@ Before choosing a Ninja stance, **Attack Damage**, **Attack Speed**, and **Cover
 | Deadeye Mastery (`FangCriticalChance`) | Adds 10% critical-hit chance to Fang hits. | 5 |
 | Reinforcements (`FangAssistChance`) | Adds 5% chance to call Samurai on a completed main-Fang round trip. | 5 |
 | Splinter Power (`FangSplinterPower`) | Splintering Fang kunai deal 20% more damage. | 5 |
+| Killing Momentum (`FangPursuitChance`) | Adds 10 percentage points to Killing Edge chance, reaching 65%. Requires Killing Edge. | 5 |
 
 #### Shrine tradeoffs
 
 | Upgrade | Effect | Ranks |
 | --- | --- | --- |
-| Farstrider (`FangFarstrider`) | Fangs travel 25% slower. Outward hits gain damage with distance travelled, up to 150% bonus damage at 10 metres. | 1 |
+| Farstrider (`FangFarstrider`) | Fangs travel 25% slower. Outward hits gain damage with distance travelled, up to 400% bonus damage at 10 metres. | 1 |
 | Redline (`FangRedline`) | Fangs travel 60% faster, but deal 30% less damage. | 1 |
 | Predator's Price (`FangPredator`) | Fang critical hits deal 50% more damage, but noncritical hits deal 25% less damage. | 1 |
 
-Normal upgrades roll Common/Rare/Epic magnitudes. Damage grants 20/30/40%; Flight Speed and Attack Range grant 15/22.5/30%; Close Quarters grants 10/15/20%; Killing Edge grants 15/22.5/30% per rank. Rare upgrades require their matching one-time unlock. Shrine rewards require Returning Fang; Predator's Price also requires Deadeye. All three tradeoffs can combine.
+Damage, Flight Speed, Attack Range and Close Quarters roll Common/Rare/Epic magnitudes. Damage grants 20/30/40%; Flight Speed and Attack Range grant 15/22.5/30%; Close Quarters grants 10/15/20% per rank. Resonant Power grants a fixed 20% per rank, up to +200% at rank ten. Rare upgrades require their matching one-time unlock. Shrine rewards require Returning Fang; Predator's Price also requires Deadeye. All three tradeoffs can combine.
 
 Twin Fang's two spectral blades prefer different targets, then fall back to the main target. Each ends after one return, cannot summon further Fangs, and does not roll assists. Relentless Fang maintains a separate consecutive-target streak on each blade. Successful returns trigger Resonant Fang around the active Ninja; interrupted trips without a hit, swap recalls, clone returns and assist returns do not grant player return effects.
 
@@ -314,7 +316,7 @@ Cutting Return and Final Pursuit are retired, including stale-reference acquisit
 
 Tune the cards under `/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFang…`; the stance remains `DA_Upgrade_NinjaReturningFangStance`. `Tools/fang_build_upgrades.json` seeds the catalog. `Tools/overhaul_fang.py` authors it with backups under `Saved/Backups/FangBuild`; `-ValidateFang` is read-only. In BP_Ninja's NinjaBuildComponent, **Fang Return Burst VFX** overrides burst presentation and **Spectral Fang Material** overrides the default swap-ghost material. `NinjaBuildPreview Fang` grants the ordinary tree at one rank without Shrine tradeoffs. Regression coverage: `HeavensDivide.Combat.FangBuilds`, `NinjaBuilds`, `TrialBuildRewards`, and `SamuraiTreeStructure`. Starting balance requires playtesting.
 
-The Fang stance, its 20 upgrades and the three convertible Ninja basics have matching hand-drawn icons. Source images are in `Art/UpgradeIcons/Generated/Fang`; exact generation prompts are in `Art/UpgradeIcons/fang_generation.json`. `Tools/import_fang_icons.py` imports and assigns card artwork without changing gameplay tuning; `-ValidateFangIcons` checks assignments without writing. Open `Art/UpgradeIcons/index.html` for the icon gallery.
+The Fang stance, its 22 upgrades and the three convertible Ninja basics have matching hand-drawn icons. Source images are in `Art/UpgradeIcons/Generated/Fang`; exact generation prompts are in `Art/UpgradeIcons/fang_generation.json`. `Tools/import_fang_icons.py` imports and assigns card artwork without changing gameplay tuning; `-ValidateFangIcons` checks assignments without writing. Open `Art/UpgradeIcons/index.html` for the icon gallery.
 
 ### Barrage: poison volleys
 
@@ -513,7 +515,7 @@ During a run in a non-shipping build, switch to Ninja and enter one of these con
 - `NinjaBuildPreview Shuriken`
 - `NinjaBuildPreview Clear`
 
-All three Ninja previews grant their stance and all 17 ordinary upgrade cards at one rank. Shrine tradeoffs are not granted by the previews. Switching previews replaces the new Ninja build cards while preserving other acquired upgrades. Clear removes the new Ninja cards. These commands affect only the current run.
+Ninja previews grant their stance and all ordinary upgrade cards at one rank (19 for Fang; 17 for Barrage and Giant Shuriken). Shrine tradeoffs are not granted by the previews. Switching previews replaces the new Ninja build cards while preserving other acquired upgrades. Clear removes the new Ninja cards. These commands affect only the current run.
 
 `Tools/ninja_build_upgrades.json` retains the legacy Ninja seed catalog; `Tools/barrage_build_upgrades.json` defines the new Barrage tree; `Tools/fang_build_upgrades.json` defines the new Fang tree and basic investments. `Tools/configure_ninja_builds.py` creates missing cards and updates the controller pool while preserving existing card tuning; `-ValidateNinjaBuilds` validates without writing. Cards reuse existing Ninja illustrations. Fang and scattered kunai reuse the original Ninja projectile Blueprint visuals, trails and impact sound. The giant shuriken retains its spinning mesh visual.
 
@@ -595,3 +597,11 @@ In **BP_Samurai > AutoAttackComponent > Samurai > Blood Stance > Detonation**, *
 The blast snapshots remaining Bleed damage and its radius when triggered, stays at that location, and hits valid enemies inside the sphere when the delay expires. Enemies can leave or enter before impact. The original victim dying or being destroyed does not cancel the committed blast. Radius remains 300 cm multiplied by Samurai area and Blood Transfer Area ranks.
 
 In a development/editor run, enter `bloodshift.DebugBloodDetonation 1` in the console: yellow shows the pending damage sphere, red shows the resolved sphere for two seconds, and green lines identify enemies hit. Enter `bloodshift.DebugBloodDetonation 0` to disable it. The sphere shows the actual damage query, independent of visual scale. `Tools/configure_blood_detonation_vfx.py` assigns the Cascade effect with backups and preserves existing delay tuning.
+
+Fang presentation: BP_Ninja > AutoAttackComponent > Ninja > Fang uses `AM_FangAttack` and `AM_FangAttack_Left`, alternating on main-Fang launches. Their notifies do not spawn extra projectiles or control the autonomous Fang cycle. BP_Ninja > NinjaBuildComponent > Ninja Builds > Fang > Fang Projectile Class uses `BP_NinjaProjectileFang` for player, spectral, assist and clone Fangs; scattered kunai keep the ordinary projectile. `Tools/revise_fang_upgrades.py` performs the targeted revision with backups. Existing multi-rank Killing Edge saves retain one unlock rank and convert extra ranks into Killing Momentum, preserving mastery. The two new support cards reuse their parent icons.
+
+Fang pace tuning: `DA_Upgrade_NinjaReturningFangStance` > Runtime Balance has `TargetingRangeMultiplier` (0.5), `FlightSpeedMultiplier` (0.5), and `MaxLaunchesPerSecond` (4). Early returns wait at the owner until the 0.25-second minimum launch interval has elapsed. Return bursts trigger once on arrival, not repeatedly during this wait; spectral and assist Fangs still end on return.
+
+Resonant Fang plays `AM_FangSlash` on the Ninja when its return burst resolves. Set **BP_Ninja > AutoAttackComponent > Ninja > Fang > Fang Slash Montage** to change it. The slash pose has priority over throw animations. Each new burst cancels the current slash and restarts the montage from the beginning. Damage, burst VFX and Fang launch timing remain independent of montage notifies. Fang launches wait for the full swap arrival to finish; neither throw nor burst montages can interrupt the arrival pose.
+
+Its burst uses `/Game/HeavensDivide/VFX/Stances/NS_FangSlash_360`, a full-circle variant of `NS_Slash_15`. The copied ring materials remove the angular fade while preserving the original radial profile, colors and dissolve. Set **BP_Ninja > NinjaBuildComponent > Fang Return Burst VFX** to replace it. The visual scales with the burst radius, including Resonant Reach. `Tools/configure_fang_slash360.py` authors the variant without modifying the source VFX or montage.

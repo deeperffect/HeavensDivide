@@ -11,9 +11,11 @@
 #include "Engine/World.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "HealthComponent.h"
+#include "FangBuild.h"
 #include "Kismet/GameplayStatics.h"
 #include "NinjaBuildComponent.h"
 #include "NinjaCharacter.h"
+#include "SwapPresentationComponent.h"
 #include "PlayerUpgradeComponent.h"
 #include "ShadowClone.h"
 #include "Sound/SoundBase.h"
@@ -47,6 +49,14 @@ void ANinjaBuildProjectile::LaunchFang()
         Destroy();
         return;
     }
+    // Fang uses its own launch clock, but must respect the full swap entrance.
+    // Otherwise its montage interrupts the entrance's single-node pose player.
+    if (!bCloneProjectile && !bAssistProjectile && B->Ninja()->SwapPresentation
+        && B->Ninja()->SwapPresentation->IsBlockingAttacks())
+    {
+        Destroy();
+        return;
+    }
     Target = bAssistProjectile ? B->Attack()->FindAssistTarget() : B->Nearest(GetActorLocation(), B->Attack()->GetEffectiveTargetingRange());
     if (!Target.IsValid())
     {
@@ -63,18 +73,23 @@ void ANinjaBuildProjectile::LaunchFang()
     Damage = A->GetEffectiveAttackDamage() * (1 + Extra * B->Tune(TEXT("ReturningFang"), TEXT("CountDamage"), .25f));
     Damage *= B->FangDamageMultiplier();
     Speed = B->FangSpeedMultiplier() * A->GetEffectiveProjectileSpeed() * A->GetBaseAttackInterval() / A->GetEffectiveAttackInterval();
+    Speed *= B->Tune(TEXT("ReturningFang"), TEXT("FlightSpeedMultiplier"), .5f);
     if (bCloneProjectile)
         Speed *= Clone->GetFangSpeedMultiplier();
     if (B->KunaiThrowSound && (!bCloneProjectile || FlightAge > 0))
         UGameplayStatics::PlaySoundAtLocation(this, B->KunaiThrowSound, GetActorLocation());
     bReturning = false;
     bPursued = false;
+    FangPursuitTargetsRemaining = 0;
     FlightAge = 0;
     FangOutwardDistance = 0;
     bFangHitThisTrip = false;
     LastHits.Reset();
     if (!bCloneProjectile && !bAssistProjectile)
+    {
+        A->PlayFangMontage((Target->GetActorLocation() - B->Ninja()->GetActorLocation()).Rotation());
         A->OnAutoAttack.Broadcast(A, EAutoAttackSource::NormalAutoAttack);
+    }
     B->FangLaunched(this);
 }
 
@@ -124,7 +139,9 @@ void ANinjaBuildProjectile::Tick(float Delta)
             bReturning = true;
         if (!bReturning && (!Target.IsValid() || Target->IsDead()))
         {
-            Target = B->Nearest(Start, B->Attack()->GetEffectiveTargetingRange());
+            Target = nullptr;
+            for (auto* Candidate : B->Targets(Start, B->Attack()->GetEffectiveTargetingRange()))
+                if (!LastHits.Contains(Candidate)) { Target = Candidate; break; }
             if (!Target.IsValid())
                 bReturning = true;
         }
@@ -137,6 +154,13 @@ void ANinjaBuildProjectile::Tick(float Delta)
         {
             SetActorLocation(Goal);
             B->FangReturned(this);
+            // Close range still shortens the trip, but cannot create an unlimited
+            // attack rate. Wait at the owner; return procs are consumed only once.
+            const bool bCanRelaunch = bCloneProjectile || (B->IsActive() && !B->Ninja()->IsDashing()
+                && B->Attack()->IsAutoAttackEnabled());
+            const float MinInterval = 1.f / FMath::Max(.1f, B->Tune(TEXT("ReturningFang"), TEXT("MaxLaunchesPerSecond"), 4.f));
+            if (!bAssistProjectile && !bSpectralFang && bCanRelaunch && FlightAge < MinInterval)
+                return;
             if(bAssistProjectile || bSpectralFang) Destroy();
             else if (bCloneProjectile)
             {
@@ -157,8 +181,26 @@ void ANinjaBuildProjectile::Tick(float Delta)
             if (bReturning) continue; // Returning is a reset, never a damaging pass.
             // A homing Fang commits to its selected target, so spectral Fangs can reach separate enemies.
             if (E != Target.Get()) continue;
-            B->FangHit(this, E);
+            const float Dealt = B->FangHit(this, E);
+            LastHits.Add(E, Age);
+            // Roll once per trip. Follow-up kills never extend the two-target chain.
+            if (!bPursued && Dealt > 0 && E->IsDead() && B->Has(TEXT("FangKillingEdge")))
+            {
+                bPursued = true;
+                if (FMath::FRand() < FMath::Clamp(B->Tune(TEXT("FangKillingEdge"), TEXT("Chance"), .15f)
+                    + FangBuild::Scaling(B->Upgrades(), TEXT("FangPursuitChance"), .1f), 0.f, 1.f))
+                    FangPursuitTargetsRemaining = 2;
+            }
             bReturning = true;
+            if (FangPursuitTargetsRemaining > 0)
+                for (auto* Candidate : B->Targets(E->GetActorLocation(), B->Attack()->GetEffectiveTargetingRange()))
+                    if (!LastHits.Contains(Candidate))
+                    {
+                        Target = Candidate;
+                        --FangPursuitTargetsRemaining;
+                        bReturning = false;
+                        break;
+                    }
             break;
         }
     }
@@ -216,12 +258,15 @@ void ANinjaBuildProjectile::UpdateShurikenVisualScale()
 void ANinjaBuildProjectile::SetupKunaiPresentation()
 {
     auto *B = Build.Get();
-    if (!B || !B->Attack() || !B->Attack()->ProjectileClass)
+    if (!B || !B->Attack())
         return;
+    const auto PresentationClass = Kind == ENinjaProjectileKind::ReturningFang && B->FangProjectileClass
+        ? B->FangProjectileClass : B->Attack()->ProjectileClass;
+    if (!PresentationClass) return;
     FActorSpawnParameters Params;
     Params.Owner = this;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-    auto *P = GetWorld()->SpawnActor<AAttackProjectileBase>(B->Attack()->ProjectileClass, GetActorLocation(),
+    auto *P = GetWorld()->SpawnActor<AAttackProjectileBase>(PresentationClass, GetActorLocation(),
                                                             GetActorRotation(), Params);
     if (!P)
         return;

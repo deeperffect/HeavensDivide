@@ -71,12 +71,10 @@ float UNinjaBuildComponent::FangHit(ANinjaBuildProjectile* P, AEnemyBase* Enemy)
     if (FVector::DistSquared2D(Ninja()->GetActorLocation(), Enemy->GetActorLocation())
         <= FMath::Square(Tune(TEXT("FangCloseQuarters"), TEXT("Radius"), 300.f)))
         HitDamage *= 1.f + FangBuild::Scaling(Upgrades(), TEXT("FangCloseQuarters"), .1f);
-    if (Enemy->GetHealthComponent()->GetHealthPercent() <= Tune(TEXT("FangKillingEdge"), TEXT("HealthThreshold"), .3f))
-        HitDamage *= 1.f + FangBuild::Scaling(Upgrades(), TEXT("FangKillingEdge"), .15f);
     if (Has(TEXT("FangFarstrider")))
         HitDamage *= 1.f + FMath::Clamp(P->FangOutwardDistance / FMath::Max(1.f,
             Tune(TEXT("FangFarstrider"), TEXT("DistanceForMaximum"), 1000.f)), 0.f, 1.f)
-            * Tune(TEXT("FangFarstrider"), TEXT("MaxDamageBonus"), 1.5f);
+            * Tune(TEXT("FangFarstrider"), TEXT("MaxDamageBonus"), 4.f);
     const bool Critical = Has(TEXT("FangDeadeye")) && FMath::FRand() < FMath::Clamp(
         Tune(TEXT("FangDeadeye"), TEXT("Chance"), .15f)
         + FangBuild::Scaling(Upgrades(), TEXT("FangCriticalChance"), .1f), 0.f, 1.f);
@@ -107,10 +105,12 @@ void UNinjaBuildComponent::FangReturned(ANinjaBuildProjectile* P)
     P->bFangHitThisTrip = false;
     if (Has(TEXT("FangResonance")))
     {
+        if (auto* AutoAttack = Attack()) AutoAttack->PlayFangSlashMontage();
         const FVector Origin = Ninja()->GetActorLocation();
         const float Radius = Tune(TEXT("FangResonance"), TEXT("Radius"), 250.f)
             * (1.f + FangBuild::Scaling(Upgrades(), TEXT("FangResonantReach"), .15f));
-        const float Damage = P->Damage * Tune(TEXT("FangResonance"), TEXT("DamageFraction"), .5f);
+        const float Damage = P->Damage * Tune(TEXT("FangResonance"), TEXT("DamageFraction"), .5f)
+            * (1.f + FangBuild::Scaling(Upgrades(), TEXT("FangBurstPower"), .2f));
         for (auto* Enemy : Targets(Origin, Radius)) Hit(Enemy, Damage, false);
         if (FangReturnBurstVFX)
             PlayScaledUpgradeBurst(this, FangReturnBurstVFX, Origin, Radius / 250.f);

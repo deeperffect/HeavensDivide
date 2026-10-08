@@ -55,6 +55,7 @@ class HEAVENSDIVIDE_API ANinjaBuildProjectile : public AActor
     float FangOutwardDistance = 0;
     FVector Direction = FVector::ForwardVector;
     bool bReturning = false, bPursued = false;
+    int32 FangPursuitTargetsRemaining = 0;
     void LaunchFang();
     void Finish();
 };

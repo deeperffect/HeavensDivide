@@ -92,6 +92,9 @@ protected:
 
 private:
 	void BuildMenu();
+	void RefreshPagePresentation();
+	UButton* AddPageAction(class UHorizontalBox* Parent, const FText& Label, FName Name, bool bDanger = false);
+	UPROPERTY(Transient) TObjectPtr<class USizeBox> LogoPresentation;
 	UFUNCTION() void ShowTesterBalance();
 	UPROPERTY(Transient) TObjectPtr<class UTesterBalanceWidget> TesterBalancePage;
 	bool bInRunSettings = false;

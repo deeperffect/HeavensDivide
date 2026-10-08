@@ -1,5 +1,7 @@
 #include "AnimNotify_NinjaThrowSound.h"
 #include "NinjaBuildComponent.h"
+#include "AutoAttackComponent.h"
+#include "Animation/AnimMontage.h"
 #include "NinjaCharacter.h"
 #include "ShadowClone.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -18,6 +20,10 @@ USoundBase* UAnimNotify_NinjaThrowSound::ResolveSound(AActor* Owner) const
 void UAnimNotify_NinjaThrowSound::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
     const FAnimNotifyEventReference& EventReference)
 {
+    // Autonomous Fang launches already play their throw sound, even when a
+    // close-range relaunch interrupts the cosmetic montage before this notify.
+    if (const auto* Attack = MeshComp && MeshComp->GetOwner() ? MeshComp->GetOwner()->FindComponentByClass<UAutoAttackComponent>() : nullptr)
+        if (Animation == Attack->FangMontage || Animation == Attack->FangAlternateMontage) return;
     USoundBase* Selected = ResolveSound(MeshComp ? MeshComp->GetOwner() : nullptr);
     if (Selected == Sound)
     {

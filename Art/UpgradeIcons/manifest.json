@@ -2,7 +2,7 @@
   "schema_version": 1,
   "mode": "Built-in image_gen.imagegen",
   "style_reference": "Art/SteamCapsules/Bloodshift_Capsule_v7_clean_cartoon.png",
-  "total": 163,
+  "total": 165,
   "notes": "Every saved UpgradeDefinition, including retired and temporarily disabled assets. Each gets a unique symbol; artwork changes do not change availability or tuning.",
   "cards": [
     {
@@ -2239,8 +2239,8 @@
     {
       "id": "FangKillingEdge",
       "name": "Killing Edge",
-      "description": "Fang hits deal 15% more damage to enemies below 30% health.",
-      "format": "Fang hits deal {Percent}% more damage to enemies below 30% health.",
+      "description": "Fang kills have a 15% chance to strike 2 more enemies before returning.",
+      "format": "",
       "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFangKillingEdge",
       "in_pool": true,
       "category": "NINJA",
@@ -2392,7 +2392,7 @@
     {
       "id": "FangFarstrider",
       "name": "Farstrider",
-      "description": "Fangs travel 25% slower. Outward hits gain damage with distance travelled, up to 150% bonus damage at 10 metres.",
+      "description": "Fangs travel 25% slower, but gain up to 400% damage over 10 metres of outward travel.",
       "format": "",
       "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFangFarstrider",
       "in_pool": true,
@@ -3215,6 +3215,52 @@
       "mode": "builtin-imagegen",
       "source_sha256": "4389d6dcb8acb5ae6e778cfc5d19499be23ec1f9f13c73871a90343f159bf14e",
       "subject": "Ivory shuriken with a crimson core emitting two clean concentric violet pulse rings."
+    },
+    {
+      "id": "FangPursuitChance",
+      "name": "Killing Momentum",
+      "description": "+10% chance for Killing Edge to strike two more enemies.",
+      "format": "",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFangPursuitChance",
+      "in_pool": true,
+      "category": "NINJA",
+      "role": "<UpgradeRole.SUPPORT: 2>",
+      "requirements": [
+        "ReturningFang",
+        "FangKillingEdge"
+      ],
+      "artwork": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangKillingEdge.T_Upgrade_FangKillingEdge",
+      "icon": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangKillingEdge.T_Upgrade_FangKillingEdge",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangKillingEdge.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangKillingEdge",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: An ivory ring-handled kunai above a charcoal cracked enemy mask, with a single small crimson wedge near the mask suggesting a wounded foe. Sharp violet finishing-strike arc. No blood, gore, letters, health bar or numerals.",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "a015b8977e574ab09d086719c502c807ea70125537b41efe7a37e0e025b1239c",
+      "subject": "An ivory ring-handled kunai above a charcoal cracked enemy mask, with a single small crimson wedge near the mask suggesting a wounded foe. Sharp violet finishing-strike arc. No blood, gore, letters, health bar or numerals.",
+      "shared_icon_from": "FangKillingEdge"
+    },
+    {
+      "id": "FangBurstPower",
+      "name": "Resonant Power",
+      "description": "Resonant Fang bursts deal 20% more damage.",
+      "format": "",
+      "asset": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFangBurstPower",
+      "in_pool": true,
+      "category": "NINJA",
+      "role": "<UpgradeRole.SUPPORT: 2>",
+      "requirements": [
+        "ReturningFang",
+        "FangResonance"
+      ],
+      "artwork": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangResonance.T_Upgrade_FangResonance",
+      "icon": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangResonance.T_Upgrade_FangResonance",
+      "file": "Art/UpgradeIcons/Generated/Fang/FangResonance.png",
+      "texture": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FangResonance",
+      "prompt": "Use case: stylized-concept. Create ONE standalone square game upgrade ICON for BLOODSHIFT. Match the established clean hand-drawn Samurai upgrade icons: bold slightly irregular black contours, large readable shapes, flat matte color, a single cel-shadow tone, dark uniform deep-teal background #102229. Violet, lavender and ivory Ninja palette. Simple symbolic icon, not a scene. Center the complete motif within the middle 64% of the square with generous quiet margins, readable at 64px. NO text, numbers, logos, frame, border, watermark, realism, 3D, gradients, grain, scratches, splatter, tiny particles, or glow fog. Subject: A small charcoal masked ninja bust centered inside one broad lavender circular shockwave ring, with one ivory ring-handled kunai curling inward toward the ninja along a short purple return arrow. Clear symbolic return-triggered burst around the character; no hands.",
+      "mode": "Built-in image_gen.imagegen",
+      "source_sha256": "a99f4c4549871ece04bce9ab752350a9aed7b027d305b9f12a15839b6f4fc90f",
+      "subject": "A small charcoal masked ninja bust centered inside one broad lavender circular shockwave ring, with one ivory ring-handled kunai curling inward toward the ninja along a short purple return arrow. Clear symbolic return-triggered burst around the character; no hands.",
+      "shared_icon_from": "FangResonance"
     }
   ]
 }

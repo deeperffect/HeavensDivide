@@ -1,0 +1,22 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30.0,
+  "duration_seconds": 16,
+  "frames": 480,
+  "codec": "H.264",
+  "pixel_format": "yuv420p",
+  "audio": false,
+  "source_size": [
+    1672,
+    941
+  ],
+  "file_bytes": 17572624,
+  "period_max_pixel_error": 0,
+  "decoded_wrap_mean_absolute_difference": 0.4416409432888031,
+  "decoded_median_adjacent_difference": 0.05842592567205429,
+  "decoded_99th_percentile_adjacent_difference": 0.43297638475894923,
+  "darkest_frame_mean": 56.63351821899414,
+  "animated_existing_leaves": 22,
+  "description": "Fixed camera; subtle periodic canopy sway, existing leaf drift and lantern flicker. No crossfade or duplicate endpoint."
+}

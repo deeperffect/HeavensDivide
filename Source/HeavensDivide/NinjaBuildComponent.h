@@ -84,6 +84,9 @@ class HEAVENSDIVIDE_API UNinjaBuildComponent : public UActorComponent
     int32 FangLaunchCount = 0;
     float NextFangAssistTime = 0;
     TMap<TWeakObjectPtr<AEnemyBase>, int32> FangVictimHits;
+    /** Fang-only presentation for player, spectral, assist and clone blades. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Fang")
+    TSubclassOf<AAttackProjectileBase> FangProjectileClass;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Fang")
     TObjectPtr<class UNiagaraSystem> FangReturnBurstVFX;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja Builds|Fang")

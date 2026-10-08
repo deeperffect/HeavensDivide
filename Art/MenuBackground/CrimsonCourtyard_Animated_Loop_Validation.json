@@ -1,0 +1,22 @@
+{
+  "width": 1920,
+  "height": 1080,
+  "fps": 30.0,
+  "duration_seconds": 16,
+  "frames": 480,
+  "codec": "H.264",
+  "pixel_format": "yuv420p",
+  "audio": false,
+  "source_size": [
+    1672,
+    941
+  ],
+  "file_bytes": 35625456,
+  "period_max_pixel_error": 0,
+  "decoded_wrap_mean_absolute_difference": 0.5718929767608643,
+  "decoded_median_adjacent_difference": 0.2104475349187851,
+  "decoded_99th_percentile_adjacent_difference": 0.489685588479042,
+  "darkest_frame_mean": 56.620635986328125,
+  "animated_existing_leaves": 21,
+  "description": "Fixed camera; stronger canopy sway with two wind cycles; existing leaves drift downwind, rotate and flutter with invisible path resets; warmer lantern flicker. Every layer repeats over 16 seconds. No full-image crossfade."
+}

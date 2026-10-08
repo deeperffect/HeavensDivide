@@ -2,10 +2,14 @@
   {
     "id": "ReturningFang",
     "name": "Returning Fang Stance",
-    "description": "Throw a homing Fang that strikes, returns harmlessly, and immediately launches again. Fighting close speeds up its cycle. Attack speed increases flight speed; extra projectiles grant 25% Fang damage each.",
+    "description": "Throw a homing Fang that strikes, returns harmlessly, and launches again, up to four times per second. Fighting close speeds up its cycle. Attack speed increases flight speed; extra projectiles grant 25% Fang damage each.",
     "kind": "stance",
     "requires": [],
-    "balance": {},
+    "balance": {
+      "TargetingRangeMultiplier": 0.5,
+      "FlightSpeedMultiplier": 0.5,
+      "MaxLaunchesPerSecond": 4.0
+    },
     "art": "ReturningFang",
     "levels": 1,
     "magnitudes": [],
@@ -174,21 +178,16 @@
   {
     "id": "FangKillingEdge",
     "name": "Killing Edge",
-    "description": "Fang hits deal 15% more damage to enemies below 30% health.",
-    "kind": "normal",
+    "description": "Fang kills have a 15% chance to strike 2 more enemies before returning.",
+    "kind": "one_time",
     "requires": [],
     "balance": {
-      "PerRank": 0.15,
-      "HealthThreshold": 0.3
+      "Chance": 0.15
     },
     "art": "FinalPursuit",
-    "levels": 5,
-    "magnitudes": [
-      0.15,
-      0.22499999999999998,
-      0.3
-    ],
-    "format": "Fang hits deal {Percent}% more damage to enemies below 30% health."
+    "levels": 1,
+    "magnitudes": [],
+    "format": ""
   },
   {
     "id": "FangTwinFrequency",
@@ -289,13 +288,13 @@
   {
     "id": "FangFarstrider",
     "name": "Farstrider",
-    "description": "Fangs travel 25% slower. Outward hits gain damage with distance travelled, up to 150% bonus damage at 10 metres.",
+    "description": "Fangs travel 25% slower, but gain up to 400% damage over 10 metres of outward travel.",
     "kind": "shrine",
     "requires": [],
     "balance": {
       "SpeedMultiplier": 0.75,
       "DistanceForMaximum": 1000,
-      "MaxDamageBonus": 1.5
+      "MaxDamageBonus": 4.0
     },
     "art": "FragmentReach",
     "levels": 1,
@@ -387,5 +386,37 @@
       0.3
     ],
     "format": "Kunai and Great Shuriken are {Percent}% larger. Converts to Attack Range with Returning Fang."
+  },
+  {
+    "id": "FangPursuitChance",
+    "name": "Killing Momentum",
+    "description": "+10% chance for Killing Edge to strike two more enemies.",
+    "kind": "rare",
+    "requires": [
+      "FangKillingEdge"
+    ],
+    "balance": {
+      "PerRank": 0.1
+    },
+    "art": "FangKillingEdge",
+    "levels": 5,
+    "magnitudes": [],
+    "format": ""
+  },
+  {
+    "id": "FangBurstPower",
+    "name": "Resonant Power",
+    "description": "Resonant Fang bursts deal 20% more damage.",
+    "kind": "normal",
+    "requires": [
+      "FangResonance"
+    ],
+    "balance": {
+      "PerRank": 0.2
+    },
+    "art": "FangResonance",
+    "levels": 10,
+    "magnitudes": [],
+    "format": ""
   }
 ]

@@ -157,10 +157,10 @@ bool FNinjaBuildsTest::RunTest(const FString&)
  TestTrue(TEXT("Inactive Ninja's clone launches its own Fang"),Clone->ReturningBlade.IsValid());
  if(Clone->ReturningBlade.IsValid())
  {
-  TestTrue(TEXT("Fang uses original projectile presentation"),Clone->ReturningBlade->KunaiPresentation.IsValid());
+  TestTrue(TEXT("Fang has dedicated projectile presentation"),Clone->ReturningBlade->KunaiPresentation.IsValid());
   auto* Presentation=Clone->ReturningBlade->KunaiPresentation.Get();
-  TestTrue(TEXT("Fang uses saved kunai Blueprint"),Presentation&&Presentation->GetClass()==SavedProjectileClass);
-  TestTrue(TEXT("Original kunai mesh remains visible"),Presentation&&Presentation->VisualMesh->IsVisible());
+  TestTrue(TEXT("Fang uses saved Fang Blueprint"),Presentation&&Presentation->GetClass()==B->FangProjectileClass);
+  TestTrue(TEXT("Fang mesh remains visible"),Presentation&&Presentation->VisualMesh->IsVisible());
   TestFalse(TEXT("Cosmetic kunai cannot deal duplicate collision damage"),Presentation&&Presentation->GetActorEnableCollision());
   for(int32 i=0;i<200&&Clone->ReturningBlade.IsValid();++i)Clone->ReturningBlade->Tick(.05f);
   TestEqual(TEXT("Clone Fang completes exactly its attack quota"),Clone->RemainingAttacks,0);

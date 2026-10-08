@@ -7,7 +7,10 @@ root=Path(u.Paths.project_dir()).resolve()
 art=root/'Art/UpgradeIcons'
 rows=json.loads((art/'fang_generation.json').read_text())['cards']
 definitions={r['id']:r for r in json.loads((root/'Tools/fang_build_upgrades.json').read_text())}
-assert len(rows)==len(definitions)==24 and {r['id'] for r in rows}==set(definitions)
+# Later support cards intentionally share their parent illustrations.
+for uid, parent in {'FangPursuitChance':'FangKillingEdge', 'FangBurstPower':'FangResonance'}.items():
+ row=dict(next(r for r in rows if r['id']==parent));row.update(id=uid,shared_icon_from=parent);rows.append(row)
+assert len(rows)==len(definitions)==26 and {r['id'] for r in rows}==set(definitions)
 validate='-ValidateFangIcons' in u.SystemLibrary.get_command_line()
 backup=root/'Saved/Backups/FangIcons'/datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f')
 work=root/'Saved/FangArtValidation';work.mkdir(parents=True,exist_ok=True)

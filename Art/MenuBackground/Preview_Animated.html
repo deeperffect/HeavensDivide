@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crimson Courtyard — More Animated Loop</title>
+<style>
+  :root { color-scheme:dark; font-family:system-ui,sans-serif; background:#0a151b; color:#f1e2c8; }
+  body { margin:0; min-height:100vh; display:grid; place-content:center; }
+  main { width:min(96vw,1440px); }
+  video { width:100%; display:block; background:#0a151b; box-shadow:0 15px 70px #0008; }
+  footer { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 0; }
+  h1 { margin:0 0 5px; font-size:18px; font-weight:500; }
+  p { margin:0; color:#8fa8b0; font-size:13px; }
+  button, a { border:1px solid #3a5159; border-radius:6px; background:#172c35; color:#f1e2c8; padding:10px 15px; cursor:pointer; font:13px system-ui; text-decoration:none; }
+  button:hover, a:hover { background:#24434f; }
+  button[aria-pressed="true"] { border-color:#c97658; background:#4c302d; }
+  #status { font-variant-numeric:tabular-nums; min-width:155px; text-align:right; }
+  .actions { display:flex; align-items:center; flex-wrap:wrap; gap:10px; }
+  @media(max-width:900px) { footer { align-items:start; flex-direction:column; } }
+</style>
+<main>
+  <video id="movie" controls autoplay muted loop playsinline preload="auto" poster="CrimsonCourtyard_Animated_Poster.jpg">
+    <source src="../../Content/Movies/CrimsonCourtyard_Animated_Loop.mp4" type="video/mp4">
+  </video>
+  <footer>
+    <div><h1>Crimson Courtyard</h1><p id="details">More animated · 16-second loop · 1080p · 30 fps</p></div>
+    <div class="actions">
+      <button id="animated" aria-pressed="true">More animated</button>
+      <button id="subtle" aria-pressed="false">Original subtle</button>
+      <button id="seam">Preview loop transition</button>
+      <p id="status">Loading…</p>
+    </div>
+  </footer>
+</main>
+<script>
+  const movie=document.getElementById('movie'), status=document.getElementById('status');
+  const animated=document.getElementById('animated'), subtle=document.getElementById('subtle');
+  let previous=0, loops=0;
+  movie.addEventListener('timeupdate',()=>{
+    if(previous>14 && movie.currentTime<2) loops++;
+    previous=movie.currentTime;
+    status.textContent=`${movie.currentTime.toFixed(1)} / 16.0 s · Loop ${loops+1}`;
+  });
+  function selectVersion(isAnimated) {
+    const resumeAt=movie.currentTime;
+    movie.src=`../../Content/Movies/${isAnimated?'CrimsonCourtyard_Animated_Loop.mp4':'CrimsonCourtyard_Loop.mp4'}`;
+    movie.poster=isAnimated?'CrimsonCourtyard_Animated_Poster.jpg':'CrimsonCourtyard_Poster.jpg';
+    animated.setAttribute('aria-pressed',String(isAnimated));
+    subtle.setAttribute('aria-pressed',String(!isAnimated));
+    document.getElementById('details').textContent=`${isAnimated?'More animated':'Original subtle'} · 16-second loop · 1080p · 30 fps`;
+    movie.addEventListener('loadedmetadata',()=>{
+      movie.currentTime=resumeAt; previous=resumeAt; movie.play();
+    },{once:true});
+  }
+  animated.addEventListener('click',()=>selectVersion(true));
+  subtle.addEventListener('click',()=>selectVersion(false));
+  document.getElementById('seam').addEventListener('click',()=>{
+    movie.currentTime=14; previous=14; movie.play();
+  });
+</script>
+</html>

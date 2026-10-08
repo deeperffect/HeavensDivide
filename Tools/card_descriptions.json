@@ -591,8 +591,8 @@
   },
   "FangKillingEdge": {
     "name": "Killing Edge",
-    "description": "Fang hits deal 15% more damage to enemies below 30% health.",
-    "format": "Fang hits deal {Percent}% more damage to enemies below 30% health."
+    "description": "Fang kills have a 15% chance to strike 2 more enemies before returning.",
+    "format": ""
   },
   "FangTwinFrequency": {
     "name": "Twin Fang Frequency",
@@ -626,7 +626,7 @@
   },
   "FangFarstrider": {
     "name": "Farstrider",
-    "description": "Fangs travel 25% slower. Outward hits gain damage with distance travelled, up to 150% bonus damage at 10 metres.",
+    "description": "Fangs travel 25% slower, but gain up to 400% damage over 10 metres of outward travel.",
     "format": ""
   },
   "FangRedline": {
@@ -817,6 +817,16 @@
   "ShurikenPulse": {
     "name": "Pulsing Core",
     "description": "Blades burst every second but deal 35% less contact damage. Cutting Tempo speeds up bursts; expiry slashes still trigger.",
+    "format": ""
+  },
+  "FangPursuitChance": {
+    "name": "Killing Momentum",
+    "description": "+10% chance for Killing Edge to strike two more enemies.",
+    "format": ""
+  },
+  "FangBurstPower": {
+    "name": "Resonant Power",
+    "description": "Resonant Fang bursts deal 20% more damage.",
     "format": ""
   }
 }

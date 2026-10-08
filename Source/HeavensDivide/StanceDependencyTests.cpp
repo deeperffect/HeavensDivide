@@ -146,7 +146,7 @@ bool FStanceDependenciesTest::RunTest(const FString&)
  Reset(TEXT("BarrageStance"));Grant(TEXT("BarragePool"));Grant(TEXT("BarrageBloom"));
  CheckCopy(TEXT("BarragePoolRadius"),TEXT("Spreading Bloom"),TEXT("20%"));
  Reset(TEXT("GreatShuriken"));Grant(TEXT("ShurikenHunger"));
- CheckCopy(TEXT("ShurikenSize"),TEXT("Ravenous Growth"),TEXT("size gained per kill"));
+ CheckCopy(TEXT("ShurikenSize"),TEXT("Ravenous Growth"),TEXT("blade size per kill"));
  // Mechanic replacements with a retained effect must keep their useful branches.
  Reset(TEXT("BattleStance"));TestFalse(TEXT("Area needs transfer or detonation"),U->CanAcquireUpgrade(Card(TEXT("BloodTransferArea"))));Grant(TEXT("BloodDetonation"));TestTrue(TEXT("Detonation keeps area useful"),Grant(TEXT("BloodTransferArea")));
  Reset(TEXT("BarrageStance"));Grant(TEXT("BarragePool"));Grant(TEXT("BarrageBloom"));for(FName Id:{FName(TEXT("BarragePoolRadius")),FName(TEXT("BarragePoisonDuration")),FName(TEXT("BarragePoisonLoad")),FName(TEXT("BarragePoisonCap"))})TestTrue(TEXT("Bloom retains poison and radius scaling"),U->CanAcquireUpgrade(Card(Id)));

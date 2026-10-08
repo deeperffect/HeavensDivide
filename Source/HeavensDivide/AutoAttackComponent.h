@@ -312,7 +312,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Samurai|Blade Wave", meta=(ClampMin="0", Units="s", ToolTip="Delay between waves on a Crossing Blades proc. Zero restores simultaneous waves."))
 	float CrossingBladeWaveDelay = .12f;
 
+public:
+    /** Cosmetic only: Fang flight, rather than animation notifies, owns attack timing. */
+    void PlayFangMontage(FRotator Facing);
+    void PlayFangSlashMontage();
+    /** Return-burst animation. Cosmetic only; has priority over Fang throw poses. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja|Fang")
+    TObjectPtr<UAnimMontage> FangSlashMontage;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja|Fang")
+    TObjectPtr<UAnimMontage> FangMontage;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ninja|Fang")
+    TObjectPtr<UAnimMontage> FangAlternateMontage;
 private:
+    UPROPERTY(Transient)
+    TObjectPtr<UAnimMontage> ActiveFangMontage;
+    bool bNextFangUsesAlternate = false;
     friend class FIaijutsuTest;
     int32 IaijutsuAttackCounter = 0;
     FTimerHandle IaijutsuAssistTimer;

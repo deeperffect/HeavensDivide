@@ -117,6 +117,7 @@ private:
     friend class FSwapFreezeTest;
     friend class FSwapCameraTest;
     friend class FSwapEntranceTest;
+    friend class FFangBuildsTest;
     friend class FSwapWeaponDrawTest;
     void StartEntranceWeaponDraw();
     void UpdateEntranceWeaponDraw();

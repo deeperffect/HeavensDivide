@@ -13,6 +13,7 @@
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NinjaCharacter.h"
+#include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
 #include "PlayerUpgradeComponent.h"
 #include "ShadowClone.h"
@@ -183,7 +184,8 @@ void UNinjaBuildComponent::TickComponent(float Delta, ELevelTick Type, FActorCom
     }
     TargetCheck -= Delta;
     if (Active && !Ninja()->IsDashing() && !Fang.IsValid() && TargetCheck <= 0 && Attack() &&
-        Attack()->IsAutoAttackEnabled())
+        Attack()->IsAutoAttackEnabled() &&
+        (!Ninja()->SwapPresentation || !Ninja()->SwapPresentation->IsBlockingAttacks()))
     {
         TargetCheck = .1f;
         if (Nearest(Ninja()->GetActorLocation(), Attack()->GetEffectiveTargetingRange()))
