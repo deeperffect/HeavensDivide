@@ -19,7 +19,7 @@ class HEAVENSDIVIDE_API USwapPresentationComponent : public UActorComponent
 public:
     USwapPresentationComponent();
     void PlayDeparture();
-    void PrepareArrival() { bArrivalPending = true; }
+    void PrepareArrival() { StopEntrance(); ResetArrivalMovement(); bArrivalPending = true; }
     void PlayArrival();
     void FinishSwapFreeze(bool bCancelEntrance = true);
     bool IsBlockingAttacks() const { return bArrivalPending || bSwapFreezeActive || EntranceRemaining > 0 || bArrivalMovementActive; }
@@ -33,7 +33,7 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|General") bool bEnabled = true;
     /** Real seconds. Zero disables the freeze; the entrance still has attack priority. */
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Timing", meta=(ClampMin="0", ClampMax="1", Units="s")) float SwapFreezeDuration = .5f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Timing", meta=(ClampMin="0", ClampMax="1", Units="s")) float SwapFreezeDuration = .62f;
     /** Included in Swap Freeze Duration, not added to it. Zero gives an instant freeze. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Timing", meta=(ClampMin="0", ClampMax="1", Units="s")) float FreezeEaseInDuration = .12f;
     // Keep the serialized name so existing Blueprint enable/disable choices survive.
@@ -95,12 +95,12 @@ public:
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Arrival Portal Sound.")) TObjectPtr<USoundBase> ArrivalSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound", meta=(ClampMin="0", ClampMax="2")) float SoundVolume = .65f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ToolTip="Optional full-body, in-place montage. Plays exclusively to its final frame; gameplay notifies and root motion are not used.")) TObjectPtr<UAnimMontage> EntranceMontage;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage's Rate Scale. The freeze duration does not accelerate or truncate the entrance.")) float EntrancePlayRate = 1;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage's Rate Scale. The freeze duration does not accelerate or truncate the entrance.")) float EntrancePlayRate = 1.35f;
     // Retained only for loading existing assets; no longer limits playback.
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Entrance duration follows montage length and play rate.")) float EntranceMaxDuration = .25f;
     /** Cosmetic departure played on a temporary visual copy, independently of Tag Team. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation") TObjectPtr<UAnimMontage> DepartureMontage;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage Rate Scale. Independent of freeze duration.")) float DeparturePlayRate = 1;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage Rate Scale. Independent of freeze duration.")) float DeparturePlayRate = 1.35f;
     // Retained only for loading existing assets; no longer limits playback.
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Departure duration follows montage length and play rate.")) float DepartureMaxDuration = .5f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Grand Entrance") bool bShowReadyGlow = true;

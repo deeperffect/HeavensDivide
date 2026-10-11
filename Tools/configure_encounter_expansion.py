@@ -4,6 +4,11 @@ from pathlib import Path
 import json, shutil, math
 
 root=Path(u.Paths.project_dir()).resolve()
+pressure_tuning=json.loads((root/'Tools/enemy_pressure_tuning.json').read_text())
+health_targets=pressure_tuning['targets']['enemies']
+population_factor=pressure_tuning['population_multiplier']
+spawn_rate_factor=pressure_tuning['spawn_rate_multiplier']
+scaled_population=lambda n:math.floor(n*population_factor+.5)
 out=root/'Saved/EncounterExpansion';out.mkdir(parents=True,exist_ok=True)
 assets=u.AssetToolsHelpers.get_asset_tools();lib=u.MaterialEditingLibrary
 reg=u.AssetRegistryHelpers.get_asset_registry();reg.search_all_assets(True)
@@ -128,7 +133,7 @@ for name,role,art,hp,speed,damage,cooldown,cast_range,windup,start,color in rows
     asset,cdo=bp('BP_'+name,u.TacticalEnemy);copy_look(cdo,source(art))
     setp(cdo,tactical_role=getattr(u.TacticalEnemyRole,role),enemy_name=''.join(' '+c if c.isupper() else c for c in name).strip(),
          move_speed=speed,ability_damage=damage,ability_cooldown=cooldown,cast_range=cast_range,windup=windup,role_color=u.LinearColor(*color,1),xp_reward=10 if hp>300 else 5)
-    cdo.get_health_component().set_editor_property('max_health',hp)
+    cdo.get_health_component().set_editor_property('max_health',health_targets.get(cdo.get_class().get_path_name().split('.')[0],{}).get('health',hp))
     cdo.get_editor_property('role_ring').set_material(0,ring)
     # Only use a matching skeleton montage, whose old gameplay notify is type-filtered.
     src=source(art)
@@ -141,12 +146,13 @@ for name,role,art,hp,speed,damage,cooldown,cast_range,windup,start,color in rows
 
 asset,cdo=bp('BP_AshenMarcher',u.TacticalEnemy);copy_look(cdo,source('Grunt'),.9)
 setp(cdo,tactical_role=u.TacticalEnemyRole.HORN_LANCER,enemy_name='Ashen Marcher',ability_damage=16,move_speed=250,role_color=u.LinearColor(1,.4,.05,1),xp_reward=2)
-cdo.get_health_component().set_editor_property('max_health',28);finish(asset);march=asset.generated_class()
+cdo.get_health_component().set_editor_property('max_health',health_targets[base+'Tactical/BP_AshenMarcher']['health']);finish(asset);march=asset.generated_class()
 
 asset,cdo=bp('BP_CinderOracle',u.CinderOracleBoss,base+'Bosses/CinderOracle')
 copy_look(cdo,source('DevilRanged'),2.5)
 setp(cdo,boss_display_name='KAGUTSU - THE CINDER ORACLE',boss_max_health=32000,boss_move_speed=150,spell_damage=22,
      guardian_class=classes['AshSeer'],oracle_cast_montage=source('DevilRanged').get_editor_property('attack_montage'),phase2_health_threshold=0.)
+setp(cdo,**json.loads((root/'Tools/boss_pressure_tuning.json').read_text()))
 finish(asset);boss=asset.generated_class()
 
 asset,cdo=bp('BP_HealingUrn',u.HealingUrn,'/Game/HeavensDivide/Blueprints/Encounters')
@@ -181,12 +187,12 @@ phases=[]
 for i in range(12):
     start=i*60;total=40+i*7
     p=u.EnemyPressurePhase();setp(p,phase_name='MixedPressure_%02d'%(i+1),start_time_seconds=start,end_time_seconds=(i+1)*60 if i<11 else 0,
-        global_max_alive=min(156,total+24),normal_spawn_interval=max(.38,.67-i*.021),accelerated_spawn_interval=max(.24,.36-i*.007),emergency_spawn_interval=.19,
-        events_enabled=i>=2,event_interval_min=58,event_interval_max=85)
+        global_max_alive=scaled_population(min(156,total+24)),normal_spawn_interval=max(.38,.67-i*.021)/spawn_rate_factor,accelerated_spawn_interval=max(.24,.36-i*.007)/spawn_rate_factor,emergency_spawn_interval=.19/spawn_rate_factor,
+        events_enabled=i>=2,event_interval_min=58/spawn_rate_factor,event_interval_max=85/spawn_rate_factor)
     population=[]
     weights=[(basic[i%6],.72),(basic[(i+1)%6],.28)]
     for art,weight in weights:
-        e=u.EnemyPopulationPhaseEntry();setp(e,enemy_class=source(art).get_class(),desired_population=round(total*weight),max_population=round(total*weight),refill_priority=1.)
+        e=u.EnemyPopulationPhaseEntry();setp(e,enemy_class=source(art).get_class(),desired_population=scaled_population(round(total*weight)),max_population=scaled_population(round(total*weight)),refill_priority=1.)
         population.append(e)
     for row in rows:
         e=u.EnemyPopulationPhaseEntry();active=start+59>=row[9]
@@ -198,7 +204,7 @@ for i in range(12):
             e=u.EnemyPopulationPhaseEntry();setp(e,enemy_class=old.enemy_class,desired_population=0,max_population=1 if start+59>=old.minimum_run_time else 0,refill_priority=1.)
             population.append(e)
     p.set_editor_property('enemy_population_entries',population);phases.append(p)
-def tune_spawner(obj):setp(obj,enemy_spawn_entries=entries,pressure_phases=phases,absolute_hard_alive_cap=160,timed_threat_spawn_slot_chance=.3)
+def tune_spawner(obj):setp(obj,enemy_spawn_entries=entries,pressure_phases=phases,absolute_hard_alive_cap=scaled_population(160),timed_threat_spawn_slot_chance=.3)
 tune_spawner(spawn_cdo);finish(spawn_bp)
 
 level=u.get_editor_subsystem(u.LevelEditorSubsystem);actors=u.get_editor_subsystem(u.EditorActorSubsystem)

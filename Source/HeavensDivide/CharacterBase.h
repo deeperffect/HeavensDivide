@@ -36,6 +36,12 @@ public:
 	ACharacterBase();
 
 	virtual void Tick(float DeltaSeconds) override;
+    void SetMenuSimulationPaused(bool bPaused);
+private:
+    bool bMenuSimulationPaused = false;
+    bool bMenuMeshWasTicking = false;
+    bool bMenuClothWasSuspended = false;
+public:
 
 	void MoveCharacter(FVector2D Input);
 	void SetFacingTarget(FVector WorldTarget);

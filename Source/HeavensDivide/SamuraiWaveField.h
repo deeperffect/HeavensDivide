@@ -27,6 +27,7 @@ private:
     TWeakObjectPtr<AAbilityAccent> Debris;
     FTimerHandle DamageTimer;
     FVector HitboxHalfExtent = FVector::ZeroVector;
+    float PulseInterval = .5f;
     float DamagePerSecond = 0.f, Remaining = 0.f, TotalDamage = 0.f;
     double LastPulseTime = 0;
 };

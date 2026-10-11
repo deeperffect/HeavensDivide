@@ -1,0 +1,18 @@
+{
+  "phase_one_interval": 3.3,
+  "phase_two_interval": 2.5,
+  "ember_radius": 200,
+  "ember_spacing": 240,
+  "lance_length": 1700,
+  "lance_width": 220,
+  "nova_radius": 1300,
+  "ground_radius": 240,
+  "ground_spread_radius": 310,
+  "summon_blast_radius": 320,
+  "spiral_blast_radius": 160,
+  "spiral_start_radius": 280,
+  "spiral_radius_step": 50,
+  "eclipse_outer_radius": 900,
+  "eclipse_lane_length": 1800,
+  "eclipse_lane_width": 180
+}

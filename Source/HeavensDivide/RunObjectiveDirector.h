@@ -44,29 +44,33 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API ARunObjectiveDirector : public AActor
 {
 	GENERATED_BODY()
+    friend class FRunPreparationTest;
 public:
 	ARunObjectiveDirector();
 	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly)) void DebugSpawnBloodShrine();
-	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly)) void DebugSpawnGuaranteedCharacterTrial();
-	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly)) void DebugSpawnTwinSoulTrial();
+	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly, DeprecatedFunction, DeprecationMessage="Technique trials are retired.")) void DebugSpawnGuaranteedCharacterTrial();
+	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly, DeprecatedFunction, DeprecationMessage="Twin Soul trials are retired.")) void DebugSpawnTwinSoulTrial();
 	UFUNCTION(BlueprintCallable, Category="Objective Director|Debug", meta=(DevelopmentOnly)) void DebugTriggerAllObjectiveMilestones();
 	UFUNCTION(BlueprintCallable, Category="Objective Director|Trials") bool ResolveFirstTrialChoice(ECharacterTrialType SelectedTrial);
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float BloodShrineSpawnTime = 120.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float GuaranteedCharacterTrialSpawnTime = 210.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float SecondCharacterTrialSpawnTime = 360.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float TwinSoulTrialSpawnTime = 300.0f;
+	// Serialized compatibility fields; trials are never scheduled.
+	UPROPERTY(EditAnywhere, Category="Objective Director|Legacy", meta=(EditCondition="false", EditConditionHides)) bool bEnableCharacterTrials = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float BloodShrineSpawnTime = 180.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Schedule", meta=(ClampMin="0.0")) float SecondBloodShrineSpawnTime = 300.0f;
+	UPROPERTY(EditAnywhere, Category="Objective Director|Legacy", meta=(EditCondition="false", EditConditionHides)) float GuaranteedCharacterTrialSpawnTime = 210.0f;
+	UPROPERTY(EditAnywhere, Category="Objective Director|Legacy", meta=(EditCondition="false", EditConditionHides)) float SecondCharacterTrialSpawnTime = 360.0f;
+	UPROPERTY(EditAnywhere, Category="Objective Director|Legacy", meta=(EditCondition="false", EditConditionHides)) float TwinSoulTrialSpawnTime = 300.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Spawn Rules") bool bReuseObjectiveSpawnPoints = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Spawn Rules", meta=(ClampMin="0.0")) float ObjectiveSpawnMinDistanceFromPlayer = 1000.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Spawn Rules", meta=(ClampMin="0.0")) float ObjectiveSpawnMaxDistanceFromPlayer = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Spawn Rules", meta=(ClampMin="0.0")) float ObjectiveMinSeparation = 800.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ABloodShrine> BloodShrineClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ASamuraiTechniqueTrial> SamuraiTrialClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ANinjaTechniqueTrial> NinjaTrialClass;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Objective Director|Classes") TSubclassOf<ATwinSoulTrial> TwinSoulTrialClass;
+	UPROPERTY(EditAnywhere, Category="Objective Director|Legacy", meta=(EditCondition="false", EditConditionHides)) TSubclassOf<ASamuraiTechniqueTrial> SamuraiTrialClass;
+	UPROPERTY(EditAnywhere, Category="Objective Director|Legacy", meta=(EditCondition="false", EditConditionHides)) TSubclassOf<ANinjaTechniqueTrial> NinjaTrialClass;
+	UPROPERTY(EditAnywhere, Category="Objective Director|Legacy", meta=(EditCondition="false", EditConditionHides)) TSubclassOf<ATwinSoulTrial> TwinSoulTrialClass;
 private:
 	void InitializeDirector();
 	void ScheduleMilestones();

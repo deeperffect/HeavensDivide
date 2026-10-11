@@ -133,6 +133,9 @@ class HEAVENSDIVIDE_API UUpgradeDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+ /** Resolve {Key}, {KeyPercent}, {Stat0}, {Stat0Percent}, {Stat0BonusPercent} against this asset. */
+ UFUNCTION(BlueprintPure, Category="Upgrade|Balance") FText GetBalanceDescription() const;
+ FText FormatBalanceText(const FText& Text) const;
  /** Seeded, named runtime balance values. Branch values override matching starter values when acquired. */
  UPROPERTY(VisibleAnywhere, Category="Runtime Balance") bool bHasRuntimeBalance=false;
  UPROPERTY(VisibleAnywhere, Category="Runtime VFX") bool bHasRuntimePresentation=false;
@@ -169,13 +172,13 @@ public:
 	FName BuildFamilyId = NAME_None;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Meta Progression", meta = (EditCondition = "Category == EUpgradeCategory::Synergy", EditConditionHides))
-	FName MetaUnlockId = NAME_None;
+	FName MetaUnlockId = NAME_None; // Legacy discovery ID; no longer gates run availability.
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Meta Progression", meta = (EditCondition = "Category == EUpgradeCategory::Synergy", EditConditionHides))
 	bool bRequiresMetaUnlock = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade|Meta Progression", meta = (EditCondition = "Category == EUpgradeCategory::Synergy && bRequiresMetaUnlock", EditConditionHides))
-	bool bUnlockedByDefault = false;
+	bool bUnlockedByDefault = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrade", meta = (ClampMin = "1", UIMin = "1"))
 	int32 MaxLevel = 1;

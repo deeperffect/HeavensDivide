@@ -135,7 +135,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
             bFangHitThisTrip = false;
             bReturning = true;
         }
-        if (FlightAge > 4)
+        if (FlightAge > B->Tune(TEXT("ReturningFang"),TEXT("MaximumFlightTime"),4.f))
             bReturning = true;
         if (!bReturning && (!Target.IsValid() || Target->IsDead()))
         {
@@ -189,7 +189,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
                 bPursued = true;
                 if (FMath::FRand() < FMath::Clamp(B->Tune(TEXT("FangKillingEdge"), TEXT("Chance"), .15f)
                     + FangBuild::Scaling(B->Upgrades(), TEXT("FangPursuitChance"), .1f), 0.f, 1.f))
-                    FangPursuitTargetsRemaining = 2;
+                    FangPursuitTargetsRemaining = FMath::Clamp(FMath::RoundToInt(B->Tune(TEXT("FangKillingEdge"),TEXT("AdditionalTargets"),2.f)),1,32);
             }
             bReturning = true;
             if (FangPursuitTargetsRemaining > 0)
@@ -207,7 +207,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
     else
     {
         End = Start + Direction * Speed * Delta;
-        if (Kind == ENinjaProjectileKind::Fragment && Age > 2)
+        if (Kind == ENinjaProjectileKind::Fragment && Age > B->Tune(TEXT("FangSplinter"),TEXT("Lifetime"),2.f))
         {
             Destroy();
             return;

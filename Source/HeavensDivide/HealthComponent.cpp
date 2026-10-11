@@ -2,6 +2,7 @@
 
 #include "HealthComponent.h"
 #include "CombatAudio.h"
+#include "Engine/World.h"
 #include "SurvivorPlayerController.h"
 
 #include "HAL/IConsoleManager.h"
@@ -50,6 +51,13 @@ void UHealthComponent::ApplyDamage(float DamageAmount)
 		return;
 	}
 
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.;
+	if (DamageGracePeriod > 0.f && Now - LastAcceptedDamageTime + KINDA_SMALL_NUMBER < DamageGracePeriod)
+	{
+		LogDamageDebug(TEXT("Rejected: hit grace"), DamageAmount, PreviousHealth, CurrentHealth);
+		return;
+	}
+
 	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.0f, MaxHealth);
 	const float ActualDamage = PreviousHealth - CurrentHealth;
 
@@ -59,6 +67,7 @@ void UHealthComponent::ApplyDamage(float DamageAmount)
 		return;
 	}
 
+	LastAcceptedDamageTime = Now;
 	LogDamageDebug(TEXT("Accepted"), DamageAmount, PreviousHealth, CurrentHealth);
     if (GetOwner() && GetOwner()->IsA<ASurvivorPlayerController>())
         UCombatAudioLibrary::PlayEvent(this, TEXT("PlayerHit"), FVector::ZeroVector, true);

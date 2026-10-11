@@ -72,7 +72,6 @@ TSharedRef<SWidget> UTesterBalanceWidget::BuildPage()
          .Value_Lambda([this] { return Draft->MaxAlive; }).OnValueChanged_Lambda([this](int32 Value) { Draft->MaxAlive = Value; })]);
     Row(TEXT("Population density multiplier"), Number([this]{return Draft->Population;}, [this](float V){Draft->Population=V;}, .1f, 5));
     Row(TEXT("Spawn interval multiplier (lower = faster refills)"), Number([this]{return Draft->SpawnInterval;}, [this](float V){Draft->SpawnInterval=V;}, .1f, 5));
-    Row(TEXT("Health growth per minute multiplier (0 = no growth)"), Number([this]{return Draft->HealthGrowth;}, [this](float V){Draft->HealthGrowth=V;}, 0, 5));
     Rows->AddSlot().AutoHeight().Padding(0, 10)[SNew(SCheckBox)
         .IsChecked_Lambda([this] { return Draft->bDisableEvents ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
         .OnCheckStateChanged_Lambda([this](ECheckBoxState V) { Draft->bDisableEvents = V == ECheckBoxState::Checked; })

@@ -134,6 +134,7 @@ protected:
 	void ReceiveShrineFailed();
 
 private:
+    friend class FGameplayPolishTest;
 	UFUNCTION()
 	void HandleEnemyKilled(AEnemyBase* Enemy);
 

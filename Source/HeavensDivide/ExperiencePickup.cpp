@@ -11,6 +11,20 @@
 #include "SharedPlayerStatsComponent.h"
 #include "SurvivorPlayerController.h"
 
+namespace
+{
+// A map-wide vacuum can deliver hundreds of orbs together. Keep the audible
+// collection rhythm without creating hundreds of sound voices in one frame.
+bool AllowMagnetPickupSound(UWorld* World)
+{
+    static TWeakObjectPtr<UWorld> LastWorld;
+    static double LastTime=-1;
+    const double Now=World->GetTimeSeconds();
+    if(LastWorld.Get()==World && Now>=LastTime && Now-LastTime<.035) return false;
+    LastWorld=World;LastTime=Now;return true;
+}
+}
+
 AExperiencePickup::AExperiencePickup()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -121,7 +135,7 @@ void AExperiencePickup::Tick(float DeltaSeconds)
 		return;
 	}
 
-	const float MaxSpeed = FMath::Max(0.0f, AttractionSpeed) * FMath::Max(1.0f, MaxAttractionSpeedMultiplier);
+	const float MaxSpeed = FMath::Max(MagnetSpeed,FMath::Max(0.0f, AttractionSpeed) * FMath::Max(1.0f, MaxAttractionSpeedMultiplier));
 	const float Acceleration = FMath::Max(0.0f, AttractionAcceleration);
 	const float AcceleratingTime = Acceleration > 0.0f
 		? FMath::Min(RemainingTime, FMath::Max(0.0f, MaxSpeed - CurrentAttractionSpeed) / Acceleration)
@@ -143,6 +157,24 @@ void AExperiencePickup::LaunchFromChest(FVector Landing,float Duration,float Hei
 	bRewardFlight=true;bAttracting=false;FlightStart=GetActorLocation();FlightLanding=Landing;
 	FlightDuration=FMath::Max(.1f,Duration);FlightHeight=Height;FlightElapsed=0;
 	PickupCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);SetActorTickEnabled(true);
+}
+
+bool AExperiencePickup::AttractByMagnet()
+{
+	if (bCollected || IsActorBeingDestroyed()) return false;
+	CacheSharedPlayerState();
+	const auto* Character=GetActiveCharacter();
+	if (!Character || !ExperienceComponent) return false;
+	// Interrupt a chest's airborne shower as well as collecting resting drops.
+	bRewardFlight=false;
+	BeginAttraction();
+	BounceElapsed=FMath::Max(0.f,BounceDuration);
+	MagnetSpeed=FMath::Max(AttractionSpeed*MaxAttractionSpeedMultiplier,
+		FVector::Distance(GetActorLocation(),Character->GetActorLocation())/
+		FMath::Max(.1f,MagnetTravelSeconds*FMath::Lerp(.75f,1.25f,float(GetUniqueID()%29)/28.f)));
+	CurrentAttractionSpeed=FMath::Max(CurrentAttractionSpeed,MagnetSpeed);
+	SetActorTickEnabled(true);
+	return bAttracting;
 }
 
 void AExperiencePickup::InitializePickup(int32 InXPValue, UExperienceComponent* InExperienceComponent, UCharacterManagerComponent* InCharacterManager)
@@ -230,7 +262,7 @@ void AExperiencePickup::Collect()
 			*GetNameSafe(ExperienceComponent),
 			XPValue);
 	}
-	if (PickupSound)
+	if (PickupSound && (MagnetSpeed<=0 || AllowMagnetPickupSound(GetWorld())))
 	{
 		UGameplayStatics::PlaySoundAtLocation(this, PickupSound, GetActorLocation());
 	}

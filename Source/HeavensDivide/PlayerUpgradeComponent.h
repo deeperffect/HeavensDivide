@@ -79,9 +79,12 @@ public:
 	/** Zero when no game-instance progression exists (including isolated combat fixtures). */
 	float GetMetaSkillBonus(FName Effect) const;
 	void ApplyMetaSkillModifiers();
+	// Balance Lab only: -1 = save, 0 = fresh, 1 = full permanent combat stats. Never serialized.
+	int32 BalancePreviewMetaProfile = -1;
 	UUpgradeDefinition* FindUpgradeDefinition(FName Id) const;
 	UPlayerUpgradeComponent();
 	bool BeginBloodShrineSelection(int32 ChoiceCount = 3);
+	bool BeginNormalLevelUpSelection(int32 ChoiceCount = 3);
 	/** Only called by successful direct Samurai attack hits, never by proc damage. */
 	void HandleSamuraiDirectHit(class AEnemyBase* Enemy, float Damage, float HealthBeforeHit);
 	void CaptureRunState(FPlayerUpgradeRunState& OutState) const;
@@ -218,10 +221,11 @@ protected:
 	float CategoryBadLuckWeightPerMiss = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Selection", meta = (ClampMin = "1", UIMin = "1"))
-	int32 SynergyUnlockLevel = 5;
+	int32 SynergyUnlockLevel = 1; // Legacy serialized setting; category availability ignores it.
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Mastery", meta = (ClampMin = "0.0", UIMin = "0.0"))
-	float PowerPerMasteryPoint = 0.05f;
+	// Kept for old Blueprint serialization. Mastery no longer grants damage.
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Mastery no longer grants damage."))
+	float PowerPerMasteryPoint = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Upgrades|Rarity")
 	TArray<FUpgradeRarityTimeBracket> RarityTimeBrackets;
@@ -236,6 +240,9 @@ private:
 	void NormalizeSamuraiTradeoffUpgrades();
 	bool HasUpgradeTradeoffConflict(FName UpgradeId) const;
 	TArray<UUpgradeDefinition*> GetDraftAlternatives() const;
+	TArray<UUpgradeDefinition*> GetNormalLevelUpCandidates() const;
+	TArray<UUpgradeDefinition*> RollMixedChoices(const TArray<UUpgradeDefinition*>& Candidates, int32 Count) const;
+	bool bMixedDraftOffer = false;
 	UPROPERTY() TSet<FName> BanishedUpgrades;
 	int32 RerollsUsed = 0;
 	int32 BanishesUsed = 0;

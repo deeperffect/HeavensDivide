@@ -1,4 +1,5 @@
 #include "EnemyBase.h"
+#include "CombatGround.h"
 
 #include "CharacterBase.h"
 #include "Components/CapsuleComponent.h"
@@ -28,8 +29,6 @@ static TAutoConsoleVariable<int32> CVarDebugEnemyGroundSnap(
 	0,
 	TEXT("When set to 1, logs suspicious one-time enemy ground snap corrections."));
 
-static constexpr float EnemyWalkableGroundNormalZ = 0.7f;
-static constexpr ECollisionChannel EnemyGroundSnapTraceChannel = ECC_GameTraceChannel2;
 
 static bool IsBlockingWorldGeometryHit(const FHitResult& HitResult)
 {
@@ -38,15 +37,6 @@ static bool IsBlockingWorldGeometryHit(const FHitResult& HitResult)
 		&& HitActor
 		&& !Cast<AEnemyBase>(HitActor)
 		&& !Cast<ACharacterBase>(HitActor);
-}
-
-static bool IsValidEnemyGroundHit(const FHitResult& HitResult)
-{
-	AActor* HitActor = HitResult.GetActor();
-	return HitResult.bBlockingHit
-		&& HitResult.GetComponent()
-		&& (!HitActor || (!Cast<AEnemyBase>(HitActor) && !Cast<ACharacterBase>(HitActor)))
-		&& HitResult.ImpactNormal.Z >= EnemyWalkableGroundNormalZ;
 }
 
 static bool IsEnemyPathFallbackRequestAllowed(UWorld* World)
@@ -216,41 +206,18 @@ void AEnemyBase::SnapToGroundBeforeLightweightMovement()
 
 	const FVector OriginalLocation = GetActorLocation();
 	const float CapsuleHalfHeight = EnemyCapsule->GetScaledCapsuleHalfHeight();
-	const FVector TraceStart = OriginalLocation + FVector(0.0f, 0.0f, 150.0f);
-	const FVector TraceEnd = OriginalLocation - FVector(0.0f, 0.0f, FMath::Max(500.0f, CapsuleHalfHeight + 1000.0f));
-
-	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemyBeginPlayGroundSnap), false, this);
-	QueryParams.AddIgnoredActor(this);
-
-	TArray<FHitResult> HitResults;
-	World->LineTraceMultiByChannel(HitResults, TraceStart, TraceEnd, EnemyGroundSnapTraceChannel, QueryParams);
-
-	for (const FHitResult& HitResult : HitResults)
-	{
-		if (!IsValidEnemyGroundHit(HitResult))
-		{
-			continue;
-		}
-
-		const FVector CorrectedLocation(OriginalLocation.X, OriginalLocation.Y, HitResult.Location.Z + CapsuleHalfHeight);
-		const float DeltaZ = CorrectedLocation.Z - OriginalLocation.Z;
-		if (!FMath::IsNearlyZero(DeltaZ, 1.0f))
-		{
-			SetActorLocation(CorrectedLocation, false, nullptr, ETeleportType::TeleportPhysics);
-			if (FMath::Abs(DeltaZ) > 25.0f && CVarDebugEnemyGroundSnap.GetValueOnGameThread() != 0)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Enemy ground snap adjusted %s OriginalZ=%.2f CorrectedZ=%.2f DeltaZ=%.2f HitActor=%s HitComponent=%s ImpactNormal=%s"),
-					*GetNameSafe(this),
-					OriginalLocation.Z,
-					CorrectedLocation.Z,
-					DeltaZ,
-					*GetNameSafe(HitResult.GetActor()),
-					*GetNameSafe(HitResult.GetComponent()),
-					*HitResult.ImpactNormal.ToString());
-			}
-		}
-		break;
-	}
+    FVector Ground;
+    if (CombatGround::FindSurface(World,OriginalLocation,this,Ground,150.f,FMath::Max(500.f,CapsuleHalfHeight+1000.f)))
+    {
+        const FVector CorrectedLocation(OriginalLocation.X,OriginalLocation.Y,Ground.Z+CapsuleHalfHeight);
+        const float DeltaZ=CorrectedLocation.Z-OriginalLocation.Z;
+        if (!FMath::IsNearlyZero(DeltaZ,1.f))
+        {
+            SetActorLocation(CorrectedLocation,false,nullptr,ETeleportType::TeleportPhysics);
+            if (FMath::Abs(DeltaZ)>25.f && CVarDebugEnemyGroundSnap.GetValueOnGameThread()!=0)
+                UE_LOG(LogTemp,Warning,TEXT("Enemy ground snap adjusted %s OriginalZ=%.2f CorrectedZ=%.2f"),*GetNameSafe(this),OriginalLocation.Z,CorrectedLocation.Z);
+        }
+    }
 
 	if (LightweightMovementComponent)
 	{
@@ -725,7 +692,17 @@ void AEnemyBase::MoveTowardCurrentTarget()
 		DesiredDirectMovementDirection = ToTarget;
 		UpdateObstaclePathFallback();
 
-		FVector SteeringDirection = ToTarget;
+        FVector SteeringDirection = ToTarget;
+        // Some pursuers cut across the player's movement rather than joining a single tail.
+        // Close-range attacks still aim at the actual player; committed attacks never home.
+        const FVector Offset=CurrentTarget->GetActorLocation()-GetActorLocation();
+        if (GetUniqueID()%3!=0 && Offset.SizeSquared2D()>FMath::Square(350.f))
+        {
+            const float Lead=FMath::Clamp(Offset.Size2D()/FMath::Max(1.f,MoveSpeed)*.18f,0.f,.65f);
+            const FVector Predicted=CurrentTarget->GetActorLocation()+CurrentTarget->GetVelocity().GetClampedToMaxSize2D(600.f)*Lead;
+            // Existing swept movement and obstacle fallback handle geometry; no extra crowd-wide trace.
+            SteeringDirection=(Predicted-GetActorLocation()).GetSafeNormal2D();
+        }
 		FVector PathSteeringDirection;
 		const bool bUsingPathFallback = TryGetPathFallbackSteeringDirection(PathSteeringDirection);
 		if (bUsingPathFallback)

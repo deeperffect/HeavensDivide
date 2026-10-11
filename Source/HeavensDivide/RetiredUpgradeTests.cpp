@@ -12,7 +12,8 @@ bool FRetiredUpgradeStateTest::RunTest(const FString&)
 	FPlayerUpgradeRunState Legacy;
 	Legacy.SamuraiMastery = 12;
 	Legacy.NinjaMastery = 9;
-	TArray<FName> RetiredIds = {TEXT("DeepCuts"), TEXT("PotentVenom"), TEXT("Crescendo")};
+	TArray<FName> RetiredIds = {TEXT("DeepCuts"), TEXT("PotentVenom"), TEXT("Crescendo"), TEXT("OverkillBurst"), TEXT("BurstRadius"), TEXT("WaveMultishot"),
+        TEXT("CrossingBlades"), TEXT("SplinterWave"), TEXT("BladeWavePower"), TEXT("WideArc"), TEXT("BladeWaveHaste")};
 	for (const auto& Family : BuildFamilies)
 	{
 		if (Family.Available)

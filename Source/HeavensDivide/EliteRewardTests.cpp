@@ -76,6 +76,9 @@ bool FEliteRewardTest::RunTest(const FString&)
  TestTrue(TEXT("Lid transforms advance even with zero paused delta"),
   !Interrupted->ChestMesh->GetBoneTransformByName(Interrupted->LidBone,EBoneSpaces::ComponentSpace).GetRotation().Equals(Interrupted->ClosedLid.GetRotation(),.1));
  TestTrue(TEXT("World remains paused during the reveal"),UGameplayStatics::IsGamePaused(World));
+ Interrupted->RequestSkipOpening();Interrupted->Tick(0);
+ TestTrue(TEXT("Skip jumps to the final reward reveal"),FPlatformTime::Seconds()-Interrupted->OpeningStarted>=Interrupted->OpeningDuration-.66f);
+ TestTrue(TEXT("Skip keeps pause until the final reveal closes"),UGameplayStatics::IsGamePaused(World));
  Interrupted->OpeningStarted=FPlatformTime::Seconds()-4;Interrupted->Tick(0);
  TestFalse(TEXT("Reward completion releases its pause"),UGameplayStatics::IsGamePaused(World));
  TestEqual(TEXT("Reward does not reset existing slow motion"),World->GetWorldSettings()->TimeDilation,.7f);

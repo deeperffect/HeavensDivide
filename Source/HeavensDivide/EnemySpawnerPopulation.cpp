@@ -139,9 +139,19 @@ const FEnemyPopulationPhaseEntry* AEnemySpawner::ChooseDirectorEntry(const FEnem
 	return MaintainedEntry;
 }
 
+int32 AEnemySpawner::GetAliveTimedThreatCount() const
+{
+    int32 Total = 0;
+    for (const auto& Pair : AliveEnemyCountByClass)
+        if (const auto* Entry = FindSpawnDefinition(Pair.Key); Entry && Entry->PressureSpawnMode == EEnemyPressureSpawnMode::TimedThreat)
+            Total += FMath::Max(0, Pair.Value);
+    return Total;
+}
+
 float AEnemySpawner::GetHealthMultiplier(const FEnemySpawnEntry& SpawnEntry) const
 {
-	return 1.0f + FMath::Max(0.0f, SpawnEntry.HealthScalingPerMinute) * FMath::Max(0.0f, GetRunTimeMinutes());
+	// Fixed-health balance: ignore legacy overrides, including old placed spawners.
+	return 1.0f;
 }
 
 float AEnemySpawner::GetDamageMultiplier() const
@@ -236,6 +246,7 @@ bool AEnemySpawner::IsPopulationEntryEligible(const FEnemyPressurePhase& Phase, 
 
 bool AEnemySpawner::IsTimedThreatEntryEligible(const FEnemyPressurePhase& Phase, const FEnemyPopulationPhaseEntry& PopulationEntry) const
 {
+	if (GetAliveTimedThreatCount() >= FMath::Max(0, MaxTimedThreatsAlive)) return false;
 	if (!PopulationEntry.EnemyClass || PopulationEntry.MaxPopulation <= 0 || PopulationEntry.RefillPriority <= 0.0f)
 	{
 		return false;

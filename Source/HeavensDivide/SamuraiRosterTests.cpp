@@ -19,7 +19,7 @@ bool FSamuraiRosterTest::RunTest(const FString&)
   auto* Old=NewObject<UUpgradeDefinition>();Old->UpgradeId=Id;Old->Category=EUpgradeCategory::SamuraiTrial;
   TestFalse(TEXT("Stale technique reference cannot be acquired"),U->CanAcquireUpgrade(Old));
  }
- for(auto Id:{TEXT("BattleStance"),TEXT("Iaijutsu"),TEXT("BloodEcho"),TEXT("BloodCapacity"),TEXT("SamuraiHeavyBlade"),TEXT("SamuraiArea"),TEXT("DoubleCut"),TEXT("BladeWave"),TEXT("BloodTransfer"),TEXT("OverkillBurst"),TEXT("WaveMultishot")})
+ for(auto Id:{TEXT("BattleStance"),TEXT("Iaijutsu"),TEXT("BloodEcho"),TEXT("BloodCapacity"),TEXT("SamuraiHeavyBlade"),TEXT("SamuraiArea"),TEXT("DoubleCut"),TEXT("BladeWave"),TEXT("BloodTransfer")})
   TestNotNull(TEXT("Build-linked card retained"),U->FindUpgradeDefinition(Id));
  TestTrue(TEXT("Legacy Samurai trial still offers rewards"),U->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::SamuraiTrial,3));
  TestEqual(TEXT("Trial uses current Samurai category"),U->GetSelectedCategory(),EUpgradeCategory::Samurai);
@@ -34,8 +34,8 @@ bool FSamuraiRosterTest::RunTest(const FString&)
  Legacy.Levels.Add(TEXT("ReturningBlade"),1);Legacy.Definitions.Add(TEXT("ReturningBlade"),OldReturn);
  for(FName Id:Disabled)
  {
-  auto* Card=U->FindUpgradeDefinition(Id);
-  TestNotNull(TEXT("Disabled card asset retained"),Card);
+  TestNull(TEXT("Removed card absent from saved pool"),U->FindUpgradeDefinition(Id));
+  auto* Card=NewObject<UUpgradeDefinition>(U);Card->UpgradeId=Id;Card->MaxLevel=5;
   TestFalse(TEXT("Disabled card cannot be acquired"),U->AcquireUpgrade(Card));
   TestFalse(TEXT("Debug acquisition cannot bypass disabled cards"),U->DebugForceAcquireUpgrade(Card));
   Legacy.Levels.Add(Id,1);Legacy.AccumulatedMagnitudes.Add(Id,.5f);Legacy.Definitions.Add(Id,Card);
@@ -49,10 +49,11 @@ bool FSamuraiRosterTest::RunTest(const FString&)
  }
  TestTrue(TEXT("Crescent stance remains active"),U->HasUpgradeId(TEXT("BladeWave")));
  TestEqual(TEXT("Previously disabled Returning Blade rank becomes active again"),U->GetUpgradeLevelById(TEXT("ReturningBlade")),1);
- TestEqual(TEXT("Mastery survives temporary disable"),U->GetSamuraiMasteryPoints(),42);
+ TestEqual(TEXT("Mastery survives upgrade retirement"),U->GetSamuraiMasteryPoints(),42);
  FPlayerUpgradeRunState Retained;U->CaptureRunState(Retained);
  TestTrue(TEXT("Old return reference is replaced by the current saved definition"),Retained.Definitions.FindRef(TEXT("ReturningBlade"))==U->FindUpgradeDefinition(TEXT("ReturningBlade")));
- TestEqual(TEXT("Disabled acquired ranks remain stored for future reuse"),Retained.Levels.FindRef(TEXT("WideArc")),1);
+ TestFalse(TEXT("Removed acquired ranks are pruned from future snapshots"),Retained.Levels.Contains(TEXT("WideArc")));
+ for(FName Id:Disabled){TestFalse(TEXT("Removed magnitudes pruned"),Retained.AccumulatedMagnitudes.Contains(Id));TestFalse(TEXT("Removed definitions pruned"),Retained.Definitions.Contains(Id));}
  U->BeginDirectUpgradeSelection(1000);
  for(auto* Choice:U->GetCurrentUpgradeChoices()) TestFalse(TEXT("Disabled cards excluded from unrestricted rewards"),Disabled.Contains(Choice->UpgradeId));
  U->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::SamuraiTrial,1000);

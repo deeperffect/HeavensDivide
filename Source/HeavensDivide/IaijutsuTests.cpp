@@ -82,7 +82,14 @@ bool FIaijutsuTest::RunTest(const FString&)
     auto* Upgrades = PC->GetPlayerUpgrades();
     auto* Card = Upgrades->FindUpgradeDefinition(TEXT("Iaijutsu"));
     if (!TestNotNull(TEXT("Saved Iaijutsu card"), Card)) { Cleanup(); return false; }
+    // Deterministic geometry/timing fixture, independent of authored tuning.
+    // FixedHealthPass separately checks the saved two-second / 200 cm stance.
+    const auto SavedStanceParameters = Card->BalanceParameters;
+    ON_SCOPE_EXIT { Card->BalanceParameters = SavedStanceParameters; };
+    Card->BalanceParameters.Add(TEXT("ChargeDuration"), 1.f);
+    Card->BalanceParameters.Add(TEXT("SlashRadius"), 100.f);
     TestTrue(TEXT("Acquire Iaijutsu"), Upgrades->AcquireUpgrade(Card));
+    const auto BaseStanceDamage = [&] { return Attack->GetEffectiveAttackDamage() * Card->GetBalanceValue(TEXT("DamageMultiplier"), 2.5f); };
 
     auto SpawnEnemy = [&](FVector Position, EPlayerAttackSource Restriction = EPlayerAttackSource::Other)
     {
@@ -318,7 +325,7 @@ bool FIaijutsuTest::RunTest(const FString&)
     for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It) Slash = *It;
     if (!TestNotNull(TEXT("Independent attack actor spawned"), Slash)) { Cleanup(); return false; }
     TestEqual(TEXT("Base lane has 100 cm half-width"), Slash->HitRadius, 100.f);
-    const float Damage = Attack->GetEffectiveAttackDamage();
+    const float Damage = BaseStanceDamage();
     ++GFrameCounter;
     Slash->Tick(.99f);
     TestEqual(TEXT("Nearest enemy takes no damage during charge"), Near->GetHealthComponent()->GetCurrentHealth(), 10000.f);
@@ -446,7 +453,7 @@ bool FIaijutsuTest::RunTest(const FString&)
     Attack->SpawnIaijutsuSlashes(FVector(5000,0,0), FVector::ForwardVector, 800, .5f, false);
     for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
     {
-        TestTrue(TEXT("Damage card scales committed Iaijutsu damage"), FMath::IsNearlyEqual(It->HitDamage, Attack->GetEffectiveAttackDamage() * 1.2f));
+        TestTrue(TEXT("Damage card scales committed Iaijutsu damage"), FMath::IsNearlyEqual(It->HitDamage, BaseStanceDamage() * 1.2f));
         TestTrue(TEXT("Width card scales lane"), FMath::IsNearlyEqual(It->HitRadius, 125.f));
     }
     ClearSlashes();
@@ -496,14 +503,14 @@ bool FIaijutsuTest::RunTest(const FString&)
         It->Tick(.2f);
         TestEqual(TEXT("Dash slash begins at previous position"), It->Origin, FVector(5000,0,0));
         TestEqual(TEXT("Dash slash reaches actual dash endpoint"), It->End, FVector(5300,0,0));
-        TestTrue(TEXT("Dash Draw Power doubles only dash attack damage"), FMath::IsNearlyEqual(It->HitDamage, Attack->GetEffectiveAttackDamage() * 2.f));
+        TestTrue(TEXT("Dash Draw Power doubles only dash attack damage"), FMath::IsNearlyEqual(It->HitDamage, BaseStanceDamage() * 2.f));
     }
     TestEqual(TEXT("Dash creates a slash"), CountSlashes(), 1);
     Samurai->SetActorLocation(PositionBeforeDashCheck);
     ClearSlashes();
     Attack->SpawnIaijutsuSlashes(FVector(5000,0,0), FVector::ForwardVector, 800, 1.f, true);
     for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It)
-        TestTrue(TEXT("Dash damage scaling leaves normal attacks unchanged"), FMath::IsNearlyEqual(It->HitDamage, Attack->GetEffectiveAttackDamage()));
+        TestTrue(TEXT("Dash damage scaling leaves normal attacks unchanged"), FMath::IsNearlyEqual(It->HitDamage, BaseStanceDamage()));
     ClearSlashes();
     Upgrades->RestoreRunState(Base);
     Acquire(TEXT("IaijutsuInstant"));
@@ -625,7 +632,7 @@ bool FIaijutsuTest::RunTest(const FString&)
         It->Tick(.2f);
         TestTrue(TEXT("Follow-up originates at victim"), It->Origin.Equals(FVector(15200,0,0), 1.f));
         TestTrue(TEXT("Cascade Power doubles follow-up damage without adding Dash Draw Power"),
-            FMath::IsNearlyEqual(It->HitDamage, Attack->GetEffectiveAttackDamage() * 2.f));
+            FMath::IsNearlyEqual(It->HitDamage, BaseStanceDamage() * 2.f));
         It->Tick(1.f);
     }
     TestTrue(TEXT("Follow-up targets and kills another enemy"), ChainTarget->IsDead());

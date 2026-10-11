@@ -1,0 +1,21 @@
+{
+  "resolution": 1024,
+  "world_min": [
+    -7600,
+    -7600
+  ],
+  "world_size": [
+    15200,
+    15200
+  ],
+  "weights": {
+    "grass": 0.8741071327055817,
+    "dirt": 0.08362687054808772,
+    "stone": 0.042265996745981485
+  },
+  "routes": [
+    "Shrine approach",
+    "North meadow circuit",
+    "South footpath"
+  ]
+}

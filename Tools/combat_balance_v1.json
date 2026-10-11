@@ -1,0 +1,588 @@
+{
+  "version": 1,
+  "health_time_scaling": false,
+  "player": {
+    "Samurai": {
+      "damage": 8,
+      "interval": 1.2,
+      "secondary_damage": 1,
+      "combo_pulse": 5
+    },
+    "Ninja": {
+      "damage": 10,
+      "interval": 1.2,
+      "combo_pulse": 4.5
+    }
+  },
+  "upgrades": {
+    "BladeWave": {
+      "parameters": {
+        "WaveDamageMultiplier": 1.5
+      },
+      "description": "Replace melee attacks with piercing waves dealing {WaveDamageMultiplierPercent}% attack damage. Slow enemies by {SlowFractionPercent}% for {SlowDuration}s."
+    },
+    "Iaijutsu": {
+      "parameters": {
+        "DamageMultiplier": 2.5,
+        "ChargeDuration": 2,
+        "SlashRadius": 200,
+        "Cooldown": 0.5
+      },
+      "description": "Charge a slash for {ChargeDuration}s dealing {DamageMultiplierPercent}% attack damage. Hits mark enemies for {MarkDuration}s; later hits deal {MarkBonusPercent}% more damage."
+    },
+    "ReturningFang": {
+      "parameters": {
+        "MaxLaunchesPerSecond": 2
+      },
+      "description": "Fangs hit and return, up to {MaxLaunchesPerSecond} launches per second. Stay close for faster cycles. Attack speed boosts flight speed; extra projectiles add {CountDamagePercent}% damage."
+    },
+    "FangTwin": {
+      "parameters": {
+        "ExtraBlades": 1
+      },
+      "description": "Every {Frequency} launches, send {ExtraBlades} extra spectral Fang, seeking a different target when possible."
+    },
+    "FangTwinFrequency": {
+      "parameters": {
+        "PerRank": 1
+      },
+      "description": "Twin Fang triggers {PerRank} launch sooner per rank, down to every launch."
+    },
+    "FangFarstrider": {
+      "parameters": {
+        "MaxDamageBonus": 2
+      },
+      "description": "Fangs travel 25% slower, but gain up to {MaxDamageBonusPercent}% damage over 10 metres of outward travel."
+    },
+    "FangPredator": {
+      "parameters": {
+        "NoncriticalMultiplier": 0.85
+      },
+      "description": "Fang critical hits deal 50% more damage. Noncritical hits deal {NoncriticalMultiplierPercent}% of normal damage."
+    },
+    "BloodPactPower": {
+      "parameters": {
+        "BleedDamageMultiplier": 2.5
+      },
+      "description": "Bleed deals {BleedDamageMultiplier} times its normal damage, but you attack 30% slower."
+    },
+    "BloodDetonation": {
+      "parameters": {
+        "DamageMultiplier": 1.5
+      },
+      "description": "At full Bleed stacks, consume Bleed to explode for {DamageMultiplier} times its remaining damage. Replaces Blood Transfer."
+    },
+    "CrescentFieldPact": {
+      "parameters": {
+        "WaveDamageMultiplier": 0.8,
+        "FieldDamageMultiplier": 2
+      },
+      "description": "Lingering Wake deals {FieldDamageMultiplier} times its normal damage. Wave hits deal {WaveDamageMultiplierPercent}% of normal damage."
+    },
+    "BloodCriticalChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "+{PerRankPercent}% chance to trigger Critical Strike."
+    },
+    "BloodEchoChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "+{PerRankPercent}% chance to trigger Echoing Slash."
+    },
+    "IaijutsuAOEChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "+{PerRankPercent}% chance to trigger Final Flourish."
+    },
+    "IaijutsuInstantChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "+{PerRankPercent}% chance to trigger Flash Draw."
+    },
+    "CrescentSplitChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "+{PerRankPercent}% chance to trigger Splitting Waves."
+    },
+    "CrescentArcChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "+{PerRankPercent}% chance to trigger Arc Volley."
+    },
+    "FangCriticalChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "Adds {PerRankPercent}% critical-hit chance to Fang hits."
+    },
+    "FangPursuitChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "+{PerRankPercent}% chance for Killing Edge to strike two more enemies."
+    },
+    "BarrageSplitChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "+{PerRankPercent}% kunai split chance."
+    },
+    "BarrageCriticalChance": {
+      "parameters": {
+        "PerRank": 0.1
+      },
+      "description": "Kunai gain {PerRankPercent}% critical strike chance."
+    },
+    "BloodAssistChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "+{PerRankPercent}% chance to trigger Ninja Assist."
+    },
+    "IaijutsuAssistChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "+{PerRankPercent}% chance to trigger Ninja Assist."
+    },
+    "CrescentAssistChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "+{PerRankPercent}% chance to trigger Ninja Assist."
+    },
+    "FangAssistChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "Adds {PerRankPercent}% chance to call Samurai on a completed main-Fang round trip."
+    },
+    "BarrageAssistChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "Gain {PerRankPercent}% chance to call a Samurai assist."
+    },
+    "ShurikenAssistChance": {
+      "parameters": {
+        "PerRank": 0.05
+      },
+      "description": "+{PerRankPercent}% chance to trigger Samurai Assist."
+    },
+    "SamuraiHeavyBlade": {
+      "rarity": [
+        0.2,
+        0.3,
+        0.4
+      ],
+      "description_format": "Samurai attacks deal {Percent}% more damage in any stance."
+    },
+    "NinjaDamage": {
+      "rarity": [
+        0.2,
+        0.3,
+        0.4
+      ],
+      "description_format": "Ninja attacks deal {Percent}% more damage."
+    },
+    "FangDamage": {
+      "rarity": [
+        0.2,
+        0.3,
+        0.4
+      ],
+      "description_format": "Fangs deal {Percent}% more damage."
+    },
+    "BarrageDamage": {
+      "rarity": [
+        0.2,
+        0.3,
+        0.4
+      ],
+      "description_format": "Kunai deal {Percent}% more damage."
+    },
+    "ShurikenDamage": {
+      "rarity": [
+        0.2,
+        0.3,
+        0.4
+      ],
+      "description_format": "Blades and bursts deal {Percent}% more damage."
+    },
+    "FragmentDamage": {
+      "rarity": [
+        0.2,
+        0.3,
+        0.4
+      ],
+      "description_format": "Embedded blades deal {Percent}% more damage."
+    },
+    "SamuraiTempo": {
+      "rarity": [
+        0.1,
+        0.15,
+        0.2
+      ],
+      "description_format": "+{Percent}% Samurai attack speed. Becomes charge speed or wave speed with your stance."
+    },
+    "NinjaSpeed": {
+      "rarity": [
+        0.1,
+        0.15,
+        0.2
+      ],
+      "description_format": "Ninja attacks are {Percent}% faster. Converts to Flight Speed with Returning Fang."
+    },
+    "BarrageSpeed": {
+      "rarity": [
+        0.1,
+        0.15,
+        0.2
+      ],
+      "description_format": "Attack {Percent}% faster."
+    },
+    "ShurikenSpeed": {
+      "rarity": [
+        0.1,
+        0.15,
+        0.2
+      ],
+      "description_format": "Throw shurikens {Percent}% faster."
+    },
+    "GlobalDamage": {
+      "rarity": [
+        0.1,
+        0.15,
+        0.2
+      ],
+      "modifier_values": [
+        0.1
+      ],
+      "description_format": "Both heroes deal {Percent}% more damage."
+    },
+    "BarragePoisonDuration": {
+      "parameters": {
+        "PerRank": 1
+      },
+      "description": "Poison lasts {PerRank}s longer per rank, dealing damage at the same rate."
+    },
+    "BarragePoisonLoad": {
+      "parameters": {
+        "PerRank": 1
+      },
+      "description": "Each kunai hit applies {PerRank} additional poison stack per rank."
+    },
+    "BloodEcho": {
+      "parameters": {
+        "Chance": 0.2,
+        "DamageFraction": 1
+      },
+      "description": "{ChancePercent}% chance to repeat your slash at {DamageFractionPercent}% damage. Echoes cannot trigger more echoes."
+    },
+    "BarrageStance": {
+      "parameters": {
+        "ProjectileDamageMultiplier": 0.6
+      },
+      "description": "+{AttackSpeedBonusPercent}% attack speed and {BonusProjectiles} extra kunai. Each kunai deals {ProjectileDamageMultiplierPercent}% damage. Poison: {PoisonHitFractionPercent}% hit damage per stack over {PoisonDuration}s, up to {PoisonCap} stacks; hits refresh them."
+    }
+  },
+  "enemies": {
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Bosses/CinderOracle/BP_CinderOracle": {
+      "health": 6000,
+      "xp": 0,
+      "damage": 22
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Bosses/SamuraiBoss/BP_SamuraiBoss": {
+      "health": 6000,
+      "xp": 0,
+      "damage": 20
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla": {
+      "health": 660,
+      "xp": 72,
+      "damage": 24
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre": {
+      "health": 264,
+      "xp": 30,
+      "damage": 24
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear": {
+      "health": 35.2,
+      "xp": 5,
+      "damage": 14
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature": {
+      "health": 26.4,
+      "xp": 4,
+      "damage": 10
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged": {
+      "health": 52.8,
+      "xp": 8,
+      "damage": 12
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish": {
+      "health": 8.8,
+      "xp": 2,
+      "damage": 6
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton": {
+      "health": 17.6,
+      "xp": 3,
+      "damage": 8
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb": {
+      "health": 35.2,
+      "xp": 6,
+      "damage": 20
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler": {
+      "health": 13.2,
+      "xp": 3,
+      "damage": 6
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt": {
+      "health": 17.6,
+      "xp": 3,
+      "damage": 8
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_TestDummy": {
+      "health": 1000,
+      "xp": 0,
+      "damage": 0
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshenMarcher": {
+      "health": 26.4,
+      "xp": 3,
+      "damage": 14
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer": {
+      "health": 61.6,
+      "xp": 9,
+      "damage": 12
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker": {
+      "health": 52.8,
+      "xp": 8,
+      "damage": 12
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle": {
+      "health": 105.6,
+      "xp": 15,
+      "damage": 14
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor": {
+      "health": 105.6,
+      "xp": 15,
+      "damage": 0
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper": {
+      "health": 70.4,
+      "xp": 10,
+      "damage": 18
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer": {
+      "health": 70.4,
+      "xp": 10,
+      "damage": 18
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver": {
+      "health": 79.2,
+      "xp": 11,
+      "damage": 8
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden": {
+      "health": 440,
+      "xp": 48,
+      "damage": 24
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla": {
+      "health": 825,
+      "xp": 90,
+      "damage": 28
+    },
+    "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer": {
+      "health": 158.4,
+      "xp": 22,
+      "damage": 0
+    },
+    "/Game/HeavensDivide/Blueprints/Objectives/TwinSoulTrial/BP_TwinSoulCrimson": {
+      "health": 360,
+      "xp": 0,
+      "damage": 12
+    },
+    "/Game/HeavensDivide/Blueprints/Objectives/TwinSoulTrial/BP_TwinSoulViolet": {
+      "health": 360,
+      "xp": 0,
+      "damage": 12
+    }
+  },
+  "run": {
+    "twin_soul_seconds": 360,
+    "gate_seconds": 480,
+    "timed_threat_chance": 0.18,
+    "max_timed_threats": 6,
+    "bloodbound_hp": 1.5,
+    "bloodbound_damage": 1.2
+  },
+  "scope": "Every saved pool definition reviewed; retired and temporarily disabled cards remain unavailable. Parameter overrides below are intentional changes.",
+  "reviewed_upgrade_ids": [
+    "SynergySwapRestoresDashCharge",
+    "TagTeam",
+    "GlobalAttackSpeed",
+    "GlobalDamage",
+    "GlobalDashCharge",
+    "GlobalMaxHealth",
+    "GlobalMovespeed",
+    "GlobalPickupRadius",
+    "MarkedBlade",
+    "SamuraiArea",
+    "DoubleCut",
+    "SamuraiHeavyBlade",
+    "Handoff",
+    "ShadowStep",
+    "MultipleStrikes",
+    "AfterimageFrenzy",
+    "BladeWave",
+    "ReturningBlade",
+    "GrandEntrance",
+    "BloodTransfer",
+    "Bloodletting",
+    "LingeringWounds",
+    "SamuraiTempo",
+    "VenomousKunai",
+    "EmbeddedBlades",
+    "FragmentDamage",
+    "FragmentLoad",
+    "FragmentReach",
+    "Iaijutsu",
+    "BattleStance",
+    "BloodEcho",
+    "BloodCritical",
+    "BloodAssist",
+    "BloodCapacity",
+    "BloodTransferArea",
+    "DoubleCutFrequency",
+    "BloodCriticalChance",
+    "BloodEchoChance",
+    "BloodAssistChance",
+    "BloodPactPower",
+    "BloodPactSpeed",
+    "BloodDetonation",
+    "IaijutsuChain",
+    "IaijutsuDoubleCut",
+    "IaijutsuInstant",
+    "IaijutsuAOE",
+    "IaijutsuAssist",
+    "IaijutsuDash",
+    "IaijutsuDamage",
+    "IaijutsuChargeSpeed",
+    "IaijutsuWidth",
+    "IaijutsuMarkDamage",
+    "IaijutsuDoubleCutFrequency",
+    "IaijutsuAOEChance",
+    "IaijutsuInstantChance",
+    "IaijutsuAssistChance",
+    "IaijutsuMarkPact",
+    "IaijutsuPowerPact",
+    "IaijutsuDashPact",
+    "CrescentDoubleCut",
+    "CrescentSplit",
+    "CrescentField",
+    "CrescentAssist",
+    "CrescentArc",
+    "CrescentDamage",
+    "CrescentSpeed",
+    "CrescentRange",
+    "CrescentSlow",
+    "CrescentDoubleCutFrequency",
+    "CrescentFieldPower",
+    "CrescentSplitChance",
+    "CrescentAssistChance",
+    "CrescentFieldPact",
+    "CrescentPowerPact",
+    "CrescentEruptionPact",
+    "BloodRush",
+    "IaijutsuVacuumReach",
+    "IaijutsuCascadePower",
+    "IaijutsuDashPower",
+    "CrescentSlowDuration",
+    "CrescentArcChance",
+    "CrescentFieldChance",
+    "ReturningFang",
+    "FangTwin",
+    "RelentlessFang",
+    "FangResonance",
+    "FangDeadeye",
+    "FangAssist",
+    "FangSplinter",
+    "FangDamage",
+    "FangSpeed",
+    "FangRange",
+    "FangCloseQuarters",
+    "FangKillingEdge",
+    "FangTwinFrequency",
+    "FangPressure",
+    "FangResonantReach",
+    "FangCriticalChance",
+    "FangAssistChance",
+    "FangSplinterPower",
+    "FangFarstrider",
+    "FangRedline",
+    "FangPredator",
+    "NinjaDamage",
+    "NinjaSpeed",
+    "NinjaCoverage",
+    "BarrageStance",
+    "NeedleRain",
+    "ForkingProjectiles",
+    "BarragePool",
+    "BarrageAssist",
+    "BarrageCritical",
+    "BarrageRush",
+    "BarrageDamage",
+    "BarrageSpeed",
+    "BarrageRange",
+    "BarragePoisonDuration",
+    "BarragePoisonLoad",
+    "BarrageRainFrequency",
+    "BarrageSplitChance",
+    "BarrageAssistChance",
+    "BarragePoolRadius",
+    "BarrageCriticalChance",
+    "BarragePoisonCap",
+    "BarragePointBlank",
+    "BarrageProcession",
+    "BarrageBloom",
+    "GreatShuriken",
+    "GrindingHalt",
+    "WideOrbit",
+    "BreakingWheel",
+    "ShurikenTwin",
+    "ShurikenAssist",
+    "SerratedEdge",
+    "ShurikenDamage",
+    "ShurikenSpeed",
+    "ShurikenSize",
+    "LingeringShuriken",
+    "ShurikenTempo",
+    "ShurikenGrindDuration",
+    "ShurikenGrowth",
+    "ShurikenBurstPower",
+    "ShurikenTwinFrequency",
+    "ShurikenAssistChance",
+    "ShurikenGrooves",
+    "ShurikenOrbit",
+    "ShurikenHunger",
+    "ShurikenPulse",
+    "FangPursuitChance",
+    "FangBurstPower"
+  ]
+}

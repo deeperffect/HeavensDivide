@@ -107,17 +107,21 @@ void AAttackProjectileBase::InitializeProjectile(
 		SetInstigator(OwnerPawn);
 	}
 
-    if (InTargetType == EProjectileTargetType::Enemies && AEnemyBase::ResolvePlayerAttackSource(InGameplayOwner) == EPlayerAttackSource::Ninja)
-        SetActorScale3D(GetActorScale3D() * (1.f + FangBuild::Scaling(GetPlayerUpgradesForMarkedForDeath(this, InGameplayOwner), TEXT("NinjaCoverage"), .15f)));
     const auto* BarrageU=GetPlayerUpgradesForMarkedForDeath(this,InGameplayOwner);
     bBarrageProjectile=InTargetType==EProjectileTargetType::Enemies && AEnemyBase::ResolvePlayerAttackSource(InGameplayOwner)==EPlayerAttackSource::Ninja && BarrageU && BarrageU->HasUpgradeId(TEXT("BarrageStance"));
+    const bool bNinjaProjectile=InTargetType==EProjectileTargetType::Enemies && AEnemyBase::ResolvePlayerAttackSource(InGameplayOwner)==EPlayerAttackSource::Ninja;
+    const float Coverage=bNinjaProjectile ? (1.f+FangBuild::Scaling(BarrageU,TEXT("NinjaCoverage"),.15f))
+        * (1.f+(bBarrageProjectile ? BarrageU->GetMetaSkillBonus(TEXT("BarrageArea")) : 0.f)) : 1.f;
+    // Scale collision and visuals together; reinitializing or splitting cannot compound coverage.
+    SetActorScale3D(GetActorScale3D() * Coverage / FMath::Max(.01f,AppliedCoverageScale));
+    AppliedCoverageScale=Coverage;
     if(bBarrageProjectile)
     {
       bCanTriggerSplit=InSplitUpgradeLevel>0 && FMath::FRand()<BarrageBuild::SplitChance(BarrageU);
       if(BarrageU->HasUpgradeId(TEXT("BarrageProcession")))
       {
-        bCanTriggerSplit=false;RemainingBounces=3;
-        BarrageBounceRetention=FMath::Clamp(.75f+BarrageBuild::SplitChance(BarrageU)*.2f,0.f,1.f);
+        bCanTriggerSplit=false;RemainingBounces=FMath::Clamp(FMath::RoundToInt(BarrageBuild::Value(BarrageU,TEXT("BarrageProcession"),TEXT("BounceCount"),3.f)),0,32);
+        BarrageBounceRetention=FMath::Clamp(BarrageBuild::Value(BarrageU,TEXT("BarrageProcession"),TEXT("BounceRetention"),.75f)+BarrageBuild::SplitChance(BarrageU)*BarrageBuild::Value(BarrageU,TEXT("BarrageProcession"),TEXT("SplitChanceConversion"),.2f),0.f,1.f);
       }
       SetLifeSpan(FMath::Max(.01f,SourceTargetingRange/FMath::Max(1.f,Speed)));
     }

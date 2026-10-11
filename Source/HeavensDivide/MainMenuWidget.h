@@ -65,6 +65,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Main Menu")
 	void ShowMainPanel();
 	UFUNCTION(BlueprintCallable, Category = "Main Menu") void ShowSkillTree();
+	UFUNCTION(BlueprintCallable, Category = "Main Menu") void ShowStanceSelection();
 
 	UFUNCTION(BlueprintCallable, Category = "Main Menu")
 	void ShowCollectionPanel();
@@ -97,6 +98,7 @@ private:
 	UPROPERTY(Transient) TObjectPtr<class USizeBox> LogoPresentation;
 	UFUNCTION() void ShowTesterBalance();
 	UPROPERTY(Transient) TObjectPtr<class UTesterBalanceWidget> TesterBalancePage;
+	UPROPERTY(Transient) TObjectPtr<class UStanceSelectionWidget> StanceSelectionPage;
 	bool bInRunSettings = false;
 	FSimpleDelegate InRunSettingsClosed;
 	class UBorder* BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer = nullptr, FVector2D PageSize = FVector2D(1030.0f, 780.0f), bool bAllowUpscaling = false);

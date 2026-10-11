@@ -7,6 +7,13 @@
 #include "Components/CapsuleComponent.h"
 #include "CombatAudio.h"
 #include "LevelUpWidget.h"
+#include "Blueprint/WidgetTree.h"
+#include "Slate/WidgetRenderer.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "ImageUtils.h"
+#include "Misc/App.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/LocalPlayer.h"
@@ -96,15 +103,50 @@ bool FLevelUpPresentationTest::RunTest(const FString&)
 	TestFalse(TEXT("Presentation completes using real time"), PC->bLevelUpPresentationActive);
 	TestNull(TEXT("Burst is cleaned up before showing choices"), PC->LevelUpEffect.Get());
 	TestNotNull(TEXT("Upgrade menu opens after presentation"), PC->LevelUpWidget.Get());
+	// This isolated world has no viewport. Construct Slate before checking visibility,
+	// as AddToViewport normally does in-game.
+	const auto LevelUpSlate = PC->LevelUpWidget->TakeWidget();
+	auto RenderChoices = [&](const TCHAR* File)
+	{
+		if (!FApp::CanEverRender()) return;
+		FWidgetRenderer Renderer(false);
+		auto* Target = Renderer.DrawWidget(LevelUpSlate, FVector2D(1920, 1080));
+		TArray<FColor> Pixels;
+		FReadSurfaceDataFlags Flags;
+		Flags.SetLinearToGamma(false);
+		if (TestTrue(TEXT("Level-up screen renders"), Target && Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels, Flags)))
+		{
+			TArray64<uint8> PNG;
+			FImageUtils::PNGCompressImageArray(Target->SizeX, Target->SizeY, Pixels, PNG);
+			FFileHelper::SaveArrayToFile(PNG, *(FPaths::ProjectSavedDir() / File));
+		}
+	};
 	TestTrue(TEXT("Gameplay freezes when upgrade choices open"), PC->bLevelUpTimeDilationApplied);
 	TestTrue(TEXT("World freezes only once choices open"), World->GetWorldSettings()->TimeDilation <= 0.001f);
 	TestTrue(TEXT("Upgrade menu reserves selection input"), PC->IsSelectingUpgrade());
 	TestFalse(TEXT("Dash is blocked while choosing an upgrade"), PC->CanDash());
-	PC->HandleLevelUpSelectionCompleted();
+	auto* Upgrades = PC->GetPlayerUpgrades();
+	TestEqual(TEXT("Level-up restores the two offered category cards"), Upgrades->GetCurrentCategoryChoices().Num(), 2);
+	TestTrue(TEXT("Upgrades wait for a category selection"), Upgrades->GetCurrentUpgradeChoices().IsEmpty());
+	auto* CategoryPanel = PC->LevelUpWidget->WidgetTree->FindWidget(TEXT("CategoryPanel"));
+	TestTrue(TEXT("Saved Blueprint displays the category screen"), CategoryPanel && CategoryPanel->IsVisible());
+	RenderChoices(TEXT("RestoredUpgradeCategories.png"));
+	const auto SelectedCategory = Upgrades->GetCurrentCategoryChoices()[0];
+	TestTrue(TEXT("Category selection opens its upgrades"), PC->LevelUpWidget->SelectCategoryChoice(0));
+	TestEqual(TEXT("Category alone does not spend a level"), PC->PendingLevelUpChoices, 2);
+	TestEqual(TEXT("Selected category offers three upgrade cards"), Upgrades->GetCurrentUpgradeChoices().Num(), 3);
+	for (auto* Card : Upgrades->GetCurrentUpgradeChoices())
+		TestEqual(TEXT("Offered upgrades belong to the chosen category"), Card->Category, SelectedCategory);
+	TestTrue(TEXT("Category screen hides after selecting a category"), CategoryPanel && !CategoryPanel->IsVisible());
+	RenderChoices(TEXT("RestoredCategoryUpgrades.png"));
+	TestTrue(TEXT("Choosing an upgrade completes one level"), PC->LevelUpWidget->SelectUpgradeChoice(0));
 	TestEqual(TEXT("First choice consumes only one queued level"), PC->PendingLevelUpChoices, 1);
 	TestEqual(TEXT("Shrine reward waits for all queued levels"), PC->PendingBloodShrineRewards, 1);
 	TestFalse(TEXT("Consecutive choices do not replay presentation"), PC->bLevelUpPresentationActive);
-	PC->HandleLevelUpSelectionCompleted();
+	TestTrue(TEXT("Next queued level returns to categories"), CategoryPanel && CategoryPanel->IsVisible());
+	TestTrue(TEXT("Next queued level has no preselected upgrades"), Upgrades->GetCurrentUpgradeChoices().IsEmpty());
+	TestTrue(TEXT("Second queued category remains selectable"), PC->LevelUpWidget->SelectCategoryChoice(1));
+	TestTrue(TEXT("Second queued upgrade remains selectable"), PC->LevelUpWidget->SelectUpgradeChoice(0));
 	TestEqual(TEXT("Both level-up choices finish"), PC->PendingLevelUpChoices, 0);
 	// The saved pool may have no eligible Blood Pacts, in which case the existing
 	// reward flow skips it automatically instead of leaving the player frozen.

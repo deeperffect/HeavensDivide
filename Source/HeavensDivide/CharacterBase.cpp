@@ -10,6 +10,27 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+void ACharacterBase::SetMenuSimulationPaused(bool bPaused)
+{
+    auto* CharacterMesh = GetMesh();
+    if (!CharacterMesh || bMenuSimulationPaused == bPaused) return;
+    bMenuSimulationPaused = bPaused;
+    if (bPaused)
+    {
+        bMenuMeshWasTicking = CharacterMesh->IsComponentTickEnabled();
+        bMenuClothWasSuspended = CharacterMesh->IsClothingSimulationSuspended();
+        CharacterMesh->SuspendClothingSimulation();
+        CharacterMesh->SetComponentTickEnabled(false);
+    }
+    else
+    {
+        CharacterMesh->ForceClothNextUpdateTeleportAndReset();
+        if (auto* Anim = CharacterMesh->GetAnimInstance()) Anim->ResetDynamics(ETeleportType::ResetPhysics);
+        if (!bMenuClothWasSuspended && CharacterMode != ECharacterMode::Inactive) CharacterMesh->ResumeClothingSimulation();
+        CharacterMesh->SetComponentTickEnabled(bMenuMeshWasTicking);
+    }
+}
+
 ACharacterBase::ACharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -113,6 +134,12 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 		}
 		SetActorEnableCollision(true);
 		SetActorTickEnabled(true);
+		if (auto* Movement = GetCharacterMovement())
+		{
+			Movement->SetComponentTickEnabled(true);
+			if (Movement->MovementMode == MOVE_None) Movement->SetMovementMode(MOVE_Walking);
+			Movement->bForceNextFloorCheck = true;
+		}
 		break;
 
 	case ECharacterMode::Inactive:
@@ -124,6 +151,8 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 		if (UCharacterMovementComponent* MovementComponent = GetCharacterMovement())
 		{
 			MovementComponent->StopMovementImmediately();
+			MovementComponent->DisableMovement();
+			MovementComponent->SetComponentTickEnabled(false);
 		}
 		if (USkeletalMeshComponent* MeshComponent = GetMesh())
 		{
@@ -146,6 +175,14 @@ void ACharacterBase::SetCharacterMode(ECharacterMode NewMode)
 		}
 		SetActorEnableCollision(false);
 		SetActorTickEnabled(true);
+		// An assist is presentation-only. Hidden/assisting pawns must never fall
+		// through the floor while collision is disabled and retain that velocity.
+		if (auto* Movement = GetCharacterMovement())
+		{
+			Movement->StopMovementImmediately();
+			Movement->DisableMovement();
+			Movement->SetComponentTickEnabled(false);
+		}
 		break;
 	}
 

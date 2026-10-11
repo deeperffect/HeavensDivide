@@ -79,7 +79,7 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 public:
 	UAutoAttackComponent();
     void SpawnIaijutsuDash(FVector Origin, FVector Destination);
-    bool SpawnIaijutsuSlashes(FVector Origin, FVector Direction, float Distance, float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget = nullptr, float DamageMultiplier = 1.f);
+    bool SpawnIaijutsuSlashes(FVector Origin, FVector Direction, float Distance, float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget = nullptr, float DamageMultiplier = 1.f, bool bAssistAttack = false);
 
 	void CaptureRunState(FAutoAttackRunState& OutState) const;
 	void RestoreRunState(const FAutoAttackRunState& State);
@@ -109,6 +109,7 @@ public:
 	AEnemyBase* FindAssistTarget() const;
 	AEnemyBase* FindAssistTargetNearLocation(const FVector& SearchLocation, float SearchRadius) const;
 	bool IsProjectileAttack() const;
+    bool UsesRangedAssistPlacement() const;
 	bool IsTargetInCurrentMeleeReach(const AEnemyBase* TargetEnemy) const;
 	bool TryStartAssistAttack(AEnemyBase*& OutTargetEnemy, float& OutExpectedDuration);
 	bool TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy, float& OutExpectedDuration);

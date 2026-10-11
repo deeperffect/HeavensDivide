@@ -1,5 +1,7 @@
 #include "SwapAfterimage.h"
 #include "CharacterBase.h"
+#include "SurvivorPlayerController.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/PoseableMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -55,6 +57,7 @@ void ASwapAfterimage::Initialize(ACharacterBase* Source, UMaterialInterface* Mat
 void ASwapAfterimage::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    if (auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0)); PC && PC->IsSelectingUpgrade()) return;
     AdvanceVisual(!bGameTimeAnimation && (AnimatedMesh || bRealTimeFade) ? static_cast<float>(FApp::GetDeltaTime()) : DeltaSeconds);
 }
 
@@ -174,6 +177,8 @@ bool ASwapAfterimage::InitializeDeparture(ACharacterBase* Source,UMaterialInterf
     // false. Keep manually evaluated poses eligible for cooked render uploads.
     AnimatedMesh->VisibilityBasedAnimTickOption=EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
     AnimatedMesh->RegisterComponent();
+    // A manually posed cosmetic copy has no coherent cloth simulation timestep.
+    AnimatedMesh->SuspendClothingSimulation();
     AnimatedMesh->SetWorldTransform(Source->GetMesh()->GetComponentTransform());
     AnimatedMesh->SetComponentTickEnabled(false); // Evaluated explicitly, without gameplay notifies.
     auto* Anim=AnimatedMesh->GetSingleNodeInstance();

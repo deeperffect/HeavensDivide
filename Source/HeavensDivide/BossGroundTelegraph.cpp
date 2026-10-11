@@ -8,6 +8,7 @@
 #include "SurvivorPlayerController.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/StaticMesh.h"
+#include "Materials/Material.h"
 
 ABossGroundTelegraph::ABossGroundTelegraph()
 {
@@ -35,45 +36,19 @@ void ABossGroundTelegraph::InitializeTelegraph(ASurvivorPlayerController* InPlay
 	Damage = FMath::Max(0.0f, InDamage);
 	Elapsed = 0.f;
 	bResolved = false;
-	TelegraphVisual->SetWorldScale3D(FVector::OneVector);
-	TelegraphVisual->SetHiddenInGame(true);
-	TelegraphVisual->SetVisibility(false);
-	CircleDecalVisual->DecalSize = FVector(64.0f, Radius, Radius);
-	if (InMaterial)
-	{
-		DynamicMaterial = UMaterialInstanceDynamic::Create(InMaterial, this);
-		CircleDecalVisual->SetDecalMaterial(DynamicMaterial);
-	}
-	if (DynamicMaterial)
-	{
-		DynamicMaterial->SetScalarParameterValue(TEXT("FillAmount"), 0.0f);
-	}
-	CircleDecalVisual->SetHiddenInGame(false);
-	CircleDecalVisual->SetVisibility(true);
+	UMaterialInterface* Surface=InMaterial && InMaterial->GetMaterial()->MaterialDomain==MD_Surface ? InMaterial
+		: LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle"));
+	InitializePersistentSurfaceCircle(Radius,Surface);
+	if (!DynamicMaterial) { CancelTelegraph(); return; }
 	bInitialized = true;
 	SetActorTickEnabled(true);
 }
 
 void ABossGroundTelegraph::InitializePersistentCircle(float InRadius, UMaterialInterface* InMaterial)
 {
-	bInitialized = false;
-	TelegraphVisual->SetWorldScale3D(FVector::OneVector);
-	Radius = FMath::Max(1.0f, InRadius);
-	TelegraphVisual->SetHiddenInGame(true);
-	TelegraphVisual->SetVisibility(false);
-	CircleDecalVisual->DecalSize = FVector(64.0f, Radius, Radius);
-	if (InMaterial)
-	{
-		DynamicMaterial = UMaterialInstanceDynamic::Create(InMaterial, this);
-		CircleDecalVisual->SetDecalMaterial(DynamicMaterial);
-	}
-	if (DynamicMaterial)
-	{
-		DynamicMaterial->SetScalarParameterValue(TEXT("FillAmount"), 0.0f);
-	}
-	CircleDecalVisual->SetHiddenInGame(false);
-	CircleDecalVisual->SetVisibility(true);
-	SetActorTickEnabled(false);
+	UMaterialInterface* Surface=InMaterial && InMaterial->GetMaterial()->MaterialDomain==MD_Surface ? InMaterial
+		: LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle"));
+	InitializePersistentSurfaceCircle(InRadius,Surface);
 }
 
 void ABossGroundTelegraph::SetTelegraphFillAmount(float FillAmount)
@@ -81,6 +56,7 @@ void ABossGroundTelegraph::SetTelegraphFillAmount(float FillAmount)
 	if (DynamicMaterial)
 	{
 		DynamicMaterial->SetScalarParameterValue(TEXT("FillAmount"), FMath::Clamp(FillAmount, 0.0f, 1.0f));
+		DynamicMaterial->SetScalarParameterValue(TEXT("Fill"), FMath::Clamp(FillAmount, 0.0f, 1.0f));
 	}
 }
 
@@ -135,11 +111,20 @@ void ABossGroundTelegraph::Tick(float DeltaSeconds)
 	}
 	UCombatAudioLibrary::PlayEvent(this, TEXT("BossGroundHit"), GetActorLocation());
 	OnTelegraphResolved(bHit);
-	Destroy();
+	if(DynamicMaterial)DynamicMaterial->SetScalarParameterValue(TEXT("Impact"),1);
+	SetLifeSpan(.35f);
 }
 
 void ABossGroundTelegraph::CancelTelegraph()
 {
 	bResolved = true;
 	Destroy();
+}
+
+void ABossGroundTelegraph::PlayImpact()
+{
+	bResolved=true;
+	SetTelegraphFillAmount(1);
+	if(DynamicMaterial)DynamicMaterial->SetScalarParameterValue(TEXT("Impact"),1);
+	SetLifeSpan(.35f);
 }

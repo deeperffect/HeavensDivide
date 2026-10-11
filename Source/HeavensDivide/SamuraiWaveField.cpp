@@ -1,4 +1,5 @@
 #include "SamuraiWaveField.h"
+#include "UpgradeBalance.h"
 #include "CrescentBuild.h"
 #include "Components/SceneComponent.h"
 #include "EnemyBase.h"
@@ -18,23 +19,24 @@ void ASamuraiWaveField::Initialize(ASamuraiCharacter* Samurai, UPlayerUpgradeCom
 {
     if (!Samurai || !U || !GetWorld()) { Destroy(); return; }
     Source = Samurai;
+    PulseInterval = FMath::Max(.01f, UpgradeBalance::Value(U, TEXT("CrescentField"), TEXT("TickInterval"), .5f));
     const float Scaling = 1.f + CrescentBuild::Scaling(U, TEXT("CrescentFieldPower"), .15f);
     HitboxHalfExtent = WaveHalfExtent.GetAbs().ComponentMax(FVector(.01f));
     Remaining = FMath::Max(.01f, CrescentBuild::Value(U, TEXT("CrescentField"), TEXT("Duration"), 3.f) * Scaling);
     // Duration supplies the +15% total damage per rank. Scaling DPS as well would
     // double-dip and turn five ranks into 3.0625x total damage instead of 1.75x.
     DamagePerSecond = FMath::Max(0.f, WaveDamage * CrescentBuild::Value(U, TEXT("CrescentField"), TEXT("DamagePerSecond"), .3f));
-    if (U->HasUpgradeId(TEXT("CrescentFieldPact"))) DamagePerSecond *= 1.5f;
+    if (U->HasUpgradeId(TEXT("CrescentFieldPact"))) DamagePerSecond *= UpgradeBalance::Value(U, TEXT("CrescentFieldPact"), TEXT("FieldDamageMultiplier"), 1.5f);
     TotalDamage = DamagePerSecond * Remaining;
     const bool bErupt = U->HasUpgradeId(TEXT("CrescentEruptionPact"));
-    const float Lifetime = bErupt ? .3f : Remaining;
+    const float Lifetime = bErupt ? FMath::Max(.01f, UpgradeBalance::Value(U, TEXT("CrescentEruptionPact"), TEXT("EruptionDelay"), .3f)) : Remaining;
     LastPulseTime = GetWorld()->GetTimeSeconds();
     // Adopt the particles deposited during outbound travel. No separate decal,
     // rectangle, or eruption flash: the rocks are the field's only presentation.
     Debris = DepositedDebris;
     if (Debris.IsValid()) Debris->ReleaseGroundSlash(Lifetime + .1f);
-    if (bErupt) GetWorldTimerManager().SetTimer(DamageTimer, this, &ASamuraiWaveField::Erupt, .3f, false);
-    else GetWorldTimerManager().SetTimer(DamageTimer, this, &ASamuraiWaveField::Pulse, FMath::Min(.5f, Remaining), false);
+    if (bErupt) GetWorldTimerManager().SetTimer(DamageTimer, this, &ASamuraiWaveField::Erupt, Lifetime, false);
+    else GetWorldTimerManager().SetTimer(DamageTimer, this, &ASamuraiWaveField::Pulse, FMath::Min(PulseInterval, Remaining), false);
     SetLifeSpan(Lifetime + 1.f);
 }
 void ASamuraiWaveField::DealDamage(float Amount)
@@ -58,7 +60,7 @@ void ASamuraiWaveField::Pulse()
     DealDamage(DamagePerSecond * Elapsed);
     Remaining -= Elapsed;
     if (Remaining <= KINDA_SMALL_NUMBER || !Source.IsValid()) { Destroy(); return; }
-    GetWorldTimerManager().SetTimer(DamageTimer, this, &ASamuraiWaveField::Pulse, FMath::Min(.5f, Remaining), false);
+    GetWorldTimerManager().SetTimer(DamageTimer, this, &ASamuraiWaveField::Pulse, FMath::Min(PulseInterval, Remaining), false);
 }
 void ASamuraiWaveField::Erupt()
 {

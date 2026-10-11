@@ -63,7 +63,7 @@ void UTesterBalanceSettings::ApplySpawner(AEnemySpawner* Spawner) const
         Phase.EmergencySpawnInterval *= Interval;
         if (bDisableEvents) Phase.bEventsEnabled = false;
     }
-    for (auto& Entry : Spawner->EnemySpawnEntries) Entry.HealthScalingPerMinute *= Safe(HealthGrowth, 0.f, 5.f);
+    for (auto& Entry : Spawner->EnemySpawnEntries) Entry.HealthScalingPerMinute = 0.f;
     UE_LOG(LogTemp, Display, TEXT("[TesterBalance] %s"), *Report());
 }
 TArray<TPair<FString, FString>> UTesterBalanceSettings::Roster()
@@ -96,7 +96,7 @@ TArray<TPair<FString, FString>> UTesterBalanceSettings::Roster()
 }
 FString UTesterBalanceSettings::Report() const
 {
-    FString Text = FString::Printf(TEXT("Heavens Divide tester balance v1\nEnabled: %s\nMax alive: %d (0 = authored phases)\nPopulation: %.2fx\nSpawn interval: %.2fx\nHealth growth: %.2fx\nPressure events disabled: %s\n"),
+    FString Text = FString::Printf(TEXT("Heavens Divide tester balance v1\nEnabled: %s\nMax alive: %d (0 = authored phases)\nPopulation: %.2fx\nSpawn interval: %.2fx\nLegacy health growth (ignored): %.2fx\nPressure events disabled: %s\n"),
         bEnabled ? TEXT("yes") : TEXT("no"), MaxAlive, Population, SpawnInterval, HealthGrowth, bDisableEvents ? TEXT("yes") : TEXT("no"));
     for (const auto& Row : Roster())
     {

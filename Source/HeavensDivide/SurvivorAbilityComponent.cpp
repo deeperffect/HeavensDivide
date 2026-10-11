@@ -141,6 +141,7 @@ bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase *Character)
     const bool bSamurai = Character->IsA<ASamuraiCharacter>();
     if (!bSamurai && !Character->IsA<ANinjaCharacter>())
         return false;
+    if (bSamurai && (Upgrades->HasUpgradeId(TEXT("BladeWave")) || Upgrades->HasUpgradeId(TEXT("Iaijutsu")))) return false;
     const auto Source = bSamurai ? EPlayerAttackSource::Samurai : EPlayerAttackSource::Ninja;
     const FVector Origin = Character->GetActorLocation();
     const FVector Forward = Character->GetVisualForwardVector().GetSafeNormal2D();

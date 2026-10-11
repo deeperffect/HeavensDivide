@@ -126,6 +126,7 @@ private:
 	TObjectPtr<AActor> IgnoredOverlapActor;
 
 	float SourceTargetingRange = 0.0f;
+    float AppliedCoverageScale = 1.0f;
 	int32 AdditionalPierceCount = 0;
 	int32 RemainingEnemyHits = 1;
 	int32 RemainingBounces = 0;

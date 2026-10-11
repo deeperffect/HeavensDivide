@@ -7,6 +7,20 @@
 #include "Rendering/DrawElements.h"
 #include "Styling/CoreStyle.h"
 #include "SurvivorPlayerController.h"
+#include "Widgets/Layout/SBox.h"
+#include "BloodshiftMenuStyle.h"
+
+UMinimapWidget::UMinimapWidget(const FObjectInitializer& Initializer) : Super(Initializer)
+{
+	SetVisibility(ESlateVisibility::HitTestInvisible);
+	// The player moves without changing any UMG properties. Always repaint this small widget.
+	ForceVolatile(true);
+}
+
+TSharedRef<SWidget> UMinimapWidget::RebuildWidget()
+{
+	return SNew(SBox).WidthOverride(MapSize.X).HeightOverride(MapSize.Y);
+}
 
 void UMinimapWidget::InitializeMinimap(ASurvivorPlayerController* InController)
 {
@@ -19,6 +33,19 @@ int32 UMinimapWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Geo, 
 	const FVector2D Size = Geo.GetLocalSize();
 	const FSlateBrush* White = FCoreStyle::Get().GetBrush("WhiteBrush");
 	FSlateDrawElement::MakeBox(Draw, ++Layer, Geo.ToPaintGeometry(), MinimapBackground.GetResourceObject() ? &MinimapBackground : White, ESlateDrawEffect::None, MinimapBackground.GetResourceObject() ? FLinearColor::White : BackgroundColor);
+	const auto DrawLine = [&](TArray<FVector2D> Points, FLinearColor Color, float Width = 1.0f)
+	{
+		FSlateDrawElement::MakeLines(Draw, Layer + 1, Geo.ToPaintGeometry(), Points, ESlateDrawEffect::None, Color, true, Width);
+	};
+	DrawLine({{1,1},{Size.X-1,1},{Size.X-1,Size.Y-1},{1,Size.Y-1},{1,1}}, BloodshiftMenu::Gold.CopyWithNewOpacity(.7f));
+	if (!MinimapBackground.GetResourceObject())
+		for (int32 I=1;I<4;++I)
+		{
+			const float F=I*.25f;
+			DrawLine({{ContentPadding,Size.Y*F},{Size.X-ContentPadding,Size.Y*F}},BloodshiftMenu::Rule.CopyWithNewOpacity(.5f));
+			DrawLine({{Size.X*F,ContentPadding},{Size.X*F,Size.Y-ContentPadding}},BloodshiftMenu::Rule.CopyWithNewOpacity(.5f));
+		}
+	++Layer;
 	const FVector2D InnerSize(FMath::Max(1.0f, Size.X - 2.0f * ContentPadding), FMath::Max(1.0f, Size.Y - 2.0f * ContentPadding));
 
 	const UWorld* World = GetWorld();
@@ -35,6 +62,8 @@ int32 UMinimapWidget::NativePaint(const FPaintArgs& Args, const FGeometry& Geo, 
 		const FVector2D MarkerSize = Marker->MarkerSize;
 		const FVector2D Pos = FVector2D(ContentPadding) + Normalized * InnerSize - MarkerSize * 0.5f;
 		FLinearColor Color = Marker->GetMarkerType() == EMinimapMarkerType::BossGate ? FLinearColor(0.75f, 0.2f, 0.85f, 1.0f) : FLinearColor(1.0f, 0.7f, 0.12f, 1.0f);
+        if (Marker->GetMarkerType()==EMinimapMarkerType::HealingPickup) Color=FLinearColor(.15f,1.f,.3f,1.f);
+        else if (Marker->GetMarkerType()==EMinimapMarkerType::MagnetPickup) Color=FLinearColor(.1f,.7f,1.f,1.f);
 		if (Marker->GetMarkerState() == EMinimapMarkerState::Locked) Color = FLinearColor(0.35f, 0.35f, 0.42f, 1.0f);
 		else if (Marker->GetMarkerState() == EMinimapMarkerState::Active) Color = FLinearColor(1.0f, 0.25f, 0.12f, 1.0f);
 		if (bClamped) Color.A = 0.65f;

@@ -79,6 +79,7 @@ public:
     UFUNCTION(BlueprintPure, Category="Combo") float GetMaxCombo() const;
     UFUNCTION(BlueprintPure, Category="Combo") float GetComboPercent() const;
     UFUNCTION(BlueprintPure, Category="Combo") bool IsFull() const;
+    UFUNCTION(BlueprintPure, Category="Combo") bool IsComboUnlocked() const;
     UFUNCTION(BlueprintPure, Category="Combo") bool IsAbilityActive() const { return AbilityCharacter.IsValid(); }
     UFUNCTION(BlueprintPure, Category="Combo") bool CanActivateAbility() const;
     UFUNCTION(BlueprintCallable, Category="Combo") bool TryActivateAbility();

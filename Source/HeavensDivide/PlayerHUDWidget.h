@@ -18,6 +18,7 @@ class UBorder;
 class UProgressBar;
 class AFinalBossBase;
 class UMinimapWidget;
+class UCurrencyHUDWidget;
 class UImage;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerHUDHealthUpdated, float, CurrentHealth, float, MaxHealth, float, HealthPercent);
@@ -381,4 +382,5 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UTextBlock> BossHealthValueText;
 	UPROPERTY(Transient) TObjectPtr<UProgressBar> BossHealthProgressBar;
 	UPROPERTY(Transient) TObjectPtr<UMinimapWidget> MinimapWidget;
+	UPROPERTY(Transient) TObjectPtr<UCurrencyHUDWidget> CurrencyWidget;
 };

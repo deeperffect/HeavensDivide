@@ -1,4 +1,5 @@
 #include "EliteRewardChest.h"
+#include "ChestRewardWidget.h"
 #include "ExperiencePickup.h"
 #include "ExperienceComponent.h"
 #include "CharacterManagerComponent.h"
@@ -14,6 +15,8 @@
 #include "NiagaraSystem.h"
 #include "Sound/SoundBase.h"
 #include "UObject/ConstructorHelpers.h"
+#include "CombatGround.h"
+#include "RunChallengeSubsystem.h"
 
 AEliteRewardChest::AEliteRewardChest()
 {
@@ -64,10 +67,23 @@ void AEliteRewardChest::Tick(float DeltaSeconds)
   Player=PC;PreviousView=PC->GetViewTarget();bOpening=true;bOwnsPause=true;
   OpeningStarted=LastRealTime=FPlatformTime::Seconds();
   RewardGlow->SetComponentTickEnabled(false);
-  PC->SetViewTarget(this);
+  if(PC->IsLocalController() && PC->GetLocalPlayer())
+  {
+   RewardWidget=CreateWidget<UChestRewardWidget>(PC);
+   if(RewardWidget)
+   {
+    bPreviousMouseCursor=PC->bShowMouseCursor;PC->bShowMouseCursor=true;
+    RewardWidget->Present(this,TotalXP,0,OpeningDuration);RewardWidget->AddToViewport(150);
+    FInputModeUIOnly Input;Input.SetWidgetToFocus(RewardWidget->TakeWidget());Input.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+    PC->SetInputMode(Input);RewardWidget->SetKeyboardFocus();
+   }
+  }
  }
  const double Now=FPlatformTime::Seconds();
+ if(bSkipRequested && Now-OpeningStarted>.25)
+ { OpeningStarted=FMath::Min(OpeningStarted,Now-(FMath::Max(1.5f,OpeningDuration)-.65f));bSkipRequested=false; }
  const float Elapsed=Now-OpeningStarted;
+ if(RewardWidget)RewardWidget->Present(this,TotalXP,Elapsed,OpeningDuration);
  const float Dt=FMath::Clamp(float(Now-LastRealTime),0.f,.1f);LastRealTime=Now;
  const float Open=FMath::SmoothStep(.8f,1.45f,Elapsed);
  if(!bPlayedOpeningSound&&Elapsed>=.8f)
@@ -89,8 +105,15 @@ void AEliteRewardChest::Tick(float DeltaSeconds)
 }
 void AEliteRewardChest::RestorePlayer()
 {
+ const bool bHadWidget=RewardWidget!=nullptr;
+ if(RewardWidget){RewardWidget->RemoveFromParent();RewardWidget=nullptr;}
  if(auto* PC=Player.Get())
  {
+  if(bHadWidget)
+  {
+   PC->bShowMouseCursor=bPreviousMouseCursor;
+   FInputModeGameAndUI Input;Input.SetHideCursorDuringCapture(false);Input.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);PC->SetInputMode(Input);
+  }
   if(PC->GetViewTarget()==this)PC->SetViewTarget(PreviousView.IsValid()?PreviousView.Get():PC->GetPawn());
   if(bOwnsPause)PC->SetPause(false);
  }
@@ -100,6 +123,7 @@ void AEliteRewardChest::FinishOpening()
 {
  if(bRewardReleased)return;
  bRewardReleased=true;
+ RunChallenges::AwardCurrencies(this,5,1);
  RestorePlayer();
  const int32 Count=FMath::Min(TotalXP,FMath::Clamp(OrbCount,1,64));
  int32 FailedXP=0;
@@ -108,9 +132,9 @@ void AEliteRewardChest::FinishOpening()
   const int32 Value=TotalXP/Count+(I<TotalXP%Count?1:0);
   const float Angle=I*2.39996323f;
   FVector Landing=GetActorLocation()+FVector(FMath::Cos(Angle),FMath::Sin(Angle),0)*FMath::Lerp(100.f,280.f,FMath::Sqrt(float(I+1)/Count));
-  FHitResult Hit;
-  FCollisionObjectQueryParams Objects;Objects.AddObjectTypesToQuery(ECC_WorldStatic);
-  if(GetWorld()->LineTraceSingleByObjectType(Hit,Landing+FVector(0,0,200),Landing-FVector(0,0,600),Objects,FCollisionQueryParams(SCENE_QUERY_STAT(ChestOrbGround),false,this)))Landing.Z=Hit.ImpactPoint.Z+18;
+  Landing=CombatGround::ClampInsideArena(GetWorld(),Landing,18.f);
+  FVector Ground;
+  if(CombatGround::FindSurface(GetWorld(),Landing,this,Ground))Landing.Z=Ground.Z+18;
   const FTransform Spawn(FRotator::ZeroRotator,GetActorLocation()+FVector(0,0,65));
   auto* Orb=GetWorld()->SpawnActorDeferred<AExperiencePickup>(PickupClass,Spawn,nullptr,nullptr,ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
   if(!Orb){FailedXP+=Value;continue;}

@@ -1,14 +1,19 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyBase.h"
+#include "UpgradeBalance.h"
 #include "CrescentBuild.h"
 #include "EliteRewardChest.h"
 #include "TesterBalanceSettings.h"
+#include "BalanceLabDirector.h"
+#include "CombatGround.h"
 
 #include "HealingPickupDropSubsystem.h"
 
 #include "Animation/AnimInstance.h"
 #include "EnemyDeathComponent.h"
+#include "RunChallengeSubsystem.h"
+#include "FinalBossBase.h"
 #include "AIController.h"
 #include "BrainComponent.h"
 #include "AnimationBudgetAllocatorParameters.h"
@@ -46,6 +51,7 @@
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
 #include "Engine/OverlapResult.h"
+#include "Engine/GameInstance.h"
 #include "EngineUtils.h"
 #include "UObject/UnrealType.h"
 
@@ -203,7 +209,11 @@ void AEnemyBase::EndHitFlash()
 void AEnemyBase::BeginPlay()
 {
 	Super::BeginPlay();
-	GetDefault<UTesterBalanceSettings>()->ApplyEnemy(this);
+	if (!ABalanceLabDirector::Find(GetWorld())) GetDefault<UTesterBalanceSettings>()->ApplyEnemy(this);
+	// Bosses initialize their authored HP/speed after this base call, and apply there instead.
+	if (!IsA<AFinalBossBase>())
+		if (auto* GI = GetGameInstance())
+			if (auto* Challenges = GI->GetSubsystem<URunChallengeSubsystem>()) Challenges->ApplyEnemy(this);
 	InitializeHitFlash();
 
 	SnapToGroundBeforeLightweightMovement();
@@ -496,7 +506,7 @@ void AEnemyBase::ConfigureObjectiveEnemy(float MaxHealth, EPlayerAttackSource Re
 	BloodValue = 0;
 	if (HealthComponent)
 	{
-		HealthComponent->SetMaxHealthPreservePercent(FMath::Max(1.0f, MaxHealth) * GetDefault<UTesterBalanceSettings>()->GetHealthMultiplier(this));
+		HealthComponent->SetMaxHealthPreservePercent(FMath::Max(1.0f, MaxHealth) * (ABalanceLabDirector::Find(GetWorld()) ? 1.f : GetDefault<UTesterBalanceSettings>()->GetHealthMultiplier(this)));
 	}
 
 	NormalOverlayDynamicMaterial = OverlayMaterial ? UMaterialInstanceDynamic::Create(OverlayMaterial, this) : nullptr;
@@ -775,6 +785,8 @@ void AEnemyBase::HandleDeath()
 	}
 
 	bIsDead = true;
+	if (auto* GI = GetGameInstance())
+		if (auto* Challenges = GI->GetSubsystem<URunChallengeSubsystem>()) Challenges->NotifyEnemyKilled(this);
 	CurrentTarget = nullptr;
 	StopEnemyBehavior();
 	StopBehaviorUpdates();
@@ -805,7 +817,7 @@ void AEnemyBase::HandleDeath()
     if ((bIaijutsuDashRefund || (IaijutsuMarkSource.IsValid() && IaijutsuMarkSource->HasUpgradeId(TEXT("IaijutsuDashPact"))))
         && GetWorld() && GetWorld()->GetTimeSeconds() < IaijutsuMarkExpiry)
         if (auto* Source = IaijutsuMarkSource.Get())
-            if (auto* PC = Cast<ASurvivorPlayerController>(Source->GetOwner())) PC->ReduceDashRecharge(.3f);
+            if (auto* PC = Cast<ASurvivorPlayerController>(Source->GetOwner())) PC->ReduceDashRecharge(UpgradeBalance::Value(Source, TEXT("IaijutsuDashPact"), TEXT("RechargeSecondsPerKill"), .3f));
     IaijutsuMarkExpiry = 0;
     GetWorldTimerManager().ClearTimer(IaijutsuMarkTimer);
 	CrescentBuild::TryKillAssist(GetWorld());
@@ -957,10 +969,9 @@ void AEnemyBase::SpawnExperiencePickup()
 
 	if (DropCategory == EEnemyDropCategory::Elite)
 	{
-		FVector Location=GetActorLocation();
-		FHitResult Ground;
-		FCollisionObjectQueryParams Objects;Objects.AddObjectTypesToQuery(ECC_WorldStatic);
-		if(GetWorld()->LineTraceSingleByObjectType(Ground,Location+FVector(0,0,100),Location-FVector(0,0,1500),Objects,FCollisionQueryParams(SCENE_QUERY_STAT(EliteRewardGround),false,this)))Location=Ground.ImpactPoint+FVector(0,0,3);
+        FVector Location=CombatGround::ClampInsideArena(GetWorld(),GetActorLocation(),80.f);
+        FVector Ground;
+        if(CombatGround::FindSurface(GetWorld(),Location,this,Ground))Location=Ground+FVector(0,0,3);
 		const TSubclassOf<AEliteRewardChest> ChestClass=EliteRewardChestClass?EliteRewardChestClass:TSubclassOf<AEliteRewardChest>(AEliteRewardChest::StaticClass());
 		if(auto* Chest=GetWorld()->SpawnActor<AEliteRewardChest>(ChestClass,Location,FRotator::ZeroRotator,SpawnParameters))
 		{
@@ -985,7 +996,11 @@ void AEnemyBase::SpawnExperiencePickup()
 			SpawnLocation.Y += RandomOffset.Y;
 		}
 
-		AExperiencePickup* Pickup = GetWorld()->SpawnActor<AExperiencePickup>(
+        FVector Ground;
+        SpawnLocation=CombatGround::ClampInsideArena(GetWorld(),SpawnLocation,18.f);
+        if (CombatGround::FindSurface(GetWorld(),SpawnLocation,this,Ground)) SpawnLocation.Z=Ground.Z+18.f;
+
+        AExperiencePickup* Pickup = GetWorld()->SpawnActor<AExperiencePickup>(
 			ExperiencePickupClass,
 			SpawnLocation,
 			FRotator::ZeroRotator,

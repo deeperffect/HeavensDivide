@@ -39,3 +39,5 @@ for gameplay. Lighting will affect the lit material's appearance in your level.
 
 `Tools/create_stylized_ground.py` creates missing assets and preserves existing
 ones. No existing level or material assignment is replaced.
+
+Level 1 now uses the dedicated lit `MI_Lvl1_Ground` in `/Game/HeavensDivide/Materials/EnvironmentPolish`, with an authored route mask. The generic materials above remain available for other levels. See [EnvironmentPolish.md](EnvironmentPolish.md) for the layout, lighting controls and backup workflow. The unlit preview material is only for texture diagnostics; it should not be assigned to a gameplay floor.

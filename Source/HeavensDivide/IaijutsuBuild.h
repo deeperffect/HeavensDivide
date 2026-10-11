@@ -18,8 +18,8 @@ inline float Scaling(const UPlayerUpgradeComponent* U, FName Id, float Default)
 inline float Charge(const UPlayerUpgradeComponent* U)
 {
     float Duration = Value(U, TEXT("Iaijutsu"), TEXT("ChargeDuration"), 1.f)
-        / FMath::Max(.01f, 1.f + Scaling(U, TEXT("IaijutsuChargeSpeed"), .15f));
-    if (U && U->HasUpgradeId(TEXT("IaijutsuPowerPact"))) Duration *= 1.3f;
+        / FMath::Max(.01f, 1.f + Scaling(U, TEXT("IaijutsuChargeSpeed"), .15f) + (U ? U->GetMetaSkillBonus(TEXT("IaijutsuCharge")) : 0.f));
+    if (U && U->HasUpgradeId(TEXT("IaijutsuPowerPact"))) Duration *= Value(U, TEXT("IaijutsuPowerPact"), TEXT("ChargeMultiplier"), 1.3f);
     return FMath::Max(.01f, Duration);
 }
 inline float VacuumReach(const UPlayerUpgradeComponent* U)

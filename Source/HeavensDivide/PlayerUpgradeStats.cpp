@@ -113,12 +113,14 @@ int32 UPlayerUpgradeComponent::GetMasteryPoints(EUpgradeInvestmentOwner Investme
 
 float UPlayerUpgradeComponent::GetSamuraiPowerMultiplier() const
 {
-	return 1.0f + FMath::Max(0, SamuraiMasteryPoints) * FMath::Max(0.0f, PowerPerMasteryPoint);
+	// Mastery tracks investment/unlocks only; damage is explicit on cards and permanent skills.
+	return 1.0f;
 }
 
 float UPlayerUpgradeComponent::GetNinjaPowerMultiplier() const
 {
-	return 1.0f + FMath::Max(0, NinjaMasteryPoints) * FMath::Max(0.0f, PowerPerMasteryPoint);
+	// Mastery tracks investment/unlocks only; damage is explicit on cards and permanent skills.
+	return 1.0f;
 }
 
 void UPlayerUpgradeComponent::RebuildUpgradeModifiers(UUpgradeDefinition* Upgrade, int32 NewLevel)
@@ -266,9 +268,43 @@ FName UPlayerUpgradeComponent::MakeUpgradeModifierId(const UUpgradeDefinition* U
 
 float UPlayerUpgradeComponent::GetMetaSkillBonus(FName Effect) const
 {
-	const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	const auto* Meta = GI ? GI->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-	return Meta ? Meta->GetSkillBonus(Effect) : 0.f;
+    const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+    const auto* Meta = GI ? GI->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+    auto OwnsStance = [&](FName Stance)
+    {
+        return HasUpgradeId(Stance) && (BalancePreviewMetaProfile >= 0 || (Meta && Meta->IsStanceUnlocked(Stance)));
+    };
+    // Read unconverted effects directly: conversions must never call each other recursively.
+    auto RawBonus = [&](FName RawEffect)
+    {
+        float Bonus = 0.f;
+        if (BalancePreviewMetaProfile >= 0)
+        {
+            if (BalancePreviewMetaProfile > 0)
+                for (const auto& Node : MetaSkillTree::Nodes())
+                    if (Node.Effect == RawEffect && (Node.RequiredStance.IsNone() || OwnsStance(Node.RequiredStance)))
+                        Bonus += Node.MaxRank * Node.PerRank;
+            return Bonus;
+        }
+        if (!Meta) return 0.f;
+        Bonus = Meta->GetSkillBonus(RawEffect);
+        // Each hero owns a stance, including the off-screen Tag Team assistant.
+        for (FName Stance : {FName(TEXT("BattleStance")),FName(TEXT("Iaijutsu")),FName(TEXT("BladeWave")),
+             FName(TEXT("ReturningFang")),FName(TEXT("BarrageStance")),FName(TEXT("GreatShuriken"))})
+            if (OwnsStance(Stance)) Bonus += Meta->GetStanceSkillBonus(RawEffect,Stance);
+        return Bonus;
+    };
+    if (Effect == TEXT("IaijutsuCharge"))
+        return OwnsStance(TEXT("Iaijutsu")) ? RawBonus(Effect)+RawBonus(TEXT("Attack"))+RawBonus(TEXT("SteelAttack")) : 0.f;
+    if (Effect == TEXT("FangRange"))
+        return OwnsStance(TEXT("ReturningFang")) ? RawBonus(Effect)+RawBonus(TEXT("Area")) : 0.f;
+    if (Effect == TEXT("ShurikenSize"))
+        return OwnsStance(TEXT("GreatShuriken")) ? RawBonus(Effect)+RawBonus(TEXT("Area")) : 0.f;
+    if (Effect == TEXT("ShurikenTempo"))
+        return OwnsStance(TEXT("GreatShuriken")) ? RawBonus(Effect)+RawBonus(TEXT("Attack"))+RawBonus(TEXT("ShadowAttack")) : 0.f;
+    if (Effect == TEXT("BarrageArea"))
+        return OwnsStance(TEXT("BarrageStance")) ? RawBonus(TEXT("Area")) : 0.f;
+    return RawBonus(Effect);
 }
 
 void UPlayerUpgradeComponent::ApplyMetaSkillModifiers()
@@ -282,11 +318,23 @@ void UPlayerUpgradeComponent::ApplyMetaSkillModifiers()
 		return;
 	for (const FMetaSkillNode& N : MetaSkillTree::Nodes())
 	{
-		if (N.Effect == TEXT("Swap") || N.Effect == TEXT("Bleed") || N.Effect == TEXT("Poison") ||
+		const FName Source(*FString::Printf(TEXT("MetaSkill.%s"), *N.Id.ToString()));
+        if (N.Effect == TEXT("Attack") || N.Effect == TEXT("SteelAttack") || N.Effect == TEXT("ShadowAttack") || N.Effect == TEXT("Area"))
+        {
+            // Clear pre-conversion sources as well, including live balance-editor rebuilds.
+            if (Shared) Shared->ClearModifiersFromSource(Source);
+            if (auto* Hero=Party->GetSamurai()) Hero->GetCharacterStats()->ClearModifiersFromSource(Source);
+            if (auto* Hero=Party->GetNinja()) Hero->GetCharacterStats()->ClearModifiersFromSource(Source);
+            continue;
+        }
+		if (N.bPassiveEffect || N.Effect == TEXT("Swap") || N.Effect == TEXT("Bleed") || N.Effect == TEXT("Poison") ||
 		    N.Effect == TEXT("Reroll") || N.Effect == TEXT("Banish"))
 			continue;
-		const FName Source(*FString::Printf(TEXT("MetaSkill.%s"), *N.Id.ToString()));
-		const float Value = Meta ? Meta->GetSkillRank(N.Id) * N.PerRank : 0.f;
+		const bool bApplies=N.RequiredStance.IsNone() || (HasUpgradeId(N.RequiredStance) &&
+            (BalancePreviewMetaProfile >= 0 || (Meta && Meta->IsStanceUnlocked(N.RequiredStance))));
+		const float Value = !bApplies ? 0.f : BalancePreviewMetaProfile >= 0
+            ? (BalancePreviewMetaProfile > 0 ? N.MaxRank * N.PerRank : 0.f)
+            : (Meta ? Meta->GetSkillRank(N.Id) * N.PerRank : 0.f);
 		if (N.Target == EUpgradeStatTarget::SharedPlayer)
 		{
 			if (!Shared)
@@ -313,4 +361,30 @@ void UPlayerUpgradeComponent::ApplyMetaSkillModifiers()
 			Stats->AddModifier(M);
 		}
 	}
+    auto SetConverted = [](ACharacterBase* Character, const TCHAR* Source, ECharacterStatType Stat, float Value)
+    {
+        if (auto* Stats = Character ? Character->GetCharacterStats() : nullptr)
+        {
+            FCharacterStatModifier M;
+            M.SourceId = M.ModifierId = Source;
+            M.Stat = Stat; M.Value = Value;
+            Stats->AddModifier(M);
+        }
+    };
+    auto OwnsStance = [&](FName Stance)
+    {
+        return HasUpgradeId(Stance) && (BalancePreviewMetaProfile >= 0 || (Meta && Meta->IsStanceUnlocked(Stance)));
+    };
+    const float SharedCadence = GetMetaSkillBonus(TEXT("Attack"));
+    const float SteelCadence = SharedCadence + GetMetaSkillBonus(TEXT("SteelAttack"));
+    const float ShadowCadence = SharedCadence + GetMetaSkillBonus(TEXT("ShadowAttack"));
+    SetConverted(Party->GetSamurai(),TEXT("MetaSkill.ConvertedSteelCadence"),ECharacterStatType::AttackSpeedMultiplier,
+        OwnsStance(TEXT("BattleStance")) || OwnsStance(TEXT("BladeWave")) ? SteelCadence : 0.f);
+    SetConverted(Party->GetNinja(),TEXT("MetaSkill.ConvertedShadowCadence"),ECharacterStatType::AttackSpeedMultiplier,
+        OwnsStance(TEXT("BarrageStance")) ? ShadowCadence : 0.f);
+    SetConverted(Party->GetNinja(),TEXT("MetaSkill.ConvertedFangCadence"),ECharacterStatType::ProjectileSpeedMultiplier,
+        OwnsStance(TEXT("ReturningFang")) ? ShadowCadence : 0.f);
+    SetConverted(Party->GetSamurai(),TEXT("MetaSkill.ConvertedSteelArea"),ECharacterStatType::AttackAreaMultiplier,
+        GetMetaSkillBonus(TEXT("Area")));
+
 }

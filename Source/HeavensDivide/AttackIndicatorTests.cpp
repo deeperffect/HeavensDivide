@@ -17,7 +17,7 @@ bool FAttackIndicatorTest::RunTest(const FString&)
 {
  auto* World=UWorld::CreateWorld(EWorldType::Game,false);
  World->InitializeActorsForPlay(FURL());
- auto* Circle=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal.M_AttackIndicatorCircle_Decal"));
+ auto* Circle=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle.M_AttackIndicatorCircle"));
  auto* Rectangle=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle.M_AttackIndicatorRectangle"));
  if(!TestNotNull(TEXT("Circle material saved"),Circle)||!TestNotNull(TEXT("Rectangle material saved"),Rectangle)) {World->DestroyWorld(false);return false;}
  auto* Warning=World->SpawnActor<ABossGroundTelegraph>();
@@ -30,15 +30,18 @@ bool FAttackIndicatorTest::RunTest(const FString&)
  BlueRectangle->SetVectorParameterValueEditorOnly(FMaterialParameterInfo(TEXT("FillColor")),FLinearColor::Blue);
 #endif
  Warning->InitializeTelegraph(nullptr,375,2,10,GreenCircle);
- auto* Decal=Warning->FindComponentByClass<UDecalComponent>();
- auto* MID=Cast<UMaterialInstanceDynamic>(Decal->GetDecalMaterial());
+ auto* CircleMesh=Warning->FindComponentByClass<UStaticMeshComponent>();
+ auto* MID=CircleMesh?Cast<UMaterialInstanceDynamic>(CircleMesh->GetMaterial(0)):nullptr;
+ if(!TestNotNull(TEXT("Surface-circle dynamic material exists"),MID)){World->DestroyWorld(false);return false;}
  TestTrue(TEXT("Timed circle inherits authored fill color"),MID->K2_GetVectorParameterValue(TEXT("FillColor")).Equals(FLinearColor::Green));
- TestTrue(TEXT("Circle footprint preserves damage radius"),Decal->DecalSize.Equals(FVector(64,375,375)));
+ TestTrue(TEXT("Circle footprint preserves damage diameter"),CircleMesh->GetComponentScale().Equals(FVector(7.5f,7.5f,1)));
  TestEqual(TEXT("Circle starts empty"),MID->K2_GetScalarParameterValue(TEXT("FillAmount")),0.f);
  Warning->Tick(1);
  TestEqual(TEXT("Circle fills with attack windup"),MID->K2_GetScalarParameterValue(TEXT("FillAmount")),.5f);
  Warning->Tick(1);
- TestTrue(TEXT("Timed warning ends at impact"),Warning->IsActorBeingDestroyed());
+ TestTrue(TEXT("Impact briefly remains visible"),Warning->GetLifeSpan()>0.f&&Warning->GetLifeSpan()<=.35f);
+ Warning->CancelTelegraph();
+ TestTrue(TEXT("Cancelled warning is destroyed"),Warning->IsActorBeingDestroyed());
  auto* Persistent=World->SpawnActor<ABossGroundTelegraph>();
  Persistent->InitializePersistentRectangle(800,200,BlueRectangle);
  auto* Mesh=Persistent->FindComponentByClass<UStaticMeshComponent>();
@@ -50,8 +53,8 @@ bool FAttackIndicatorTest::RunTest(const FString&)
  Persistent->SetTelegraphFillAmount(.75f);
  TestEqual(TEXT("Boss windup drives fill"),RectMID->K2_GetScalarParameterValue(TEXT("FillAmount")),.75f);
  Persistent->InitializePersistentCircle(200,GreenCircle);
- TestTrue(TEXT("Persistent circle inherits authored fill color"),Cast<UMaterialInstanceDynamic>(Persistent->FindComponentByClass<UDecalComponent>()->GetDecalMaterial())->K2_GetVectorParameterValue(TEXT("FillColor")).Equals(FLinearColor::Green));
- TestTrue(TEXT("Switching shape removes rectangular scale"),Mesh->GetComponentScale().Equals(FVector::OneVector));
+ TestTrue(TEXT("Persistent circle inherits authored fill color"),Cast<UMaterialInstanceDynamic>(Mesh->GetMaterial(0))->K2_GetVectorParameterValue(TEXT("FillColor")).Equals(FLinearColor::Green));
+ TestTrue(TEXT("Switching to a circle restores its diameter on both axes"),Mesh->GetComponentScale().Equals(FVector(4,4,1)));
  auto* Trap=World->SpawnActor<ANinjaFloorTrap>();
  Trap->InitializeForTrial(World->SpawnActor<ANinjaTechniqueTrial>());
  Trap->DispatchBeginPlay();

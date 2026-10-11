@@ -105,7 +105,7 @@ bool FStanceDependenciesTest::RunTest(const FString&)
    U->BeginDirectUpgradeSelection(1000);TestFalse(TEXT("Unrestricted reward excludes conflict"),Offered(Row[2]));
    const bool bNinja=Row[0]==TEXT("BarrageStance");
    TestFalse(TEXT("Normal category excludes conflict"),U->GetEligibleUpgradesForCategory(bNinja?EUpgradeCategory::Ninja:EUpgradeCategory::Samurai).Contains(Card(Row[2])));
-   U->BeginDirectCategoryUpgradeSelection(bNinja?EUpgradeCategory::NinjaTrial:EUpgradeCategory::SamuraiTrial,1000);TestFalse(TEXT("Repeat trial excludes conflict"),Offered(Row[2]));
+   TestFalse(TEXT("Retired trial does not open rewards"),U->BeginDirectCategoryUpgradeSelection(bNinja?EUpgradeCategory::NinjaTrial:EUpgradeCategory::SamuraiTrial,1000));
    U->BeginBloodShrineSelection(1000);TestFalse(TEXT("Shrine excludes conflicting pact"),Offered(Row[2]));
   }
  }
@@ -118,9 +118,9 @@ bool FStanceDependenciesTest::RunTest(const FString&)
  TestEqual(TEXT("Only pact acquisition adds mastery"),U->GetNinjaMasteryPoints(),Mastery+1);
  // Verify the actual reward presentation, including fixed-rarity rewards and restoration.
  auto CheckCopy=[&](FName Id,const TCHAR* Name,const TCHAR* Fragment) {
-  U->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::NinjaTrial,1000);
+  U->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Ninja,1000);
   if (Id==TEXT("BloodTransferArea") || Id.ToString().StartsWith(TEXT("Crescent")))
-   U->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::SamuraiTrial,1000);
+   U->BeginDirectCategoryUpgradeSelection(EUpgradeCategory::Samurai,1000);
   const auto& Choices=U->GetCurrentUpgradeChoices();
   const auto* Found=Choices.FindByPredicate([&](const UUpgradeDefinition* A){return A&&A->UpgradeId==Id;});
   if(TestTrue(TEXT("Converted card remains offered"),Found!=nullptr)) {

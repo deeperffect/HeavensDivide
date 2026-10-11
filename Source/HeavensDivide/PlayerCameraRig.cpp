@@ -138,11 +138,8 @@ void APlayerCameraRig::UpdateSwapFocus(float RealDelta)
 		Camera->PostProcessSettings.bOverride_VignetteIntensity=true;
 		Camera->PostProcessSettings.VignetteIntensity=FMath::Clamp(OriginalVignette+SwapVignetteStrength*Weight,0.f,1.f);
 	}
-	// Follow the arriving visual, then blend back to the normal actor anchor.
-	// Sampling its current position also follows movement after the freeze ends.
-	const FVector Anchor=FollowTarget->GetActorLocation();
-	const FVector Visual=FollowTarget->GetVisualRoot() ? FollowTarget->GetVisualRoot()->GetComponentLocation() : Anchor;
-	SetActorLocation(FMath::Lerp(Anchor,Visual,Weight));
+	// Arrival flips/drop/walk are cosmetic. Keep the gameplay anchor stable.
+	SetActorLocation(FollowTarget->GetActorLocation());
 }
 
 void APlayerCameraRig::StopSwapFocus(bool bCancelArrivalKick)

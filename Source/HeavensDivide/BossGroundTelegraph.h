@@ -25,6 +25,7 @@ public:
 	void InitializePersistentSurfaceCircle(float InRadius, UMaterialInterface* InMaterial);
 	void SetTelegraphFillAmount(float FillAmount);
 	void CancelTelegraph();
+	void PlayImpact();
 
 	UFUNCTION(BlueprintImplementableEvent, Category="Boss|Telegraph")
 	void OnTelegraphResolved(bool bHitPlayer);

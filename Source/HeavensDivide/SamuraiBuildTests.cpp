@@ -60,7 +60,7 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
   TestEqual(TEXT("Samurai stance leaves Ninja unchanged"),Ninja->GetCharacterStats()->GetFinalDamageMultiplier(),1.f);
   for(int32 j=0;j<3;++j)TestFalse(TEXT("Only one stance per run"),U->CanAcquireUpgrade(Card(Stances[j])));
   TestEqual(TEXT("Blood supports are exclusive"),U->CanAcquireUpgrade(Card(TEXT("Bloodletting"))), i==2);
-  TestFalse(TEXT("Overkill is temporarily disabled"),U->CanAcquireUpgrade(Card(TEXT("OverkillBurst"))));
+  TestNull(TEXT("Overkill is removed from the saved pool"),U->FindUpgradeDefinition(TEXT("OverkillBurst")));
   TestFalse(TEXT("Wave cannot mix with another stance or duplicate itself"),U->CanAcquireUpgrade(Card(TEXT("BladeWave"))));
   for(auto Id:MeleeScaling)
   {
@@ -158,8 +158,8 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
  auto* Bomb=Spawn(FVector(14000,0,0),10000);auto* BlastTarget=Spawn(FVector(14100,0,0),10000);
  for(int32 i=0;i<5;++i)Bomb->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed,U,EPlayerAttackSource::Samurai,false,80);
  TestFalse(TEXT("Explosion consumes capped Bleed"),Bomb->HasStatus(EEnemyStatusEffect::Bleed));
- TestTrue(TEXT("Explosion hits origin for twice remaining damage"),FMath::IsNearlyEqual(Bomb->GetHealthComponent()->GetCurrentHealth(),9900.f,.02f));
- TestTrue(TEXT("Explosion hits neighbors"),FMath::IsNearlyEqual(BlastTarget->GetHealthComponent()->GetCurrentHealth(),9900.f,.02f));
+ TestTrue(TEXT("Explosion hits origin for 1.5 times remaining damage"),FMath::IsNearlyEqual(Bomb->GetHealthComponent()->GetCurrentHealth(),9925.f,.02f));
+ TestTrue(TEXT("Explosion hits neighbors"),FMath::IsNearlyEqual(BlastTarget->GetHealthComponent()->GetCurrentHealth(),9925.f,.02f));
  ++GFrameCounter;World->Tick(LEVELTICK_All,.001f); // Prime the timer manager before scheduling.
  Attack->BloodDetonationExplosionDelay=.3f;
  auto* DelayedBomb=Spawn(FVector(50000,0,0),10000);
@@ -173,7 +173,7 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
  ++GFrameCounter;World->Tick(LEVELTICK_All,.15f);
  TestEqual(TEXT("No early detonation"),Entering->GetHealthComponent()->GetCurrentHealth(),10000.f);
  ++GFrameCounter;World->Tick(LEVELTICK_All,.2f);
- TestTrue(TEXT("Delayed blast hits enemies entering original radius"),FMath::IsNearlyEqual(Entering->GetHealthComponent()->GetCurrentHealth(),9900.f,.02f));
+ TestTrue(TEXT("Delayed blast hits enemies entering original radius"),FMath::IsNearlyEqual(Entering->GetHealthComponent()->GetCurrentHealth(),9925.f,.02f));
  TestEqual(TEXT("Enemies leaving before detonation escape"),Leaving->GetHealthComponent()->GetCurrentHealth(),10000.f);
  Attack->BloodDetonationExplosionDelay=0.f;
  U->RestoreRunState(Empty);U->AcquireUpgrade(Card(TEXT("BattleStance")));U->AcquireUpgrade(Card(TEXT("DoubleCut")));

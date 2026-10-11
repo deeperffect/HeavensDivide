@@ -57,32 +57,32 @@ bool FBuildFamiliesTest::RunTest(const FString&)
   Upgrades->RestoreRunState(Empty);const auto& S=BuildFamilies[f];++Counts[FCString::Strcmp(S.Owner,TEXT("Samurai"))==0?0:1];
   auto* Starter=Card(f,S.Id);if(!Starter) continue;
   TestTrue(TEXT("Unique family ID"),!Ids.Contains(Starter->UpgradeId));Ids.Add(Starter->UpgradeId);
-  auto* Scaling=Card(f,*FString(FString(S.Id)+TEXT("Power")));
-  TestFalse(TEXT("Family scaling locked before starter"),Upgrades->CanAcquireUpgrade(Scaling));
+  auto* Scaling=Upgrades->FindUpgradeDefinition(TEXT("CrescentDamage"));
+  TestFalse(TEXT("Crescent scaling locked before starter"),Upgrades->CanAcquireUpgrade(Scaling));
   TestTrue(TEXT("Acquire family"),Upgrades->AcquireUpgrade(Starter));
-  for(const TCHAR* Suffix:{TEXT("Power"),TEXT("Area"),TEXT("Haste")})
+  for(const TCHAR* Id:{TEXT("CrescentDamage"),TEXT("CrescentRange"),TEXT("CrescentSpeed")})
   {
-   const FString Id=f==4&&FCString::Strcmp(Suffix,TEXT("Area"))==0?TEXT("WideArc"):FString(S.Id)+Suffix;
-   auto* Scale=Card(f,*Id);if(!Scale)continue;
-   TestEqual(TEXT("Each scaling card has five ranks"),Scale->MaxLevel,5);
-   TestTrue(TEXT("Scaling supports rolled rarities"),Scale->bUsesRolledRarity&&Scale->RarityMagnitudes.Num()==3);
+   auto* Scale=Upgrades->FindUpgradeDefinition(Id);
+   if(!TestNotNull(TEXT("Current Crescent scaling exists"),Scale))continue;
+   TestEqual(TEXT("Current scaling has five ranks"),Scale->MaxLevel,5);
    TestTrue(TEXT("Unique scaling ID"),!Ids.Contains(Scale->UpgradeId));Ids.Add(Scale->UpgradeId);
-   TestFalse(TEXT("Saved scaling is temporarily disabled"),Upgrades->AcquireUpgrade(Scale));
+   TestTrue(TEXT("Current scaling can be acquired"),Upgrades->AcquireUpgrade(Scale));
   }
-  FPlayerUpgradeRunState ScaledState;Upgrades->CaptureRunState(ScaledState);
   for(int32 b=0;b<3;++b)
   {
-   auto* Branch=Card(f,S.Branches[b]);if(!Branch)continue;
+   auto* Branch=Upgrades->FindUpgradeDefinition(S.Branches[b]);
+   const bool bReturning=f==4&&b==0;
+   if(!bReturning){TestNull(TEXT("Unused legacy branch removed"),Branch);continue;}
+   if(!TestNotNull(TEXT("Returning Blade retained"),Branch))continue;
    TestTrue(TEXT("Unique behavior branch"),!Ids.Contains(Branch->UpgradeId));Ids.Add(Branch->UpgradeId);
-   const bool bReturning = f==4 && b==0;
-   TestEqual(TEXT("Only Returning Blade is enabled among legacy wave branches"),Upgrades->AcquireUpgrade(Branch),bReturning);
-   TestEqual(TEXT("Returning Blade activation preserves the stable family branch"),Ability->Branch(f,b),bReturning);
+   TestTrue(TEXT("Returning Blade can be acquired"),Upgrades->AcquireUpgrade(Branch));
+   TestTrue(TEXT("Returning Blade preserves stable family branch"),Ability->Branch(f,b));
   }
   const float Before=Enemies[12]->GetHealthComponent()->GetCurrentHealth();Ability->BladeWaveImpact(Enemies[12],20,true);
   TestEqual(TEXT("Disabled Splinter cannot deal burst damage"),Enemies[12]->GetHealthComponent()->GetCurrentHealth(),Before);
   TestFalse(TEXT("Crescent Splinter cannot apply Bleed"),Enemies[12]->HasStatus(EEnemyStatusEffect::Bleed));
  }
- TestEqual(TEXT("One Samurai family"),Counts[0],1);TestEqual(TEXT("No Ninja ability families"),Counts[1],0);TestEqual(TEXT("Seven Blade Wave cards"),Ids.Num(),7);
+ TestEqual(TEXT("One Samurai family"),Counts[0],1);TestEqual(TEXT("No Ninja ability families"),Counts[1],0);TestEqual(TEXT("Five current family cards checked"),Ids.Num(),5);
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }
 #endif

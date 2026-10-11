@@ -1,3 +1,4 @@
+#include "UpgradeBalance.h"
 #include "SwapPresentationComponent.h"
 #include "UpgradeProcVFX.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
@@ -153,28 +154,30 @@ void UAutoAttackComponent::SpawnIaijutsuDash(FVector Origin, FVector Destination
 }
 
 bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Direction, float Distance,
-    float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget, float DamageMultiplier)
+    float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget, float DamageMultiplier, bool bAssistAttack)
 {
     auto* U = ResolveSamuraiUpgrades(this, OwnerCharacter);
     auto* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
-    if (!Samurai || !U || !GetIaijutsuUpgrade() || !CanAutoAttack()) return false;
+    if (!Samurai || !U || !GetIaijutsuUpgrade()
+        || !(bAssistAttack ? CanExecuteAttackInCurrentMode() : CanAutoAttack())) return false;
     // One kill follow-up per originating attack, shared by both Double Cut lanes.
     // The cascaded attack inherits the exhausted budget and cannot cascade again.
     const bool bKillFollowUp = ChainBudget.IsValid();
-    if (!ChainBudget) ChainBudget = MakeShared<int32>(1);
+    if (!ChainBudget) ChainBudget = MakeShared<int32>(FMath::Clamp(FMath::RoundToInt(UpgradeBalance::Value(U, TEXT("IaijutsuChain"), TEXT("ChainLimit"), 1.f)),1,32));
     const auto ChainTriggered = MakeShared<bool>(false);
-    float Damage = GetEffectiveAttackDamage() * (1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuDamage"), .2f))
+    float Damage = GetEffectiveAttackDamage() * UpgradeBalance::Value(U, TEXT("Iaijutsu"), TEXT("DamageMultiplier"), 2.5f)
+        * (1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuDamage"), .2f))
         * FMath::Max(0.f, DamageMultiplier);
     float Area = AttackRadius > KINDA_SMALL_NUMBER ? GetEffectiveAttackRadius() / AttackRadius : 1.f;
     Area *= 1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuWidth"), .25f);
-    if (U->HasUpgradeId(TEXT("IaijutsuPowerPact"))) Damage *= 1.5f;
-    if (U->HasUpgradeId(TEXT("IaijutsuMarkPact"))) Area *= .8f;
+    if (U->HasUpgradeId(TEXT("IaijutsuPowerPact"))) Damage *= UpgradeBalance::Value(U, TEXT("IaijutsuPowerPact"), TEXT("DamageMultiplier"), 1.5f);
+    if (U->HasUpgradeId(TEXT("IaijutsuMarkPact"))) Area *= UpgradeBalance::Value(U, TEXT("IaijutsuMarkPact"), TEXT("WidthMultiplier"), .8f);
     const float Radius = IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("SlashRadius"), 100.f) * Area;
     bool bCross = false;
     // Death Cascade must not advance or consume the originating attack's cadence.
-    if (!bKillFollowUp && U->HasUpgradeId(TEXT("IaijutsuDoubleCut")))
+    if (!bAssistAttack && !bKillFollowUp && U->HasUpgradeId(TEXT("IaijutsuDoubleCut")))
     {
-        const int32 Threshold = FMath::Max(1, 4 - U->GetUpgradeLevelById(TEXT("IaijutsuDoubleCutFrequency")));
+        const int32 Threshold = FMath::Max(1, FMath::RoundToInt(UpgradeBalance::Value(U, TEXT("IaijutsuDoubleCut"), TEXT("Frequency"), 4.f) - UpgradeBalance::Rank(U, TEXT("IaijutsuDoubleCutFrequency"), 1.f)));
         bCross = ++IaijutsuAttackCounter >= Threshold;
         if (bCross) IaijutsuAttackCounter = 0;
     }
@@ -187,19 +190,20 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
     const auto ChargeAim = MakeShared<FChargeAim>();
     ChargeAim->Origin = Origin;
     ChargeAim->Direction = Direction;
-    const float SlashDistance = Distance * (bCross ? 1.25f : 1.f);
-    const float IntersectionDistance = Distance * (bCross ? .6f : .5f);
+    const float SlashDistance = Distance * (bCross ? UpgradeBalance::Value(U, TEXT("IaijutsuDoubleCut"), TEXT("LengthMultiplier"), 1.25f) : 1.f);
+    const float IntersectionDistance = Distance * (bCross ? UpgradeBalance::Value(U, TEXT("IaijutsuDoubleCut"), TEXT("IntersectionFraction"), .6f) : .5f);
     TArray<ASamuraiIaijutsu*> Slashes;
     for (int32 Index = 0; Index < (bCross ? 2 : 1); ++Index)
     {
         // Longer X lanes share a midpoint slightly farther ahead of the character.
-        const FVector SlashDirection = bCross ? Direction.RotateAngleAxis(Index ? 30.f : -30.f, FVector::UpVector) : Direction;
+        const FVector SlashDirection = bCross ? Direction.RotateAngleAxis((Index ? 1.f : -1.f) * UpgradeBalance::Value(U, TEXT("IaijutsuDoubleCut"), TEXT("SideAngle"), 30.f), FVector::UpVector) : Direction;
         const FVector SlashOrigin = Origin + Direction * IntersectionDistance - SlashDirection * SlashDistance * .5f;
         FActorSpawnParameters Params;
         Params.Owner = Samurai; Params.Instigator = Samurai;
         Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         auto* Slash = GetWorld()->SpawnActor<ASamuraiIaijutsu>(SlashOrigin, SlashDirection.Rotation(), Params);
         if (!Slash) continue;
+        Slash->bAssistAttack = bAssistAttack;
         Slash->ChainBudget = ChainBudget;
         Slash->ChainTriggered = ChainTriggered;
         Slash->bEndpointBurst = bEndpoint && Index == 0;
@@ -215,7 +219,7 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
             // Sample after character movement. Both X lanes share one aim query per
             // frame, before either lane's vacuum or damage can change the targets.
             Slash->SetTickGroup(TG_PostPhysics);
-            const float Angle = bCross ? (Index ? 30.f : -30.f) : 0.f;
+            const float Angle = bCross ? ((Index ? 1.f : -1.f) * UpgradeBalance::Value(U, TEXT("IaijutsuDoubleCut"), TEXT("SideAngle"), 30.f)) : 0.f;
             Slash->UpdateAim = FIaijutsuAimUpdate::CreateWeakLambda(this,
                 [this, ChargeAim, Distance, SlashDistance, IntersectionDistance, Angle](FVector& LaneOrigin, FVector& LaneEnd)
             {
@@ -258,9 +262,9 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
     }
 
     const auto* StanceUpgrades = ResolveSamuraiUpgrades(this, OwnerCharacter);
-    if (!bActiveAttackIsAssist && StanceUpgrades
+    if (StanceUpgrades
         && (StanceUpgrades->HasUpgradeId(TEXT("BladeWave")) || StanceUpgrades->HasUpgradeId(TEXT("Iaijutsu")))
-        && !GetReadyGrandEntranceUpgrade()) return false;
+        && (bActiveAttackIsAssist || !GetReadyGrandEntranceUpgrade())) return false;
 
     if (bActiveAttackIsAssist && OwnerCharacter->GetOwner())
         if (auto *Abilities = OwnerCharacter->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
@@ -313,9 +317,9 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
     const float BaseDamage = GetEffectiveAttackDamage();
     const bool bBlood = !bActiveAttackIsAssist && PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("BattleStance"));
     const float CritChance = bBlood && PlayerUpgrades->HasUpgradeId(TEXT("BloodCritical"))
-        ? .15f + .1f * PlayerUpgrades->GetUpgradeLevelById(TEXT("BloodCriticalChance")) : 0.f;
+        ? UpgradeBalance::Value(PlayerUpgrades, TEXT("BloodCritical"), TEXT("Chance"), .15f) + UpgradeBalance::Rank(PlayerUpgrades, TEXT("BloodCriticalChance"), .1f) : 0.f;
     const bool bCritical = FMath::FRand() < CritChance;
-    const float EffectiveAttackDamage = BaseDamage * (bCritical ? 2.f : 1.f);
+    const float EffectiveAttackDamage = BaseDamage * (bCritical ? UpgradeBalance::Value(PlayerUpgrades, TEXT("BloodCritical"), TEXT("DamageMultiplier"), 2.f) : 1.f);
     const bool bCanApplyMarkedBlade =
         PlayerUpgrades && PlayerUpgrades->HasUpgradeId(SamuraiAutoAttackIds::MarkedBlade);
 
@@ -470,14 +474,14 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
     {
         RollBloodAssist();
         const float EchoChance = PlayerUpgrades->HasUpgradeId(TEXT("BloodEcho"))
-            ? .15f + .1f * PlayerUpgrades->GetUpgradeLevelById(TEXT("BloodEchoChance")) : 0.f;
+            ? UpgradeBalance::Value(PlayerUpgrades, TEXT("BloodEcho"), TEXT("Chance"), .15f) + UpgradeBalance::Rank(PlayerUpgrades, TEXT("BloodEchoChance"), .1f) : 0.f;
         if (FMath::FRand() < EchoChance)
         {
             const bool Circular = bBloodCircularAttack || GrandEntrance;
             FTimerHandle Timer;
             GetWorld()->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateWeakLambda(this,
                 [this, AttackOrigin, AttackForward, BaseDamage, EffectiveAttackRadius, Circular]
-                { ExecuteBloodEcho(AttackOrigin, AttackForward, BaseDamage * .5f, EffectiveAttackRadius, Circular); }), FMath::Max(.01f,BloodEchoDelay), false);
+                { ExecuteBloodEcho(AttackOrigin, AttackForward, BaseDamage * UpgradeBalance::Value(ResolveSamuraiUpgrades(this, OwnerCharacter), TEXT("BloodEcho"), TEXT("DamageFraction"), .5f), EffectiveAttackRadius, Circular); }), FMath::Max(.01f,BloodEchoDelay), false);
         }
     }
     return true;
@@ -516,15 +520,15 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
                              (1.0f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWavePower"))) *
                              (1.0f + CrescentBuild::Scaling(Upgrades, TEXT("CrescentDamage"), .2f));
     float WaveDamage = FieldDamage;
-    if (Upgrades->HasUpgradeId(TEXT("CrescentFieldPact"))) WaveDamage *= .7f;
-    if (Upgrades->HasUpgradeId(TEXT("CrescentPowerPact"))) WaveDamage *= 1.5f;
+    if (Upgrades->HasUpgradeId(TEXT("CrescentFieldPact"))) WaveDamage *= UpgradeBalance::Value(Upgrades, TEXT("CrescentFieldPact"), TEXT("WaveDamageMultiplier"), .7f);
+    if (Upgrades->HasUpgradeId(TEXT("CrescentPowerPact"))) WaveDamage *= UpgradeBalance::Value(Upgrades, TEXT("CrescentPowerPact"), TEXT("DamageMultiplier"), 1.5f);
     const bool bReturns = Upgrades->HasUpgradeId(TEXT("ReturningBlade"));
     const bool bCrossing = Upgrades->HasUpgradeId(TEXT("CrossingBlades"));
     if (!bActiveAttackIsAssist && (bCrossing || Upgrades->HasUpgradeId(TEXT("CrescentDoubleCut")))) ++CrossingBladesAttackCounter;
     bool bPlus = false;
     if (!bActiveAttackIsAssist && Upgrades->HasUpgradeId(TEXT("CrescentDoubleCut")))
     {
-        const int32 Frequency = FMath::Max(1, 4 - Upgrades->GetUpgradeLevelById(TEXT("CrescentDoubleCutFrequency")));
+        const int32 Frequency = FMath::Max(1, FMath::RoundToInt(UpgradeBalance::Value(Upgrades, TEXT("CrescentDoubleCut"), TEXT("Frequency"), 4.f) - UpgradeBalance::Rank(Upgrades, TEXT("CrescentDoubleCutFrequency"), 1.f)));
         bPlus = CrossingBladesAttackCounter >= Frequency;
         if (bPlus) CrossingBladesAttackCounter = 0;
     }
@@ -544,7 +548,7 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
         * (1.f + CrescentBuild::Scaling(Upgrades, TEXT("CrescentRange"), .2f));
     const float Speed = Tune(TEXT("WaveSpeed"), BladeWaveSpeed) * (1.f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWaveHaste")))
         * (1.f + CrescentBuild::Scaling(Upgrades, TEXT("CrescentSpeed"), .2f))
-        * (Upgrades->HasUpgradeId(TEXT("CrescentPowerPact")) ? .5f : 1.f);
+        * (Upgrades->HasUpgradeId(TEXT("CrescentPowerPact")) ? UpgradeBalance::Value(Upgrades, TEXT("CrescentPowerPact"), TEXT("SpeedMultiplier"), .5f) : 1.f);
     const float VisualArea = FMath::Max(0.f, AreaMultiplier) * (1.f + WideArc);
     PendingBladeWaveTimers.RemoveAll([this](const FTimerHandle& Timer) { return !GetWorld()->GetTimerManager().TimerExists(Timer); });
     TArray<float> Angles;
@@ -837,14 +841,14 @@ void UAutoAttackComponent::RestoreAttackWeaponVisualScale()
 int32 UAutoAttackComponent::GetDoubleCutThreshold() const
 {
  const auto* U = ResolveSamuraiUpgrades(this,OwnerCharacter);
- return FMath::Max(1,4-(U ? U->GetUpgradeLevelById(TEXT("DoubleCutFrequency")) : 0));
+ return FMath::Max(1,FMath::RoundToInt(UpgradeBalance::Value(U, TEXT("DoubleCut"), TEXT("Frequency"), 4.f) - UpgradeBalance::Rank(U, TEXT("DoubleCutFrequency"), 1.f)));
 }
 
 void UAutoAttackComponent::RollBloodAssist()
 {
  auto* U = ResolveSamuraiUpgrades(this,OwnerCharacter);
  if (!U || !U->HasUpgradeId(TEXT("BattleStance")) || !U->HasUpgradeId(TEXT("BloodAssist"))) return;
- if (FMath::FRand() < .05f + .05f * U->GetUpgradeLevelById(TEXT("BloodAssistChance")))
+ if (FMath::FRand() < FMath::Clamp(UpgradeBalance::Value(U, TEXT("BloodAssist"), TEXT("Chance"), .05f) + UpgradeBalance::Rank(U, TEXT("BloodAssistChance"), .05f), 0.f, 1.f))
   if(auto* Assist = U->GetOwner()->FindComponentByClass<UInactiveCharacterAssistComponent>()) Assist->TryBloodAssist();
 }
 
@@ -853,7 +857,7 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
  auto* U = ResolveSamuraiUpgrades(this,OwnerCharacter);
  if (!U || !U->HasUpgradeId(TEXT("BattleStance")) || !CanExecuteAttackInCurrentMode() || OwnerCharacter->GetCharacterMode()!=ECharacterMode::Active) return;
  // Echoes can crit independently, but cannot recursively generate more echoes.
- if(U->HasUpgradeId(TEXT("BloodCritical")) && FMath::FRand() < .15f+.1f*U->GetUpgradeLevelById(TEXT("BloodCriticalChance"))) Damage*=2.f;
+ if(U->HasUpgradeId(TEXT("BloodCritical")) && FMath::FRand() < FMath::Clamp(UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("Chance"), .15f) + UpgradeBalance::Rank(U, TEXT("BloodCriticalChance"), .1f), 0.f, 1.f)) Damage*=UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("DamageMultiplier"), 2.f);
  if(HasDoubleCutUpgrade())
  {
   bCircular |= WillNextSamuraiAttackTriggerDoubleCut();

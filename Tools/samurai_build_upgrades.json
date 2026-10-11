@@ -16,15 +16,16 @@
   {
     "id": "Iaijutsu",
     "name": "Iaijutsu Stance",
-    "description": "Charge a slash for 1 second, drawing nearby enemies into its path. Strike the entire path and mark foes for 3 seconds. Marked foes take 50% more damage from later hits. Choose one Samurai stance per run.",
+    "description": "Charge a slash for {ChargeDuration}s dealing {DamageMultiplierPercent}% attack damage. Hits mark enemies for {MarkDuration}s; later hits deal {MarkBonusPercent}% more damage.",
     "art": "DoubleCut",
     "role": "Starter",
     "stance": {},
     "balance": {
       "DashDistance": 800,
-      "SlashRadius": 100,
-      "ChargeDuration": 1.0,
-      "Cooldown": 0.5
+      "SlashRadius": 200,
+      "ChargeDuration": 2,
+      "Cooldown": 0.5,
+      "DamageMultiplier": 2.5
     }
   },
   {
@@ -72,7 +73,7 @@
     "magnitudes": [
       0.1,
       0.15,
-      0.22
+      0.2
     ],
     "format": "Samurai attacks are {Percent}% faster. Adapts to charge speed or wave speed when you choose a stance.",
     "stat": "AttackSpeedMultiplier"

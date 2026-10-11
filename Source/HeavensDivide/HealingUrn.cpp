@@ -1,5 +1,7 @@
 #include "HealingUrn.h"
+#include "CombatGround.h"
 #include "HealingPickup.h"
+#include "MagnetPickup.h"
 #include "HealthComponent.h"
 #include "EnemyLightweightMovementComponent.h"
 #include "EnemyStatusEffectComponent.h"
@@ -24,9 +26,19 @@ void AHealingUrn::BeginPlay()
     if (auto* Material=LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_EnemyRim")))
     {
         auto* MID=UMaterialInstanceDynamic::Create(Material,this);
-        MID->SetVectorParameterValue(TEXT("Tint"),FLinearColor(.1f,1.f,.45f)); Pot->SetOverlayMaterial(MID);
+        MID->SetVectorParameterValue(TEXT("Tint"),bDropsMagnet ? FLinearColor(.02f,.7f,1) : FLinearColor(.1f,1.f,.45f)); Pot->SetOverlayMaterial(MID);
     }
     SetActorTickEnabled(false);
+}
+bool AHealingUrn::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource)
+{
+    if (!FMath::IsFinite(DamageAmount) || DamageAmount<=0 || !CanReceivePlayerDamage(AttackSource) || !HealthComponent)
+        return false;
+    // Breakables always shatter on the first damaging hit, independent of
+    // weapon strength, upgrade modifiers, or inherited enemy health scaling.
+    const float PreviousHealth=HealthComponent->GetCurrentHealth();
+    HealthComponent->ApplyDamage(PreviousHealth);
+    return HealthComponent->GetCurrentHealth()<PreviousHealth;
 }
 void AHealingUrn::HandleDeath()
 {
@@ -35,10 +47,19 @@ void AHealingUrn::HandleDeath()
     StatusEffectComponent->ClearAllStatuses(); HideHealthBar(); HideMarkIndicator();
     SetActorEnableCollision(false); Pot->SetVisibility(false);
     UCombatAudioLibrary::PlayEvent(this,TEXT("UrnBreak"),GetActorLocation(),false,.8f);
-    if (HealingClass)
+    FVector DropLocation=CombatGround::ClampInsideArena(GetWorld(),GetActorLocation(),90.f);
+    FVector Ground;
+    if (CombatGround::FindSurface(GetWorld(),DropLocation,this,Ground)) DropLocation=Ground;
+    DropLocation.Z+=bDropsMagnet?4.f:30.f;
+    if (bDropsMagnet)
     {
         FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-        auto* Pickup=GetWorld()->SpawnActor<AHealingPickup>(HealingClass,GetActorLocation()+FVector(0,0,20),FRotator::ZeroRotator,Params);
+        GetWorld()->SpawnActor<AMagnetPickup>(MagnetClass ? MagnetClass.Get() : AMagnetPickup::StaticClass(),DropLocation,FRotator::ZeroRotator,Params);
+    }
+    else if (HealingClass)
+    {
+        FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+        auto* Pickup=GetWorld()->SpawnActor<AHealingPickup>(HealingClass,DropLocation,FRotator::ZeroRotator,Params);
         if (Pickup) Pickup->SetLifeSpan(60);
     }
     // Cheap, short-lived ceramic fragments; no Chaos bodies or persistent debris.

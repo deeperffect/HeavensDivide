@@ -225,7 +225,7 @@ bool FCrescentBuildsTest::RunTest(const FString&)
     TestTrue(TEXT("Wave range scales"),FMath::IsNearlyEqual(Scaled->TravelDistance,BaseRange*1.2f));Clear();
     U->RestoreRunState(Base);Acquire(TEXT("CrescentField"));Acquire(TEXT("CrescentFieldPact"));Acquire(TEXT("CrescentPowerPact"));
     Attack->SpawnBladeWavesForAttack(100);auto* PactWave=Waves()[0];
-    TestTrue(TEXT("Wave damage tradeoffs multiply"),FMath::IsNearlyEqual(PactWave->Damage,BaseDamage*.7f*1.5f));
+    TestTrue(TEXT("Wave damage tradeoffs multiply"),FMath::IsNearlyEqual(PactWave->Damage,BaseDamage*.8f*1.5f));
     TestTrue(TEXT("Power pact halves speed"),FMath::IsNearlyEqual(PactWave->Speed,BaseSpeed*.5f));
     TestEqual(TEXT("Wave tradeoffs do not reduce field damage basis"),PactWave->FieldDamage,BaseDamage);Clear();
     U->RestoreRunState(Base);Acquire(TEXT("CrescentSplit"));Acquire(TEXT("CrescentField"));
@@ -321,14 +321,14 @@ bool FCrescentBuildsTest::RunTest(const FString&)
     Clear();
     Split->BalanceParameters=SplitBalance;FieldCard->BalanceParameters=FieldBalance;
     for(int32 Rank=0;Rank<5;++Rank)Acquire(TEXT("CrescentSplitChance"));
-    TestTrue(TEXT("Split chance caps at 90 percent with five ranks"),FMath::IsNearlyEqual(CrescentBuild::Chance(U,TEXT("CrescentSplit"),TEXT("CrescentSplitChance"),.15f,.15f),.9f));
+    TestTrue(TEXT("Split chance reaches 65 percent with five ranks"),FMath::IsNearlyEqual(CrescentBuild::Chance(U,TEXT("CrescentSplit"),TEXT("CrescentSplitChance"),.15f,.1f),.65f));
     U->RestoreRunState(Base);Acquire(TEXT("CrescentField"));for(int32 Rank=0;Rank<5;++Rank)Acquire(TEXT("CrescentFieldPower"));Acquire(TEXT("CrescentFieldPact"));
     auto* FieldTarget=Enemy(FVector(20000,0,0));auto* FieldRestricted=Enemy(FVector(20050,0,0),EPlayerAttackSource::Ninja);
     auto* Field=World->SpawnActor<ASamuraiWaveField>(FVector(20000,0,0),FRotator::ZeroRotator,Params);Field->Initialize(Samurai,U,100,FVector(27.5,150,60));
     TestEqual(TEXT("Field duration gains 75 percent"),Field->Remaining,5.25f);
-    TestTrue(TEXT("Only the field pact increases DPS"),FMath::IsNearlyEqual(Field->DamagePerSecond,45.f,.001f));
+    TestTrue(TEXT("Only the field pact increases DPS"),FMath::IsNearlyEqual(Field->DamagePerSecond,60.f,.001f));
     const float FieldTotal=Field->TotalDamage;
-    TestTrue(TEXT("Five ranks and field pact apply once to total damage"),FMath::IsNearlyEqual(FieldTotal,90.f*1.75f*1.5f,.001f));
+    TestTrue(TEXT("Five ranks and field pact apply once to total damage"),FMath::IsNearlyEqual(FieldTotal,90.f*1.75f*2.f,.001f));
     for(int32 Step=0;Step<11;++Step)Advance(.5f);
     TestTrue(TEXT("Field deals its complete finite damage budget"),FMath::IsNearlyEqual(10000-FieldTarget->GetHealthComponent()->GetCurrentHealth(),FieldTotal,.02f));
     TestEqual(TEXT("Fields respect source restrictions"),FieldRestricted->GetHealthComponent()->GetCurrentHealth(),10000.f);
@@ -445,7 +445,7 @@ bool FCrescentBuildsTest::RunTest(const FString&)
 
     U->RestoreRunState(Base);Acquire(TEXT("CrescentArc"));Acquire(TEXT("CrescentField"));
     for(int32 Rank=0;Rank<5;++Rank){Acquire(TEXT("CrescentArcChance"));Acquire(TEXT("CrescentFieldChance"));}
-    TestTrue(TEXT("Arc Volley Chance caps at 65 percent"),FMath::IsNearlyEqual(CrescentBuild::Chance(U,TEXT("CrescentArc"),TEXT("CrescentArcChance"),.15f,.1f),.65f));
+    TestTrue(TEXT("Arc Volley Chance reaches 40 percent"),FMath::IsNearlyEqual(CrescentBuild::Chance(U,TEXT("CrescentArc"),TEXT("CrescentArcChance"),.15f,.05f),.4f));
     TestTrue(TEXT("Wake Chance conservatively caps at 40 percent"),FMath::IsNearlyEqual(CrescentBuild::Chance(U,TEXT("CrescentField"),TEXT("CrescentFieldChance"),.15f,.05f),.4f));
     auto* ArcScaling=Card(TEXT("CrescentArcChance"));auto* WakeScaling=Card(TEXT("CrescentFieldChance"));
     const auto SavedArc=Arc->BalanceParameters,SavedField=FieldCard->BalanceParameters;

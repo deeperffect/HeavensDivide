@@ -11,5 +11,6 @@ public class HeavensDivideEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("HeavensDivide");
+		ExtraModuleNames.Add("BloodshiftBalanceEditor");
 	}
 }

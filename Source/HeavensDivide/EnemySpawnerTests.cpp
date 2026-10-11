@@ -53,7 +53,10 @@ bool FSpawnerDirectorTest::RunTest(const FString&)
     Spawner->ResolveActivePressurePhase(&PhaseIndex, false);
     TestEqual(TEXT("Next phase starts at boundary"), PhaseIndex, 1);
     TestNotNull(TEXT("Threat unlocks at boundary"), Spawner->ChooseTimedThreatEntry(Later));
-    TestEqual(TEXT("Per-class health scales continuously"), Spawner->GetHealthMultiplier(Grunt), 1.05f);
+    TestEqual(TEXT("Legacy growth cannot raise enemy health"), Spawner->GetHealthMultiplier(Grunt), 1.f);
+    Spawner->RunTimeSeconds = 3600.f;
+    TestEqual(TEXT("Enemy health stays fixed after an hour"), Spawner->GetHealthMultiplier(Grunt), 1.f);
+    Spawner->RunTimeSeconds = 60.f;
     Spawner->PressurePhases[0].EndTimeSeconds = 61.0f;
     TestNull(TEXT("Overlapping phases pause selection"), Spawner->ResolveActivePressurePhase(nullptr, false));
     Spawner->PressurePhases[0].EndTimeSeconds = 59.0f;
@@ -77,6 +80,22 @@ bool FSpawnerDirectorTest::RunTest(const FString&)
     TestNull(TEXT("Threat replacement waits for cooldown"), Spawner->ChooseTimedThreatEntry(Later));
     Spawner->RunTimeSeconds = 121.0f;
     TestNotNull(TEXT("Cooldown expires at exact run-time boundary"), Spawner->ChooseTimedThreatEntry(Later));
+    Spawner->MaxTimedThreatsAlive = 1;
+    Spawner->AliveEnemyCountByClass[Threat.EnemyClass.Get()] = 1;
+    TestNull(TEXT("Shared threat ceiling overrides a larger class ceiling"), Spawner->ChooseTimedThreatEntry(Later));
+    Spawner->AliveEnemyCountByClass[Threat.EnemyClass.Get()] = 0;
+    Spawner->MaxTimedThreatsAlive = 6;
+
+    FEnemyPressureEventDefinition ThreatEvent;
+    ThreatEvent.EventName = TEXT("SharedThreatCapTest");
+    FEnemyPressureEventEnemyEntry ThreatMember;
+    ThreatMember.EnemyClass = Threat.EnemyClass; ThreatMember.Count = 2;
+    ThreatEvent.EnemyEntries.Add(ThreatMember);
+    Spawner->MaxTimedThreatsAlive = 1;
+    TestFalse(TEXT("Scripted event cannot exceed the shared threat ceiling"), Spawner->IsEventSelectable(ThreatEvent, Later));
+    Spawner->MaxTimedThreatsAlive = 2;
+    TestTrue(TEXT("Scripted threats fit exactly at the shared ceiling"), Spawner->IsEventSelectable(ThreatEvent, Later));
+    Spawner->MaxTimedThreatsAlive = 6;
 
     FEnemyPressureEventDefinition Event;
     Event.EventName = TEXT("TestEvent");

@@ -3,7 +3,7 @@
     "WaveWidth": 300,
     "WaveTravelDistance": 650,
     "WaveSpeed": 1400,
-    "WaveDamageMultiplier": 0.65,
+    "WaveDamageMultiplier": 1.5,
     "SpawnForwardOffset": 80,
     "SpawnHeightOffset": 60,
     "WaveThickness": 55,
@@ -13,15 +13,6 @@
   },
   "ReturningBlade": {
     "ReturnDamageMultiplier": 1
-  },
-  "CrossingBlades": {
-    "AttackFrequency": 3,
-    "WaveCount": 3,
-    "SideAngle": 30
-  },
-  "SplinterWave": {
-    "SplinterDamageMultiplier": 0.3,
-    "SplinterRadius": 120
   },
   "TagTeam": {
     "SamuraiDamage": 12,
@@ -39,19 +30,18 @@
     "NinjaBonusProjectiles": 8,
     "NinjaFanAngle": 100
   },
-  "BleedingEdge": {
-    "HitDamagePerTick": 0.1
-  },
   "BloodTransfer": {
     "TransferFraction": 0.5,
     "Radius": 300,
     "Targets": 5
   },
-  "OverkillBurst": {
-    "Radius": 220,
-    "DamageMultiplier": 1
+  "BarrageStance": {
+    "ProjectileDamageMultiplier": 0.6
   },
-  "WaveMultishot": {
-    "AnglePerWave": 8
+  "Iaijutsu": {
+    "ChargeDuration": 2,
+    "SlashRadius": 200,
+    "Cooldown": 0.5,
+    "DamageMultiplier": 2.5
   }
 }

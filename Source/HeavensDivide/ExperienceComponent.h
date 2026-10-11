@@ -49,11 +49,14 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Experience")
 	int32 CurrentLevel = 1;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience", meta = (ClampMin = "1", UIMin = "1"))
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use XPRequirementScale; requirements use the authored level curve."))
 	int32 BaseXPRequirement = 10;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Experience", meta = (ClampMin = "0", UIMin = "0"))
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Use XPRequirementScale; requirements use the authored level curve."))
 	int32 XPRequirementGrowth = 5;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Experience", meta=(ClampMin="0.1", ClampMax="10", ToolTip="Scales the complete authored XP curve. 1 preserves current leveling."))
+	float XPRequirementScale = 1.f;
 
 private:
 	int32 CalculateXPToNextLevel() const;

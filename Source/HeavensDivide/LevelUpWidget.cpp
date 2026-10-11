@@ -855,7 +855,7 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 		{
 			const FText Description = Offers.IsValidIndex(Index) && !Offers[Index].ResolvedDescription.IsEmpty()
 				? Offers[Index].ResolvedDescription
-				: (Upgrade ? Upgrade->Description : FText::GetEmpty());
+				: (Upgrade ? Upgrade->GetBalanceDescription() : FText::GetEmpty());
 			UpgradeDescriptionTexts[Index]->SetText(Description);
 		}
 		if (UpgradeLevelDiamondRows.IsValidIndex(Index) && UpgradeLevelDiamondRows[Index])

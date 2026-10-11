@@ -1,0 +1,23 @@
+{
+  "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear": {
+    "move_speed": 135.0, "attack_windup": 0.18, "attack_interval": 0.85, "attack_recovery": 0.20
+  },
+  "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt": {
+    "move_speed": 160.0, "attack_windup": 0.28, "attack_interval": 1.0, "attack_recovery": 0.22
+  },
+  "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature": {
+    "move_speed": 200.0, "attack_windup": 0.42, "attack_interval": 1.25, "attack_recovery": 0.25
+  },
+  "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish": {
+    "move_speed": 300.0, "attack_windup": 0.85, "attack_interval": 1.90, "attack_recovery": 0.32
+  },
+  "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton": {
+    "move_speed": 225.0, "attack_windup": 0.55, "attack_interval": 1.45, "attack_recovery": 0.28
+  },
+  "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler": {
+    "move_speed": 255.0, "attack_windup": 0.70, "attack_interval": 1.70, "attack_recovery": 0.30
+  },
+  "/Game/HeavensDivide/Blueprints/Objectives/TwinSoulTrial/BP_TwinSoulCrimson": {
+    "move_speed": 300.0, "attack_windup": 0.85, "attack_interval": 1.90, "attack_recovery": 0.32
+  }
+}

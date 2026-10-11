@@ -15,6 +15,7 @@
 #include "Sound/SoundBase.h"
 #include "SurvivorPlayerController.h"
 #include "TimerManager.h"
+#include "MinimapMarkerComponent.h"
 
 AHealingPickup::AHealingPickup()
 {
@@ -22,6 +23,10 @@ AHealingPickup::AHealingPickup()
 
 	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
 	SetRootComponent(SceneRoot);
+    MinimapMarker=CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("MinimapMarker"));
+    MinimapMarker->MarkerType=EMinimapMarkerType::HealingPickup;
+    MinimapMarker->DisplayName=FText::FromString(TEXT("Healing pickup"));
+    MinimapMarker->Priority=5;
 
 	PickupMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PickupMesh"));
 	PickupMesh->SetupAttachment(SceneRoot);

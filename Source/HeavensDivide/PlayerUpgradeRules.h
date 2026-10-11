@@ -10,7 +10,7 @@ namespace PlayerUpgradeRules
 {
 // Columns: unchosen/Blood, Iaijutsu, Crescent. Each row is one investment.
 extern const FName SamuraiScalingIds[3][3];
-bool IsSamuraiUpgradeTemporarilyDisabled(FName Id);
+HEAVENSDIVIDE_API bool IsRemovedSamuraiUpgrade(FName Id);
 bool IsBloodUpgrade(FName Id);
 bool IsIaijutsuUpgrade(FName Id);
 bool IsCrescentUpgrade(FName Id);
@@ -21,5 +21,5 @@ int32 UpgradeRankLimit(const UUpgradeDefinition* Card);
 bool IsStanceRareUpgrade(const UUpgradeDefinition* U);
 bool IsBloodShrineUpgrade(const UUpgradeDefinition* U);
 bool IsTrialBuildStarter(const UUpgradeDefinition* Upgrade);
-bool IsRetiredUpgrade(FName Id);
+HEAVENSDIVIDE_API bool IsRetiredUpgrade(FName Id);
 } // namespace PlayerUpgradeRules

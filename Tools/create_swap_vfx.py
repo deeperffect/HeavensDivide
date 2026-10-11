@@ -56,7 +56,7 @@ def material(smoke):
         return setp(ML.create_material_expression(m, cls), **values)
     def link(a, output, b, input_name):
         assert ML.connect_material_expressions(a, output, b, input_name)
-    shape = u.load_asset('/Game/Assets/VFX/MixedVFX/Textures/T_Smoke_01' if smoke
+    shape = u.load_asset('/Game/Assets/VFX/VerticalBeamsV1/Textures/T_Smoke' if smoke
                          else '/Game/Assets/VFX/MagicProjectilesVol4/Textures/T_Slash01')
     assert shape, 'Swap VFX requires a valid opacity shape texture'
     tex = node(u.MaterialExpressionTextureSampleParameter2D, parameter_name='Shape', texture=shape)

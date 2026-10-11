@@ -9,8 +9,13 @@
 #include "TacticalEnemy.h"
 #include "CinderOracleBoss.h"
 #include "EncounterDirector.h"
+#include "SurvivalFieldObjective.h"
+#include "EncounterWall.h"
+#include "Components/BoxComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "EncounterHazard.h"
 #include "EnemySpawner.h"
+#include "EnemySpawnArea.h"
 #include "HealingUrn.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -27,12 +32,19 @@
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
+#include "CombatGround.h"
+#include "CharacterManagerComponent.h"
+#include "HealthComponent.h"
+#include "ExperiencePickup.h"
+#include "EliteRewardChest.h"
+#include "UObject/UnrealType.h"
 #endif
 UEncounterReviewCommandlet::UEncounterReviewCommandlet() { IsClient=true;IsServer=false;IsEditor=true;LogToConsole=true; }
 int32 UEncounterReviewCommandlet::Main(const FString& Params)
 {
 #if WITH_EDITOR
- auto* W=UEditorLoadingAndSavingUtils::LoadMap(TEXT("/Game/Maps/Lvl_B1_Lvl1"));if(!W)return 1;
+ const bool bArenaProbe=FParse::Param(*Params,TEXT("ArenaGroundProbe"));
+ auto* W=UEditorLoadingAndSavingUtils::LoadMap(bArenaProbe?TEXT("/Game/Maps/Lvl_B1_Arena"):TEXT("/Game/Maps/Lvl_B1_Lvl1"));if(!W)return 1;
  W->FlushLevelStreaming(EFlushLevelStreamingType::Full);
  W->WorldType=EWorldType::Game;
  // Editor map loading in a commandlet intentionally omits render/physics scenes.
@@ -46,6 +58,59 @@ int32 UEncounterReviewCommandlet::Main(const FString& Params)
  }
  W->InitializeActorsForPlay(FURL());
  FAssetCompilingManager::Get().FinishAllCompilation();
+ if(bArenaProbe)
+ {
+  ACinderOracleBoss* Boss=nullptr;
+  for(TActorIterator<ACinderOracleBoss> It(W);It;++It){Boss=*It;break;}
+  if(!Boss)return 10;
+  FVector Surface;
+  if(!CombatGround::FindSurface(W,Boss->GetActorLocation(),Boss,Surface))return 11;
+  FActorSpawnParameters P;P.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+  auto* Controller=W->SpawnActor<ASurvivorPlayerController>(FVector::ZeroVector,FRotator::ZeroRotator,P);
+  auto* Pawn=W->SpawnActor<ACharacterBase>(Boss->GetActorLocation()+FVector(800,0,0),FRotator::ZeroRotator,P);
+  Controller->Possess(Pawn);Pawn->SetOwner(Controller);
+  FindFProperty<FObjectProperty>(UCharacterManagerComponent::StaticClass(),TEXT("ActiveCharacter"))->SetObjectPropertyValue_InContainer(Controller->GetCharacterManager(),Pawn);
+  Pawn->GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel2,ECR_Block);
+  Boss->DispatchBeginPlay();Boss->SetTarget(Pawn);Boss->StartBossCombat();
+  int32 Warnings=0,Guards=0,Drops=0;bool OK=true;
+  OK&=FMath::IsNearlyEqual(Boss->GetActorLocation().Z-Boss->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(),Surface.Z,1.);
+  for(int32 Spell=0;Spell<7;++Spell)
+  {
+   Boss->CastAbility(Spell);
+   for(TActorIterator<AEncounterHazard> It(W);It;++It)if(It->GetOwner()==Boss)
+   {
+    FVector Floor;
+    OK&=CombatGround::FindSurface(W,It->GetActorLocation(),Boss,Floor)&&FMath::IsNearlyEqual(It->GetActorLocation().Z,Floor.Z+4,1.);
+    ++Warnings;It->Destroy();
+   }
+  }
+  // AI possession replaces a summoned pawn's Owner with its controller.
+  for(TActorIterator<ATacticalEnemy> It(W);It;++It)if(Boss->GuardianClass && It->IsA(Boss->GuardianClass))
+  {
+   It->DispatchBeginPlay();++Guards;
+   FVector Floor;
+   OK&=CombatGround::FindSurface(W,It->GetActorLocation(),*It,Floor)&&FMath::IsNearlyEqual(It->GetActorLocation().Z-It->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(),Floor.Z,1.);
+  }
+  // Exercise actual elite chest drops and a normal enemy's XP on the saved arena.
+  Pawn->SetActorLocation(Boss->GetActorLocation()+FVector(2000,0,0));
+  for(TActorIterator<ATacticalEnemy> It(W);It;++It)if(Boss->GuardianClass && It->IsA(Boss->GuardianClass))It->GetHealthComponent()->ApplyDamage(100000);
+  auto* GruntClass=LoadClass<AEnemyBase>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C"));
+  auto* Grunt=W->SpawnActor<AEnemyBase>(GruntClass,Boss->GetActorLocation()+FVector(-800,0,0),FRotator::ZeroRotator,P);
+  if(!Grunt)return 12;
+  Grunt->DispatchBeginPlay();Grunt->GetHealthComponent()->ApplyDamage(100000);
+  for(TActorIterator<AExperiencePickup> It(W);It;++It)
+  {
+   FVector Floor;++Drops;
+   OK&=CombatGround::FindSurface(W,It->GetActorLocation(),nullptr,Floor)&&FMath::IsNearlyEqual(It->GetActorLocation().Z,Floor.Z+18,1.);
+  }
+  for(TActorIterator<AEliteRewardChest> It(W);It;++It)
+  {
+   FVector Floor;++Drops;
+   OK&=CombatGround::FindSurface(W,It->GetActorLocation(),nullptr,Floor)&&FMath::IsNearlyEqual(It->GetActorLocation().Z,Floor.Z+3,1.);
+  }
+  UE_LOG(LogTemp,Display,TEXT("ARENA_GROUND_PROBE ok=%d floor=%.3f warnings=%d guards=%d drops=%d"),OK,Surface.Z,Warnings,Guards,Drops);
+  return OK&&Warnings>0&&Guards>0&&Drops>0?0:13;
+ }
  FVector Center=FVector::ZeroVector;
  for(TActorIterator<APlayerStart> It(W);It;++It){Center=It->GetActorLocation();break;}
  auto Ground=[&](FVector P,float Height)
@@ -71,7 +136,52 @@ int32 UEncounterReviewCommandlet::Main(const FString& Params)
  Urn=Director->SpawnUrn();
  for(TActorIterator<AHealingUrn> It(W);It;++It)It->DispatchBeginPlay();
  UE_LOG(LogTemp,Display,TEXT("ENCOUNTER_LEVEL_PROBE center=%s march=%d urn=%d"),*Center.ToString(),March,Urn);
- if(!FParse::Param(*Params,TEXT("Capture")))return March&&Urn?0:3;
+ if(!FParse::Param(*Params,TEXT("Capture")))
+ {
+  const bool WallSpawned=Director->SpawnWallTrap();
+  int32 VisibleWalls=0,SealedWalls=0;
+  for(TActorIterator<AEncounterWall> It(W);It;++It) It->DispatchBeginPlay();
+  for(TActorIterator<ASurvivalFieldObjective> It(W);It;++It) if(It->IsWallTrap()) It->Tick(2.f);
+  for(TActorIterator<AEncounterWall> It(W);It;++It)
+  {
+   if(It->Barrier->GetCollisionEnabled()!=ECollisionEnabled::NoCollision) ++SealedWalls;
+   for(auto* Component:It->GetComponents())
+    if(auto* Static=Cast<UStaticMeshComponent>(Component);Static && Static->IsVisible() && Static->GetStaticMesh() && Static->GetComponentScale().Z>1.f) ++VisibleWalls;
+  }
+  UE_LOG(LogTemp,Display,TEXT("WALL_LEVEL_PROBE spawned=%d visible=%d sealed=%d"),WallSpawned,VisibleWalls,SealedWalls);
+  int32 MarchWarnings=0;
+  for(TActorIterator<AEncounterHazard> It(W);It;++It)if(It->GetOwner()==Director)++MarchWarnings;
+  bool EdgeUrns=true;
+  int32 EdgeUrnCount=0;
+  for(TActorIterator<AHealingUrn> It(W);It;++It)It->Destroy();
+  for(TActorIterator<AEnemySpawnArea> It(W);It;++It)
+  {
+   const auto* Box=It->FindComponentByClass<UBoxComponent>();
+   const FVector Extent=Box->GetUnscaledBoxExtent();
+   for(int32 Corner=0;Corner<4;++Corner)
+   {
+    const FVector Local((Corner&1?1:-1)*(Extent.X-150),(Corner&2?1:-1)*(Extent.Y-150),0);
+    Player->SetActorLocation(Ground(Box->GetComponentTransform().TransformPosition(Local),90));
+    bool Heal=false,Magnet=false;
+    for(int32 Attempt=0;Attempt<8&&!Heal;++Attempt)Heal=Director->SpawnUrn();
+    for(int32 Attempt=0;Attempt<8&&!Magnet;++Attempt)Magnet=Director->SpawnUrn(true);
+    EdgeUrns&=Heal&&Magnet;
+    for(TActorIterator<AHealingUrn> UrnIt(W);UrnIt;++UrnIt)if(!UrnIt->IsActorBeingDestroyed())
+    {
+     ++EdgeUrnCount;
+     EdgeUrns&=CombatGround::IsInsideArena(W,UrnIt->GetActorLocation(),UrnIt->GetCapsuleComponent()->GetScaledCapsuleRadius());
+     UrnIt->Destroy();
+    }
+   }
+   break;
+  }
+  UE_LOG(LogTemp,Display,TEXT("OBJECT_BOUNDS_PROBE ok=%d edge_urns=%d march_warnings=%d"),EdgeUrns,EdgeUrnCount,MarchWarnings);
+  for(TActorIterator<ASurvivalFieldObjective> It(W);It;++It) if(It->IsWallTrap()) { It->DispatchBeginPlay();It->Tick(8.01f); }
+  int32 RemainingWalls=0;
+  for(TActorIterator<AEncounterWall> It(W);It;++It)if(!It->IsActorBeingDestroyed())++RemainingWalls;
+  UE_LOG(LogTemp,Display,TEXT("WALL_EXPIRY_PROBE remaining=%d"),RemainingWalls);
+  return March&&Urn&&WallSpawned&&VisibleWalls==51&&SealedWalls==51&&RemainingWalls==0&&EdgeUrns&&EdgeUrnCount==8&&MarchWarnings==0?0:3;
+ }
 
  for(TActorIterator<ATacticalEnemy> It(W);It;++It)It->Destroy();
  for(TActorIterator<AEncounterHazard> It(W);It;++It)It->Destroy();

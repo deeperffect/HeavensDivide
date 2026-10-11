@@ -7,6 +7,7 @@
 #include "SwapPresentationComponent.h"
 #include "NinjaBuildComponent.h"
 #include "CrescentBuild.h"
+#include "IaijutsuBuild.h"
 #include "SurvivorAbilityComponent.h"
 
 #include "Animation/AnimInstance.h"
@@ -209,7 +210,7 @@ bool UAutoAttackComponent::IsAutoAttackEnabled() const
 void UAutoAttackComponent::PerformAttackTrace()
 {
 	// Stance waves/lanes own their damage. Their montages cannot add a melee swing.
-	if (!bActiveAttackIsAssist && (GetCrescentStance(this, OwnerCharacter) || GetIaijutsuUpgrade())) return;
+	if (GetCrescentStance(this, OwnerCharacter) || GetIaijutsuUpgrade()) return;
 	if (!CanExecuteAttackInCurrentMode())
 	{
 		return;
@@ -512,6 +513,11 @@ bool UAutoAttackComponent::IsProjectileAttack() const
 	return ProjectileClass != nullptr;
 }
 
+bool UAutoAttackComponent::UsesRangedAssistPlacement() const
+{
+    return IsProjectileAttack() || GetCrescentStance(this, OwnerCharacter) || GetIaijutsuUpgrade();
+}
+
 bool UAutoAttackComponent::IsTargetInCurrentMeleeReach(const AEnemyBase* TargetEnemy) const
 {
 	if (!OwnerCharacter || !TargetEnemy)
@@ -719,7 +725,8 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 {
 	OutExpectedDuration = 0.0f;
 
-	if (!OwnerCharacter || !GetWorld())
+	if (!OwnerCharacter || !GetWorld() || !CanExecuteAttackInCurrentMode()
+        || (OwnerCharacter->SwapPresentation && OwnerCharacter->SwapPresentation->IsBlockingAttacks()))
 	{
 		return false;
 	}
@@ -750,11 +757,50 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 		OwnerCharacter->SetVisualFacingRotation(FRotator(0.0f, ToTarget.Rotation().Yaw, 0.0f));
 	}
 
+    // Samurai stance attacks own their damage and presentation. Never run a
+    // generic melee notify first, and never advance the normal attack cooldown.
+    if (GetIaijutsuUpgrade() || GetCrescentStance(this, OwnerCharacter))
+    {
+        bActiveAttackIsAssist = true;
+        ActiveAttackDirection = ToTarget.IsNearlyZero() ? OwnerCharacter->GetVisualForwardVector().GetSafeNormal2D() : ToTarget;
+        bool bStarted = false;
+        if (const auto* Iaijutsu = GetIaijutsuUpgrade())
+        {
+            const auto* U = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+            const float Charge = FMath::FRand() < IaijutsuBuild::Chance(U, TEXT("IaijutsuInstant"), TEXT("IaijutsuInstantChance"), .15f, .1f)
+                ? 0.f : GetIaijutsuChargeDuration();
+            const float Distance = FMath::Max(1.f, Iaijutsu->GetBalanceValue(TEXT("DashDistance"), 800.f));
+            bStarted = SpawnIaijutsuSlashes(OwnerCharacter->GetActorLocation(), ActiveAttackDirection, Distance, Charge, false, nullptr, 1.f, true);
+            if (bStarted)
+            {
+                PlayIaijutsuMontage(Charge);
+                OutExpectedDuration = Charge + FMath::Max(.01f, Iaijutsu->GetBalanceValue(TEXT("PostHitHoldDuration"), .3f)) + .1f;
+            }
+        }
+        else if (BladeWaveClass)
+        {
+            LastResolvedPrimaryAttackDamage = GetEffectiveAttackDamage();
+            PlayCrescentMontage();
+            SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
+            OutExpectedDuration = ActiveCrescentMontage
+                ? ActiveCrescentMontage->GetPlayLength() / FMath::Max(.01f, CalculateAttackMontagePlayRate(ActiveCrescentMontage)) : .65f;
+            bStarted = true;
+        }
+        if (bStarted)
+        {
+            bIsAttacking = true;
+            bAttackNotifyConsumed = true;
+            ActiveAttackSequence = ++AttackSequence;
+            OnAutoAttack.Broadcast(this, EAutoAttackSource::Assist);
+        }
+        else { bActiveAttackIsAssist = false; CurrentAttackTarget.Reset(); }
+        return bStarted;
+    }
+
+    // Select the assist montage with assist identity already set: a stored
+    // Blood Double Cut belongs to the next normal attack, not this assist.
+    bActiveAttackIsAssist = true;
 	OutExpectedDuration = GetExpectedAttackMontageDuration();
-	if (!ProjectileClass && WillNextSamuraiAttackTriggerDoubleCut())
-	{
-		OutExpectedDuration = GetExpectedAttackMontageDuration();
-	}
 
 	const double PreviousLastAttackStartTime = LastAttackStartTime;
 	const double PreviousNextAttackReadyTime = NextAttackReadyTime;
@@ -773,6 +819,7 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
 	else
 	{
 		CurrentAttackTarget.Reset();
+        bActiveAttackIsAssist = false;
 		OutExpectedDuration = 0.0f;
 	}
 
@@ -1205,7 +1252,10 @@ float UAutoAttackComponent::GetEffectiveAttackDamage() const
 	const float NinjaDamage = OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>()
         ? 1.f + FangBuild::Scaling(PlayerUpgrades, PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("ReturningFang"))
             ? FName(TEXT("FangDamage")) : PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("BarrageStance"))?FName(TEXT("BarrageDamage")):PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("GreatShuriken"))?FName(TEXT("ShurikenDamage")):FName(TEXT("NinjaDamage")), .2f) : 1.f;
-    return AttackDamage * DamageMultiplier * GlobalDamageMultiplier * PowerMultiplier * NinjaDamage;
+    const float StanceDamage = OwnerCharacter && OwnerCharacter->IsA<ANinjaCharacter>()
+        && PlayerUpgrades && PlayerUpgrades->HasUpgradeId(TEXT("BarrageStance"))
+        ? BarrageBuild::Value(PlayerUpgrades, TEXT("BarrageStance"), TEXT("ProjectileDamageMultiplier"), .6f) : 1.f;
+    return AttackDamage * DamageMultiplier * GlobalDamageMultiplier * PowerMultiplier * NinjaDamage * StanceDamage;
 }
 
 void UAutoAttackComponent::ArmGrandEntranceAfterSwap()
@@ -1247,7 +1297,7 @@ float UAutoAttackComponent::GetEffectiveProjectileSpeed() const
 
 float UAutoAttackComponent::GetEffectiveTargetingRange() const
 {
-	if (OwnerCharacter && OwnerCharacter->GetCharacterMode() == ECharacterMode::Active && !bActiveAttackIsAssist)
+	if (OwnerCharacter)
 		if (const auto* Crescent = GetCrescentStance(this, OwnerCharacter))
 		{
 			const auto* Upgrades = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
@@ -1255,6 +1305,8 @@ float UAutoAttackComponent::GetEffectiveTargetingRange() const
 				* (1.f + CrescentBuild::Scaling(Upgrades, TEXT("CrescentRange"), .2f))
 				+ FMath::Max(0.f, Crescent->GetBalanceValue(TEXT("SpawnForwardOffset"), 80.f));
 		}
+	if (const auto* Iaijutsu = GetIaijutsuUpgrade())
+        return FMath::Max(1.f, Iaijutsu->GetBalanceValue(TEXT("DashDistance"), 800.f));
 	if (ProjectileClass)
 	{
         const auto* U = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
@@ -1263,7 +1315,7 @@ float UAutoAttackComponent::GetEffectiveTargetingRange() const
         {
             const auto* Stance = U->FindUpgradeDefinition(TEXT("ReturningFang"));
             return TargetingRange * (Stance ? Stance->GetBalanceValue(TEXT("TargetingRangeMultiplier"), .5f) : .5f)
-                * (1.f + FangBuild::Scaling(U, TEXT("FangRange"), .15f));
+                * (1.f + FangBuild::Scaling(U, TEXT("FangRange"), .15f) + U->GetMetaSkillBonus(TEXT("FangRange")));
         }
         return TargetingRange;
 	}

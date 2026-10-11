@@ -38,7 +38,7 @@ bool FSurvivorAbilitiesTest::RunTest(const FString& Parameters)
   TestFalse(TEXT("Retired starter cannot be acquired even through a stale reference"),Upgrades->CanAcquireUpgrade(Retired));
   TestNull(TEXT("Retired starter absent from saved pool"),Upgrades->FindUpgradeDefinition(BuildFamilies[i].Id));
  }
- for(const auto* Id:{TEXT("BladeWave"),TEXT("BladeWavePower"),TEXT("WideArc"),TEXT("BladeWaveHaste"),TEXT("ReturningBlade"),TEXT("CrossingBlades"),TEXT("SplinterWave"),TEXT("GrandEntrance"),TEXT("TagTeam")})
+ for(const auto* Id:{TEXT("BladeWave"),TEXT("CrescentDamage"),TEXT("CrescentRange"),TEXT("CrescentSpeed"),TEXT("ReturningBlade"),TEXT("CrescentDoubleCut"),TEXT("CrescentSplit"),TEXT("GrandEntrance"),TEXT("TagTeam")})
   TestNotNull(TEXT("Attack upgrades remain in saved pool"),Upgrades->FindUpgradeDefinition(Id));
  PC->AbilityShowcase();
  TestTrue(TEXT("Legacy showcase now previews Blade Wave"),Upgrades->HasUpgradeId(TEXT("BladeWave")));

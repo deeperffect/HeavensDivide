@@ -1,72 +1,139 @@
 #include "MetaSkillTree.h"
 #include "HeavensDivideMetaSaveGame.h"
+#include "BloodshiftBalanceData.h"
+
+const TArray<FMetaSkillNode>& MetaSkillTree::DefaultNodes()
+{
+ static const TArray<FMetaSkillNode> Catalog = []
+ {
+  TArray<FMetaSkillNode> Result;
+  auto Add = [&Result](const TCHAR* Id, const TCHAR* Name, const TCHAR* Text, int32 Branch, int32 Tier,
+      FVector2D Position, const TCHAR* Parent, const TCHAR* Effect, float Value, int32 Ranks = 3)
+  {
+   FMetaSkillNode N;
+   N.Id=Id; N.Name=Name; N.Description=Text; N.Branch=Branch; N.Tier=Tier; N.MapPosition=Position;
+   N.MaxRank=Ranks; N.BaseCost=5+Tier*5; N.Effect=Effect; N.PerRank=Value;
+   if (*Parent) N.Prerequisites.Add(FName(Parent));
+   Result.Add(N);
+  };
+  // Shared trunk: every purchase benefits both heroes, regardless of stance.
+  Add(TEXT("Root.Vitality"),TEXT("Living Flame"),TEXT("+{Percent}% maximum health per rank."),0,0,{510,355},TEXT(""),TEXT("Health"),.04f);
+  Add(TEXT("Root.Gather"),TEXT("Ember Reach"),TEXT("+{Percent}% XP pickup radius per rank."),0,0,{580,310},TEXT("Root.Vitality"),TEXT("Pickup"),.16f);
+  Add(TEXT("Root.Strength"),TEXT("Inner Fire"),TEXT("+{Percent}% damage for both heroes per rank."),0,1,{510,275},TEXT("Root.Vitality"),TEXT("Damage"),.03f);
+  Add(TEXT("Root.Step"),TEXT("Pilgrim's Step"),TEXT("+{Percent}% movement speed per rank."),0,1,{642,253},TEXT("Root.Gather"),TEXT("Move"),.02f);
+  Add(TEXT("Root.Tempo"),TEXT("Steady Breath"),TEXT("+{Percent}% basic attack speed for both heroes per rank."),0,2,{455,207},TEXT("Root.Strength"),TEXT("Attack"),.02f);
+  Add(TEXT("Root.Endurance"),TEXT("Deep Reserves"),TEXT("+{Percent}% maximum health per rank."),0,2,{390,257},TEXT("Root.Strength"),TEXT("Health"),.05f);
+  Add(TEXT("Root.Dash"),TEXT("Second Wind"),TEXT("+{Magnitude} maximum dash charge."),0,3,{393,157},TEXT("Root.Tempo"),TEXT("Dash"),1,1);
+  Add(TEXT("Root.Horizon"),TEXT("Far Horizon"),TEXT("+{Percent}% XP pickup radius."),0,3,{708,207},TEXT("Root.Step"),TEXT("Pickup"),.4f,1);
+  Add(TEXT("Bond.Flow"),TEXT("Crossing Souls"),TEXT("+{Percent}% swap recharge speed per rank."),3,0,{560,218},TEXT("Root.Strength"),TEXT("Swap"),.05f);
+  Add(TEXT("Bond.Relay"),TEXT("Seamless Relay"),TEXT("+{Percent}% swap recharge speed per rank."),3,1,{620,155},TEXT("Bond.Flow"),TEXT("Swap"),.05f);
+  Add(TEXT("Bond.Unity"),TEXT("Two Souls, One Will"),TEXT("+{Percent}% damage for both heroes."),3,3,{548,108},TEXT("Bond.Flow"),TEXT("Damage"),.08f,1);
+  Add(TEXT("Bond.Rhythm"),TEXT("Heaven Undivided"),TEXT("+{Percent}% basic attack speed for both heroes."),3,3,{473,103},TEXT("Root.Tempo"),TEXT("Attack"),.08f,1);
+  Add(TEXT("Bond.Reroll"),TEXT("Reroll"),TEXT("Unlock {Magnitude} rerolls per run. Replace your level-up upgrade choices."),3,2,{324,209},TEXT("Root.Endurance"),TEXT("Reroll"),3,1);
+  Add(TEXT("Bond.Banish"),TEXT("Banish"),TEXT("Unlock {Magnitude} banishes per run. Replace a chosen upgrade and remove it from future offers for that run."),3,2,{290,132},TEXT("Bond.Reroll"),TEXT("Banish"),2,1);
+  // The two character trunks contain only bonuses consumed by all of their stances.
+  Add(TEXT("Steel.Edge"),TEXT("Tempered Edge"),TEXT("+{Percent}% Samurai direct damage per rank."),1,0,{595,468},TEXT("Root.Vitality"),TEXT("SteelDamage"),.04f);
+  Add(TEXT("Steel.Tempo"),TEXT("Draw and Cut"),TEXT("+{Percent}% Samurai basic attack speed per rank."),1,1,{660,510},TEXT("Steel.Edge"),TEXT("SteelAttack"),.03f);
+  Add(TEXT("Steel.Power"),TEXT("Mountain Splitter"),TEXT("+{Percent}% Samurai direct damage per rank."),1,2,{725,552},TEXT("Steel.Tempo"),TEXT("SteelDamage"),.04f);
+  Add(TEXT("Steel.Resolve"),TEXT("Perfect Form"),TEXT("+{Percent}% Samurai basic attack speed."),1,3,{804,598},TEXT("Steel.Power"),TEXT("SteelAttack"),.08f,1);
+  Add(TEXT("Shadow.Edge"),TEXT("Hidden Edge"),TEXT("+{Percent}% Ninja direct damage per rank."),2,0,{425,468},TEXT("Root.Vitality"),TEXT("ShadowDamage"),.04f);
+  Add(TEXT("Shadow.Tempo"),TEXT("Flickering Hands"),TEXT("+{Percent}% Ninja basic attack speed per rank."),2,1,{360,510},TEXT("Shadow.Edge"),TEXT("ShadowAttack"),.03f);
+  Add(TEXT("Shadow.Power"),TEXT("Assassin's Patience"),TEXT("+{Percent}% Ninja direct damage per rank."),2,2,{295,552},TEXT("Shadow.Tempo"),TEXT("ShadowDamage"),.04f);
+  Add(TEXT("Shadow.Resolve"),TEXT("Unbroken Motion"),TEXT("+{Percent}% Ninja basic attack speed."),2,3,{216,598},TEXT("Shadow.Power"),TEXT("ShadowAttack"),.08f,1);
+  auto Stance = [&](const TCHAR* Id,const TCHAR* Name,const TCHAR* Text,int32 Branch,int32 Tier,
+      FVector2D Position,const TCHAR* Parent,const TCHAR* Effect,float Value,const TCHAR* Required,int32 Ranks=3)
+  {
+   Add(Id,Name,Text,Branch,Tier,Position,Parent,Effect,Value,Ranks);
+   Result.Last().RequiredStance=Required;
+  };
+  Stance(TEXT("Blood.Edge"),TEXT("Crimson Edge"),TEXT("+{Percent}% Blood stance direct damage per rank."),1,1,{720,425},TEXT("Steel.Power"),TEXT("SteelDamage"),.03f,TEXT("BattleStance"));
+  Stance(TEXT("Blood.Reach"),TEXT("Sweeping Steel"),TEXT("+{Percent}% Blood stance melee and blood-burst radius per rank."),1,2,{805,389},TEXT("Blood.Edge"),TEXT("SteelArea"),.04f,TEXT("BattleStance"));
+  Stance(TEXT("Blood.Vein"),TEXT("Unclosing Wounds"),TEXT("+{Percent}% Bleed damage while using Blood stance."),1,3,{895,354},TEXT("Blood.Reach"),TEXT("Bleed"),.2f,TEXT("BattleStance"),1);
+  Stance(TEXT("Iaijutsu.Edge"),TEXT("Drawn in Silence"),TEXT("+{Percent}% Iaijutsu direct damage per rank."),1,1,{778,481},TEXT("Steel.Power"),TEXT("SteelDamage"),.03f,TEXT("Iaijutsu"));
+  Stance(TEXT("Iaijutsu.Width"),TEXT("Heaven's Divide"),TEXT("+{Percent}% Iaijutsu slash width per rank."),1,2,{863,477},TEXT("Iaijutsu.Edge"),TEXT("SteelArea"),.04f,TEXT("Iaijutsu"));
+  Stance(TEXT("Iaijutsu.Focus"),TEXT("Stillness Before Dawn"),TEXT("+{Percent}% Iaijutsu charge speed."),1,3,{947,471},TEXT("Iaijutsu.Width"),TEXT("IaijutsuCharge"),.12f,TEXT("Iaijutsu"),1);
+  Stance(TEXT("Crescent.Edge"),TEXT("Moonlit Edge"),TEXT("+{Percent}% Crescent direct damage per rank."),1,1,{729,633},TEXT("Steel.Power"),TEXT("SteelDamage"),.03f,TEXT("BladeWave"));
+  Stance(TEXT("Crescent.Width"),TEXT("Wide Horizon"),TEXT("+{Percent}% Crescent wave and lingering-field width per rank."),1,2,{777,705},TEXT("Crescent.Edge"),TEXT("SteelArea"),.04f,TEXT("BladeWave"));
+  Stance(TEXT("Crescent.Flow"),TEXT("Flowing Moon"),TEXT("+{Percent}% Crescent basic attack speed."),1,3,{820,780},TEXT("Crescent.Width"),TEXT("SteelAttack"),.12f,TEXT("BladeWave"),1);
+  Stance(TEXT("Fang.Edge"),TEXT("Returning Edge"),TEXT("+{Percent}% Returning Fang direct damage per rank."),2,1,{300,425},TEXT("Shadow.Power"),TEXT("ShadowDamage"),.03f,TEXT("ReturningFang"));
+  Stance(TEXT("Fang.Reach"),TEXT("Patient Hunter"),TEXT("+{Percent}% Returning Fang targeting range per rank."),2,2,{215,389},TEXT("Fang.Edge"),TEXT("FangRange"),.04f,TEXT("ReturningFang"));
+  Stance(TEXT("Fang.Flight"),TEXT("Homeward Wind"),TEXT("+{Percent}% Returning Fang travel speed."),2,3,{125,354},TEXT("Fang.Reach"),TEXT("ShadowFlight"),.12f,TEXT("ReturningFang"),1);
+  Stance(TEXT("Barrage.Edge"),TEXT("Needlepoint"),TEXT("+{Percent}% Barrage direct damage per rank."),2,1,{242,481},TEXT("Shadow.Power"),TEXT("ShadowDamage"),.03f,TEXT("BarrageStance"));
+  Stance(TEXT("Barrage.Tempo"),TEXT("Relentless Rhythm"),TEXT("+{Percent}% Barrage basic attack speed per rank."),2,2,{157,477},TEXT("Barrage.Edge"),TEXT("ShadowAttack"),.03f,TEXT("BarrageStance"));
+  Stance(TEXT("Barrage.Twin"),TEXT("Thousand Needles"),TEXT("+{Magnitude} projectile per Barrage volley."),2,3,{73,471},TEXT("Barrage.Tempo"),TEXT("Projectile"),1,TEXT("BarrageStance"),1);
+  Stance(TEXT("Shuriken.Edge"),TEXT("Turning Blade"),TEXT("+{Percent}% Great Shuriken direct damage per rank."),2,1,{291,633},TEXT("Shadow.Power"),TEXT("ShadowDamage"),.03f,TEXT("GreatShuriken"));
+  Stance(TEXT("Shuriken.Size"),TEXT("Widening Circle"),TEXT("+{Percent}% Great Shuriken blade radius per rank."),2,2,{243,705},TEXT("Shuriken.Edge"),TEXT("ShurikenSize"),.04f,TEXT("GreatShuriken"));
+  Stance(TEXT("Shuriken.Grind"),TEXT("Endless Wheel"),TEXT("+{Percent}% Great Shuriken contact and pulse frequency."),2,3,{200,780},TEXT("Shuriken.Size"),TEXT("ShurikenTempo"),.12f,TEXT("GreatShuriken"),1);
+  Add(TEXT("Root.Area"),TEXT("Expanding Presence"),TEXT("+{Percent}% attack coverage per rank: melee/slash/wave width, Fang reach, Barrage kunai and pool size, or Shuriken blade size."),0,1,{720,310},TEXT("Root.Gather"),TEXT("Area"),.04f,5);
+  Add(TEXT("Root.Currency"),TEXT("Soul Harvest"),TEXT("+{Percent}% Soul Embers and Soul Sigils earned per rank. Small bonuses accumulate across rewards."),0,2,{790,253},TEXT("Root.Area"),TEXT("Currency"),.05f,5);
+  Add(TEXT("Ability.ComboUnlock"),TEXT("Soul Convergence"),TEXT("Unlock the combo burst. Build the shared meter through combat, then unleash your active hero's combo ability."),3,0,{450,350},TEXT(""),TEXT("ComboUnlock"),1,1);
+  Add(TEXT("Ability.ComboCharge"),TEXT("Gathering Resonance"),TEXT("+{Percent}% combo meter gained per rank."),3,1,{500,255},TEXT("Ability.ComboUnlock"),TEXT("ComboCharge"),.05f);
+  Add(TEXT("Ability.ComboPower"),TEXT("Resonant Release"),TEXT("+{Percent}% combo ability damage per rank."),3,2,{555,165},TEXT("Ability.ComboCharge"),TEXT("ComboPower"),.05f);
+  for (FMetaSkillNode& N:Result)
+  {
+   if (!N.RequiredStance.IsNone())
+   {
+    N.Page=EMetaSkillPage::Stances;
+    if (N.Id.ToString().EndsWith(TEXT(".Edge"))) N.Prerequisites.Reset();
+   }
+   if (N.Effect==TEXT("Swap") || N.Effect==TEXT("Dash") || N.Effect==TEXT("Reroll") ||
+       N.Effect==TEXT("Banish") || N.Effect.ToString().StartsWith(TEXT("Combo")))
+   {
+    N.Page=EMetaSkillPage::Abilities;
+    if (N.Id==TEXT("Root.Dash") || N.Id==TEXT("Bond.Flow") || N.Id==TEXT("Bond.Reroll")) N.Prerequisites.Reset();
+   }
+   if (N.Id==TEXT("Bond.Unity")) N.Prerequisites={FName(TEXT("Root.Strength"))};
+   if (N.Id==TEXT("Ability.ComboUnlock")) N.BaseCost=10;
+   if (N.Effect==TEXT("Attack") || N.Effect==TEXT("SteelAttack") || N.Effect==TEXT("ShadowAttack"))
+    N.Description=TEXT("+{Percent}% attack cadence per rank: attack rate, Iaijutsu charge speed, Fang flight speed, or Shuriken hit frequency.");
+   if(N.Effect==TEXT("Health"))N.SharedStat=ESharedPlayerStatType::MaxHealthMultiplier;
+   if(N.Effect==TEXT("Pickup"))N.SharedStat=ESharedPlayerStatType::PickupRadiusMultiplier;
+   if(N.Effect==TEXT("Move"))N.SharedStat=ESharedPlayerStatType::MoveSpeedMultiplier;
+   if(N.Effect==TEXT("Attack"))N.SharedStat=ESharedPlayerStatType::AttackSpeedMultiplier;
+   if(N.Effect==TEXT("Dash"))N.SharedStat=ESharedPlayerStatType::MaxDashCharges;
+   if(N.Branch==1)N.Target=EUpgradeStatTarget::Samurai;
+   if(N.Branch==2)N.Target=EUpgradeStatTarget::Ninja;
+   if(N.Effect==TEXT("SteelArea"))N.CharacterStat=ECharacterStatType::AttackAreaMultiplier;
+   if(N.Effect==TEXT("SteelAttack")||N.Effect==TEXT("ShadowAttack"))N.CharacterStat=ECharacterStatType::AttackSpeedMultiplier;
+   if(N.Effect==TEXT("ShadowFlight"))N.CharacterStat=ECharacterStatType::ProjectileSpeedMultiplier;
+   if(N.Effect==TEXT("Projectile"))N.CharacterStat=ECharacterStatType::ProjectileCountBonus;
+   N.bPassiveEffect=N.Effect==TEXT("Swap")||N.Effect==TEXT("Bleed")||N.Effect==TEXT("Reroll")||N.Effect==TEXT("Banish")
+       ||N.Effect==TEXT("Area")||N.Effect==TEXT("Currency")||N.Effect==TEXT("Attack")||N.Effect==TEXT("SteelAttack")||N.Effect==TEXT("ShadowAttack")
+       ||N.Effect.ToString().StartsWith(TEXT("Combo"))||N.Effect==TEXT("IaijutsuCharge")||N.Effect==TEXT("FangRange")||N.Effect==TEXT("ShurikenSize")||N.Effect==TEXT("ShurikenTempo");
+  }
+  return Result;
+ }();
+ return Catalog;
+}
 
 const TArray<FMetaSkillNode>& MetaSkillTree::Nodes()
 {
-	static const TArray<FMetaSkillNode> Catalog = []
-	{
-		TArray<FMetaSkillNode> Result;
-		auto Add = [&Result](const TCHAR* Id, const TCHAR* Name, const TCHAR* Text, int32 Branch, int32 Tier, int32 Lane,
-			const TCHAR* Parent, const TCHAR* Effect, float Value, int32 Ranks = 3)
-		{
-			FMetaSkillNode N;
-			N.Id = Id; N.Name = Name; N.Description = Text; N.Branch = Branch; N.Tier = Tier; N.Lane = Lane;
-			N.MaxRank = Ranks; N.BaseCost = 5 + Tier * 5; N.Effect = Effect; N.PerRank = Value;
-			if (*Parent) N.Prerequisites.Add(FName(Parent));
-			Result.Add(N);
-		};
-		Add(TEXT("Root.Vitality"), TEXT("Living Flame"), TEXT("+4% maximum health per rank."), 0,0,0,TEXT(""),TEXT("Health"),.04f);
-		Add(TEXT("Root.Gather"), TEXT("Ember Reach"), TEXT("+16% XP pickup radius per rank."), 0,0,1,TEXT(""),TEXT("Pickup"),.16f);
-		Add(TEXT("Root.Strength"), TEXT("Inner Fire"), TEXT("+3% damage for both characters per rank."), 0,1,0,TEXT("Root.Vitality"),TEXT("Damage"),.03f);
-		Add(TEXT("Root.Step"), TEXT("Pilgrim's Step"), TEXT("+2% movement speed per rank."), 0,1,1,TEXT("Root.Gather"),TEXT("Move"),.02f);
-		Add(TEXT("Root.Tempo"), TEXT("Steady Breath"), TEXT("+2% basic attack speed for both characters per rank."), 0,2,0,TEXT("Root.Strength"),TEXT("Attack"),.02f);
-		Add(TEXT("Root.Endurance"), TEXT("Deep Reserves"), TEXT("+5% maximum health per rank."), 0,2,1,TEXT("Root.Step"),TEXT("Health"),.05f);
-		Add(TEXT("Root.Dash"), TEXT("Second Wind"), TEXT("+1 maximum dash charge."), 0,3,0,TEXT("Root.Tempo"),TEXT("Dash"),1,1);
-		Add(TEXT("Root.Horizon"), TEXT("Far Horizon"), TEXT("+40% XP pickup radius."), 0,3,1,TEXT("Root.Endurance"),TEXT("Pickup"),.4f,1);
-		Add(TEXT("Steel.Edge"), TEXT("Tempered Edge"), TEXT("+4% Samurai direct damage per rank."), 1,0,0,TEXT("Root.Vitality"),TEXT("SteelDamage"),.04f);
-		Add(TEXT("Steel.Blood"), TEXT("Crimson Oath"), TEXT("+5% Bleed damage per rank. Does not grant Bleed."), 1,0,1,TEXT("Root.Vitality"),TEXT("Bleed"),.05f);
-		Add(TEXT("Steel.Reach"), TEXT("Sweeping Steel"), TEXT("+5% Samurai basic melee area scale per rank."), 1,1,0,TEXT("Steel.Edge"),TEXT("SteelArea"),.05f);
-		Add(TEXT("Steel.Tempo"), TEXT("Draw and Cut"), TEXT("+3% Samurai basic attack speed per rank."), 1,1,1,TEXT("Steel.Blood"),TEXT("SteelAttack"),.03f);
-		Add(TEXT("Steel.Power"), TEXT("Mountain Splitter"), TEXT("+4% Samurai direct damage per rank."), 1,2,0,TEXT("Steel.Reach"),TEXT("SteelDamage"),.04f);
-		Add(TEXT("Steel.Wounds"), TEXT("Unclosing Wounds"), TEXT("+5% Bleed damage per rank."), 1,2,1,TEXT("Steel.Tempo"),TEXT("Bleed"),.05f);
-		Add(TEXT("Steel.Horizon"), TEXT("Heaven's Arc"), TEXT("+15% Samurai basic melee area scale."), 1,3,0,TEXT("Steel.Power"),TEXT("SteelArea"),.15f,1);
-		Add(TEXT("Steel.Resolve"), TEXT("Perfect Form"), TEXT("+8% Samurai basic attack speed."), 1,3,1,TEXT("Steel.Wounds"),TEXT("SteelAttack"),.08f,1);
-		Add(TEXT("Shadow.Edge"), TEXT("Hidden Edge"), TEXT("+4% Ninja direct damage per rank."), 2,0,0,TEXT("Root.Gather"),TEXT("ShadowDamage"),.04f);
-		Add(TEXT("Shadow.Venom"), TEXT("Jade Venom"), TEXT("+5% Poison damage per rank. Does not grant Poison."), 2,0,1,TEXT("Root.Gather"),TEXT("Poison"),.05f);
-		Add(TEXT("Shadow.Flight"), TEXT("Silent Flight"), TEXT("+6% Ninja basic projectile speed per rank."), 2,1,0,TEXT("Shadow.Edge"),TEXT("ShadowFlight"),.06f);
-		Add(TEXT("Shadow.Tempo"), TEXT("Flickering Hands"), TEXT("+3% Ninja basic attack speed per rank."), 2,1,1,TEXT("Shadow.Venom"),TEXT("ShadowAttack"),.03f);
-		Add(TEXT("Shadow.Power"), TEXT("Assassin's Patience"), TEXT("+4% Ninja direct damage per rank."), 2,2,0,TEXT("Shadow.Flight"),TEXT("ShadowDamage"),.04f);
-		Add(TEXT("Shadow.Toxin"), TEXT("Black Lotus"), TEXT("+5% Poison damage per rank."), 2,2,1,TEXT("Shadow.Tempo"),TEXT("Poison"),.05f);
-		Add(TEXT("Shadow.Pierce"), TEXT("Through the Veil"), TEXT("Ninja basic projectiles pierce one additional enemy."), 2,3,0,TEXT("Shadow.Power"),TEXT("Pierce"),1,1);
-		Add(TEXT("Shadow.Twin"), TEXT("Twin Fangs"), TEXT("+1 Ninja basic projectile."), 2,3,1,TEXT("Shadow.Toxin"),TEXT("Projectile"),1,1);
-		Add(TEXT("Bond.Flow"), TEXT("Crossing Souls"), TEXT("+5% swap recharge speed per rank."), 3,0,0,TEXT("Root.Strength"),TEXT("Swap"),.05f);
-		Add(TEXT("Bond.Relay"), TEXT("Seamless Relay"), TEXT("+5% swap recharge speed per rank."), 3,1,1,TEXT("Root.Step"),TEXT("Swap"),.05f);
-		Add(TEXT("Bond.Unity"), TEXT("Two Souls, One Will"), TEXT("+8% damage for both characters."), 3,3,0,TEXT("Bond.Flow"),TEXT("Damage"),.08f,1);
-		Add(TEXT("Bond.Rhythm"), TEXT("Heaven Undivided"), TEXT("+8% basic attack speed for both characters."), 3,3,1,TEXT("Bond.Relay"),TEXT("Attack"),.08f,1);
-		Result[26].Prerequisites.Append({FName(TEXT("Steel.Power")), FName(TEXT("Shadow.Power"))});
-		Result[27].Prerequisites.Append({FName(TEXT("Steel.Wounds")), FName(TEXT("Shadow.Toxin"))});
-		Add(TEXT("Bond.Reroll"), TEXT("Reroll"), TEXT("Unlock 3 rerolls per run. Replace your level-up upgrade choices."), 3,2,0,TEXT("Bond.Flow"),TEXT("Reroll"),3,1);
-		Add(TEXT("Bond.Banish"), TEXT("Banish"), TEXT("Unlock 2 banishes per run. Replace a chosen upgrade and remove it from future offers for that run."), 3,2,1,TEXT("Bond.Relay"),TEXT("Banish"),2,1);
-		for (FMetaSkillNode& N : Result)
-		{
-			if (N.Effect == TEXT("Health")) N.SharedStat = ESharedPlayerStatType::MaxHealthMultiplier;
-			if (N.Effect == TEXT("Pickup")) N.SharedStat = ESharedPlayerStatType::PickupRadiusMultiplier;
-			if (N.Effect == TEXT("Move")) N.SharedStat = ESharedPlayerStatType::MoveSpeedMultiplier;
-			if (N.Effect == TEXT("Attack")) N.SharedStat = ESharedPlayerStatType::AttackSpeedMultiplier;
-			if (N.Effect == TEXT("Dash")) N.SharedStat = ESharedPlayerStatType::MaxDashCharges;
-			if (N.Effect.ToString().StartsWith(TEXT("Steel"))) N.Target = EUpgradeStatTarget::Samurai;
-			if (N.Effect.ToString().StartsWith(TEXT("Shadow")) || N.Effect == TEXT("Pierce") || N.Effect == TEXT("Projectile")) N.Target = EUpgradeStatTarget::Ninja;
-			if (N.Effect == TEXT("SteelArea")) N.CharacterStat = ECharacterStatType::AttackAreaMultiplier;
-			if (N.Effect == TEXT("SteelAttack") || N.Effect == TEXT("ShadowAttack")) N.CharacterStat = ECharacterStatType::AttackSpeedMultiplier;
-			if (N.Effect == TEXT("ShadowFlight")) N.CharacterStat = ECharacterStatType::ProjectileSpeedMultiplier;
-			if (N.Effect == TEXT("Pierce")) N.CharacterStat = ECharacterStatType::ProjectilePierceBonus;
-			if (N.Effect == TEXT("Projectile")) N.CharacterStat = ECharacterStatType::ProjectileCountBonus;
-		}
-		return Result;
-	}();
-	return Catalog;
+	const auto* Balance=UBloodshiftBalanceData::Get();
+	return Balance->Skills.IsEmpty()?DefaultNodes():Balance->Skills;
+}
+FString MetaSkillTree::Description(const FMetaSkillNode& Node)
+{
+	return Node.Description.Replace(TEXT("{Percent}"),*FText::AsNumber(Node.PerRank*100.f).ToString())
+		.Replace(TEXT("{Magnitude}"),*FText::AsNumber(Node.PerRank).ToString());
 }
 
+FString MetaSkillTree::StanceName(FName Stance)
+{
+ if(Stance==TEXT("BattleStance"))return TEXT("Blood");
+ if(Stance==TEXT("Iaijutsu"))return TEXT("Iaijutsu");
+ if(Stance==TEXT("BladeWave"))return TEXT("Crescent");
+ if(Stance==TEXT("ReturningFang"))return TEXT("Returning Fang");
+ if(Stance==TEXT("BarrageStance"))return TEXT("Barrage");
+ if(Stance==TEXT("GreatShuriken"))return TEXT("Great Shuriken");
+ return Stance.ToString();
+}
+FString MetaSkillTree::Scope(const FMetaSkillNode& Node)
+{
+ if(!Node.RequiredStance.IsNone())return StanceName(Node.RequiredStance)+TEXT(" stance only");
+ if(Node.Target==EUpgradeStatTarget::Samurai)return TEXT("Samurai / all stances");
+ if(Node.Target==EUpgradeStatTarget::Ninja)return TEXT("Ninja / all stances");
+ return TEXT("Both heroes / all stances");
+}
 const FMetaSkillNode* MetaSkillTree::Find(FName Id)
 {
 	return Nodes().FindByPredicate([Id](const FMetaSkillNode& N) { return N.Id == Id; });
@@ -87,8 +154,8 @@ FString MetaSkillTree::PurchaseBlock(const UHeavensDivideMetaSaveGame& Save, FNa
 	if (!N) return TEXT("Unknown skill.");
 	if (Rank(Save, Id) >= N->MaxRank) return TEXT("Fully learned.");
 	for (FName Parent : N->Prerequisites)
-		if (Rank(Save, Parent) == 0) return FString::Printf(TEXT("Learn %s first."), *Find(Parent)->Name);
-	if (Save.SoulEmbers < Cost(Save, Id)) return TEXT("Earn more Soul Embers by completing runs.");
+		if (Rank(Save, Parent) == 0) return Find(Parent)?FString::Printf(TEXT("Learn %s first."), *Find(Parent)->Name):TEXT("Invalid prerequisite skill ID.");
+	if (Save.SoulEmbers < Cost(Save, Id)) return TEXT("Earn Soul Embers from combat, objectives and surviving runs.");
 	return FString();
 }
 bool MetaSkillTree::Purchase(UHeavensDivideMetaSaveGame& Save, FName Id)
@@ -111,6 +178,9 @@ void MetaSkillTree::Sanitize(UHeavensDivideMetaSaveGame& Save)
 {
 	Save.SoulEmbers = FMath::Max(0, Save.SoulEmbers);
 	Save.SkillEmbersSpent = FMath::Max(0, Save.SkillEmbersSpent);
+	// The stance-tree redesign changes both effects and prerequisite paths.
+	// Return the exact recorded spend once; other meta progression stays intact.
+	if (Save.SaveVersion < 5) Refund(Save);
 	// Refund retired Prepare passives once, keeping all surviving purchases.
 	const TPair<FName, int32> Retired[] = {
 		{TEXT("Bond.Memory"), 5}, {TEXT("Bond.Strike"), 10},
@@ -145,5 +215,6 @@ float MetaSkillTree::Bonus(const UHeavensDivideMetaSaveGame& Save, FName Effect)
 int32 MetaSkillTree::RunReward(float Seconds, bool bVictory)
 {
 	if (!FMath::IsFinite(Seconds) || Seconds < 0) return 0;
-	return FMath::FloorToInt(FMath::Min(Seconds, 3600.f) / 30.f) + (bVictory ? 20 : 0);
+	const auto* Balance=UBloodshiftBalanceData::Get();
+	return FMath::FloorToInt(FMath::Min(Seconds, FMath::Max(0.f,Balance->RewardTimeCap)) / FMath::Max(1.f,Balance->SecondsPerEmber)) + (bVictory ? FMath::Max(0,Balance->VictoryEmbers) : 0);
 }

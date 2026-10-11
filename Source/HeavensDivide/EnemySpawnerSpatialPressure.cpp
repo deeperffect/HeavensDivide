@@ -15,6 +15,31 @@ static TAutoConsoleVariable<int32> CVarLogSpatialPressure(
 	TEXT("Logs every automatic spatial-pressure evaluation when set to 1."));
 #endif
 
+float AEnemySpawner::ChooseSwarmDirection() const
+{
+    const auto* Player = GetActivePlayerCharacter();
+    if (!Player) return FMath::FRandRange(0.f,360.f);
+    const double Now = GetWorld()->GetTimeSeconds();
+    if (CachedSwarmCounts.Num()!=8 || Now>=NextSwarmCountRefresh)
+    {
+        CachedSwarmCounts.Init(0,8);
+        NextSwarmCountRefresh=Now+1.0;
+        const FVector PlayerLocation=Player->GetActorLocation();
+        for (const auto& Pair : CountedEnemyClassByEnemy)
+            if (auto* Enemy = Pair.Key.ResolveObjectPtr(); IsValid(Enemy) && !Enemy->IsDead())
+            {
+                const FVector Offset=Enemy->GetActorLocation()-PlayerLocation;
+                if (Offset.SizeSquared2D()>FMath::Square(MaxSpawnDistance*1.5f)) continue;
+                const float Angle=FMath::Fmod(FMath::RadiansToDegrees(FMath::Atan2(Offset.Y,Offset.X))+360.f,360.f);
+                ++CachedSwarmCounts[FMath::Clamp(FMath::FloorToInt(Angle/45.f),0,7)];
+            }
+    }
+    const int32 Sector=ChooseReplacementSector(CachedSwarmCounts);
+    // Reserve the chosen direction so a burst does not all select the same gap.
+    ++CachedSwarmCounts[Sector];
+    return (Sector+.5f)*45.f;
+}
+
 int32 AEnemySpawner::ChooseReplacementSector(const TArray<int32>& SectorCounts) const
 {
 	if (SectorCounts.IsEmpty()) return INDEX_NONE;

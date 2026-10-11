@@ -49,13 +49,8 @@ bool TradeoffCopy(const UPlayerUpgradeComponent* U, const UUpgradeDefinition* Ca
 
 bool UPlayerUpgradeComponent::IsCategoryUnlocked(EUpgradeCategory Category) const
 {
-	if (Category != EUpgradeCategory::Synergy)
-	{
-		return true;
-	}
-
-	return GetCurrentPlayerLevel() >= SynergyUnlockLevel && HasAcquiredUpgradeInCategory(EUpgradeCategory::Samurai) &&
-	       HasAcquiredUpgradeInCategory(EUpgradeCategory::Ninja);
+	// Categories are open from the start; each card still obeys its unlock and stance rules.
+	return Category != EUpgradeCategory::SamuraiTrial && Category != EUpgradeCategory::NinjaTrial;
 }
 
 TArray<EUpgradeCategory> UPlayerUpgradeComponent::GetEligibleCategories() const
@@ -223,87 +218,30 @@ bool UPlayerUpgradeComponent::BeginBloodShrineSelection(int32 ChoiceCount)
 
 bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
-	const bool bCharacterTrial = Category == EUpgradeCategory::SamuraiTrial || Category == EUpgradeCategory::NinjaTrial;
-	if (Category == EUpgradeCategory::SamuraiTrial)
-		Category = EUpgradeCategory::Samurai;
-	if (Category == EUpgradeCategory::NinjaTrial)
-		Category = EUpgradeCategory::Ninja;
+	if (Category == EUpgradeCategory::SamuraiTrial || Category == EUpgradeCategory::NinjaTrial)
+		return false;
 	ClearCurrentOffer();
 	SelectedCategory = Category;
-	if (bCharacterTrial)
-	{
-		TArray<UUpgradeDefinition*> Starters;
-		for (UUpgradeDefinition* Upgrade : UpgradePool)
-			if (IsTrialBuildStarter(Upgrade) && Upgrade->Category == Category && CanAcquireUpgrade(Upgrade))
-				Starters.AddUnique(Upgrade);
-		while (!Starters.IsEmpty() && CurrentUpgradeChoices.Num() < FMath::Max(0, UpgradeChoiceCount))
-		{
-			const int32 Index = FMath::RandRange(0, Starters.Num() - 1);
-			CurrentUpgradeChoices.Add(Starters[Index]);
-			Starters.RemoveAtSwap(Index);
-		}
-	}
-	// Once a stance is owned, exclusivity removes the other starters. Repeat trials
-	// still reward eligible support/branch cards without replacing the chosen route.
-	if (CurrentUpgradeChoices.IsEmpty())
-		CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
-	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
+	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
+	bHasSelectedCategory = !CurrentUpgradeChoices.IsEmpty();
 	BuildOffersFromCurrentChoices(false);
 	return bHasSelectedCategory;
 }
 
 TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetLockedSynergyDiscoveryCandidates() const
 {
-	TArray<UUpgradeDefinition*> Candidates;
-	const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	const USynergyMetaProgressionSubsystem* MetaSubsystem =
-	    GameInstance ? GameInstance->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-	if (!MetaSubsystem)
-		return Candidates;
-
-	for (UUpgradeDefinition* Upgrade : UpgradePool)
-	{
-		if (Upgrade && Upgrade->Category == EUpgradeCategory::Synergy && Upgrade->bRequiresMetaUnlock &&
-		    !Upgrade->MetaUnlockId.IsNone() && !MetaSubsystem->IsSynergyUpgradeUnlocked(Upgrade->MetaUnlockId))
-		{
-			Candidates.AddUnique(Upgrade);
-		}
-	}
-	return Candidates;
+	return {};
 }
 
 bool UPlayerUpgradeComponent::BeginSynergyDiscoverySelection(int32 UpgradeChoiceCount)
 {
-	ClearCurrentOffer();
-	SelectedCategory = EUpgradeCategory::Synergy;
-	TArray<UUpgradeDefinition*> Remaining = GetLockedSynergyDiscoveryCandidates();
-	const int32 DesiredCount = FMath::Max(0, UpgradeChoiceCount);
-	while (CurrentUpgradeChoices.Num() < DesiredCount && Remaining.Num() > 0)
-	{
-		const int32 PickedIndex = FMath::RandRange(0, Remaining.Num() - 1);
-		CurrentUpgradeChoices.Add(Remaining[PickedIndex]);
-		Remaining.RemoveAtSwap(PickedIndex);
-	}
-	bHasSelectedCategory = CurrentUpgradeChoices.Num() > 0;
-	BuildOffersFromCurrentChoices(false);
-	return bHasSelectedCategory;
+	// There are no permanent run-upgrade discoveries left to offer.
+	return false;
 }
 
 bool UPlayerUpgradeComponent::SelectSynergyDiscoveryUpgrade(UUpgradeDefinition* Upgrade)
 {
-	if (!bHasSelectedCategory || !CurrentUpgradeChoices.Contains(Upgrade) || !Upgrade)
-		return false;
-	UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-	USynergyMetaProgressionSubsystem* MetaSubsystem =
-	    GameInstance ? GameInstance->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-	if (!MetaSubsystem || !MetaSubsystem->UnlockSynergyUpgrade(Upgrade->MetaUnlockId))
-		return false;
-
-	const bool bGrantedForCurrentRun = AcquireUpgrade(Upgrade);
-	UE_LOG(LogTemp, Log, TEXT("Synergy discovered: %s PermanentUnlock=true CurrentRunGrant=%s"),
-	       *Upgrade->MetaUnlockId.ToString(), bGrantedForCurrentRun ? TEXT("true") : TEXT("false"));
-	ClearCurrentOffer();
-	return true;
+	return false;
 }
 
 bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount)
@@ -529,12 +467,12 @@ FText UPlayerUpgradeComponent::ResolveOfferDescription(const UUpgradeDefinition*
 		for (const FUpgradeRarityMagnitude& Entry : Upgrade->RarityMagnitudes)
 		{
 			if (FMath::IsNearlyEqual(Entry.Magnitude, Magnitude) && !Entry.DescriptionOverride.IsEmpty())
-				return Entry.DescriptionOverride;
+				return Upgrade->FormatBalanceText(Entry.DescriptionOverride);
 		}
 	}
 	if (!Upgrade || !Upgrade->bUsesRolledRarity || Upgrade->RolledDescriptionFormat.IsEmpty())
 	{
-		return Upgrade ? Upgrade->Description : FText::GetEmpty();
+		return Upgrade ? Upgrade->GetBalanceDescription() : FText::GetEmpty();
 	}
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("Magnitude"), FText::AsNumber(Magnitude));
@@ -639,9 +577,10 @@ void UPlayerUpgradeComponent::ApplyMilestoneGuarantee()
 	if (PromoteIndex == INDEX_NONE)
 	{
 		TArray<UUpgradeDefinition*> Candidates;
-		for (UUpgradeDefinition* Upgrade : UpgradePool)
+		const auto Eligible = bMixedDraftOffer ? GetNormalLevelUpCandidates() : GetEligibleUpgradesForCategory(SelectedCategory);
+		for (UUpgradeDefinition* Upgrade : Eligible)
 		{
-			if (Upgrade && Upgrade->Category == SelectedCategory && IsNormalScalableUpgrade(Upgrade) &&
+			if (Upgrade && IsNormalScalableUpgrade(Upgrade) &&
 			    CanAcquireUpgrade(Upgrade) && !CurrentUpgradeChoices.Contains(Upgrade))
 			{
 				Candidates.Add(Upgrade);
@@ -680,6 +619,7 @@ FText UPlayerUpgradeComponent::GetRarityDisplayName(EUpgradeRarity Rarity) const
 
 void UPlayerUpgradeComponent::ClearCurrentOffer()
 {
+	bMixedDraftOffer = false;
 	bDraftToolOffer = false;
 	CurrentCategoryChoices.Reset();
 	CurrentUpgradeChoices.Reset();

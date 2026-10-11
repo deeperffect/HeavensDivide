@@ -18,6 +18,7 @@
 #include "FinalBossBase.h"
 #include "HealthComponent.h"
 #include "MinimapWidget.h"
+#include "CurrencyHUDWidget.h"
 #include "NinjaCharacter.h"
 #include "SamuraiCharacter.h"
 #include "SurvivorPlayerController.h"
@@ -89,6 +90,8 @@ void UPlayerHUDWidget::NativeDestruct()
 	ClearSwapPortraitPulse();
 	if (MinimapWidget) MinimapWidget->RemoveFromParent();
 	MinimapWidget = nullptr;
+	if (CurrencyWidget) CurrencyWidget->RemoveFromParent();
+	CurrencyWidget = nullptr;
 	HideBossHealthBar();
 	StopHealthChipChase();
 	UnbindCharacterHealth();
@@ -131,6 +134,14 @@ void UPlayerHUDWidget::EnsureMinimapPresentation()
 	MinimapCanvasSlot->SetPosition(FVector2D(-24.0f, 24.0f));
 	MinimapCanvasSlot->SetSize(FVector2D(250.0f, 250.0f));
 	MinimapCanvasSlot->SetZOrder(100);
+	CurrencyWidget = WidgetTree->ConstructWidget<UCurrencyHUDWidget>(UCurrencyHUDWidget::StaticClass(), TEXT("RuntimeCurrencies"));
+	CurrencyWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+	UCanvasPanelSlot* CurrencySlot = Canvas->AddChildToCanvas(CurrencyWidget);
+	CurrencySlot->SetAnchors(FAnchors(1.f,0.f));
+	CurrencySlot->SetAlignment(FVector2D(1.f,0.f));
+	CurrencySlot->SetPosition(FVector2D(-24.f,284.f));
+	CurrencySlot->SetSize(FVector2D(250.f,64.f));
+	CurrencySlot->SetZOrder(100);
 }
 
 void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -339,6 +350,7 @@ bool UPlayerHUDWidget::IsNinjaActive() const
 void UPlayerHUDWidget::ShowBossHealthBar(AFinalBossBase* Boss)
 {
 	if (MinimapWidget) MinimapWidget->SetVisibility(ESlateVisibility::Collapsed);
+	if (CurrencyWidget) CurrencyWidget->SetVisibility(ESlateVisibility::Collapsed);
 	if (!Boss || !Boss->GetHealthComponent()) return;
 	HideBossHealthBar();
 	EnsureBossHealthPresentation();

@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "RangedEnemyBase.h"
+#include "EnemyAttackCue.h"
 #include "CombatAudio.h"
 
 #include "Animation/AnimInstance.h"
@@ -219,6 +220,8 @@ void ARangedEnemyBase::StartAttack()
 	}
 
 	bIsAttacking = true;
+	if (AttackCue.IsValid()) AttackCue->Destroy();
+	AttackCue=AEnemyAttackCue::Spawn(this,GetProjectileSpawnLocation(),24,PlayResult*.5f,true);
 	MarkAttackStarted();
 	UpdateAnimationBudgetSignificance();
 
@@ -229,12 +232,13 @@ void ARangedEnemyBase::StartAttack()
 
 void ARangedEnemyBase::SpawnAttackProjectile()
 {
+	if (AttackCue.IsValid()) AttackCue->Impact();
 	if (IsStressTestCombatDisabled())
 	{
 		return;
 	}
 
-	if (bIsDead || IsPlayerTargetDead() || !CurrentTarget || !ProjectileClass || !GetWorld())
+	if (bIsDead || bGameplaySuspended || !bIsAttacking || IsPlayerTargetDead() || !CurrentTarget || !ProjectileClass || !GetWorld())
 	{
 		return;
 	}

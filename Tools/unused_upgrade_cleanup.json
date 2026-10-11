@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "removed": [
+    {
+      "id": "BladeWaveHaste",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWaveHaste",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BladeWaveHaste"
+    },
+    {
+      "id": "BladeWavePower",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBladeWavePower",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BladeWavePower"
+    },
+    {
+      "id": "BleedingEdge",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBleedingEdge",
+      "reason": "Retired card outside the saved upgrade pool.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BleedingEdge"
+    },
+    {
+      "id": "BurstRadius",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiBurstRadius",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_BurstRadius"
+    },
+    {
+      "id": "Crescendo",
+      "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaCrescendo",
+      "reason": "Retired card outside the saved upgrade pool.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_Crescendo"
+    },
+    {
+      "id": "CrossingBlades",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiCrossingBlades",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CrossingBlades"
+    },
+    {
+      "id": "CuttingReturn",
+      "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaCuttingReturn",
+      "reason": "Retired card outside the saved upgrade pool.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_CuttingReturn"
+    },
+    {
+      "id": "DeepCuts",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiDeepCuts",
+      "reason": "Retired card outside the saved upgrade pool.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_DeepCuts"
+    },
+    {
+      "id": "FinalPursuit",
+      "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFinalPursuit",
+      "reason": "Retired card outside the saved upgrade pool.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FinalPursuit"
+    },
+    {
+      "id": "FocusedVolley",
+      "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaFocusedVolley",
+      "reason": "Retired card outside the saved upgrade pool.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_FocusedVolley"
+    },
+    {
+      "id": "HeavyShuriken",
+      "path": "/Game/HeavensDivide/Upgrades/Ninja/DA_Upgrade_NinjaHeavyShuriken",
+      "reason": "Retired card outside the saved upgrade pool.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_HeavyShuriken"
+    },
+    {
+      "id": "OverkillBurst",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiOverkillBurst",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_OverkillBurst"
+    },
+    {
+      "id": "SplinterWave",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiSplinterWave",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_SplinterWave"
+    },
+    {
+      "id": "WaveMultishot",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiWaveMultishot",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_WaveMultishot"
+    },
+    {
+      "id": "WideArc",
+      "path": "/Game/HeavensDivide/Upgrades/Samurai/DA_Upgrade_SamuraiWideArc",
+      "reason": "Superseded Samurai card; blocked from all offers.",
+      "art": "/Game/HeavensDivide/Blueprints/UI/UpgradeIconArt/T_Upgrade_WideArc"
+    }
+  ]
+}

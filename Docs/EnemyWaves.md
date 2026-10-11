@@ -1,3 +1,5 @@
+Current tuning: see [Combat Balance](CombatBalance.md). The historical schedule below predates MixedPressure; its HP-growth values are disabled at runtime.
+
 # Survival enemy waves
 
 The current setup is authored in `Tools/enemy_wave_schedule.json` and applied by

@@ -1,0 +1,46 @@
+BLOODSHIFT BALANCE
+
+Open Unreal Editor > Tools > Bloodshift Balance (also in Window).
+The console command Bloodshift.Balance opens the same dockable tab.
+
+Search by ability name, upgrade ID, character or property name. Select an entry,
+then use the Details search on the right to find a particular stat.
+
+Where to look:
+  Abilities / Stances / Upgrades: special mechanics, ranks, rarity values, prerequisites,
+      stat modifiers, effect assets and card text.
+  Characters: base attacks, character stats, combo abilities and swap presentation.
+  Player systems: dash/swap timing, upgrade drafting and inactive assists.
+  Enemies & bosses: health, movement, attacks, warning shapes and spell timing.
+  Shared rules: permanent skill bonuses/costs, hazard limits and ember rewards.
+  World & encounters: spawner, objective, pickup and projectile Blueprint defaults.
+
+Numbers:
+  Chances and percentage bonuses use fractions: 0.15 = 15%.
+  Distances are centimeters. Times are seconds.
+  Rolled cards use Rarity Magnitudes. Their Per Rank fallback is not used when
+      a rarity magnitude has been rolled.
+  Non-rolled stat cards use Stat Modifiers > Value Per Level.
+  Ability / mechanic values drive special effects, procs and stance behavior.
+  Cadence upgrades also obey Shared rules > Cadence Upgrade Rank Cap.
+  Add Percent bonuses add together; Multiply values multiply the result.
+
+Save changes, then start a fresh run. Stop Play in Editor before editing.
+Existing placed actors can override their Blueprint defaults; those level
+overrides remain authoritative. Tester Balance is a separate in-game override.
+
+Ctrl+Z / Ctrl+Y undo and redo. Reset entry to baseline restores that entry's
+installation-time values and is undoable. It still needs Save changes.
+Saving backs up the previous disk packages under Saved/BalanceBackups.
+
+Card descriptions can use {ChancePercent}, {Radius} or other named mechanic
+parameters. Stat modifiers support {Stat0}, {Stat0Percent} and
+{Stat0BonusPercent}. Permanent skills use {Percent} or {Magnitude}.
+Text with literal numbers is authored copy; review it when changing balance.
+
+The installed catalog contains 344 entries, including 165 upgrade assets and
+253 named mechanic values. Fifteen inactive entries are hidden by default.
+Upgrade family labels distinguish identically named abilities in different stances.
+
+Inactive/retired upgrade assets are hidden by default. Editing their values
+does not re-enable them. Stable upgrade IDs and skill IDs must not be renamed.

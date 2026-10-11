@@ -27,8 +27,12 @@ void UGameOverWidget::BuildGameOverScreen()
     AddPromptText(Stack, TEXT("TimeSurvivedLabel"), FText::FromString(TEXT("TIME SURVIVED")), false, 7);
     FinalRunTimeText = AddPromptText(Stack, TEXT("FinalRunTimeText"), FText::FromString(TEXT("00:00")), true, 24);
     if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr)
-        AddPromptText(Stack, TEXT("SoulEmberReward"), FText::FromString(FString::Printf(TEXT("+%d SOUL EMBERS%s"),
-            Meta->GetLastSkillRunReward(), Meta->HasPendingSkillReward() ? TEXT(" (save pending)") : TEXT(""))), true, 24);
+    {
+        auto* Spoils = AddPromptText(Stack, TEXT("SoulEmberReward"), FText::FromString(FString::Printf(TEXT("RUN SPOILS\n+%d EMBERS  /  +%d SOUL SIGILS%s"),
+            Meta->GetRunEmbers(), Meta->GetRunSigils(), Meta->HasPendingSkillReward() ? TEXT("\nSaving rewards...") : TEXT(""))), false, 24);
+        Spoils->SetWrapTextAt(700.f);
+        Spoils->SetAutoWrapText(true);
+    }
     auto* Actions = WidgetTree->ConstructWidget<UHorizontalBox>();
     PromptActions->AddChildToVerticalBox(Actions);
     RestartRunButton = AddPromptButton(Actions, FText::FromString(TEXT("RESTART RUN")), TEXT("RestartRunButton"));

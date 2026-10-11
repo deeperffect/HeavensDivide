@@ -2,7 +2,7 @@
   {
     "id": "BarrageStance",
     "name": "Barrage Stance",
-    "description": "Gain 30% attack speed and 2 extra projectiles. Kunai inflict poison: each stack deals 5% of its hit damage over 5 seconds. Hits refresh all stacks, up to 20. Choose one Ninja stance per run.",
+    "description": "+{AttackSpeedBonusPercent}% attack speed and {BonusProjectiles} extra kunai. Each kunai deals {ProjectileDamageMultiplierPercent}% damage. Poison: {PoisonHitFractionPercent}% hit damage per stack over {PoisonDuration}s, up to {PoisonCap} stacks; hits refresh them.",
     "kind": "stance",
     "levels": 1,
     "requires": [],
@@ -10,7 +10,8 @@
       "AttackSpeedBonus": 0.3,
       "BonusProjectiles": 2,
       "PoisonHitFraction": 0.05,
-      "PoisonCap": 20
+      "PoisonCap": 20,
+      "ProjectileDamageMultiplier": 0.6
     },
     "magnitudes": [],
     "format": "",
@@ -126,9 +127,9 @@
     "requires": [],
     "balance": {},
     "magnitudes": [
+      0.1,
       0.15,
-      0.225,
-      0.3
+      0.2
     ],
     "format": "Attack {Percent}% faster.",
     "art": "BarrageStance"
@@ -152,12 +153,12 @@
   {
     "id": "BarragePoisonDuration",
     "name": "Lingering Venom",
-    "description": "Poison lasts 2 seconds longer, dealing damage at the same rate.",
+    "description": "Poison lasts {PerRank}s longer per rank, dealing damage at the same rate.",
     "kind": "normal",
     "levels": 3,
     "requires": [],
     "balance": {
-      "PerRank": 2
+      "PerRank": 1
     },
     "magnitudes": [],
     "format": "",
@@ -166,12 +167,12 @@
   {
     "id": "BarragePoisonLoad",
     "name": "Venom Load",
-    "description": "Each kunai hit applies 2 additional poison stacks.",
+    "description": "Each kunai hit applies {PerRank} additional poison stack per rank.",
     "kind": "normal",
     "levels": 3,
     "requires": [],
     "balance": {
-      "PerRank": 2
+      "PerRank": 1
     },
     "magnitudes": [],
     "format": "",
@@ -196,7 +197,7 @@
   {
     "id": "BarrageSplitChance",
     "name": "Branching Blades",
-    "description": "Kunai gain 10% split chance. With Serpent's Procession, each ricochet instead loses 2% less damage.",
+    "description": "+{PerRankPercent}% kunai split chance.",
     "kind": "rare",
     "levels": 5,
     "requires": [
@@ -212,7 +213,7 @@
   {
     "id": "BarrageAssistChance",
     "name": "Reinforcements",
-    "description": "Gain 5% chance to call a Samurai assist.",
+    "description": "Gain {PerRankPercent}% chance to call a Samurai assist.",
     "kind": "rare",
     "levels": 5,
     "requires": [
@@ -244,7 +245,7 @@
   {
     "id": "BarrageCriticalChance",
     "name": "Critical Precision",
-    "description": "Kunai gain 10% critical strike chance.",
+    "description": "Kunai gain {PerRankPercent}% critical strike chance.",
     "kind": "rare",
     "levels": 5,
     "requires": [

@@ -7,6 +7,7 @@
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "SurvivorPlayerController.h"
+#include "CombatGround.h"
 
 void UHealingPickupDropSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -52,7 +53,10 @@ void UHealingPickupDropSubsystem::NotifyEnemyDied(AEnemyBase* Enemy)
 		: Settings->HealingPickupClass.LoadSynchronous();
 	if (!PickupClass) return;
 
-	const FVector SpawnLocation = Enemy->GetActorLocation() + FVector(0.0f, 0.0f, Settings->SpawnVerticalOffset);
+    FVector SpawnLocation = CombatGround::ClampInsideArena(World,Enemy->GetActorLocation(),90.f);
+    FVector Ground;
+    if (CombatGround::FindSurface(World,SpawnLocation,Enemy,Ground)) SpawnLocation=Ground;
+    SpawnLocation.Z+=Settings->SpawnVerticalOffset;
 	FActorSpawnParameters SpawnParameters;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 	AHealingPickup* Pickup = World->SpawnActor<AHealingPickup>(PickupClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);

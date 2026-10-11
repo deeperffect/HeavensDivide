@@ -21,6 +21,7 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API ASamuraiBladeWave : public AActor
 {
 	GENERATED_BODY()
+    friend class FTagTeamRegressionTest;
 	friend class FSamuraiBuildsTest;
     friend class FCrescentBuildsTest;
 	friend class FGroundSlashMotionTest;

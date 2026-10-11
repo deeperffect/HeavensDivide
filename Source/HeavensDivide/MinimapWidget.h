@@ -12,8 +12,10 @@ class HEAVENSDIVIDE_API UMinimapWidget : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	UMinimapWidget(const FObjectInitializer& Initializer);
 	void InitializeMinimap(ASurvivorPlayerController* InController);
 protected:
+	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Minimap") FVector2D MapSize = FVector2D(250.0f, 250.0f);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Minimap") FSlateBrush MinimapBackground;

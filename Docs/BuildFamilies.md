@@ -1,5 +1,7 @@
 # Build families
 
+Current numeric tuning is in [Combat Balance](CombatBalance.md). The fixed-health pass supersedes historical damage, chance, and cadence values below; the mechanic descriptions remain useful.
+
 See [Combat architecture](CombatArchitecture.md) for source ownership, Blueprint settings, and cleanup verification.
 
 The shared [combo meter and character abilities](ComboAbilities.md) add **Tornado** for Samurai and **Thousand Cuts** for Ninja, activated with **Q** at full charge. Swaps and Tag Team fill the meter; these abilities do not require upgrade cards.

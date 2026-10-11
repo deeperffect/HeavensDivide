@@ -4,6 +4,7 @@
 #include "SwapPresentationComponent.h"
 
 #include "CharacterBase.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PlayerController.h"
@@ -128,17 +129,21 @@ void UCharacterManagerComponent::SwapCharacter()
 	const FVector OldLocation = OldCharacter->GetActorLocation();
 	const FRotator OldVisualRotation = OldCharacter->GetVisualFacingRotation();
 	const FVector OldVelocity = OldCharacter->GetVelocity();
-
-	NewCharacter->SetActorLocation(OldLocation, false, nullptr, ETeleportType::TeleportPhysics);
-	NewCharacter->SetVisualFacingRotation(OldVisualRotation);
+	const EMovementMode ArrivalMovementMode=OldCharacter->GetCharacterMovement()->IsFalling() ? MOVE_Falling : MOVE_Walking;
 
 	if(NewCharacter->SwapPresentation) NewCharacter->SwapPresentation->PrepareArrival();
-	NewCharacter->SetCharacterMode(ECharacterMode::Active);
+	// Transfer the feet position, not a stale hidden pawn's floor/base/velocity.
+	FVector ArrivalLocation = OldLocation;
+	ArrivalLocation.Z += NewCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
+		- OldCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	NewCharacter->SetBase(static_cast<FMovementBaseInterfaceData*>(nullptr));
+	NewCharacter->ConsumeMovementInputVector();
+	NewCharacter->GetCharacterMovement()->StopMovementImmediately();
+	OldCharacter->SetActorEnableCollision(false);
+	NewCharacter->SetActorLocation(ArrivalLocation, false, nullptr, ETeleportType::TeleportPhysics);
+	NewCharacter->SetVisualFacingRotation(OldVisualRotation);
 
-	if (UCharacterMovementComponent* NewMovement = NewCharacter->GetCharacterMovement())
-	{
-		NewMovement->Velocity = FVector(OldVelocity.X, OldVelocity.Y, NewMovement->Velocity.Z);
-	}
+	NewCharacter->SetCharacterMode(ECharacterMode::Active);
 
 	OwningController->Possess(NewCharacter);
 
@@ -146,8 +151,17 @@ void UCharacterManagerComponent::SwapCharacter()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("SWAP FAILED: possession did not result in NewCharacter."));
 		NewCharacter->SetCharacterMode(ECharacterMode::Inactive);
+		OldCharacter->SetActorEnableCollision(true);
 		bIsSwapInProgress = false;
 		return;
+	}
+	// Possession restarts the pawn and may zero movement. Transfer momentum only
+	// after that restart; PlayArrival may then deliberately hold it for the flip.
+	if (UCharacterMovementComponent* NewMovement = NewCharacter->GetCharacterMovement())
+	{
+		NewMovement->SetMovementMode(ArrivalMovementMode);
+		NewMovement->Velocity = OldVelocity;
+		NewMovement->bForceNextFloorCheck = true;
 	}
 
 	// Possessing the other pawn calls UnPossessed(), which clears the old pawn's Owner.

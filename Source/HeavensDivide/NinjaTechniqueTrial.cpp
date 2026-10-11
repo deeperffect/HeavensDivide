@@ -81,15 +81,11 @@ ANinjaTechniqueTrial::ANinjaTechniqueTrial()
 void ANinjaTechniqueTrial::BeginPlay()
 {
 	Super::BeginPlay();
-	if (ObjectiveInteraction)
-	{
-		// The entrance visual is Blueprint-positioned independently of the actor origin.
-		// Keep both the range check and prompt projection anchored to the visible statue.
-		ObjectiveInteraction->PresentationAnchor = NinjaStatue;
-		ObjectiveInteraction->SetPresentationVisual(NinjaStatue);
-		ObjectiveInteraction->RefreshPrompt();
-	}
-	FindRuntimeReferences();
+	// Retain serialized classes, but remove legacy placed/spawned trials from play.
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+	Destroy();
 }
 
 void ANinjaTechniqueTrial::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -123,11 +119,7 @@ void ANinjaTechniqueTrial::AlignEntranceToSpawnTransform(const FTransform& Spawn
 
 bool ANinjaTechniqueTrial::CanInteract_Implementation(APawn* InteractingPawn) const
 {
-	return TrialState == ENinjaTrialState::Inactive
-		&& IsValid(InteractingPawn)
-		&& IsValid(ObjectiveInteraction)
-		&& ObjectiveInteraction->IsInRange(InteractingPawn)
-		&& (!PlayerController || !PlayerController->IsAnyObjectiveActive());
+	return false;
 }
 
 void ANinjaTechniqueTrial::Interact_Implementation(APawn* InteractingPawn)

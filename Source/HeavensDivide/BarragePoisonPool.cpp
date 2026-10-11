@@ -28,7 +28,8 @@ ABarragePoisonPool::ABarragePoisonPool()
 void ABarragePoisonPool::Initialize(UPlayerUpgradeComponent* U,float AverageHitDamage)
 {
  Source=U;HitDamage=AverageHitDamage;
- Radius=BarrageBuild::Value(U,TEXT("BarragePool"),TEXT("Radius"),220.f)*(1.f+BarrageBuild::Scaling(U,TEXT("BarragePoolRadius"),.2f));
+ Radius=BarrageBuild::Value(U,TEXT("BarragePool"),TEXT("Radius"),220.f)*(1.f+BarrageBuild::Scaling(U,TEXT("BarragePoolRadius"),.2f))
+     *(1.f+(U?U->GetMetaSkillBonus(TEXT("BarrageArea")):0.f));
  bBloom=U&&U->HasUpgradeId(TEXT("BarrageBloom"));
  Visual->SetRelativeScale3D(FVector(Radius/50.f,Radius/50.f,.015f));
  if(auto* M=Visual->CreateAndSetMaterialInstanceDynamic(0))M->SetVectorParameterValue(TEXT("Color"),bBloom?FLinearColor(.4f,.08f,.6f):FLinearColor(.16f,.5f,.035f));
@@ -37,7 +38,8 @@ void ABarragePoisonPool::Initialize(UPlayerUpgradeComponent* U,float AverageHitD
  Q.AddIgnoredActor(GetOwner());
  if(GetWorld()->LineTraceSingleByChannel(Ground,GetActorLocation()+FVector(0,0,50),GetActorLocation()-FVector(0,0,400),ECC_WorldStatic,Q))SetActorLocation(Ground.ImpactPoint+FVector(0,0,2));
  else AddActorWorldOffset(FVector(0,0,-85));
- PulsesRemaining=FMath::Max(1,FMath::RoundToInt(BarrageBuild::Value(U,TEXT("BarragePool"),TEXT("Duration"),3.f)/.5f));
+ const float TickInterval=FMath::Max(.01f,BarrageBuild::Value(U,TEXT("BarragePool"),TEXT("TickInterval"),.5f));
+ PulsesRemaining=FMath::Max(1,FMath::RoundToInt(BarrageBuild::Value(U,TEXT("BarragePool"),TEXT("Duration"),3.f)/TickInterval));
  auto* PC=U?Cast<ASurvivorPlayerController>(U->GetOwner()):nullptr;
  auto* Ninja=PC&&PC->GetCharacterManager()?PC->GetCharacterManager()->GetNinja():nullptr;
  auto* Build=Ninja?Ninja->FindComponentByClass<UNinjaBuildComponent>():nullptr;
@@ -49,11 +51,11 @@ void ABarragePoisonPool::Initialize(UPlayerUpgradeComponent* U,float AverageHitD
   PoolVFX->SetRelativeScale3D(FVector(Scale,Scale,Scale*Build->PoisonPoolVFXHeightScale));
   // Parameters are set before activation. The owned component is destroyed with the pool.
   PoolVFX->SetVariableFloat(TEXT("User.Radius"),Radius);
-  PoolVFX->SetVariableFloat(TEXT("User.Duration"),PulsesRemaining*.5f);
+  PoolVFX->SetVariableFloat(TEXT("User.Duration"),PulsesRemaining*TickInterval);
   PoolVFX->Activate(true);
   Visual->SetVisibility(false);
  }
- GetWorldTimerManager().SetTimer(PulseTimer,this,&ABarragePoisonPool::Pulse,.5f,true);
+ GetWorldTimerManager().SetTimer(PulseTimer,this,&ABarragePoisonPool::Pulse,TickInterval,true);
 }
 void ABarragePoisonPool::Pulse()
 {

@@ -1,12 +1,12 @@
 {
   "BloodDetonation": {
     "name": "Blood Detonation",
-    "description": "At full Bleed stacks, consume Bleed to explode for twice its remaining damage. Replaces Blood Transfer.",
+    "description": "At full Bleed stacks, consume Bleed to explode for {DamageMultiplier} times its remaining damage. Replaces Blood Transfer.",
     "format": ""
   },
   "BloodPactPower": {
     "name": "Crimson Power",
-    "description": "Bleed deals 70% more damage, but you attack 30% slower.",
+    "description": "Bleed deals {BleedDamageMultiplier} times its normal damage, but you attack 30% slower.",
     "format": ""
   },
   "BloodPactSpeed": {
@@ -21,7 +21,7 @@
   },
   "CrescentFieldPact": {
     "name": "Scorched Wake",
-    "description": "Lingering Wake deals 50% more damage, but wave hits deal 30% less damage.",
+    "description": "Lingering Wake deals {FieldDamageMultiplier} times its normal damage. Wave hits deal {WaveDamageMultiplierPercent}% of normal damage.",
     "format": ""
   },
   "CrescentPowerPact": {
@@ -81,7 +81,7 @@
   },
   "BarrageStance": {
     "name": "Barrage Stance",
-    "description": "+30% attack speed and 2 extra kunai. Hits poison: 5% hit damage per stack over 5s. Up to 20 stacks; hits refresh them.",
+    "description": "+{AttackSpeedBonusPercent}% attack speed and {BonusProjectiles} extra kunai. Each kunai deals {ProjectileDamageMultiplierPercent}% damage. Poison: {PoisonHitFractionPercent}% hit damage per stack over {PoisonDuration}s, up to {PoisonCap} stacks; hits refresh them.",
     "format": ""
   },
   "BreakingWheel": {
@@ -176,7 +176,7 @@
   },
   "ReturningFang": {
     "name": "Returning Fang Stance",
-    "description": "Fangs hit and return. Stay close for faster attacks. Attack speed boosts flight speed; extra projectiles add 25% damage.",
+    "description": "Fangs hit and return, up to {MaxLaunchesPerSecond} launches per second. Stay close for faster cycles. Attack speed boosts flight speed; extra projectiles add {CountDamagePercent}% damage.",
     "format": ""
   },
   "SerratedEdge": {
@@ -206,7 +206,7 @@
   },
   "BladeWave": {
     "name": "Crescent Stance",
-    "description": "Replace melee attacks with piercing waves: 40% attack damage and a 30% slow for 5s.",
+    "description": "Replace melee attacks with piercing waves dealing {WaveDamageMultiplierPercent}% attack damage. Slow enemies by {SlowFractionPercent}% for {SlowDuration}s.",
     "format": ""
   },
   "BladeWaveHaste": {
@@ -231,7 +231,7 @@
   },
   "BloodAssistChance": {
     "name": "Reinforcements",
-    "description": "+5% chance to trigger Ninja Assist.",
+    "description": "+{PerRankPercent}% chance to trigger Ninja Assist.",
     "format": ""
   },
   "BloodCapacity": {
@@ -246,17 +246,17 @@
   },
   "BloodCriticalChance": {
     "name": "Keen Edge",
-    "description": "+10% chance to trigger Critical Strike.",
+    "description": "+{PerRankPercent}% chance to trigger Critical Strike.",
     "format": ""
   },
   "BloodEcho": {
     "name": "Echoing Slash",
-    "description": "15% chance to repeat an attack at 50% damage. Echoes can Bleed and crit, but cannot echo again.",
+    "description": "{ChancePercent}% chance to repeat your slash at {DamageFractionPercent}% damage. Echoes cannot trigger more echoes.",
     "format": ""
   },
   "BloodEchoChance": {
     "name": "Echo Mastery",
-    "description": "+10% chance to trigger Echoing Slash.",
+    "description": "+{PerRankPercent}% chance to trigger Echoing Slash.",
     "format": ""
   },
   "BloodRush": {
@@ -291,7 +291,7 @@
   },
   "CrescentArcChance": {
     "name": "Arc Mastery",
-    "description": "+10% chance to trigger Arc Volley.",
+    "description": "+{PerRankPercent}% chance to trigger Arc Volley.",
     "format": ""
   },
   "CrescentAssist": {
@@ -301,7 +301,7 @@
   },
   "CrescentAssistChance": {
     "name": "Reinforcements",
-    "description": "+5% chance to trigger Ninja Assist.",
+    "description": "+{PerRankPercent}% chance to trigger Ninja Assist.",
     "format": ""
   },
   "CrescentDamage": {
@@ -361,7 +361,7 @@
   },
   "CrescentSplitChance": {
     "name": "Fracture Mastery",
-    "description": "+15% chance to trigger Splitting Waves.",
+    "description": "+{PerRankPercent}% chance to trigger Splitting Waves.",
     "format": ""
   },
   "CrossingBlades": {
@@ -386,7 +386,7 @@
   },
   "Iaijutsu": {
     "name": "Iaijutsu Stance",
-    "description": "Charge a slash for 1s, pulling enemies into its path. Hits mark enemies for 3s, making them take 50% more damage from later hits.",
+    "description": "Charge a slash for {ChargeDuration}s dealing {DamageMultiplierPercent}% attack damage. Hits mark enemies for {MarkDuration}s; later hits deal {MarkBonusPercent}% more damage.",
     "format": ""
   },
   "IaijutsuAOE": {
@@ -396,7 +396,7 @@
   },
   "IaijutsuAOEChance": {
     "name": "Flourish Mastery",
-    "description": "+10% chance to trigger Final Flourish.",
+    "description": "+{PerRankPercent}% chance to trigger Final Flourish.",
     "format": ""
   },
   "IaijutsuAssist": {
@@ -406,7 +406,7 @@
   },
   "IaijutsuAssistChance": {
     "name": "Reinforcements",
-    "description": "+5% chance to trigger Ninja Assist.",
+    "description": "+{PerRankPercent}% chance to trigger Ninja Assist.",
     "format": ""
   },
   "IaijutsuCascadePower": {
@@ -456,7 +456,7 @@
   },
   "IaijutsuInstantChance": {
     "name": "Flash Mastery",
-    "description": "+10% chance to trigger Flash Draw.",
+    "description": "+{PerRankPercent}% chance to trigger Flash Draw.",
     "format": ""
   },
   "IaijutsuMarkDamage": {
@@ -546,7 +546,7 @@
   },
   "FangTwin": {
     "name": "Twin Fang",
-    "description": "Every fourth launch sends 2 extra spectral Fangs, seeking different targets when possible.",
+    "description": "Every {Frequency} launches, send {ExtraBlades} extra spectral Fang, seeking a different target when possible.",
     "format": ""
   },
   "FangResonance": {
@@ -596,7 +596,7 @@
   },
   "FangTwinFrequency": {
     "name": "Twin Fang Frequency",
-    "description": "Twin Fang requires 1 fewer launch, down to every launch.",
+    "description": "Twin Fang triggers {PerRank} launch sooner per rank, down to every launch.",
     "format": ""
   },
   "FangPressure": {
@@ -611,12 +611,12 @@
   },
   "FangCriticalChance": {
     "name": "Deadeye Mastery",
-    "description": "Adds 10% critical-hit chance to Fang hits.",
+    "description": "Adds {PerRankPercent}% critical-hit chance to Fang hits.",
     "format": ""
   },
   "FangAssistChance": {
     "name": "Reinforcements",
-    "description": "Adds 5% chance to call Samurai on a completed main-Fang round trip.",
+    "description": "Adds {PerRankPercent}% chance to call Samurai on a completed main-Fang round trip.",
     "format": ""
   },
   "FangSplinterPower": {
@@ -626,7 +626,7 @@
   },
   "FangFarstrider": {
     "name": "Farstrider",
-    "description": "Fangs travel 25% slower, but gain up to 400% damage over 10 metres of outward travel.",
+    "description": "Fangs travel 25% slower, but gain up to {MaxDamageBonusPercent}% damage over 10 metres of outward travel.",
     "format": ""
   },
   "FangRedline": {
@@ -636,7 +636,7 @@
   },
   "FangPredator": {
     "name": "Predator's Price",
-    "description": "Fang critical hits deal 50% more damage, but noncritical hits deal 25% less damage.",
+    "description": "Fang critical hits deal 50% more damage. Noncritical hits deal {NoncriticalMultiplierPercent}% of normal damage.",
     "format": ""
   },
   "NinjaDamage": {
@@ -646,7 +646,7 @@
   },
   "NinjaSpeed": {
     "name": "Attack Speed",
-    "description": "Ninja attacks are 15% faster. Converts to Flight Speed with Returning Fang.",
+    "description": "Ninja attacks are 10% faster. Converts to Flight Speed with Returning Fang.",
     "format": "Ninja attacks are {Percent}% faster. Converts to Flight Speed with Returning Fang."
   },
   "NinjaCoverage": {
@@ -681,7 +681,7 @@
   },
   "BarrageSpeed": {
     "name": "Attack Speed",
-    "description": "Attack 15% faster.",
+    "description": "Attack 10% faster.",
     "format": "Attack {Percent}% faster."
   },
   "BarrageRange": {
@@ -691,12 +691,12 @@
   },
   "BarragePoisonDuration": {
     "name": "Lingering Venom",
-    "description": "Poison lasts 2 seconds longer, dealing damage at the same rate.",
+    "description": "Poison lasts {PerRank}s longer per rank, dealing damage at the same rate.",
     "format": ""
   },
   "BarragePoisonLoad": {
     "name": "Venom Load",
-    "description": "Each kunai hit applies 2 additional poison stacks.",
+    "description": "Each kunai hit applies {PerRank} additional poison stack per rank.",
     "format": ""
   },
   "BarrageRainFrequency": {
@@ -706,12 +706,12 @@
   },
   "BarrageSplitChance": {
     "name": "Branching Blades",
-    "description": "+10% kunai split chance.",
+    "description": "+{PerRankPercent}% kunai split chance.",
     "format": ""
   },
   "BarrageAssistChance": {
     "name": "Reinforcements",
-    "description": "Gain 5% chance to call a Samurai assist.",
+    "description": "Gain {PerRankPercent}% chance to call a Samurai assist.",
     "format": ""
   },
   "BarragePoolRadius": {
@@ -721,7 +721,7 @@
   },
   "BarrageCriticalChance": {
     "name": "Critical Precision",
-    "description": "Kunai gain 10% critical strike chance.",
+    "description": "Kunai gain {PerRankPercent}% critical strike chance.",
     "format": ""
   },
   "BarragePoisonCap": {
@@ -761,7 +761,7 @@
   },
   "ShurikenSpeed": {
     "name": "Attack Speed",
-    "description": "Throw shurikens 15% faster.",
+    "description": "Throw shurikens 10% faster.",
     "format": "Throw shurikens {Percent}% faster."
   },
   "ShurikenSize": {
@@ -796,7 +796,7 @@
   },
   "ShurikenAssistChance": {
     "name": "Reinforcements",
-    "description": "+5% chance to trigger Samurai Assist.",
+    "description": "+{PerRankPercent}% chance to trigger Samurai Assist.",
     "format": ""
   },
   "ShurikenGrooves": {
@@ -821,7 +821,7 @@
   },
   "FangPursuitChance": {
     "name": "Killing Momentum",
-    "description": "+10% chance for Killing Edge to strike two more enemies.",
+    "description": "+{PerRankPercent}% chance for Killing Edge to strike two more enemies.",
     "format": ""
   },
   "FangBurstPower": {

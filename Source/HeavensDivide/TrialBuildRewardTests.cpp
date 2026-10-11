@@ -33,12 +33,8 @@ bool FTrialBuildRewardTest::RunTest(const FString&)
             Upgrades->BeginDirectUpgradeSelection(1000);
             for (auto* Choice : Upgrades->GetCurrentUpgradeChoices())
                 TestFalse(TEXT("Unrestricted rewards exclude both characters' starters"), Samurai.Contains(Choice->UpgradeId) || Ninja.Contains(Choice->UpgradeId));
-            TestTrue(TEXT("Trial produces a route choice"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, Ids.Num()));
-            const auto Choices = Upgrades->GetCurrentUpgradeChoices();
-            TestEqual(TEXT("Trial offers requested routes"), Choices.Num(), Ids.Num());
-            for (FName Id : Ids)
-                TestTrue(TEXT("Correct character route is offered"), Choices.Contains(Upgrades->FindUpgradeDefinition(Id)));
-            TestTrue(TEXT("Trial selection grants route"), Upgrades->SelectUpgrade(Upgrades->FindUpgradeDefinition(ChosenId)));
+            TestFalse(TEXT("Retired trial cannot offer a route"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, Ids.Num()));
+            TestTrue(TEXT("Pre-run loadout can grant any chosen route"), Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(ChosenId)));
             TestTrue(TEXT("Selected route is owned"), Upgrades->HasUpgradeId(ChosenId));
             for (FName Id : Ids)
                 TestFalse(TEXT("Other routes and duplicate ranks remain excluded"), Upgrades->CanAcquireUpgrade(Upgrades->FindUpgradeDefinition(Id)));
@@ -59,18 +55,18 @@ bool FTrialBuildRewardTest::RunTest(const FString&)
                     TestTrue(*FString::Printf(TEXT("%s remains in its authored reward category"), *Id.ToString()),
                         Card && Upgrades->GetEligibleUpgradesForCategory(Card->Category).Contains(Card));
                 }
-            TestTrue(TEXT("Repeat trial offers an eligible upgrade"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, Ids.Num()));
+            TestFalse(TEXT("Trials remain unavailable after selecting a stance"), Upgrades->BeginDirectCategoryUpgradeSelection(Trial, Ids.Num()));
+            TestTrue(TEXT("Regular category offers an eligible upgrade"), Upgrades->BeginDirectCategoryUpgradeSelection(Category, Ids.Num()));
             for (auto* Choice : Upgrades->GetCurrentUpgradeChoices())
             {
                 CheckStance(Choice);
-                TestEqual(TEXT("Repeat reward stays with trial character"), Choice->Category, Category);
+                TestEqual(TEXT("Regular reward stays with selected character"), Choice->Category, Category);
                 TestFalse(TEXT("Repeat reward cannot replace chosen route"), Ids.Contains(Choice->UpgradeId));
                 TestTrue(TEXT("Repeat reward respects prerequisites"), Upgrades->CanAcquireUpgrade(Choice));
             }
-            // Choosing one character's route must not prevent the other character's trial choice.
-            TestTrue(TEXT("Other character trial remains available"), Upgrades->BeginDirectCategoryUpgradeSelection(
+            TestFalse(TEXT("Other character trial is also retired"), Upgrades->BeginDirectCategoryUpgradeSelection(
                 bSamurai ? EUpgradeCategory::NinjaTrial : EUpgradeCategory::SamuraiTrial, 3));
-            TestEqual(TEXT("Other character still has three routes"), Upgrades->GetCurrentUpgradeChoices().Num(), 3);
+            TestTrue(TEXT("Other character loadout remains available"), Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition((bSamurai ? Ninja : Samurai)[0])));
             PC->Destroy();
         }
     }

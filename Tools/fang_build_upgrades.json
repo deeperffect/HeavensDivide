@@ -2,13 +2,13 @@
   {
     "id": "ReturningFang",
     "name": "Returning Fang Stance",
-    "description": "Throw a homing Fang that strikes, returns harmlessly, and launches again, up to four times per second. Fighting close speeds up its cycle. Attack speed increases flight speed; extra projectiles grant 25% Fang damage each.",
+    "description": "Fangs hit and return, up to {MaxLaunchesPerSecond} launches per second. Stay close for faster cycles. Attack speed boosts flight speed; extra projectiles add {CountDamagePercent}% damage.",
     "kind": "stance",
     "requires": [],
     "balance": {
       "TargetingRangeMultiplier": 0.5,
       "FlightSpeedMultiplier": 0.5,
-      "MaxLaunchesPerSecond": 4.0
+      "MaxLaunchesPerSecond": 2
     },
     "art": "ReturningFang",
     "levels": 1,
@@ -18,10 +18,12 @@
   {
     "id": "FangTwin",
     "name": "Twin Fang",
-    "description": "Every fourth launch sends 2 additional spectral Fangs, seeking different enemies when possible. Spectral Fangs return once and cannot summon more Fangs.",
+    "description": "Every {Frequency} launches, send {ExtraBlades} extra spectral Fang, seeking a different target when possible.",
     "kind": "one_time",
     "requires": [],
-    "balance": {},
+    "balance": {
+      "ExtraBlades": 1
+    },
     "art": "NeedleRain",
     "levels": 1,
     "magnitudes": [],
@@ -115,7 +117,7 @@
     "levels": 5,
     "magnitudes": [
       0.2,
-      0.30000000000000004,
+      0.3,
       0.4
     ],
     "format": "Fangs deal {Percent}% more damage."
@@ -192,13 +194,13 @@
   {
     "id": "FangTwinFrequency",
     "name": "Twin Fang Frequency",
-    "description": "Twin Fang requires 1 fewer launch, down to every launch.",
+    "description": "Twin Fang triggers {PerRank} launch sooner per rank, down to every launch.",
     "kind": "rare",
     "requires": [
       "FangTwin"
     ],
     "balance": {
-      "PerRank": 0
+      "PerRank": 1
     },
     "art": "NeedleRain",
     "levels": 3,
@@ -240,7 +242,7 @@
   {
     "id": "FangCriticalChance",
     "name": "Deadeye Mastery",
-    "description": "Adds 10% critical-hit chance to Fang hits.",
+    "description": "Adds {PerRankPercent}% critical-hit chance to Fang hits.",
     "kind": "rare",
     "requires": [
       "FangDeadeye"
@@ -256,7 +258,7 @@
   {
     "id": "FangAssistChance",
     "name": "Reinforcements",
-    "description": "Adds 5% chance to call Samurai on a completed main-Fang round trip.",
+    "description": "Adds {PerRankPercent}% chance to call Samurai on a completed main-Fang round trip.",
     "kind": "rare",
     "requires": [
       "FangAssist"
@@ -288,13 +290,13 @@
   {
     "id": "FangFarstrider",
     "name": "Farstrider",
-    "description": "Fangs travel 25% slower, but gain up to 400% damage over 10 metres of outward travel.",
+    "description": "Fangs travel 25% slower, but gain up to {MaxDamageBonusPercent}% damage over 10 metres of outward travel.",
     "kind": "shrine",
     "requires": [],
     "balance": {
       "SpeedMultiplier": 0.75,
       "DistanceForMaximum": 1000,
-      "MaxDamageBonus": 4.0
+      "MaxDamageBonus": 2
     },
     "art": "FragmentReach",
     "levels": 1,
@@ -319,14 +321,14 @@
   {
     "id": "FangPredator",
     "name": "Predator's Price",
-    "description": "Fang critical hits deal 50% more damage, but noncritical hits deal 25% less damage.",
+    "description": "Fang critical hits deal 50% more damage. Noncritical hits deal {NoncriticalMultiplierPercent}% of normal damage.",
     "kind": "shrine",
     "requires": [
       "FangDeadeye"
     ],
     "balance": {
       "CriticalMultiplier": 1.5,
-      "NoncriticalMultiplier": 0.75
+      "NoncriticalMultiplier": 0.85
     },
     "art": "FocusedVolley",
     "levels": 1,
@@ -346,7 +348,7 @@
     "levels": 5,
     "magnitudes": [
       0.2,
-      0.30000000000000004,
+      0.3,
       0.4
     ],
     "format": "Ninja attacks deal {Percent}% more damage."
@@ -363,9 +365,9 @@
     "art": "AfterimageFrenzy",
     "levels": 5,
     "magnitudes": [
+      0.1,
       0.15,
-      0.22499999999999998,
-      0.3
+      0.2
     ],
     "format": "Ninja attacks are {Percent}% faster. Converts to Flight Speed with Returning Fang."
   },
@@ -390,7 +392,7 @@
   {
     "id": "FangPursuitChance",
     "name": "Killing Momentum",
-    "description": "+10% chance for Killing Edge to strike two more enemies.",
+    "description": "+{PerRankPercent}% chance for Killing Edge to strike two more enemies.",
     "kind": "rare",
     "requires": [
       "FangKillingEdge"

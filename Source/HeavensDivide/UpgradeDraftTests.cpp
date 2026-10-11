@@ -20,6 +20,7 @@
 #include "ImageUtils.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "Misc/App.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FDraftToolsTest, "HeavensDivide.Upgrades.DraftUnlocks",
  EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -38,11 +39,11 @@ bool FDraftToolsTest::RunTest(const FString&)
  LocalPlayer->SetControllerId(0);
  PC->SetPlayer(LocalPlayer);
  auto* Upgrades = PC->GetPlayerUpgrades();
- for (int32 Index = 0; Index < 9; ++Index)
+ for (int32 Index = 0; Index < 27; ++Index)
  {
   auto* Upgrade = NewObject<UUpgradeDefinition>(Upgrades);
   Upgrade->UpgradeId = FName(*FString::Printf(TEXT("DraftTest%d"), Index));
-  Upgrade->Category = EUpgradeCategory::Global;
+  Upgrade->Category = Index % 3 == 0 ? EUpgradeCategory::Samurai : Index % 3 == 1 ? EUpgradeCategory::Ninja : EUpgradeCategory::Global;
   Upgrade->DisplayName = FText::FromString(FString::Printf(TEXT("Upgrade %d"), Index + 1));
   Upgrade->Description = FText::FromString(TEXT("Draft tool test: select, reroll, or banish this upgrade."));
   Upgrade->MaxLevel = 5;
@@ -50,8 +51,13 @@ bool FDraftToolsTest::RunTest(const FString&)
  }
  auto BeginDraft = [&]()
  {
-  TestTrue(TEXT("Category selection starts"), Upgrades->BeginUpgradeSelection());
-  TestTrue(TEXT("Global draft starts"), Upgrades->SelectCategory(EUpgradeCategory::Global));
+  TestTrue(TEXT("Category-first level-up starts"), Upgrades->BeginUpgradeSelection(2));
+  TestTrue(TEXT("No upgrade is offered before choosing a category"), Upgrades->GetCurrentUpgradeChoices().IsEmpty());
+  const auto Category = Upgrades->GetCurrentCategoryChoices()[0];
+  TestTrue(TEXT("Offered category can be selected"), Upgrades->SelectCategory(Category, 3));
+  TestEqual(TEXT("Chosen category offers three choices"), Upgrades->GetCurrentUpgradeChoices().Num(), 3);
+  for (auto* Choice : Upgrades->GetCurrentUpgradeChoices())
+   TestEqual(TEXT("Draft is restricted to its selected category"), Choice->Category, Category);
  };
  BeginDraft();
  TestEqual(TEXT("First run has no rerolls"), Upgrades->GetRerollsRemaining(), 0);
@@ -69,6 +75,7 @@ bool FDraftToolsTest::RunTest(const FString&)
  TestTrue(TEXT("Locked buttons visible but disabled"), Reroll && Banish && !Reroll->GetIsEnabled() && !Banish->GetIsEnabled());
  auto Render = [&](const TCHAR* File)
  {
+  if (!FApp::CanEverRender()) return;
   FWidgetRenderer Renderer(false);
   auto* Target = Renderer.DrawWidget(Widget->TakeWidget(), FVector2D(1920,1080));
   TArray<FColor> Pixels;
@@ -88,9 +95,8 @@ bool FDraftToolsTest::RunTest(const FString&)
  TestEqual(TEXT("Completing runs does not unlock rerolls"), Upgrades->GetRerollsRemaining(), 0);
  TestEqual(TEXT("Completing runs does not unlock banishes"), Upgrades->GetBanishesRemaining(), 0);
  Meta->CurrentSave->SoulEmbers = 200;
- TestFalse(TEXT("Draft skills require their branch prerequisites"), MetaSkillTree::Purchase(*Meta->CurrentSave, TEXT("Bond.Reroll")));
- for (const TCHAR* Id : {TEXT("Root.Vitality"), TEXT("Root.Strength"), TEXT("Bond.Flow"), TEXT("Root.Gather"), TEXT("Root.Step"), TEXT("Bond.Relay")})
-  TestTrue(TEXT("Purchase prerequisite"), MetaSkillTree::Purchase(*Meta->CurrentSave, Id));
+ TestFalse(TEXT("Banish requires its Abilities-page reroll prerequisite"), MetaSkillTree::Purchase(*Meta->CurrentSave, TEXT("Bond.Banish")));
+ TestTrue(TEXT("Reroll has no cross-page stat prerequisite"), MetaSkillTree::Find(TEXT("Bond.Reroll"))->Prerequisites.IsEmpty());
  TestTrue(TEXT("Purchase reroll skill"), MetaSkillTree::Purchase(*Meta->CurrentSave, TEXT("Bond.Reroll")));
  TestTrue(TEXT("Save purchases"), Meta->SaveMetaProgression());
  Meta->LoadMetaProgression();
@@ -99,7 +105,10 @@ bool FDraftToolsTest::RunTest(const FString&)
  const auto BeforeReroll = Upgrades->GetCurrentUpgradeChoices();
  TestTrue(TEXT("Reroll succeeds"), Upgrades->RerollUpgrades());
  for (auto* Choice : Upgrades->GetCurrentUpgradeChoices())
+ {
   TestFalse(TEXT("Reroll replaces every card when enough alternatives exist"), BeforeReroll.Contains(Choice));
+  TestEqual(TEXT("Reroll stays inside the selected category"), Choice->Category, BeforeReroll[0]->Category);
+ }
  TestEqual(TEXT("One reroll spent"), Upgrades->GetRerollsRemaining(), 2);
  TestTrue(TEXT("Purchase banish skill"), MetaSkillTree::Purchase(*Meta->CurrentSave, TEXT("Bond.Banish")));
  Meta->SaveMetaProgression(); Meta->LoadMetaProgression();
@@ -110,6 +119,7 @@ bool FDraftToolsTest::RunTest(const FString&)
  const FName Banned = Upgrades->CurrentUpgradeChoices[0]->UpgradeId;
  const auto Untouched = Upgrades->CurrentUpgradeOffers[1];
  TestTrue(TEXT("Banish replaces chosen card"), Upgrades->BanishUpgrade(0));
+ TestEqual(TEXT("Banish replacement stays inside the selected category"), Upgrades->CurrentUpgradeChoices[0]->Category, Untouched.UpgradeDefinition->Category);
  TestEqual(TEXT("Banish preserves another card"), Upgrades->CurrentUpgradeOffers[1].UpgradeDefinition.Get(), Untouched.UpgradeDefinition.Get());
  TestEqual(TEXT("Banish preserves another rarity"), Upgrades->CurrentUpgradeOffers[1].RolledRarity, Untouched.RolledRarity);
  TestFalse(TEXT("Invalid choice rejected"), Upgrades->BanishUpgrade(20));
@@ -136,7 +146,8 @@ bool FDraftToolsTest::RunTest(const FString&)
  TestFalse(TEXT("Reward drafts do not allow reroll"), Upgrades->IsDraftToolOffer());
  Next->UpgradePool = Upgrades->UpgradePool;
  Next->RerollsUsed = Next->BanishesUsed = 0;
- Next->BeginUpgradeSelection(); Next->SelectCategory(EUpgradeCategory::Global, 100);
+ Next->BeginUpgradeSelection(2);
+ Next->SelectCategory(Next->GetCurrentCategoryChoices()[0], 100);
  TestFalse(TEXT("Exhausted pool cannot reroll"), Next->RerollUpgrades());
  TestFalse(TEXT("Exhausted pool cannot banish"), Next->BanishUpgrade(0));
  TestEqual(TEXT("Failed reroll free"), Next->GetRerollsRemaining(), 3);

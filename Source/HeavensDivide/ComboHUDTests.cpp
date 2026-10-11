@@ -9,6 +9,8 @@
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
 #include "Components/ProgressBar.h"
+#include "Components/TextBlock.h"
+#include "PlayerUpgradeComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/Material.h"
 #include "MaterialShared.h"
@@ -39,6 +41,7 @@ bool FComboHUDTest::RunTest(const FString&)
     auto* GI = NewObject<UGameInstance>(GEngine);
     World->SetGameInstance(GI);
     auto* PC = World->SpawnActor<ASurvivorPlayerController>();
+    PC->GetPlayerUpgrades()->BalancePreviewMetaProfile=0;
     auto* Samurai = World->SpawnActor<ASamuraiCharacter>();
     auto* Combo = PC->FindComponentByClass<UComboAbilityComponent>();
     auto* HUD = CreateWidget<UPlayerHUDWidget>(GI);
@@ -49,6 +52,11 @@ bool FComboHUDTest::RunTest(const FString&)
     HUD->EnsureComboPresentation();
     if (TestNotNull(TEXT("Ink meter exists"), HUD->ComboMeterBar.Get()) && TestNotNull(TEXT("Glow material is loaded and instanced"), HUD->ComboGlowInstance.Get()))
     {
+        Combo->RestoreCombo(100.f);HUD->UpdateComboPresentation();
+        TestEqual(TEXT("Locked combo meter remains empty"),HUD->ComboMeterBar->GetPercent(),0.f);
+        TestFalse(TEXT("Locked combo HUD is never ready"),HUD->IsComboReady());
+        TestTrue(TEXT("Locked HUD points to the ability purchase page"),HUD->ComboAbilityText->GetText().ToString().Contains(TEXT("Abilities")));
+        PC->GetPlayerUpgrades()->BalancePreviewMetaProfile=1;
         TestNotNull(TEXT("Generated ink texture is assigned"), HUD->ComboInkTexture.Get());
         const bool bScreenshots = FParse::Param(FCommandLine::Get(), TEXT("ComboMeterScreenshots"));
         const FString Output = FPaths::ProjectSavedDir() / TEXT("ComboMeter");

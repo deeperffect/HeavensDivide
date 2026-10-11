@@ -5,6 +5,7 @@
 #include "SwapVFXSetupLibrary.generated.h"
 
 class UNiagaraSystem;
+class USkeletalMeshComponent;
 
 /** Editor scripting access used by Tools/create_swap_vfx.py. */
 UCLASS()
@@ -12,6 +13,9 @@ class USwapVFXSetupLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+    /** Evaluate a transient editor preview for automated model/animation renders. */
+    UFUNCTION(BlueprintCallable, Category="Editor|Asset Validation")
+    static bool RefreshPreviewAnimation(USkeletalMeshComponent* Mesh, float DeltaSeconds = 0.f);
     /** Bind full-circle material variants on the Fang copy of Slash 15. */
     UFUNCTION(BlueprintCallable, Category="Editor|Upgrade VFX")
     static bool ConfigureFangCircleSlash(UNiagaraSystem* System);

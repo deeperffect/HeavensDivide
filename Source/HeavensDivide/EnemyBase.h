@@ -59,6 +59,11 @@ class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
 	friend class FEnemyHitFlashTest;
 	friend class FEnemyDeathTest;
 	friend class FEncounterExpansionTest;
+	friend class URunChallengeSubsystem;
+	friend class FRunChallengeTest;
+	bool bRunChallengeApplied = false;
+	bool bMetaKillRewardPaid = false;
+	float RunChallengeSpeedMultiplier = 1.f;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") bool bEnableHitFlash = true;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash", meta=(ClampMin="0.0", Units="s")) float HitFlashDuration = 0.08f;
 	UPROPERTY(EditDefaultsOnly, Category="Enemy|Hit Flash") FLinearColor HitFlashColor = FLinearColor::White;
@@ -73,6 +78,10 @@ class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
 	void EndHitFlash();
 
 public:
+    /** Repeatedly summoned guards keep their XP but cannot farm permanent unlock currency. */
+    void DisablePermanentCurrencyReward() { bMetaKillRewardPaid = true; }
+    float GetRunChallengeSpeedMultiplier() const { return RunChallengeSpeedMultiplier; }
+    bool IsGameplaySuspended() const { return bGameplaySuspended; }
 	AEnemyBase(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual void BeginPlay() override;
@@ -244,9 +253,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Status")
 	FVector2D StatusIndicatorDrawSize = FVector2D(36.0f, 36.0f);
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ToolTip="Optional Bleed icon. Empty uses the red B placeholder."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ToolTip="Optional Bleed icon override. Empty uses the shared Bleed icon."))
 	TObjectPtr<UTexture2D> BleedStatusIcon;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ToolTip="Optional Poison icon. Empty uses the green P placeholder."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|UI|Status", meta=(ToolTip="Optional Poison icon override. Empty uses the shared Poison icon."))
 	TObjectPtr<UTexture2D> PoisonStatusIcon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|UI|Status")

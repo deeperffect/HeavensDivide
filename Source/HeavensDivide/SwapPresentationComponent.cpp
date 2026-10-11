@@ -60,6 +60,12 @@ void USwapPresentationComponent::PlayDeparture()
                 if(bEnableAfterimage && !Ghost->IsActorBeingDestroyed()) Ghost->Initialize(Character,GhostMaterial,GetPresentationColor(),AfterimageDuration);
                 else Ghost->Destroy();
             }
+            else if (!DeparturePortal && bEnableDepartureTrail)
+            {
+                const FVector Direction=Character->GetVisualForwardVector().GetSafeNormal2D()*(Character->IsA<ANinjaCharacter>() ? 1.f : -1.f);
+                Ghost->SetPortalDestination(Ghost->GetActorLocation()+Direction*120.f);
+                Ghost->EnablePortalTrail(DepartureTrailLifetime);
+            }
             else if (DeparturePortal)
             {
                 FVector Facing = Character->GetVisualRoot()->GetForwardVector().GetSafeNormal2D();

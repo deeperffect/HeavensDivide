@@ -18,6 +18,10 @@ class HEAVENSDIVIDE_API UHealthComponent : public UActorComponent
 public:
 	UHealthComponent();
 
+	/** Accepted hits briefly protect the player from simultaneous swarm impacts. Zero for enemies. */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Health", meta=(ClampMin="0", Units="s"))
+	float DamageGracePeriod = 0.f;
+
 	virtual void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable, Category = "Health")
@@ -72,4 +76,5 @@ private:
 
 	bool bDeathBroadcast = false;
 	bool bDamageEnabled = true;
+	double LastAcceptedDamageTime = -1.e30;
 };

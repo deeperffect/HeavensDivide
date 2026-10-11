@@ -139,17 +139,17 @@ bool FFangBuildsTest::RunTest(const FString&)
  for(int32 i=0;i<20;++i)Capped->Tick(.01f);
  TestEqual(TEXT("Point-blank return waits before relaunch"),B->FangLaunchCount,InitialLaunches);
  TestTrue(TEXT("Waiting Fang has returned"),Capped->bReturning);
- for(int32 i=0;i<7;++i)Capped->Tick(.01f);
- TestEqual(TEXT("Relaunch allowed after quarter second"),B->FangLaunchCount,InitialLaunches+1);
+ for(int32 i=0;i<32;++i)Capped->Tick(.01f);
+ TestEqual(TEXT("Relaunch allowed after half second"),B->FangLaunchCount,InitialLaunches+1);
  const int32 BeforeSustained=B->FangLaunchCount;
  for(int32 i=0;i<100;++i){Capped->Speed=100000.f;Capped->Tick(.01f);}
- TestTrue(TEXT("Sustained point-blank rate capped at four launches per second"),B->FangLaunchCount-BeforeSustained<=4);
+ TestTrue(TEXT("Sustained point-blank rate capped at two launches per second"),B->FangLaunchCount-BeforeSustained<=2);
  Reset();auto* E=Spawn(FVector(300,0,0),100000);auto* Other=Spawn(FVector(300,200,0),100000);auto* Third=Spawn(FVector(300,-200,0),100000);
  Grant(TEXT("FangTwin"));B->FangLaunchCount=3;
  auto* P=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));P->LaunchFang();
  TSet<AEnemyBase*> Targets;Targets.Add(P->Target.Get());int32 Spectral=0;
  for(auto Blade:B->Projectiles)if(Blade.IsValid()&&Blade->bSpectralFang){++Spectral;Targets.Add(Blade->Target.Get());}
- TestEqual(TEXT("Twin creates two extras"),Spectral,2);TestEqual(TEXT("Three distinct targets when possible"),Targets.Num(),3);
+ TestEqual(TEXT("Twin creates one extra"),Spectral,1);TestEqual(TEXT("Two distinct targets when possible"),Targets.Num(),2);
  const int32 Launches=B->FangLaunchCount;
  for(auto Blade:TArray<TWeakObjectPtr<ANinjaBuildProjectile>>(B->Projectiles))if(Blade.IsValid()&&Blade->bSpectralFang)
   {Blade->bReturning=true;Blade->SetActorLocation(FVector(0,0,50));Blade->Tick(.01f);TestFalse(TEXT("Spectral Fang ends on return"),Blade.IsValid());}
@@ -250,15 +250,15 @@ bool FFangBuildsTest::RunTest(const FString&)
 
  Reset();E=Spawn(FVector(150,0,0),100000);P=B->SpawnBlade(ENinjaProjectileKind::ReturningFang,FVector(0,0,50));P->Damage=100;
  Grant(TEXT("FangFarstrider"));P->FangOutwardDistance=1000;
- TestEqual(TEXT("Farstrider max-distance damage"),B->FangHit(P,E),500.f);P->FangOutwardDistance=5000;
- TestEqual(TEXT("Farstrider distance bonus capped"),B->FangHit(P,E),500.f);
+ TestEqual(TEXT("Farstrider max-distance damage"),B->FangHit(P,E),300.f);P->FangOutwardDistance=5000;
+ TestEqual(TEXT("Farstrider distance bonus capped"),B->FangHit(P,E),300.f);
  TestEqual(TEXT("Farstrider flight cost"),B->FangSpeedMultiplier(),.75f);
  Grant(TEXT("FangRedline"));TestTrue(TEXT("Shrine speed tradeoffs combine"),FMath::IsNearlyEqual(B->FangSpeedMultiplier(),1.2f));
  TestEqual(TEXT("Redline damage cost"),B->FangDamageMultiplier(),.7f);
  TestFalse(TEXT("Critical pact requires Deadeye"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("FangPredator"))));
  Grant(TEXT("FangDeadeye"));Grant(TEXT("FangPredator"));auto* Crit=U->FindUpgradeDefinition(TEXT("FangDeadeye"));const auto SavedBalance=Crit->BalanceParameters;
  Crit->BalanceParameters.Add(TEXT("Chance"),1.f);P->FangOutwardDistance=0;TestEqual(TEXT("Critical pact amplified crit"),B->FangHit(P,E),300.f);
- Crit->BalanceParameters.Add(TEXT("Chance"),0.f);TestEqual(TEXT("Critical pact noncritical penalty"),B->FangHit(P,E),75.f);Crit->BalanceParameters=SavedBalance;
+ Crit->BalanceParameters.Add(TEXT("Chance"),0.f);TestEqual(TEXT("Critical pact noncritical penalty"),B->FangHit(P,E),85.f);Crit->BalanceParameters=SavedBalance;
  Reset();E=Spawn(FVector(300,0,0),100000);
  auto* SamuraiClass=Cast<UClass>(FindFProperty<FClassProperty>(UCharacterManagerComponent::StaticClass(),TEXT("SamuraiClass"))->GetObjectPropertyValue_InContainer(Manager));
  auto* Samurai=World->SpawnActor<ASamuraiCharacter>(SamuraiClass,FVector(-500,0,0),FRotator::ZeroRotator,Params);

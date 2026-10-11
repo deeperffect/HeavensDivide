@@ -20,6 +20,7 @@ UCLASS(Transient, NotBlueprintable)
 class ASamuraiIaijutsu : public AActor
 {
     GENERATED_BODY()
+    friend class FTagTeamRegressionTest;
 public:
     ASamuraiIaijutsu();
     void Initialize(ASamuraiCharacter* Source, UPlayerUpgradeComponent* Upgrades, FVector Direction,
@@ -34,6 +35,7 @@ public:
     TSharedPtr<int32> ChainBudget;
     TSharedPtr<bool> ChainTriggered;
     bool bEndpointBurst = false;
+    bool bAssistAttack = false;
     UPROPERTY() TObjectPtr<UAnimMontage> EndpointMontage;
 private:
     friend class FIaijutsuTest;

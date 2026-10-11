@@ -2,6 +2,8 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/Blueprint.h"
 #include "CharacterBase.h"
+#include "AnimNotify_AbilityNiagara.h"
+#include "Animation/AnimMontage.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
 #include "NiagaraSystem.h"
@@ -19,7 +21,7 @@ bool FContentPresentationTest::RunTest(const FString&)
  auto* Class=LoadClass<ASurvivorPlayerController>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController.BP_SurvivorPlayerController_C"));
  auto* PC=World->SpawnActor<ASurvivorPlayerController>(Class);
  if(PC)
- for(const TCHAR* Id:{TEXT("OverkillBurst"),TEXT("BloodTransfer"),TEXT("BattleStance"),TEXT("VenomousKunai"),TEXT("EmbeddedBlades"),TEXT("GrandEntrance"),TEXT("TagTeam")})
+ for(const TCHAR* Id:{TEXT("BloodTransfer"),TEXT("BattleStance"),TEXT("VenomousKunai"),TEXT("EmbeddedBlades"),TEXT("GrandEntrance"),TEXT("TagTeam")})
  {
   const auto* Card=PC->GetPlayerUpgrades()->FindUpgradeDefinition(Id);
   if(!TestNotNull(FString(Id)+TEXT(" remains in active upgrade pool"),Card))continue;
@@ -44,7 +46,22 @@ bool FContentPresentationTest::RunTest(const FString&)
  {
   auto* CharacterClass=LoadClass<ACharacterBase>(nullptr,*FString::Printf(TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_%s.BP_%s_C"),Name,Name));
   if(TestNotNull(TEXT("Character Blueprint"),CharacterClass))
-   TestNotNull(FString(Name)+TEXT(" active ability already has VFX"),CharacterClass->GetDefaultObject<ACharacterBase>()->ComboAbility.VFX.Get());
+  {
+   const auto& Settings=CharacterClass->GetDefaultObject<ACharacterBase>()->ComboAbility;
+   if(Settings.bEnableCodeVFX)
+    TestNotNull(FString(Name)+TEXT(" active ability has code-owned VFX"),Settings.VFX.Get());
+   else if(TestNotNull(FString(Name)+TEXT(" montage owns ability VFX"),Settings.Montage.Get()))
+   {
+    int32 Effects=0;
+    for(const auto& Event:Settings.Montage->Notifies)
+     if(const auto* Notify=Cast<UAnimNotify_AbilityNiagara>(Event.Notify))
+     {
+      ++Effects;
+      TestNotNull(FString(Name)+TEXT(" montage VFX has an assigned effect"),Notify->Template.Get());
+     }
+    TestTrue(FString(Name)+TEXT(" has authored montage effects"),Effects>0);
+   }
+  }
  }
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }

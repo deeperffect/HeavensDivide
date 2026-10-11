@@ -1,120 +1,76 @@
 # Twin Soul skill tree
 
-Open **Main Menu > Skill Tree**. Select a node to inspect its effect, prerequisites and next-rank cost, then select **Learn**. All effects are permanent passives applied in every subsequent run. The circular node map supports mouse selection, scroll-wheel zoom, drag-to-pan, arrow/D-pad navigation, and a Reset View button (Home also resets). Enter/controller A on an affordable node focuses its Learn button; Tab moves between the map and action buttons; Escape/controller Back closes the tree. Refund All asks for a second click and returns the exact paid cost.
+Open **Main Menu > Skill Tree**. Select a node to inspect its effect, scope, prerequisites and price; select **Learn** to buy a rank. One rank in a prerequisite opens its child. All skills can eventually be learned, and **Refund Skills** returns the exact amount paid after a second confirmation click.
 
-## Node-map presentation
+## Layout and controls
 
-Four paths fan outward from a central Twin Soul seal. Every passive is a circular node with a vector symbol for its effect; outer capstones have a second ring. Small pips show purchased ranks. Learned nodes fill ivory, open paths have colored rings, and locked nodes are dim. Selection adds an outer halo and traces the selected skill's prerequisite path. Hover previews only the node ring and tooltip; it never overrides the selected connection highlight. Cross-path prerequisites use curved connections; long capstone bridges appear when their ancestry is selected to avoid obscuring other branches.
+The map follows three directions from a central seal: blue shared skills above, green Ninja skills to the lower left, and red Samurai skills to the lower right. Each hero has a general trunk and three stance branches. Circular symbols, rank pips, large decorative crests, engraved rings and thin prerequisite connections keep the layout close to the reference. The right inspector explains whether a skill benefits both heroes, one hero, or one stance. Its Learn button stays visible below the scrolling details. The large crests and central seal are decorations, not purchases.
 
-The left inspector shows the selected skill, rank, effect, prerequisites and purchase action. Hovering a node reveals its name and tooltip; mouse clicks or directional navigation select it. Existing costs, passive behavior, saves and refunds are unchanged by the visual redesign.
+Click to select; scroll to zoom; drag to pan; arrows or D-pad to move selection. Enter/controller A on an affordable node focuses Learn. Tab moves between the map and buttons. Home or Reset View restores the camera. Escape/controller Back closes the page (or cancels a pending refund). Hovering another branch does not change the selected prerequisite highlight.
 
-The map is native Slate vector drawing, so circles, connectors and symbols stay sharp when scaled or zoomed. `SMetaSkillMap.cpp` owns node positions, symbols, rendering and map interaction; `MetaSkillTreeWidget.cpp` owns the inspector and menu actions.
+## Progression and costs
 
-## Progression
+- 40 skills and 92 purchasable ranks; full completion costs **1,980 Soul Embers**.
+- Shared skills cost 560 total, each hero's general trunk costs 200, and each of the six stance branches costs 170.
+- Rank price is base price multiplied by the new rank. Base prices are 5, 10, 15 or 20 Embers. Most skills have three ranks; capstones and draft tools have one.
+- Run rewards are unchanged: one Ember per completed 30 seconds, plus 20 for victory. Survival rewards cap at 120. Quitting a live run does not bank a reward.
+- Purchases and refunds are available from the menu, outside gameplay.
+- These are permanent stat upgrades purchased with Soul Embers. All six stances and all supported run-upgrade cards (including synergies) are available from the start; no discovery or trial unlock is required. In-run stance prerequisites, exclusive branches and rank limits still apply. Technique and Twin Soul trials are retired.
 
-- 28 nodes, 68 ranks, four paths: Shared Roots, Way of Steel, Way of Shadow and Twin Soul Bond.
-- One rank in every prerequisite opens its child; maxing a parent is optional. All nodes can eventually be learned.
-- Each completed 30 seconds of run time awards one Soul Ember at defeat or victory. Victory adds 20. A 10-minute defeat earns 20; a 15-minute victory earns 50. Quitting a live run does not bank a reward.
-- Rewards use the existing run clock, including boss-arena travel. Existing terminal run guards prevent repeated death/victory callbacks from paying twice. Invalid time is rejected; survival rewards cap at 120 Embers, plus the victory bonus.
-- Tier base prices are 5 / 10 / 15 / 20. A rank costs base price times the new rank. Tiers 1-3 have three ranks per node; the last tier has one. The full tree costs 1,330 Embers.
-- Purchase and refund APIs reject gameplay controllers, including post-defeat screens: return to the main menu to change progression.
-- Existing family starters, combinable branches, scalable run cards, mastery, and synergy discovery remain separate. This pass adds passives rather than retroactively locking available content.
+The general character trunk requires Living Flame, then Tempered/Hidden Edge, then the attack-speed node, then Mountain Splitter/Assassin's Patience. The three stance paths open from that last damage node. There are no dependencies on purchasing the other hero's skills.
 
-## Nodes
+## Shared and general skills
 
-Values below are per rank unless the node has one rank. Character direct damage uses the existing character-stat pipeline; Bleed and Poison receive their own listed bonuses. Basic melee area and basic projectile bonuses do not expand automatic family abilities.
+Full shared investment grants +27% health, +17% shared damage, +14% shared basic attack speed, +6% movement speed, +88% XP pickup radius, one dash charge, +30% swap recharge speed, three rerolls and two banishes per run. Reroll and Banish use the existing level-up tools.
 
-### Shared Roots
+Each hero's general trunk adds +24% character direct damage and +17% character basic attack speed. The existing runtime combines shared and character multipliers; these percentages are separate stat layers, not one sum. The tree no longer grants universal Poison, piercing or projectile-count bonuses.
 
-| Node | Effect | Ranks | Prerequisite (one rank each) |
-| --- | --- | --- | --- |
-| Living Flame | +4% maximum health per rank. | 3 | None |
-| Ember Reach | +8% XP pickup radius per rank. | 3 | None |
-| Inner Fire | +3% damage for both characters per rank. | 3 | Living Flame |
-| Pilgrim's Step | +2% movement speed per rank. | 3 | Ember Reach |
-| Steady Breath | +2% basic attack speed for both characters per rank. | 3 | Inner Fire |
-| Deep Reserves | +5% maximum health per rank. | 3 | Pilgrim's Step |
-| Second Wind | +1 maximum dash charge. | 1 | Steady Breath |
-| Far Horizon | +20% XP pickup radius. | 1 | Deep Reserves |
+## Stance branches
 
-### Way of Steel
+Every stance path begins with +3% direct damage per rank (three ranks). The next skill has three ranks; the final skill has one.
 
-| Node | Effect | Ranks | Prerequisite (one rank each) |
-| --- | --- | --- | --- |
-| Tempered Edge | +4% Samurai direct damage per rank. | 3 | Living Flame |
-| Crimson Oath | +5% Bleed damage per rank. Does not grant Bleed. | 3 | Living Flame |
-| Sweeping Steel | +5% Samurai basic melee area scale per rank. | 3 | Tempered Edge |
-| Draw and Cut | +3% Samurai basic attack speed per rank. | 3 | Crimson Oath |
-| Mountain Splitter | +4% Samurai direct damage per rank. | 3 | Sweeping Steel |
-| Unclosing Wounds | +5% Bleed damage per rank. | 3 | Draw and Cut |
-| Heaven's Arc | +15% Samurai basic melee area scale. | 1 | Mountain Splitter |
-| Perfect Form | +8% Samurai basic attack speed. | 1 | Unclosing Wounds |
+| Stance | Second skill, per rank | Final skill |
+| --- | --- | --- |
+| Blood | +4% melee and blood-burst radius | +20% Bleed damage |
+| Iaijutsu | +4% slash width | +12% charge speed |
+| Crescent | +4% wave and lingering-field width | +12% basic attack speed |
+| Returning Fang | +4% targeting range | +12% travel speed |
+| Barrage | +3% basic attack speed | +1 projectile per volley |
+| Great Shuriken | +4% blade radius | +12% contact and pulse frequency |
 
-### Way of Shadow
+A stance skill applies only when that hero has the matching stance in the current build. The inactive assisting hero keeps its own stance bonuses. Buying these skills does not choose or unlock a stance. The inspector states the requirement explicitly.
 
-| Node | Effect | Ranks | Prerequisite (one rank each) |
-| --- | --- | --- | --- |
-| Hidden Edge | +4% Ninja direct damage per rank. | 3 | Ember Reach |
-| Jade Venom | +5% Poison damage per rank. Does not grant Poison. | 3 | Ember Reach |
-| Silent Flight | +6% Ninja basic projectile speed per rank. | 3 | Hidden Edge |
-| Flickering Hands | +3% Ninja basic attack speed per rank. | 3 | Jade Venom |
-| Assassin's Patience | +4% Ninja direct damage per rank. | 3 | Silent Flight |
-| Black Lotus | +5% Poison damage per rank. | 3 | Flickering Hands |
-| Through the Veil | Ninja basic projectiles pierce one additional enemy. | 1 | Assassin's Patience |
-| Twin Fangs | +1 Ninja basic projectile. | 1 | Black Lotus |
+These effects reach actual attacks: Iaijutsu uses the charge-time calculation; Fang uses targeting range and projectile travel speed; Great Shuriken uses spawned collision radius, growth's initial radius, and contact/pulse intervals. Faster charging or damage frequency divides the interval by (1 + bonus), keeping wording and behavior consistent.
 
-### Twin Soul Bond
+## Existing saves
 
-| Node | Effect | Ranks | Prerequisite (one rank each) |
-| --- | --- | --- | --- |
-| Crossing Souls | +5% swap recharge speed per rank. | 3 | Inner Fire |
-| Seamless Relay | +5% swap recharge speed per rank. | 3 | Pilgrim's Step |
-| Two Souls, One Will | +8% damage for both characters. | 1 | Crossing Souls, Mountain Splitter, Assassin's Patience |
-| Heaven Undivided | +8% basic attack speed for both characters. | 1 | Seamless Relay, Unclosing Wounds, Black Lotus |
+Save version **5** performs a one-time full respec for earlier profiles because effects and prerequisite paths changed. All previously spent skill Embers are returned using the recorded historical spend, existing unspent Embers remain, and skill ranks are cleared. Legacy discovery history is preserved for save compatibility but no longer restricts availability. Reloading cannot grant the refund twice. The migration takes place when the game next loads the profile; the configuration script does not open player saves.
 
-## Stacking and runtime behavior
+Purchases and refunds roll back if saving fails. Failed run rewards remain pending in the game instance for retry on returning to the menu. Invalid ranks and orphaned nodes are sanitized. Stable modifier IDs prevent repeated stat rebuilds from stacking bonuses or refilling health/dashes. Stance effects are cleared when the build changes.
 
-Bonuses with the same effect add across tree nodes. Shared and character stat bonuses use Add Flat on existing multiplier stats. Full investment gives +27% max health, +17% shared damage, +14% shared basic attack speed, +6% movement speed, +44% pickup radius and one extra dash charge. Each character receives +24% direct damage and +17% basic attack speed. Samurai gains +30% basic melee area scale; Ninja gains +18% basic projectile speed, one projectile and one pierce. Bleed and Poison each gain a separate 30% multiplier.
+## Editing and maintenance
 
-Swap cooldown is `base / (1 + swap bonus)`: a 3-second cooldown becomes approximately 2.31 seconds at +30% recharge speed. The timer and HUD use the same effective duration. Prepare and its four passives are removed. Loading an older profile refunds their purchased ranks once and preserves the remaining skills.
+The shipped catalog lives in **/Game/HeavensDivide/Balance/DA_GlobalBalance**, under Skills. Each node exposes Map Position, Required Stance and Passive Effect in addition to its existing price, ranks, magnitude and prerequisites. Positions use a 1020 x 850 map canvas; (-1, -1) retains the legacy placement fallback for custom nodes. Node IDs are persistent save identifiers.
 
-Stats are rebuilt using stable `MetaSkill.<node ID>` modifier IDs. Modifier replacement is atomic and skips identical values, preventing temporary stat drops and dash refills during rebuilds. Passive effects are cached when progression changes; status ticks and family hits use constant-time lookups. No new per-frame gameplay work is added.
+After compiling changed native defaults, run **Tools/configure_meta_stance_tree.py** through Unreal Python to install the default catalog. This backs up the asset and changes only Skills, preserving the other balance settings. Do not rerun it over intentional designer edits unless restoring the native catalog is desired.
 
-## Saving and maintenance
+- MetaSkillTree.cpp: default catalog, descriptions, scope labels, prices, prerequisites, migration and model operations.
+- SMetaSkillMap.cpp: vector rendering, authored positions and mouse/controller navigation.
+- MetaSkillTreeWidget.cpp: inspector, purchases, refund and menu actions.
+- SynergyMetaProgressionSubsystem: transactional saves and cached generic/stance passives.
+- PlayerUpgradeStats.cpp: scoped modifiers, runtime bonus lookup and BalanceLab profile previews.
+- IaijutsuBuild.h, AutoAttackComponent.cpp, NinjaBuildComponent.cpp and ShurikenBuild.cpp: stance mechanic hooks.
 
-The existing `HeavensDivide_MetaProgression` save advances to version 4. Old synergy unlocks and Twin Soul discovery progress survive migration; pre-skill-tree saves begin with an empty tree and wallet. Version 3 profiles retain their remaining skills and receive the retired Prepare skill refunds. Node IDs are permanent save identifiers. Invalid ranks are clamped and unknown/orphaned nodes removed on load. Refunds use the recorded actual expenditure, independent of subsequent balance price edits.
+The map retains the existing native menu panel, fonts and buttons. It scales to fit the skill page beside the main-menu navigation. No generated textures are needed for the new layout.
 
-Purchases and refunds revert their in-memory changes if saving fails. Failed run rewards remain pending in the game instance and retry when the main menu opens. They cannot survive exiting the application before a successful save. Reset Progress now explicitly includes skills and currency.
+## Verification
 
-- `MetaSkillTree.cpp`: authored nodes, progression prices, prerequisites, reward calculation and pure model operations.
-- `SynergyMetaProgressionSubsystem`: transactional purchases/refunds, wallet, migration and cached effects.
-- `MetaSkillTreeWidget`: native Slate graph, details, purchases and refunds, opened by `MainMenuWidget`.
-- `PlayerUpgradeComponent`: shared and character passive modifiers.
-- `SurvivorPlayerController`, `EnemyStatusEffectComponent`, `SurvivorBuildFamilies`: rewards, swap timing, statuses.
-- `MetaSkillTreeTests.cpp`: catalog, disk persistence, rollback, reward retry, migration, runtime stats, status damage and tree construction. Tests use disposable `Automation_` save slots, never the player's progression slot.
+Automation coverage includes catalog costs and prerequisites, persistence and failure rollback, exact one-time refunds, node positions and hit tests at different pan/zoom settings, selection highlighting, all six stance effects, actual charge/range/shuriken behavior, inactive-assistant scope, and removal of stale bonuses after changing builds. Tests use disposable automation saves or BalanceLab preview profiles.
 
-This is an initial balance pass. Assess progression speed and combat difficulty in playtests before changing the node prices or magnitudes.
+The Win64 Development Editor build passes. All 15 selected gameplay/progression suites pass across the initial run and corrected-fixture rerun; the combined result is Saved/MetaTreeRedesign/GameplayVerification.json. These cover the meta tree, all six combat builds, Tag Team, balance data, run preparation, and draft tools. Five of the existing suites report fixture/asset warnings.
 
-## Validation
+D3D12-rendered SkillTree and DraftUnlocks suites also pass (Saved/MetaTreeRedesign/Rendered/index.json). Tree previews cover 1920 x 1080, 1280 x 720, and the 1444 x 976 menu page bounds, including long stance descriptions. Saved/MetaSkillTree.png is the overview; Saved/MetaTreeRedesign contains the stance previews.
 
-Win64 Development Editor build succeeds. All ten `HeavensDivide` automation suites pass with NullRHI (seven clean, three with fixture warnings). The skill-tree suite also passes with D3D12 rendering enabled and exports `Saved/MetaSkillTree.png` for layout inspection.
+The larger tree extends progression length. Its final difficulty and Ember pacing still need playtesting against real run outcomes.
 
-Reports: `Saved/Automation/MetaSkillTreeHeadless/index.json` and `Saved/Automation/MetaSkillTreePreview/index.json`. The broad D3D12 run exposed a pre-existing transient Niagara-script assertion in `Abilities.EditorTuning`; that same suite passes headlessly. The new skill-tree suite passes under both render modes. Existing missing-material startup diagnostics are unrelated to this pass.
-
-Node-map visual pass: the Win64 editor build and rendered `HeavensDivide.Meta.SkillTree` check pass. Highlight regression coverage includes hovering another branch, directional navigation, view reset and capstones with prerequisites across multiple paths.
-
-Latest UI report: `Saved/Automation/MetaSkillNodeMap/index.json`; rendered preview: `Saved/MetaSkillTree.png`.
-
-## Menu visual style
-
-Collection, Skill Tree, Settings, and Reset Progress use the corrected Ascension panel through the main menu's **Shared Secondary Page Style → Page Background Texture** setting. The skill tree reads this setting from its menu owner. `Tools/configure_shared_menu_background.py` updates the authored Blueprint and resets legacy background scale/offset compensation.
-
-The skill tree uses the main menu's Cinzel Medium and Regular fonts, ivory lettering, InkHover brush buttons, and MenuBrushStroke separators. Its generated charcoal ink-wash panel has a distressed ivory frame and a quiet center for readable connections. Subtle branch colors distinguish paths against neutral ink nodes.
-
-The source artwork and generation prompt are in `Art/SkillTree/`. `Tools/import_skill_tree_art.py` imports the panel into `/Game/HeavensDivide/Blueprints/UI/SkillTree/AscensionPanel` with UI texture settings. Native reflected brushes and font properties retain the assets for garbage collection and cooking.
-
-Style validation report: `Saved/Automation/MetaMenuStyle/index.json`; rendered preview: `Saved/MetaSkillTree.png`.
-
-The skill tree is embedded in the main menu overlay, reserving the same 410-unit navigation column as Collection. It fills the remaining page area and scales its 1440 x 920 layout to fit, without the former 1030 x 780 size cap. Opening Collection, Settings, reset confirmation, or returning to the main menu hides it; it no longer creates a separate full-screen viewport widget.
-
-Secondary menu pages no longer add corner brush overlays; the shared background supplies the frame.
+The subsequent upgrade-availability pass also passes 13 selected checks (`Saved/TrialRemoval/Verification.json`), including the meta-tree suites. Final rendered layout inspection is recorded in `Saved/MetaTreeRedesign/FinalVisual/index.json`. All supported run upgrades are available independently of permanent skill purchases; Technique and Twin Soul trials are retired.

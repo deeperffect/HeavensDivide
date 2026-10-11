@@ -38,9 +38,18 @@ ATechniqueTrialBase::ATechniqueTrialBase()
 	for(int32 I=0;I<4;++I){ auto* W=CreateDefaultSubobject<UStaticMeshComponent>(*FString::Printf(TEXT("TrialWall%d"),I)); W->SetupAttachment(TrialArena); W->SetRelativeLocation(L[I]); W->SetRelativeScale3D(S[I]); if(Cube.Succeeded())W->SetStaticMesh(Cube.Object); TrialWalls.Add(W); }
 }
 
-void ATechniqueTrialBase::BeginPlay(){ Super::BeginPlay(); FindReferences(); const FVector LegacyOrigin=TrialFloor?TrialFloor->GetComponentLocation():GetActorTransform().TransformPosition(TrialArenaOffset); ArenaAnchor=GetWorld()->GetSubsystem<UTrialArenaSubsystem>()->ReserveAnchor(this); ArenaOrigin=LegacyOrigin; if(ArenaAnchor){ArenaOrigin=ArenaAnchor->GetActorLocation();const FVector Delta=ArenaOrigin-LegacyOrigin;if(TrialArena)TrialArena->AddWorldOffset(Delta);else RelocateAdditionalArenaComponents(Delta);} bArenaReady=TrialFloor&&TrialFloor->IsRegistered()&&TrialPlayerStart&&TrialPlayerStart->IsRegistered()&&TrialFloor->GetCollisionEnabled()!=ECollisionEnabled::NoCollision; UE_LOG(LogTemp,Log,TEXT("[TrialRuntime] Setup Trial=%s Entrance=%s Anchor=%s ArenaOrigin=%s Floor=%s PlayerStart=%s Ready=%s"),*GetName(),*GetActorLocation().ToCompactString(),*GetNameSafe(ArenaAnchor),*ArenaOrigin.ToCompactString(),*GetNameSafe(TrialFloor),*GetNameSafe(TrialPlayerStart),bArenaReady?TEXT("true"):TEXT("false")); }
+void ATechniqueTrialBase::BeginPlay(){
+	Super::BeginPlay();
+	// Retain serialized classes, but remove legacy placed/spawned trials from play.
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+	Destroy();
+}
 void ATechniqueTrialBase::EndPlay(const EEndPlayReason::Type R){StopChallenge();CleanupRuntime(true);if(GetWorld())GetWorld()->GetSubsystem<UTrialArenaSubsystem>()->ReleaseAnchor(this);Super::EndPlay(R);}
-bool ATechniqueTrialBase::CanInteract_Implementation(APawn* P)const{return TrialState==ETechniqueTrialState::Inactive&&P&&ObjectiveInteraction&&ObjectiveInteraction->IsInRange(P)&&(!PlayerController||!PlayerController->IsAnyObjectiveActive());}
+bool ATechniqueTrialBase::CanInteract_Implementation(APawn* P)const{
+	return false;
+}
 void ATechniqueTrialBase::Interact_Implementation(APawn* P){EnterTrial(P);}
 
 bool ATechniqueTrialBase::EnterTrial(APawn* P)

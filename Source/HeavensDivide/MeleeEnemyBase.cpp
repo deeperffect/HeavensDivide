@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "MeleeEnemyBase.h"
+#include "EnemyAttackCue.h"
+#include "TankMeleeEnemyBase.h"
 #include "CombatAudio.h"
 
 #include "CharacterBase.h"
@@ -198,6 +200,10 @@ void AMeleeEnemyBase::MarkAttackStarted()
 
 void AMeleeEnemyBase::HandleAttackCommitted()
 {
+	// Elite slams already own their exact circle/rectangle warning.
+	if (IsA<ATankMeleeEnemyBase>()) return;
+	if (AttackCue.IsValid()) AttackCue->Destroy();
+    AttackCue.Reset(); // Ordinary strikes communicate through their animation, not an AoE circle.
 }
 
 void AMeleeEnemyBase::HandleAttackFinished()
@@ -206,6 +212,7 @@ void AMeleeEnemyBase::HandleAttackFinished()
 
 void AMeleeEnemyBase::ExecuteAttackHit()
 {
+	if (AttackCue.IsValid()) AttackCue->Impact();
 	if (IsStressTestCombatDisabled())
 	{
 		return;
@@ -300,6 +307,7 @@ void AMeleeEnemyBase::StartAttack()
 	MarkAttackStarted();
 	UpdateAnimationBudgetSignificance();
 	HandleAttackCommitted();
+	StartAttackLunge();
 	GetWorldTimerManager().SetTimer(WindupTimer, this, &AMeleeEnemyBase::FinishAttackWindup,
 		FMath::Max(0.001f, AttackWindup), false);
 }
@@ -311,23 +319,31 @@ void AMeleeEnemyBase::FinishAttackWindup()
 	// Advance before applying damage so reentrant callbacks cannot hit twice.
 	BasicAttackPhase = EBasicAttackPhase::Recovery;
 	StopEnemyMovement();
+	// Present the peak of the wobble on the same frame as the hit, even at low frame rates.
+	LungeStartTime = GetWorld()->GetTimeSeconds();
+	UpdateAttackLunge();
 	ExecuteAttackHit();
 	if (!CanContinueBasicAttack() || BasicAttackPhase != EBasicAttackPhase::Recovery)
 	{
 		CancelBasicAttack();
 		return;
 	}
-	if (bUseProceduralAttackMotion && GetMesh() && AttackLungeDistance > 0.0f && GetNetMode() != NM_DedicatedServer)
-	{
-		PreAttackMeshLocation = GetMesh()->GetRelativeLocation();
-		const USceneComponent* Parent = GetMesh()->GetAttachParent();
-		LungeRelativeDirection = Parent ? Parent->GetComponentTransform().InverseTransformVector(GetActorForwardVector()) : GetActorForwardVector();
-		LungeStartTime = GetWorld()->GetTimeSeconds();
-		bLungeActive = true;
-		GetWorldTimerManager().SetTimer(LungeTimer, this, &AMeleeEnemyBase::UpdateAttackLunge, 1.0f / 60.0f, true);
-	}
 	GetWorldTimerManager().SetTimer(RecoveryTimer, this, &AMeleeEnemyBase::FinishAttackRecovery,
 		FMath::Max(0.001f, AttackRecovery), false);
+}
+
+void AMeleeEnemyBase::StartAttackLunge()
+{
+	if (!bUseProceduralAttackMotion || !GetMesh() || GetNetMode() == NM_DedicatedServer
+		|| (AttackLungeDistance <= 0.0f && AttackWobbleAngle <= 0.0f)) return;
+	PreAttackMeshLocation = GetMesh()->GetRelativeLocation();
+	PreAttackMeshRotation = GetMesh()->GetRelativeRotation().Quaternion();
+	const USceneComponent* Parent = GetMesh()->GetAttachParent();
+	LungeRelativeDirection = Parent ? Parent->GetComponentTransform().InverseTransformVector(GetActorForwardVector()) : GetActorForwardVector();
+	WobbleRelativeAxis = Parent ? Parent->GetComponentTransform().InverseTransformVectorNoScale(GetActorRightVector()) : GetActorRightVector();
+	LungeStartTime = GetWorld()->GetTimeSeconds();
+	bLungeActive = true;
+	GetWorldTimerManager().SetTimer(LungeTimer, this, &AMeleeEnemyBase::UpdateAttackLunge, 1.0f / 60.0f, true);
 }
 
 void AMeleeEnemyBase::UpdateAttackLunge()
@@ -335,25 +351,47 @@ void AMeleeEnemyBase::UpdateAttackLunge()
 	if (!bLungeActive) return;
 	if (!CanContinueBasicAttack()) { CancelBasicAttack(); return; }
 	const float Elapsed = static_cast<float>(GetWorld()->GetTimeSeconds() - LungeStartTime);
-	// Fit the presentation inside recovery, even when designers shorten recovery.
-	const float Out = FMath::Max(0.001f, AttackLungeOutDuration);
-	const float Back = FMath::Max(0.001f, AttackLungeReturnDuration);
-	const float Fit = FMath::Min(1.0f, FMath::Max(0.001f, AttackRecovery) / (Out + Back));
-	if (Elapsed >= (Out + Back) * Fit) { ResetAttackLunge(); return; }
-	const float Alpha = Elapsed < Out * Fit ? Elapsed / (Out * Fit) : 1.0f - (Elapsed - Out * Fit) / (Back * Fit);
-	const float Smooth = FMath::SmoothStep(0.0f, 1.0f, FMath::Clamp(Alpha, 0.0f, 1.0f));
-	if (GetMesh()) GetMesh()->SetRelativeLocation(PreAttackMeshLocation + LungeRelativeDirection * AttackLungeDistance * Smooth);
+	float Lean = 0.0f;
+	float Rock = 0.0f;
+	if (BasicAttackPhase == EBasicAttackPhase::Windup)
+	{
+		const float Windup = FMath::Max(0.001f, AttackWindup);
+		const float Alpha = FMath::Clamp(Elapsed / Windup, 0.0f, 1.0f);
+		// Anticipate backwards, then swing forward over the final part of the windup.
+		const float ReleaseDuration = FMath::Clamp(AttackLungeOutDuration, 0.001f, Windup);
+		const float Release = FMath::SmoothStep(Windup - ReleaseDuration, Windup, Elapsed);
+		Lean = FMath::Lerp(-0.35f * FMath::SmoothStep(0.0f, 0.5f, Alpha), 1.0f, Release);
+		Rock = FMath::Sin(Alpha * 2.0f * PI) * 0.25f * (1.0f - Release);
+	}
+	else
+	{
+		// One small rebound, fitted inside recovery. No per-frame actor tick is needed.
+		const float Duration = FMath::Min(FMath::Max(0.001f, AttackRecovery),
+			FMath::Max(0.001f, AttackLungeOutDuration + AttackLungeReturnDuration));
+		if (Elapsed >= Duration) { ResetAttackLunge(); return; }
+		const float Alpha = FMath::Clamp(Elapsed / Duration, 0.0f, 1.0f);
+		Lean = FMath::Cos(Alpha * 1.5f * PI) * FMath::Square(1.0f - Alpha);
+	}
+	if (GetMesh())
+	{
+		const float Angle = FMath::DegreesToRadians(FMath::Clamp(AttackWobbleAngle, 0.0f, 30.0f));
+		const FQuat Rotation = FQuat(WobbleRelativeAxis.GetSafeNormal(), Angle * Lean)
+			* FQuat(LungeRelativeDirection.GetSafeNormal(), Angle * Rock) * PreAttackMeshRotation;
+		GetMesh()->SetRelativeLocationAndRotation(
+			PreAttackMeshLocation + LungeRelativeDirection * FMath::Max(0.0f, AttackLungeDistance) * Lean, Rotation);
+	}
 }
 
 void AMeleeEnemyBase::ResetAttackLunge()
 {
 	GetWorldTimerManager().ClearTimer(LungeTimer);
-	if (bLungeActive && GetMesh()) GetMesh()->SetRelativeLocation(PreAttackMeshLocation);
+	if (bLungeActive && GetMesh()) GetMesh()->SetRelativeLocationAndRotation(PreAttackMeshLocation, PreAttackMeshRotation);
 	bLungeActive = false;
 }
 
 void AMeleeEnemyBase::CancelBasicAttack()
 {
+	if (BasicAttackPhase == EBasicAttackPhase::Windup && AttackCue.IsValid()) AttackCue->Destroy();
 	GetWorldTimerManager().ClearTimer(WindupTimer);
 	GetWorldTimerManager().ClearTimer(RecoveryTimer);
 	ResetAttackLunge();

@@ -13,7 +13,16 @@ class HEAVENSDIVIDE_API UHeavensDivideMetaSaveGame : public USaveGame
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
-	int32 SaveVersion = 4;
+	int32 SaveVersion = 6;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
+	TArray<FName> UnlockedStanceIds;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
+	int32 SoulSigils = 0;
+	/** Fractions survive short runs and restarts, so small currency bonuses are never discarded. */
+	UPROPERTY() double EmberFraction = 0.0;
+	UPROPERTY() double SigilFraction = 0.0;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
 	TArray<FName> UnlockedSynergyUpgradeIds;

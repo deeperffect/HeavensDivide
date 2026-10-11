@@ -14,6 +14,7 @@
 #include "MinimapMarkerComponent.h"
 #include "ObjectiveInteractionComponent.h"
 #include "TimerManager.h"
+#include "RunChallengeSubsystem.h"
 
 ABloodShrine::ABloodShrine()
 {
@@ -223,7 +224,11 @@ void ABloodShrine::SucceedChallenge()
 
 	EndChallenge();
 	ShrineState = EBloodShrineState::Success;
-	MinimapMarker->SetMarkerState(bAllowReactivation ? EMinimapMarkerState::Available : EMinimapMarkerState::Completed);
+	RunChallenges::AwardCurrencies(this,10,2); // Commit earnings before delayed reward UI or a subsequent death.
+    bAllowReactivation=false;
+    MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);
+    SetActorHiddenInGame(true);
+    SetActorEnableCollision(false);
 	if (StatusWidget) StatusWidget->ShowResult(true);
 	OnShrineSucceeded.Broadcast();
 	ReceiveShrineSucceeded();
@@ -306,6 +311,7 @@ void ABloodShrine::RequestReward()
 	{
 		PlayerController->RequestBloodShrineUpgradeReward(FMath::Max(1, RewardUpgradeChoices));
 	}
+    Destroy(); // Remove after the reward request, so its delayed timer is never lost.
 }
 
 void ABloodShrine::FindRequiredReferences()

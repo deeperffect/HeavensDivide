@@ -17,15 +17,18 @@
 #include "Misc/App.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "PlayerUpgradeComponent.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FComboAbilityTest, "HeavensDivide.Combat.ComboAbility",
-    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::NonNullRHI)
 bool FComboAbilityTest::RunTest(const FString&)
 {
     auto* World = UWorld::CreateWorld(EWorldType::Game, false);
     GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(World);
     World->InitializeActorsForPlay(FURL());
     auto* PC = World->SpawnActor<ASurvivorPlayerController>();
+    auto* Upgrades=PC->GetPlayerUpgrades();
+    Upgrades->BalancePreviewMetaProfile=0; // Fresh, isolated profile; never read or write the player's save.
     auto* Combo = PC->FindComponentByClass<UComboAbilityComponent>();
     auto* Party = PC->GetCharacterManager();
     Combo->BeginPlay();
@@ -55,15 +58,26 @@ bool FComboAbilityTest::RunTest(const FString&)
     auto* Near = SpawnEnemy(100.f, EPlayerAttackSource::Other);
     auto* Far = SpawnEnemy(900.f, EPlayerAttackSource::Other);
     auto* NinjaOnly = SpawnEnemy(120.f, EPlayerAttackSource::Ninja);
+    TestFalse(TEXT("Fresh profile has not unlocked combo abilities"),Combo->IsComboUnlocked());
+    Party->OnCharacterSwapped.Broadcast(Samurai,Ninja);
+    Combo->NotifySynergyAttack();
+    TestEqual(TEXT("Locked combo cannot fill from swaps or synergy"),Combo->GetCombo(),0.f);
+    Combo->RestoreCombo(100.f);
+    TestEqual(TEXT("Locked combo ignores a stale travel meter"),Combo->GetCombo(),0.f);
+    TestFalse(TEXT("Locked ability cannot activate"),Combo->TryActivateAbility());
+    TestTrue(TEXT("Core swapping remains available while combo is locked"),PC->CanSwap());
+    Upgrades->BalancePreviewMetaProfile=1;
+    TestTrue(TEXT("Full meta preview explicitly unlocks combo"),Combo->IsComboUnlocked());
+    TestTrue(TEXT("Full charge training grants fifteen percent"),FMath::IsNearlyEqual(Upgrades->GetMetaSkillBonus(TEXT("ComboCharge")),.15f));
     TestFalse(TEXT("Empty meter rejects activation"), Combo->TryActivateAbility());
     Party->OnCharacterSwapped.Broadcast(Samurai, Ninja);
-    TestEqual(TEXT("Successful swap gives charge"), Combo->GetCombo(), 20.f);
+    TestEqual(TEXT("Successful swap includes charge training"), Combo->GetCombo(), 23.f);
     Party->OnCharacterSwapped.Broadcast(Samurai, Samurai);
-    TestEqual(TEXT("No-op swap gives no charge"), Combo->GetCombo(), 20.f);
+    TestEqual(TEXT("No-op swap gives no charge"), Combo->GetCombo(), 23.f);
     PC->FindComponentByClass<UInactiveCharacterAssistComponent>()->OnAssistAttackExecuted.Broadcast(Ninja, Samurai, Near);
-    TestEqual(TEXT("Tag Team event gives charge once"), Combo->GetCombo(), 45.f);
+    TestEqual(TEXT("Tag Team event gives boosted charge once"), Combo->GetCombo(), 51.75f);
     Combo->AddCombo(-100.f);
-    TestEqual(TEXT("Negative gain ignored"), Combo->GetCombo(), 45.f);
+    TestEqual(TEXT("Negative gain ignored"), Combo->GetCombo(), 51.75f);
     TestFalse(TEXT("Partial meter rejects activation"), Combo->TryActivateAbility());
     Combo->AddCombo(1000.f);
     TestEqual(TEXT("Charge caps at max"), Combo->GetCombo(), 100.f);
@@ -81,7 +95,10 @@ bool FComboAbilityTest::RunTest(const FString&)
         Samurai->ComboAbility.VFXDurationParameter=Saved.VFXDurationParameter;
     }
     const FRotator InitialRotation = Samurai->GetMesh()->GetRelativeRotation();
+    const float AuthoredDamage=Samurai->ComboAbility.DamagePerPulse;
     TestTrue(TEXT("Full meter activates Tornado"), Combo->TryActivateAbility());
+    TestTrue(TEXT("Combo power applies once to the activation snapshot"),FMath::IsNearlyEqual(Combo->ActiveSettings.DamagePerPulse,AuthoredDamage*1.15f));
+    TestEqual(TEXT("Combo training preserves the character's authored damage"),Samurai->ComboAbility.DamagePerPulse,AuthoredDamage);
     auto* StationaryFX=Combo->ActiveVFX.Get();
     if(TestNotNull(TEXT("Samurai spawns its saved effect"),StationaryFX)) {
         const FTransform Before=StationaryFX->GetComponentTransform();
@@ -101,6 +118,7 @@ bool FComboAbilityTest::RunTest(const FString&)
     Combo->TickComponent(.7f, LEVELTICK_All, nullptr);
     TestTrue(TEXT("Tornado leaves spinning to the montage"), Samurai->GetMesh()->GetRelativeRotation().Equals(InitialRotation));
     Combo->TickComponent(2.4f, LEVELTICK_All, nullptr);
+    TestTrue(TEXT("Damage pulses do not compound the permanent bonus"),FMath::IsNearlyEqual(Combo->ActiveSettings.DamagePerPulse,AuthoredDamage*1.15f));
     TestEqual(TEXT("Damage pulses do not duplicate Samurai VFX"),Combo->PendingVFX.Num(),1);
     TestTrue(TEXT("Expanding Tornado reaches distant enemy"), Far->GetHealthComponent()->GetCurrentHealth() < 10000.f);
     TestFalse(TEXT("Ability finishes"), Combo->IsAbilityActive());

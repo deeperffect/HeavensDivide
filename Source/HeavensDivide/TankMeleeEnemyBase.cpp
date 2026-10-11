@@ -215,7 +215,7 @@ void ATankMeleeEnemyBase::HandleContactEndOverlap(UPrimitiveComponent* Overlappe
 void ATankMeleeEnemyBase::RefreshContactDamageTarget()
 {
 	StopContactDamage();
-	if (!UsesContactDamage() || bIsDead || IsStressTestCombatDisabled() || IsPlayerTargetDead()
+	if (!UsesContactDamage() || bIsDead || bGameplaySuspended || IsStressTestCombatDisabled() || IsPlayerTargetDead()
 		|| !ObservedCharacterManager || !ContactDamageSphere || !GetWorld()) return;
 
 	ACharacterBase* ActiveCharacter = ObservedCharacterManager->GetActiveCharacter();
@@ -233,7 +233,7 @@ void ATankMeleeEnemyBase::RefreshContactDamageTarget()
 void ATankMeleeEnemyBase::ApplyContactDamage()
 {
 	ACharacterBase* ActiveCharacter = ObservedCharacterManager ? ObservedCharacterManager->GetActiveCharacter() : nullptr;
-	if (bIsDead || IsStressTestCombatDisabled() || IsPlayerTargetDead() || !IsValid(ActiveCharacter)
+	if (bIsDead || bGameplaySuspended || IsStressTestCombatDisabled() || IsPlayerTargetDead() || !IsValid(ActiveCharacter)
 		|| ActiveCharacter != ContactDamageTarget.Get() || !ContactDamageSphere
 		|| !ContactDamageSphere->IsOverlappingActor(ActiveCharacter))
 	{
@@ -308,6 +308,7 @@ void ATankMeleeEnemyBase::HandleAttackFinished()
 
 void ATankMeleeEnemyBase::ExecuteAttackHit()
 {
+	if (bGameplaySuspended || bIsDead) return;
 	if (IsStressTestCombatDisabled())
 	{
 		return;
@@ -402,6 +403,9 @@ void ATankMeleeEnemyBase::ExecuteAttackHit()
 			TargetHealth->GetCurrentHealth());
 	}
 
+	// Let the impact remain visible after the damage frame; cleanup should not
+	// erase the only feedback at the exact instant the slam lands.
+	if(IsValid(RectangleGroundTelegraph)) { RectangleGroundTelegraph->PlayImpact(); RectangleGroundTelegraph=nullptr; }
 	HideAttackTelegraph();
 }
 

@@ -38,7 +38,7 @@ bool FSwapCameraTest::RunTest(const FString&)
         const float HalfFOV=Rig->Camera->FieldOfView;
         TestTrue(TEXT("Camera smoothly zooms in"),HalfFOV<83 && HalfFOV>83*(1-Rig->SwapZoomAmount));
         Rig->UpdateSwapFocus(.06f);
-        TestTrue(TEXT("Peak focus tracks arriving visual"),Rig->GetActorLocation().Equals(Character->GetVisualRoot()->GetComponentLocation()));
+        TestTrue(TEXT("Peak focus ignores cosmetic arrival offset"),Rig->GetActorLocation().Equals(Character->GetActorLocation()));
         TestTrue(TEXT("Orthographic cameras also zoom"),Rig->Camera->OrthoWidth<1500);
         TestTrue(TEXT("Peak vignette adds a subtle focus accent"),Rig->Camera->PostProcessSettings.VignetteIntensity>.3f);
         Character->SetActorLocation(FVector(100,0,0));

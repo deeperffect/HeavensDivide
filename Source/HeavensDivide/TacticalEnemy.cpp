@@ -1,4 +1,7 @@
 #include "TacticalEnemy.h"
+#include "EnemyAttackCue.h"
+#include "EnemySpawner.h"
+#include "BloodshiftBalanceData.h"
 #include "EncounterHazard.h"
 #include "HealthComponent.h"
 #include "EnemyLightweightMovementComponent.h"
@@ -25,8 +28,8 @@ ATacticalEnemy::ATacticalEnemy(const FObjectInitializer& Init) : Super(Init)
 void ATacticalEnemy::BeginPlay()
 {
     Super::BeginPlay();
-    Cooldown = FMath::FRandRange(1.2f,2.8f);
-    RoleRing->SetRelativeLocation(FVector(0,0,-GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+5));
+    Cooldown = FMath::FRandRange(InitialCooldownMin,FMath::Max(InitialCooldownMin,InitialCooldownMax));
+    RoleRing->SetWorldLocation(GetActorLocation()+FVector(0,0,-GetCapsuleComponent()->GetScaledCapsuleHalfHeight()+5));
     RoleRing->SetWorldScale3D(FVector(1.4f,1.4f,1));
     if (auto* Base = LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_EnemyRoleRing")))
     {
@@ -50,14 +53,14 @@ FVector ATacticalEnemy::GetVelocity() const
 {
     if (bIsDead || bGameplaySuspended) return FVector::ZeroVector;
     if (bMarching && MarchDelay<=0) return LockedDirection*MarchSpeed;
-    if (ChargeRemaining>0) return LockedDirection*950;
+    if (ChargeRemaining>0) return LockedDirection*ChargeSpeed;
     return AEnemyBase::GetEnemyMovementVelocity();
 }
 bool ATacticalEnemy::ShouldForceHighAnimationBudgetSignificance() const { return ShouldSkipMovement(); }
 
 void ATacticalEnemy::InitializeMarch(FVector Direction,float Speed,float Distance,float Delay)
 {
-    bMarching = true; LockedDirection = Direction.GetSafeNormal2D(); MarchSpeed = Speed;
+    bMarching = true; LockedDirection = Direction.GetSafeNormal2D(); MarchSpeed = Speed * GetRunChallengeSpeedMultiplier();
     MarchRemaining = Distance; MarchDelay = Delay; bChargeHit = false;
     StopEnemyMovement(); StopSeparationUpdates(); bUseEnemySeparation = false; bUseCrowdSpread = false;
     RoleRing->SetVisibility(false);
@@ -84,32 +87,46 @@ void ATacticalEnemy::Tick(float Delta)
     if (bMarching || ChargeRemaining>0)
     {
         if (bMarching && MarchDelay>0) { MarchDelay-=Delta; return; }
-        const float Speed = bMarching ? MarchSpeed : 950.f;
+        const float Speed = bMarching ? MarchSpeed : FMath::Max(1.f,ChargeSpeed);
         const float Distance = FMath::Min(Speed*Delta,bMarching ? MarchRemaining : ChargeRemaining);
         const FVector Before = GetActorLocation(); FHitResult Hit;
+        if (bMarching)
+            if (auto* Spawner=Cast<AEnemySpawner>(GetOwner()))
+            {
+                if (!Spawner->IsEncounterInsideArena(Before+LockedDirection*Distance)) { Destroy(); return; }
+            }
         LightweightMovementComponent->MoveOwnerToNoSlide(Before+LockedDirection*Distance,Hit);
         HitAlongMovement(Before,GetActorLocation());
-        if (GetMesh()) GetMesh()->SetWorldRotation(LockedDirection.Rotation()+FRotator(0,-90,0));
+        // Rotate the actor; never overwrite a species' authored mesh rotation.
+        SetActorRotation(LockedDirection.Rotation());
         if (bMarching) { MarchRemaining-=Distance; if (Hit.bBlockingHit || MarchRemaining<=0) Destroy(); }
         else if ((ChargeRemaining-=Distance)<=0 || Hit.bBlockingHit)
-        { ChargeRemaining=0; Recovery=.75f; if (FollowupCharges>0) { --FollowupCharges; Cooldown=.9f; } }
+        { ChargeRemaining=0; Recovery=ChargeRecoverySeconds; if (FollowupCharges>0) { --FollowupCharges; Cooldown=FollowupCooldown; } }
         return;
     }
     if (CastRemaining>0 && (CastRemaining-=Delta)<=0) FinishAbility();
+}
+
+float ATacticalEnemy::GetEngagementRange() const
+{
+    // Self-centered attacks must be able to reach the position where we stop.
+    // Targeted circles and charges use their authored cast range.
+    if (TacticalRole==ETacticalEnemyRole::OgreWarden) return FMath::Max(1.f,FMath::Min(CastRange,WardenOuterRadius));
+    if (TacticalRole==ETacticalEnemyRole::StormGorilla) return FMath::Max(1.f,FMath::Min(CastRange,StormLength*.5f));
+    return FMath::Max(1.f,CastRange);
 }
 
 void ATacticalEnemy::UpdateEnemyBehavior(float Delta)
 {
     if (bIsDead || bGameplaySuspended || IsPlayerTargetDead() || IsStressTestCombatDisabled()) { StopEnemyMovement(); return; }
     if (!EnsureTargetFromCharacterManager() || ShouldSkipMovement()) { StopEnemyMovement(); return; }
-    LightweightMovementComponent->SetMoveSpeed(MoveSpeed*(GetWorld()->GetTimeSeconds()<HasteUntil ? 1.2f : 1.f));
+    LightweightMovementComponent->SetMoveSpeed(MoveSpeed*(GetWorld()->GetTimeSeconds()<HasteUntil ? HasteMultiplier : 1.f));
     const float Distance = FVector::Dist2D(CurrentTarget->GetActorLocation(),GetActorLocation());
-    if (Distance>CastRange) { MoveTowardCurrentTarget(); return; }
+    if (Distance>GetEngagementRange()) { MoveTowardCurrentTarget(); return; }
     StopEnemyMovement(); FaceTarget();
     if (Cooldown<=0) BeginAbility();
-    else if (TacticalRole==ETacticalEnemyRole::HornLancer || TacticalRole==ETacticalEnemyRole::FangStalker || TacticalRole==ETacticalEnemyRole::OgreWarden || TacticalRole==ETacticalEnemyRole::StormGorilla)
-        MoveTowardCurrentTarget();
-    else if (Distance<280) RequestEnemyMovement((GetActorLocation()-CurrentTarget->GetActorLocation()).GetSafeNormal2D());
+    // Hold attack range during cooldown. Resume chasing only when the target
+    // leaves it; approaching the enemy must never make it retreat or orbit.
 }
 
 void ATacticalEnemy::BeginAbility()
@@ -117,49 +134,56 @@ void ATacticalEnemy::BeginAbility()
     if (!CurrentTarget) return;
     LockedTarget=CurrentTarget->GetActorLocation();
     LockedDirection=(LockedTarget-GetActorLocation()).GetSafeNormal2D();
-    CastRemaining=FMath::Max(.75f,Windup); Cooldown=AbilityCooldown+CastRemaining; StopEnemyMovement();
+    CastRemaining=FMath::Max3(MinimumWindup,Windup,UBloodshiftBalanceData::Get()->MinimumWarning); Cooldown=AbilityCooldown+CastRemaining; StopEnemyMovement();
+    UpdateAnimationBudgetSignificance();
+    if(CastCue.IsValid())CastCue->Destroy();
+    CastCue=AEnemyAttackCue::Spawn(this,GetActorLocation()+FVector(0,0,GetCapsuleComponent()->GetScaledCapsuleHalfHeight()*.35f),28,CastRemaining,true);
     if (CastMontage && GetMesh()->GetAnimInstance()) GetMesh()->GetAnimInstance()->Montage_Play(CastMontage);
-    auto Circle = [&](FVector Position,float Radius,float Active= .18f,float Delay=0.f)
-    { AEncounterHazard::Spawn(this,Position,EEncounterShape::Circle,Radius,0,CastRemaining,AbilityDamage,Active,0,Delay); };
+    auto Circle = [&](FVector Position,float Radius,float Active= -1.f,float Delay=0.f)
+    { AEncounterHazard::Spawn(this,Position,EEncounterShape::Circle,Radius,0,CastRemaining,AbilityDamage,Active<0?BurstActiveTime:Active,0,Delay); };
     switch (TacticalRole)
     {
-    case ETacticalEnemyRole::AshSeer: Circle(LockedTarget,155); break;
-    case ETacticalEnemyRole::MireWeaver: Circle(LockedTarget,180,3.4f); break;
+    case ETacticalEnemyRole::AshSeer: Circle(LockedTarget,SeerRadius); break;
+    case ETacticalEnemyRole::MireWeaver: Circle(LockedTarget,MireRadius,MireDuration); break;
     case ETacticalEnemyRole::FrostOracle:
-        for (int32 I=0;I<3;++I) Circle(LockedTarget+LockedDirection*I*210,115,.18f,I*.25f); break;
+        for (int32 I=0;I<FMath::Clamp(FrostCount,1,32);++I) Circle(LockedTarget+LockedDirection*I*FrostSpacing,FrostRadius,BurstActiveTime,I*FrostStagger); break;
     case ETacticalEnemyRole::HexSniper:
-        AEncounterHazard::Spawn(this,GetActorLocation()+LockedDirection*650,EEncounterShape::Lane,1300,110,CastRemaining,AbilityDamage,.2f,LockedDirection.Rotation().Yaw); break;
+        AEncounterHazard::Spawn(this,GetActorLocation()+LockedDirection*(SniperLength*.5f),EEncounterShape::Lane,SniperLength,SniperWidth,CastRemaining,AbilityDamage,SniperActiveTime,LockedDirection.Rotation().Yaw); break;
     case ETacticalEnemyRole::HornLancer:
     case ETacticalEnemyRole::FangStalker:
-        ChargeWarning=AEncounterHazard::Spawn(this,GetActorLocation()+LockedDirection*450,EEncounterShape::Lane,900,135,CastRemaining,0,.15f,LockedDirection.Rotation().Yaw);
+        ChargeWarning=AEncounterHazard::Spawn(this,GetActorLocation()+LockedDirection*(ChargeDistance*.5f),EEncounterShape::Lane,ChargeDistance,FMath::Max(ChargeWidth,GetCapsuleComponent()->GetScaledCapsuleRadius()*2),CastRemaining,0,ChargeDistance/FMath::Max(1.f,ChargeSpeed)+.2f,LockedDirection.Rotation().Yaw);
+        if (!ChargeWarning.IsValid()) { CastRemaining=0; Recovery=CastRecoverySeconds; }
         break;
     case ETacticalEnemyRole::OgreWarden:
-        AEncounterHazard::Spawn(this,GetActorLocation(),EEncounterShape::Ring,410,160,CastRemaining,AbilityDamage); break;
+        AEncounterHazard::Spawn(this,GetActorLocation(),EEncounterShape::Ring,WardenOuterRadius,FMath::Min(WardenInnerRadius,WardenOuterRadius),CastRemaining,AbilityDamage,BurstActiveTime); break;
     case ETacticalEnemyRole::StormGorilla:
-        for (float Angle : {0.f,90.f}) AEncounterHazard::Spawn(this,GetActorLocation(),EEncounterShape::Lane,1050,155,CastRemaining,AbilityDamage,.18f,LockedDirection.Rotation().Yaw+Angle);
+        for (float Angle : {0.f,StormCrossAngle}) AEncounterHazard::Spawn(this,GetActorLocation(),EEncounterShape::Lane,StormLength,StormWidth,CastRemaining,AbilityDamage,BurstActiveTime,LockedDirection.Rotation().Yaw+Angle);
         break;
-    default: RoleRing->SetWorldScale3D(FVector(8,8,1)); break;
+    default: RoleRing->SetWorldScale3D(FVector(SupportRadius/50,SupportRadius/50,1)); break;
     }
 }
 
 void ATacticalEnemy::FinishAbility()
 {
-    CastRemaining=0; Recovery=.45f;
+    CastRemaining=0; Recovery=CastRecoverySeconds;
+    if(CastCue.IsValid())CastCue->Impact();
+    UpdateAnimationBudgetSignificance();
     if (TacticalRole==ETacticalEnemyRole::HornLancer || TacticalRole==ETacticalEnemyRole::FangStalker)
     {
-        ChargeRemaining=900; bChargeHit=false;
+        if (!ChargeWarning.IsValid() || !ChargeWarning->HasVisibleWarning()) return;
+        ChargeRemaining=FMath::Max(1.f,ChargeDistance); bChargeHit=false;
         if (TacticalRole==ETacticalEnemyRole::FangStalker)
         { if (!bSecondDash) FollowupCharges=1; bSecondDash=!bSecondDash; }
-        if (ChargeWarning.IsValid()) ChargeWarning->Destroy();
+        // The locked lane remains visible throughout the dash.
     }
     if (TacticalRole==ETacticalEnemyRole::GraveCantor || TacticalRole==ETacticalEnemyRole::WarDrummer)
     {
         int32 Count=0;
-        for (TActorIterator<AEnemyBase> It(GetWorld()); It && Count<8; ++It)
-            if (*It!=this && !It->IsDead() && FVector::DistSquared2D(It->GetActorLocation(),GetActorLocation())<FMath::Square(420.f))
+        for (TActorIterator<AEnemyBase> It(GetWorld()); It && Count<FMath::Clamp(SupportTargets,1,64); ++It)
+            if (*It!=this && !It->IsDead() && FVector::DistSquared2D(It->GetActorLocation(),GetActorLocation())<FMath::Square(SupportRadius))
             {
-                if (TacticalRole==ETacticalEnemyRole::GraveCantor) It->GetHealthComponent()->Heal(It->GetHealthComponent()->GetMaxHealth()*.05f);
-                else if (auto* Ally=Cast<ATacticalEnemy>(*It)) Ally->GrantHaste(4.f);
+                if (TacticalRole==ETacticalEnemyRole::GraveCantor) It->GetHealthComponent()->Heal(It->GetHealthComponent()->GetMaxHealth()*FMath::Clamp(HealFraction,0.f,1.f));
+                else if (auto* Ally=Cast<ATacticalEnemy>(*It)) Ally->GrantHaste(HasteDuration);
                 else continue;
                 ++Count;
             }
@@ -169,7 +193,10 @@ void ATacticalEnemy::FinishAbility()
 
 void ATacticalEnemy::StopEnemyBehavior()
 {
-    CastRemaining=0; ChargeRemaining=0; StopEnemyMovement();
+    CastRemaining=0; ChargeRemaining=0; Recovery=0; StopEnemyMovement();
+    if(CastCue.IsValid())CastCue->Destroy();
+    if (RoleRing && !bMarching) RoleRing->SetWorldScale3D(FVector(1.4f,1.4f,1));
+    if (GetMesh() && GetMesh()->GetAnimInstance()) GetMesh()->GetAnimInstance()->Montage_Stop(.1f);
     if (ChargeWarning.IsValid()) ChargeWarning->Destroy();
     for (TActorIterator<AEncounterHazard> It(GetWorld()); It; ++It)
         if (It->GetOwner()==this) It->Destroy();

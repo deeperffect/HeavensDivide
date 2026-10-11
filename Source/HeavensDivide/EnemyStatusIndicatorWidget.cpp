@@ -7,21 +7,28 @@
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
-#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
+#include "UObject/ConstructorHelpers.h"
+
+UEnemyStatusIndicatorWidget::UEnemyStatusIndicatorWidget(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	static ConstructorHelpers::FObjectFinder<UTexture2D> BleedIcon(TEXT("/Game/HeavensDivide/Blueprints/UI/EnemyUI/BleedIcon.BleedIcon"));
+	static ConstructorHelpers::FObjectFinder<UTexture2D> PoisonIcon(TEXT("/Game/HeavensDivide/Blueprints/UI/EnemyUI/PoisonIcon.PoisonIcon"));
+	DefaultBleedIcon = BleedIcon.Object;
+	DefaultPoisonIcon = PoisonIcon.Object;
+}
 
 void UEnemyStatusIndicatorWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 	if (!WidgetTree || WidgetTree->RootWidget) return;
 
-	USizeBox* SizeBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("StatusIconSize"));
-	SizeBox->SetWidthOverride(36.0f);
-	SizeBox->SetHeightOverride(36.0f);
-	WidgetTree->RootWidget = SizeBox;
-
 	UOverlay* Overlay = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("StatusIconOverlay"));
-	SizeBox->SetContent(Overlay);
+	// The owning widget component supplies the size (small mobs and elites differ).
+	// Let the icon fill that space instead of imposing a second, fixed 36px size.
+	WidgetTree->RootWidget = Overlay;
 
 	IconBackground = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("IconBackground"));
 	IconBackground->SetPadding(FMargin(2.0f));
@@ -68,6 +75,9 @@ void UEnemyStatusIndicatorWidget::NativeOnInitialized()
 void UEnemyStatusIndicatorWidget::SetStatusPresentation(EEnemyStatusEffect Status, int32 StackCount, bool bShowCountAtOne, int32 FontSize, UTexture2D* Icon)
 {
 	if (!IconBackground || !StatusGlyph || !StackCountText) return;
+	// Older/newly created enemy Blueprints can have no per-enemy override.
+	// Resolve that to the same artwork used by the rest of the roster.
+	if (!Icon) Icon = Status == EEnemyStatusEffect::Bleed ? DefaultBleedIcon.Get() : DefaultPoisonIcon.Get();
 	if (StatusIcon)
 	{
 		StatusIcon->SetBrushFromTexture(Icon, false);

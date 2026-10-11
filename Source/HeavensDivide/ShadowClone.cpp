@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "ShadowClone.h"
+#include "UpgradeBalance.h"
 #include "CombatAudio.h"
 #include "NinjaBuildComponent.h"
 
@@ -33,6 +34,12 @@ AShadowClone::AShadowClone()
 void AShadowClone::InitializeShadowClone(ANinjaCharacter* InSourceNinja, ASurvivorPlayerController* InController, int32 InAttackQuota)
 {
 	SourceNinja = InSourceNinja;
+    InitialAttackDelay = UpgradeBalance::Value(InController ? InController->GetPlayerUpgrades() : nullptr, TEXT("ShadowStep"), TEXT("InitialAttackDelay"), InitialAttackDelay);
+    BaseAttackInterval = UpgradeBalance::Value(InController ? InController->GetPlayerUpgrades() : nullptr, TEXT("ShadowStep"), TEXT("BaseAttackInterval"), BaseAttackInterval);
+    TargetRetryInterval = UpgradeBalance::Value(InController ? InController->GetPlayerUpgrades() : nullptr, TEXT("ShadowStep"), TEXT("TargetRetryInterval"), TargetRetryInterval);
+    SafetyLifetime = UpgradeBalance::Value(InController ? InController->GetPlayerUpgrades() : nullptr, TEXT("ShadowStep"), TEXT("SafetyLifetime"), SafetyLifetime);
+    PostAttackLingerDuration = UpgradeBalance::Value(InController ? InController->GetPlayerUpgrades() : nullptr, TEXT("ShadowStep"), TEXT("PostAttackLingerDuration"), PostAttackLingerDuration);
+    AttackRange = UpgradeBalance::Value(InController ? InController->GetPlayerUpgrades() : nullptr, TEXT("ShadowStep"), TEXT("AttackRange"), AttackRange);
 	SourceController = InController;
 	SourceAttack = InSourceNinja ? InSourceNinja->FindComponentByClass<UAutoAttackComponent>() : nullptr;
 	RemainingAttacks = FMath::Max(1, InAttackQuota);

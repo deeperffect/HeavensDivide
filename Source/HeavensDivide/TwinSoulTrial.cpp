@@ -65,8 +65,11 @@ ATwinSoulTrial::ATwinSoulTrial()
 void ATwinSoulTrial::BeginPlay()
 {
 	Super::BeginPlay();
-	FindReferences();
-	InitializeTrialArena();
+	// Retain serialized classes, but remove legacy placed/spawned trials from play.
+	SetActorHiddenInGame(true);
+	SetActorEnableCollision(false);
+	SetActorTickEnabled(false);
+	Destroy();
 }
 
 void ATwinSoulTrial::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -92,9 +95,7 @@ void ATwinSoulTrial::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 bool ATwinSoulTrial::CanInteract_Implementation(APawn* InteractingPawn) const
 {
-	return TrialState == ETwinSoulTrialState::Inactive && InteractingPawn
-		&& (!PlayerController || !PlayerController->IsAnyObjectiveActive())
-		&& ObjectiveInteraction && ObjectiveInteraction->IsInRange(InteractingPawn);
+	return false;
 }
 
 void ATwinSoulTrial::Interact_Implementation(APawn* InteractingPawn)

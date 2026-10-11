@@ -41,6 +41,7 @@ bool AEnemySpawner::IsEventSelectable(const FEnemyPressureEventDefinition& Event
 	if (Event.EnemyEntries.Num() == 0) return Fail(TEXT("no members"));
 
 	int32 RequestedMembers = 0;
+	int32 RequestedThreats = 0;
 	for (const FEnemyPressureEventEnemyEntry& EventEntry : Event.EnemyEntries)
 	{
 		const FEnemySpawnEntry* Definition = FindSpawnDefinition(EventEntry.EnemyClass);
@@ -54,7 +55,9 @@ bool AEnemySpawner::IsEventSelectable(const FEnemyPressureEventDefinition& Event
 		if (Population->MaxPopulation <= 0 || GetAliveCountForSpawnClass(EventEntry.EnemyClass) + EventEntry.Count > Population->MaxPopulation + Allowance)
 			return Fail(TEXT("class capacity"));
 		RequestedMembers += FMath::Max(0, EventEntry.Count);
+		if (Definition->PressureSpawnMode == EEnemyPressureSpawnMode::TimedThreat) RequestedThreats += FMath::Max(0, EventEntry.Count);
 	}
+	if (RequestedThreats > 0 && GetAliveTimedThreatCount() + RequestedThreats > FMath::Max(0, MaxTimedThreatsAlive)) return Fail(TEXT("shared threat capacity"));
 	const int32 EventCap = FMath::Min(Phase.GlobalMaxAlive + (Event.bAllowTemporaryPopulationOverflow ? FMath::Max(0, Event.EventPopulationOverflowAllowance) : 0), AbsoluteHardAliveCap);
 	int32 CurrentLiving = 0;
 	for (const TPair<UClass*, int32>& Pair : AliveEnemyCountByClass) CurrentLiving += FMath::Max(0, Pair.Value);

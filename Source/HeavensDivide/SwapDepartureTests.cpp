@@ -77,6 +77,7 @@ bool FSwapDepartureTest::RunTest(const FString&)
         // This section verifies the legacy fade; portal movement is tested below.
         // Do not inherit portal assignments from the user's saved Blueprint tuning.
         Source->SwapPresentation->DeparturePortal=nullptr;
+        Source->SwapPresentation->bEnableDepartureTrail=false;
         Source->SetCharacterMode(ECharacterMode::Inactive);
         Source->SwapPresentation->PlayDeparture();
         ASwapAfterimage* Copy=nullptr;

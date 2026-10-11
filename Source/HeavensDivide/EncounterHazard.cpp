@@ -4,11 +4,14 @@
 #include "SurvivorPlayerController.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 #include "EngineUtils.h"
 #include "CombatAudio.h"
+#include "BloodshiftBalanceData.h"
+#include "CombatGround.h"
 
 AEncounterHazard::AEncounterHazard()
 {
@@ -20,6 +23,22 @@ AEncounterHazard::AEncounterHazard()
     Visual->SetComponentTickEnabled(false);
     Visual->SetFadeScreenSize(.001f);
     Visual->SortOrder=20;
+    // Surface warnings remain visible on meshes/landscapes that reject decals.
+    Visual->SetVisibility(false);
+    GroundSurface=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WarningSurface"));
+    GroundSurface->SetupAttachment(RootComponent);
+    ImpactColumn=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ImpactColumn"));
+    ImpactColumn->SetupAttachment(RootComponent);
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> Cylinder(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
+    static ConstructorHelpers::FObjectFinder<UMaterialInterface> Surface(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle"));
+    static ConstructorHelpers::FObjectFinder<UMaterialInterface> Lane(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle"));
+    static ConstructorHelpers::FObjectFinder<UMaterialInterface> Energy(TEXT("/Game/HeavensDivide/Materials/M_EncounterEnergy"));
+    SurfaceTemplate=Surface.Object; LaneTemplate=Lane.Object; ImpactTemplate=Energy.Object;
+    GroundSurface->SetStaticMesh(Plane.Object); ImpactColumn->SetStaticMesh(Cylinder.Object);
+    for(auto* Mesh : {GroundSurface.Get(),ImpactColumn.Get()})
+    { Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); Mesh->SetCastShadow(false); Mesh->SetReceivesDecals(false); }
+    ImpactColumn->SetVisibility(false);
 }
 
 AEncounterHazard* AEncounterHazard::Spawn(AActor* Source, FVector Center, EEncounterShape Shape, float Size,
@@ -27,14 +46,22 @@ AEncounterHazard* AEncounterHazard::Spawn(AActor* Source, FVector Center, EEncou
 {
     if (!Source || !Source->GetWorld()) return nullptr;
     int32 Count = 0;
-    for (TActorIterator<AEncounterHazard> It(Source->GetWorld()); It; ++It) if (++Count >= 36) return nullptr;
-    FHitResult Ground;
-    FCollisionQueryParams Query(SCENE_QUERY_STAT(EncounterWarningGround), false, Source);
-    if (Source->GetWorld()->LineTraceSingleByChannel(Ground, Center + FVector(0,0,600), Center - FVector(0,0,1600), ECC_GameTraceChannel2, Query))
-        Center.Z = Ground.ImpactPoint.Z + 4;
+    for (TActorIterator<AEncounterHazard> It(Source->GetWorld()); It; ++It)
+        if (!It->IsActorBeingDestroyed()) ++Count;
+    if (Count >= FMath::Clamp(UBloodshiftBalanceData::Get()->MaxActiveHazards,1,256)) return nullptr;
+    const float Footprint=Shape==EEncounterShape::Lane ? .5f*FMath::Sqrt(Size*Size+Width*Width) : Size;
+    Center=CombatGround::ClampInsideArena(Source->GetWorld(),Center,Footprint);
+    if (!CombatGround::IsInsideArena(Source->GetWorld(),Center,Footprint)) return nullptr;
+    FVector Ground;
+    if (CombatGround::FindSurface(Source->GetWorld(),Center,Source,Ground))
+        Center.Z = Ground.Z + 4;
     FActorSpawnParameters Params; Params.Owner = Source;
     auto* Hazard = Source->GetWorld()->SpawnActor<AEncounterHazard>(Center, FRotator(0,Yaw,0), Params);
-    if (Hazard) Hazard->Initialize(Source, Shape, Size, Width, Warning, Damage, Active, Delay);
+    if (Hazard)
+    {
+        Hazard->Initialize(Source, Shape, Size, Width, Warning, Damage, Active, Delay);
+        if (!Hazard->HasVisibleWarning()) { Hazard->Destroy(); return nullptr; }
+    }
     return Hazard;
 }
 
@@ -42,26 +69,40 @@ void AEncounterHazard::Initialize(AActor* Source, EEncounterShape Shape, float I
     float InWarning, float InDamage, float InActive, float InDelay)
 {
     DamageSource = Source; Footprint = Shape; Size = FMath::Max(10.f,InSize); Width = FMath::Max(0.f,InWidth);
-    Warning = FMath::Max(.6f,InWarning); Damage = FMath::Max(0.f,InDamage);
+    Warning = FMath::Max(FMath::Max(.01f,UBloodshiftBalanceData::Get()->MinimumWarning),InWarning); Damage = FMath::Max(0.f,InDamage);
     ActiveTime = FMath::Max(.1f,InActive); Delay = FMath::Max(0.f,InDelay); Age = 0; NextDamage = 0; bImpacted = false;
     Visual->DecalSize=Shape == EEncounterShape::Lane ? FVector(180,Width*.5f,Size*.5f) : FVector(180,Size,Size);
-    auto* Base = LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/M_EncounterWarning"));
-    Material = Base ? UMaterialInstanceDynamic::Create(Base,this) : nullptr;
+    UMaterialInterface* Template = Shape==EEncounterShape::Lane ? LaneTemplate.Get() : SurfaceTemplate.Get();
+    Material = Template ? UMaterialInstanceDynamic::Create(Template,this) : nullptr;
     if (Material)
     {
-        Visual->SetDecalMaterial(Material);
-        Material->SetScalarParameterValue(TEXT("Shape"),float(Shape));
-        Material->SetScalarParameterValue(TEXT("Inner"),Width/Size);
-        Material->SetScalarParameterValue(TEXT("Fill"),0);
+        GroundSurface->SetMaterial(0,Material);
+        Material->SetScalarParameterValue(TEXT("InnerRadius"),Shape==EEncounterShape::Ring ? Width/Size : 0.f);
+        Material->SetScalarParameterValue(TEXT("LaneAspect"),Width/Size);
+        Material->SetScalarParameterValue(TEXT("FillAmount"),0);
         Material->SetScalarParameterValue(TEXT("Impact"),0);
+        Material->SetScalarParameterValue(TEXT("Fade"),1);
+        // Inherit the elite materials' authored colors, fill and outline ripple.
     }
+    GroundSurface->SetWorldScale3D(Shape==EEncounterShape::Lane ? FVector(Size/100,Width/100,1) : FVector(Size/50,Size/50,1));
+    ImpactMaterial=ImpactTemplate ? UMaterialInstanceDynamic::Create(ImpactTemplate,this) : nullptr;
+    if (ImpactMaterial)
+    {
+        ImpactMaterial->SetVectorParameterValue(TEXT("Tint"),Material ? Material->K2_GetVectorParameterValue(TEXT("FillColor")) : FLinearColor::Red);
+        ImpactColumn->SetMaterial(0,ImpactMaterial);
+    }
+    if (Shape==EEncounterShape::Lane)
+        ImpactColumn->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));
     SetLifeSpan(Delay+Warning+ActiveTime+1);
-    Visual->SetVisibility(Delay<=0);
+    GroundSurface->SetVisibility(Delay<=0);
 }
+
+bool AEncounterHazard::HasVisibleWarning() const
+{ return Material && GroundSurface && GroundSurface->GetStaticMesh(); }
 
 bool AEncounterHazard::ContainsPoint(FVector Point, float Padding) const
 {
-    if (FMath::Abs(Point.Z-GetActorLocation().Z)>240) return false;
+    if (FMath::Abs(Point.Z-GetActorLocation().Z)>UBloodshiftBalanceData::Get()->HazardVerticalTolerance) return false;
     const FVector Local = GetActorRotation().UnrotateVector(Point-GetActorLocation());
     if (Footprint == EEncounterShape::Lane)
         return FMath::Abs(Local.X)<=Size*.5f+Padding && FMath::Abs(Local.Y)<=Width*.5f+Padding;
@@ -73,25 +114,39 @@ void AEncounterHazard::Tick(float Delta)
 {
     Super::Tick(Delta);
     if (!DamageSource.IsValid() || (Cast<AEnemyBase>(DamageSource.Get()) && Cast<AEnemyBase>(DamageSource.Get())->IsDead())) { Destroy(); return; }
+    if (auto* Enemy=Cast<AEnemyBase>(DamageSource.Get())) if(Enemy->IsGameplaySuspended()) { Destroy(); return; }
     Age += FMath::Max(0.f,Delta);
-    Visual->SetVisibility(Age >= Delay);
+    GroundSurface->SetVisibility(Age >= Delay);
     const float Time = Age-Delay;
-    if (Material) Material->SetScalarParameterValue(TEXT("Fill"),FMath::Clamp(Time/Warning,0.f,1.f));
-    if (Time < Warning) return;
+    if (Material) Material->SetScalarParameterValue(TEXT("FillAmount"),FMath::Clamp(Time/Warning,0.f,1.f));
+    if (Time < Warning || !HasVisibleWarning()) return;
+    // An attack whose entire active window elapsed during a hitch must not hit
+    // on a frame in which the player never saw its impact.
+    if (!bImpacted && Time >= Warning+ActiveTime) { Destroy(); return; }
     if (!bImpacted)
     {
         bImpacted = true;
         if (Material) Material->SetScalarParameterValue(TEXT("Impact"),1);
+        // A solid cylinder would incorrectly cover a ring attack's safe center.
+        ImpactColumn->SetVisibility(Damage>0 && ImpactMaterial && Footprint!=EEncounterShape::Ring);
         if (Damage>0) UCombatAudioLibrary::PlayEvent(this,TEXT("BossGroundHit"),GetActorLocation(),false,.45f);
     }
     // One strike for bursts; persistent fields tick slowly and never catch up missed damage after a hitch.
-    if (Time >= NextDamage)
+    ImpactAge=Time-Warning;
+    const float Tail=FMath::Max(ActiveTime,.55f);
+    const float Fade=1-FMath::SmoothStep(FMath::Max(0.f,Tail-.3f),Tail,ImpactAge);
+    if (Material) Material->SetScalarParameterValue(TEXT("Fade"),Fade);
+    if (ImpactMaterial) ImpactMaterial->SetScalarParameterValue(TEXT("Fade"),Fade);
+    const float Height=FMath::Lerp(150.f,25.f,FMath::Clamp(ImpactAge/.5f,0.f,1.f));
+    ImpactColumn->SetRelativeLocation(FVector(0,0,Height*.5f));
+    ImpactColumn->SetWorldScale3D(Footprint==EEncounterShape::Lane ? FVector(Size/100,Width/100,Height/100) : FVector(Size/50,Size/50,Height/100));
+    if (Damage>0 && Time < Warning+ActiveTime && Time >= NextDamage)
     {
         if (auto* PC = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0)))
             if (auto* Player = Cast<ACharacterBase>(PC->GetPawn()))
-                if (ContainsPoint(Player->GetActorLocation(),Player->GetCapsuleComponent()->GetScaledCapsuleRadius()*.5f))
+                if (ContainsPoint(Player->GetActorLocation(),Player->GetCapsuleComponent()->GetScaledCapsuleRadius()*FMath::Clamp(UBloodshiftBalanceData::Get()->PlayerCollisionPaddingFraction,0.f,1.f)))
                     PC->ApplyDamageToPlayer(Damage);
-        NextDamage = Time + .8f;
+        NextDamage = Time + FMath::Max(.01f,UBloodshiftBalanceData::Get()->PersistentDamageInterval);
     }
-    if (Time >= Warning+ActiveTime) Destroy();
+    if (ImpactAge >= Tail) Destroy();
 }

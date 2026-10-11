@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "EnemyBase.h"
 #include "MeleeEnemyBase.generated.h"
+class AEnemyAttackCue;
 
 
 UCLASS(Blueprintable)
@@ -37,7 +38,7 @@ protected:
 	float AttackRange = 150.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (ClampMin = "0.01", UIMin = "0.01"))
-	float AttackInterval = 1.5f; // Existing start-to-start cooldown; preserve authored balance.
+	float AttackInterval = 1.5f; // Start-to-start cooldown, independent of the windup before each hit.
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (ClampMin = "0.0", UIMin = "0.0"))
 	float AttackDamage = 10.0f;
@@ -55,6 +56,9 @@ protected:
 	float AttackLungeOutDuration = 0.06f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee|Presentation", meta=(ClampMin="0"))
 	float AttackLungeReturnDuration = 0.12f;
+	// Applied around the actor's axes so differently oriented species lean toward their target.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Enemy|Attack|Melee|Presentation", meta=(ClampMin="0", ClampMax="30", Units="deg"))
+	float AttackWobbleAngle = 12.0f;
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay))
@@ -68,6 +72,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enemy|Attack|Melee", meta = (AdvancedDisplay))
 	bool bIsAttacking = false;
+	TWeakObjectPtr<AEnemyAttackCue> AttackCue;
 
 	bool IsTargetInAttackRange() const;
 	bool CanStartAttackNow() const;
@@ -91,12 +96,15 @@ private:
 	FTimerHandle RecoveryTimer;
 	FTimerHandle LungeTimer;
 	FVector PreAttackMeshLocation = FVector::ZeroVector;
+	FQuat PreAttackMeshRotation = FQuat::Identity;
 	FVector LungeRelativeDirection = FVector::ForwardVector;
+	FVector WobbleRelativeAxis = FVector::RightVector;
 	double LungeStartTime = 0.0;
 	bool bLungeActive = false;
 	bool CanContinueBasicAttack() const;
 	void FinishAttackWindup();
 	void FinishAttackRecovery();
+	void StartAttackLunge();
 	void UpdateAttackLunge();
 	void ResetAttackLunge();
 	void CancelBasicAttack();

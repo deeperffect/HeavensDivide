@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "EnemyBase.h"
 #include "RangedEnemyBase.generated.h"
+class AEnemyAttackCue;
 
 class AAttackProjectileBase;
 class UAnimMontage;
@@ -22,6 +23,7 @@ public:
 	virtual void ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier) override;
 
 protected:
+	TWeakObjectPtr<AEnemyAttackCue> AttackCue;
 	virtual void CapturePreBloodboundState() override;
 	virtual void RestorePreBloodboundState() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

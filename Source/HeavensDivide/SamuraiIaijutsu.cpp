@@ -1,4 +1,5 @@
 #include "SamuraiIaijutsu.h"
+#include "UpgradeBalance.h"
 #include "UpgradeProcVFX.h"
 #include "SamuraiCharacter.h"
 #include "AutoAttackComponent.h"
@@ -58,6 +59,7 @@ void ASamuraiIaijutsu::Initialize(ASamuraiCharacter* Source, UPlayerUpgradeCompo
     UMaterialInterface* IndicatorMaterial, FLinearColor IndicatorColor)
 {
     SourceUpgrades = Upgrades;
+    PostHitRemaining = FMath::Max(.01f, UpgradeBalance::Value(Upgrades, TEXT("Iaijutsu"), TEXT("PostHitHoldDuration"), .3f));
     SourceCharacter = Source;
     Origin = GetActorLocation();
     End = Origin + Direction.GetSafeNormal2D() * FMath::Max(1.f, Distance);
@@ -185,7 +187,7 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
     }
     const float PreviousAge = Age;
     Age += DeltaSeconds;
-    const float VacuumStart = FMath::Max(0.f, TravelDuration - .2f);
+    const float VacuumStart = FMath::Max(0.f, TravelDuration - UpgradeBalance::Value(SourceUpgrades.Get(), TEXT("Iaijutsu"), TEXT("VacuumLeadTime"), .2f));
     const float VacuumStep = FMath::Max(0.f, FMath::Min(Age, TravelDuration)
         - FMath::Max(PreviousAge, VacuumStart));
     if (Age >= VacuumStart) Vacuum(VacuumStep);
@@ -284,7 +286,7 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
 void ASamuraiIaijutsu::Vacuum(float Step)
 {
     const float Reach = IaijutsuBuild::VacuumReach(SourceUpgrades.Get());
-    const float Speed = 3.f * FMath::Max(0.f, IaijutsuBuild::Value(SourceUpgrades.Get(), TEXT("Iaijutsu"), TEXT("VacuumSpeed"), 240.f));
+    const float Speed = UpgradeBalance::Value(SourceUpgrades.Get(), TEXT("Iaijutsu"), TEXT("VacuumSpeedMultiplier"), 3.f) * FMath::Max(0.f, IaijutsuBuild::Value(SourceUpgrades.Get(), TEXT("Iaijutsu"), TEXT("VacuumSpeed"), 240.f));
     ReleaseMovementHolds();
     const FVector Forward = (End - Origin).GetSafeNormal2D();
     const FVector Right = FVector::CrossProduct(FVector::UpVector, Forward);
@@ -357,7 +359,7 @@ bool ASamuraiIaijutsu::HitEnemy(AEnemyBase* Enemy)
     const float ActualDamage = HitDamage * Enemy->GetIaijutsuDamageMultiplier();
     float Bonus = IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("MarkBonus"), .5f)
         + IaijutsuBuild::Scaling(U, TEXT("IaijutsuMarkDamage"), .1f);
-    if (U && U->HasUpgradeId(TEXT("IaijutsuMarkPact"))) Bonus *= 2.f;
+    if (U && U->HasUpgradeId(TEXT("IaijutsuMarkPact"))) Bonus *= UpgradeBalance::Value(U, TEXT("IaijutsuMarkPact"), TEXT("MarkMultiplier"), 2.f);
     // Install before damage so even a lethal first hit qualifies for the dash refund.
     // Its own newly applied mark does not amplify the applying hit.
     Enemy->ApplyIaijutsuMark(U, Bonus, IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("MarkDuration"), 3.f),
@@ -382,7 +384,7 @@ void ASamuraiIaijutsu::SpawnKillFollowUp(FVector Location)
     const auto Budget = ChainBudget;
     const auto Source = SourceCharacter;
     // Defer to avoid recursive damage/spawning when an instant cast kills.
-    GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(U, [Source, Location, Budget, U]
+    GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(U, [Source, Location, Budget, U, bAssist = bAssistAttack]
     {
         auto* Samurai = Source.Get();
         auto* Attack = Samurai ? Samurai->FindComponentByClass<UAutoAttackComponent>() : nullptr;
@@ -405,6 +407,6 @@ void ASamuraiIaijutsu::SpawnKillFollowUp(FVector Location)
         const float Charge = FMath::FRand() < IaijutsuBuild::Chance(U, TEXT("IaijutsuInstant"), TEXT("IaijutsuInstantChance"), .15f, .1f)
             ? 0.f : IaijutsuBuild::Charge(U);
         Attack->SpawnIaijutsuSlashes(Location, Direction, Range, Charge, false, Budget,
-            1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuCascadePower"), .2f));
+            1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuCascadePower"), .2f), bAssist);
     }));
 }

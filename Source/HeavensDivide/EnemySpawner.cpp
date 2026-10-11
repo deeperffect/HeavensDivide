@@ -2,6 +2,7 @@
 
 #include "EnemySpawner.h"
 #include "TesterBalanceSettings.h"
+#include "RunChallengeSubsystem.h"
 #include "EnemySpawnerDiagnostics.h"
 #include "TimerManager.h"
 
@@ -12,6 +13,7 @@
 #include "EnemyBase.h"
 #include "EnemySpawnArea.h"
 #include "Engine/World.h"
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "Stats/Stats.h"
 #include "SurvivorPlayerController.h"
@@ -30,6 +32,8 @@ void AEnemySpawner::BeginPlay()
 {
 	Super::BeginPlay();
 	GetDefault<UTesterBalanceSettings>()->ApplySpawner(this);
+	if (auto* GI = GetGameInstance())
+		if (auto* Challenges = GI->GetSubsystem<URunChallengeSubsystem>()) Challenges->ApplySpawner(this);
 	NextEligibleSpawnTimeByClass.Empty();
 	NextEligibleEventTimeByName.Empty();
 	NextGlobalEventTime = 0.0f;
@@ -371,11 +375,13 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 	}
 
 	FVector SpawnLocation;
+    const bool bSwarm = bEnableSpatialPressureRecycling && SpawnEntry.PressureSpawnMode == EEnemyPressureSpawnMode::MaintainPopulation;
 	const bool bUseBias = SpawnEntry.PressureSpawnMode == EEnemyPressureSpawnMode::MaintainPopulation
 		&& bDirectionalBiasEnabled && RunTimeSeconds < DirectionalBiasEndRunTime
 		&& FMath::FRand() < FMath::Clamp(DirectionalBiasChance, 0.0f, 1.0f);
 	if (!FindSpawnLocation(ActivePlayer->GetActorLocation(), SpawnEntry.EnemyClass, SpawnLocation,
-		bUseBias, DirectionalBiasAngleDegrees, DirectionalBiasArcDegrees, MinSpawnDistance, MaxSpawnDistance))
+        bSwarm || bUseBias, bSwarm ? ChooseSwarmDirection() : DirectionalBiasAngleDegrees,
+        bSwarm ? 45.f : DirectionalBiasArcDegrees, MinSpawnDistance, MaxSpawnDistance))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s could not find a valid spawn location."), *GetNameSafe(this));
 		return nullptr;
@@ -450,6 +456,7 @@ AEnemyBase* AEnemySpawner::SpawnEventEnemy(TSubclassOf<AEnemyBase> EnemyClass, i
 	{
 		return nullptr;
 	}
+	if (Definition->PressureSpawnMode == EEnemyPressureSpawnMode::TimedThreat && GetAliveTimedThreatCount() >= FMath::Max(0, MaxTimedThreatsAlive)) return nullptr;
 	if (!Event.bIgnoreThreatDeathCooldown && IsClassCooldownActive(EnemyClass))
 	{
 		return nullptr;

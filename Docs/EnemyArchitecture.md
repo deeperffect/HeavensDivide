@@ -8,13 +8,21 @@ Enemy Blueprints supply tuning, meshes, animation classes, montages and effects.
 
 | Blueprints | Native behavior |
 | --- | --- |
-| `BP_EnemyGrunt`, `BP_EnemyGoblinCrawler`, `BP_EnemyCreature`, `BP_EnemyFish`, `BP_EnemyFloatingSkeleton`, `BP_EnemyBear` | `MeleeEnemyBase`: chase, attack windup, directional hit, recovery and procedural lunge |
+| `BP_EnemyGrunt`, `BP_EnemyGoblinCrawler`, `BP_EnemyCreature`, `BP_EnemyFish`, `BP_EnemyFloatingSkeleton`, `BP_EnemyBear` | `MeleeEnemyBase`: chase, procedural wobble windup, directional hit and recovery; faster movement trades off against longer attack timing |
 | `BP_EnemyDevilRanged` | `RangedEnemyBase`: attack montage with projectile notify |
 | `BP_EnemyOgre`, `BP_EnemyGorilla` | `TankMeleeEnemyBase`: montage-driven slam or contact damage, as configured per Blueprint |
 | `BP_EnemyGoblinBomb` | `GoblinBombEnemy`: committed fuse, charge presentation, explosion and normal death/reward processing |
 | `BP_SamuraiBoss` | `FinalBossBase`: phase transitions, attack selection, dash and ground telegraphs |
 | `BP_TwinSoulCrimson`, `BP_TwinSoulViolet` | Melee/ranged behavior with objective damage restrictions |
 | `BP_TestDummy` | Melee base with its existing test tuning |
+| `BP_AshSeer`, `BP_HexSniper`, `BP_MireWeaver`, `BP_FrostOracle` | `TacticalEnemy`: telegraphed targeted spells, lanes and persistent hazards |
+| `BP_HornLancer`, `BP_FangStalker` | `TacticalEnemy`: locked charge lanes; Fang Stalker has a follow-up charge |
+| `BP_GraveCantor`, `BP_WarDrummer` | `TacticalEnemy`: healing and haste support casts |
+| `BP_OgreWarden`, `BP_StormGorilla` | `TacticalEnemy`: ring and crossed-lane telegraphs |
+| `BP_AshenMarcher` | `TacticalEnemy`: encounter marching formation and movement contact hit |
+| `BP_CinderOracle` | `CinderOracleBoss`: phased spell patterns, telegraphs and summoned guardians |
+
+The current roster contains 26 enemy actor Blueprints, including trial enemies and the dummy. `Tools/audit_enemy_attacks.py` reads their saved ancestry and attack defaults across `/Game` into `Saved/EnemyAttackAudit.json`. See [Basic melee attacks](BasicMeleeAttacks.md) for the current seven combat profiles. Spell, charge, bomb, aura and boss behaviors retain their specialized attack paths.
 
 Boss, trial and dummy assets are included in cleanup validation; this does not add them to the regular spawn pool.
 

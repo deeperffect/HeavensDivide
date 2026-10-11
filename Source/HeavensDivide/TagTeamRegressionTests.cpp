@@ -11,6 +11,10 @@
 #include "SamuraiCharacter.h"
 #include "NinjaCharacter.h"
 #include "NinjaBuildComponent.h"
+#include "NinjaBuildProjectile.h"
+#include "SamuraiBladeWave.h"
+#include "SamuraiIaijutsu.h"
+#include "TimerManager.h"
 #include "EnemyStatusEffectComponent.h"
 #include "HealthComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -36,7 +40,9 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
         TEXT("NinjaClass"))->GetObjectPropertyValue_InContainer(Manager));
     FActorSpawnParameters Params;
     Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-    auto* Samurai = World->SpawnActor<ASamuraiCharacter>(FVector(10000,0,0), FRotator::ZeroRotator, Params);
+    auto* SamuraiClass = Cast<UClass>(FindFProperty<FClassProperty>(UCharacterManagerComponent::StaticClass(),
+        TEXT("SamuraiClass"))->GetObjectPropertyValue_InContainer(Manager));
+    auto* Samurai = World->SpawnActor<ASamuraiCharacter>(SamuraiClass, FVector(10000,0,0), FRotator::ZeroRotator, Params);
     auto* Ninja = World->SpawnActor<ANinjaCharacter>(NinjaClass, FVector::ZeroVector, FRotator::ZeroRotator, Params);
     Samurai->SetOwner(PC); Ninja->SetOwner(PC);
     auto SetParty = [&](const TCHAR* Name, ACharacterBase* Value) {
@@ -46,6 +52,7 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
     Samurai->SetCharacterMode(ECharacterMode::Active);
     Ninja->SetCharacterMode(ECharacterMode::Inactive);
     Ninja->GetMesh()->InitAnim(true);
+    Samurai->GetMesh()->InitAnim(true);
     auto* SamuraiAttack = Samurai->FindComponentByClass<UAutoAttackComponent>();
     auto* NinjaAttack = Ninja->FindComponentByClass<UAutoAttackComponent>();
     SamuraiAttack->OwnerCharacter = Samurai; NinjaAttack->OwnerCharacter = Ninja;
@@ -141,6 +148,137 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
     Upgrades->RestoreRunState(Empty);
     Ninja->FindComponentByClass<UNinjaBuildComponent>()->Hit(Enemy, 10, false, true);
     TestFalse(TEXT("Ninja assist creates no Bleed without upgrades"), Enemy->HasStatus(EEnemyStatusEffect::Bleed));
+    // Exercise the real counter -> placement -> attack dispatch for all Samurai
+    // stances while the Ninja is active. A normal attack is still cooling down.
+    Assist->DeactivateAssistEffect(true);
+    SetParty(TEXT("ActiveCharacter"), Ninja);
+    Samurai->SetCharacterMode(ECharacterMode::Inactive);
+    Ninja->SetCharacterMode(ECharacterMode::Active);
+    Ninja->SetActorLocation(FVector(20000,0,0));
+    Ninja->SetVisualFacingRotation(FRotator::ZeroRotator);
+    auto* AssistEnemy = SpawnEnemy(FVector(20500,0,0));
+    for (const TCHAR* Stance : {TEXT("BattleStance"), TEXT("BladeWave"), TEXT("Iaijutsu")})
+    {
+        Assist->DeactivateAssistEffect(true);
+        Upgrades->RestoreRunState(Empty);
+        TestTrue(TEXT("Assistant stance acquired"), Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(Stance)));
+        TestTrue(TEXT("Tag Team acquired for Samurai assist"), Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("TagTeam"))));
+        const FName ExtraCut = FString(Stance)==TEXT("BattleStance") ? TEXT("DoubleCut")
+            : FString(Stance)==TEXT("BladeWave") ? TEXT("CrescentDoubleCut") : TEXT("IaijutsuDoubleCut");
+        TestTrue(TEXT("Assistant has a stored extra-hit mechanic"), Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(ExtraCut)));
+        AssistEnemy->GetStatusEffectComponent()->ClearAllStatuses();
+        AssistEnemy->GetHealthComponent()->RestoreCurrentHealth(10000);
+        Samurai->SetCharacterMode(ECharacterMode::Inactive);
+        Samurai->SetActorLocation(FVector::ZeroVector);
+        SamuraiAttack->StopAutoAttack();
+        SamuraiAttack->LastAttackStartTime = 100;
+        SamuraiAttack->NextAttackReadyTime = 200;
+        SamuraiAttack->AttackIntervalAtLastAttackStart = 1.75f;
+        SamuraiAttack->DoubleCutPrimaryAttackCounter = 2;
+        SamuraiAttack->bDoubleCutReady = true;
+        SamuraiAttack->IaijutsuAttackCounter = 2;
+        SamuraiAttack->CrossingBladesAttackCounter = 2;
+        Assist->RefreshAssistEffectState();
+        for (int32 I=0; I<Assist->AttacksPerAssist; ++I)
+            NinjaAttack->OnAutoAttack.Broadcast(NinjaAttack, EAutoAttackSource::NormalAutoAttack);
+        TestTrue(TEXT("Real counter summons Samurai"), Assist->bAssistActive);
+        TestTrue(TEXT("Samurai chooses the nearby live target"), SamuraiAttack->CurrentAttackTarget == AssistEnemy);
+        TestEqual(TEXT("Assist preserves last normal attack time"), SamuraiAttack->LastAttackStartTime, 100.);
+        TestEqual(TEXT("Assist preserves next normal attack time"), SamuraiAttack->NextAttackReadyTime, 200.);
+        TestEqual(TEXT("Assist preserves normal interval"), SamuraiAttack->AttackIntervalAtLastAttackStart, 1.75f);
+        TArray<ASamuraiBladeWave*> Waves;
+        TArray<ASamuraiIaijutsu*> Lanes;
+        for (TActorIterator<ASamuraiBladeWave> It(World); It; ++It) Waves.Add(*It);
+        for (TActorIterator<ASamuraiIaijutsu> It(World); It; ++It) Lanes.Add(*It);
+        const bool bCrescent = FString(Stance)==TEXT("BladeWave"), bIaijutsu = FString(Stance)==TEXT("Iaijutsu");
+        TestEqual(TEXT("Crescent assist launches exactly one wave"), Waves.Num(), bCrescent ? 1 : 0);
+        TestEqual(TEXT("Iaijutsu assist launches exactly one charged lane"), Lanes.Num(), bIaijutsu ? 1 : 0);
+        if (bCrescent || bIaijutsu)
+        {
+            TestTrue(TEXT("Ranged stance uses ranged arrival placement"), SamuraiAttack->UsesRangedAssistPlacement());
+            TestEqual(TEXT("No generic melee damage on stance launch"), AssistEnemy->GetHealthComponent()->GetCurrentHealth(), 10000.f);
+            SamuraiAttack->PerformAttackTrace();
+            TestEqual(TEXT("Stance montage cannot add a melee hit"), AssistEnemy->GetHealthComponent()->GetCurrentHealth(), 10000.f);
+            TestFalse(TEXT("Legacy setup cannot bypass the equipped stance"), Ability->ExecuteSetupAssist(Samurai));
+            if (bCrescent && !Waves.IsEmpty())
+            {
+                Waves[0]->HandleOverlap(nullptr, AssistEnemy, nullptr, 0, false, FHitResult());
+                TestTrue(TEXT("Crescent assist deals wave damage"), AssistEnemy->GetHealthComponent()->GetCurrentHealth()<10000.f);
+                TestTrue(TEXT("Crescent assist applies stance slow"), AssistEnemy->GetCrescentMovementMultiplier()<1.f);
+            }
+            if (bIaijutsu && !Lanes.IsEmpty())
+            {
+                TestTrue(TEXT("Lane retains assist identity"), Lanes[0]->bAssistAttack);
+                const float Charge = SamuraiAttack->GetIaijutsuChargeDuration();
+                TestTrue(TEXT("Assistant remains visible beyond charge completion"), World->GetTimerManager().GetTimerRemaining(Assist->AssistCleanupTimerHandle)>Charge);
+                Lanes[0]->Tick(Charge+.01f);
+                TestTrue(TEXT("Iaijutsu assist deals charged lane damage"), AssistEnemy->GetHealthComponent()->GetCurrentHealth()<10000.f);
+                TestTrue(TEXT("Iaijutsu assist applies its mark"), AssistEnemy->GetIaijutsuDamageMultiplier()>1.f);
+                TestEqual(TEXT("Resolving assist cannot count as a normal attack"), Assist->CurrentAttackCount, 0);
+            }
+        }
+        else
+        {
+            TestFalse(TEXT("Blood assist keeps melee placement"), SamuraiAttack->UsesRangedAssistPlacement());
+            SamuraiAttack->PerformAttackTrace();
+            TestTrue(TEXT("Blood assist deals its melee hit"), AssistEnemy->GetHealthComponent()->GetCurrentHealth()<10000.f);
+            TestTrue(TEXT("Blood assist applies Bleed"), AssistEnemy->HasStatus(EEnemyStatusEffect::Bleed));
+        }
+        const float AfterHit = AssistEnemy->GetHealthComponent()->GetCurrentHealth();
+        SamuraiAttack->PerformAttackTrace();
+        TestEqual(TEXT("Repeated notify cannot duplicate assist damage"), AssistEnemy->GetHealthComponent()->GetCurrentHealth(), AfterHit);
+        TestEqual(TEXT("Assist preserves Blood cadence"), SamuraiAttack->DoubleCutPrimaryAttackCounter, 2);
+        TestTrue(TEXT("Assist preserves stored Blood Double Cut"), SamuraiAttack->bDoubleCutReady);
+        TestEqual(TEXT("Assist preserves Iaijutsu cadence"), SamuraiAttack->IaijutsuAttackCounter, 2);
+        TestEqual(TEXT("Assist preserves Crescent cadence"), SamuraiAttack->CrossingBladesAttackCounter, 2);
+        for (auto* Wave : Waves) Wave->Destroy();
+        for (auto* Lane : Lanes) Lane->Destroy();
+        Assist->FinishCurrentAssist();
+    }
+    // The same real assist path must retain all three Ninja stance projectiles.
+    Assist->DeactivateAssistEffect(true);
+    SetParty(TEXT("ActiveCharacter"), Samurai);
+    Samurai->SetCharacterMode(ECharacterMode::Active);
+    Samurai->SetActorLocation(FVector(30000,0,0));
+    Samurai->SetVisualFacingRotation(FRotator::ZeroRotator);
+    Ninja->SetCharacterMode(ECharacterMode::Inactive);
+    auto* NinjaTarget = SpawnEnemy(FVector(30400,0,0));
+    for (const TCHAR* Stance : {TEXT("ReturningFang"), TEXT("BarrageStance"), TEXT("GreatShuriken")})
+    {
+        Assist->DeactivateAssistEffect(true);
+        Upgrades->RestoreRunState(Empty);
+        Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("BattleStance")));
+        TestTrue(TEXT("Ninja assistant stance acquired"), Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(Stance)));
+        Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("TagTeam")));
+        Ninja->SetCharacterMode(ECharacterMode::Inactive);
+        NinjaAttack->StopAutoAttack();
+        Assist->RefreshAssistEffectState();
+        for (int32 I=0; I<Assist->AttacksPerAssist; ++I)
+            SamuraiAttack->OnAutoAttack.Broadcast(SamuraiAttack, EAutoAttackSource::NormalAutoAttack);
+        TestTrue(TEXT("Counter summons Ninja in selected stance"), Assist->bAssistActive);
+        TestTrue(TEXT("Ninja assistant uses the nearby target"), NinjaAttack->CurrentAttackTarget==NinjaTarget);
+        TSet<AActor*> Before;
+        for (TActorIterator<ANinjaBuildProjectile> It(World); It; ++It) Before.Add(*It);
+        for (TActorIterator<AAttackProjectileBase> It(World); It; ++It) Before.Add(*It);
+        NinjaAttack->SpawnAutoAttackProjectile();
+        NinjaAttack->SpawnAutoAttackProjectile();
+        int32 Blades=0, Kunai=0;
+        for (TActorIterator<ANinjaBuildProjectile> It(World); It; ++It)
+            if (!Before.Contains(*It) && It->bAssistProjectile)
+            {
+                ++Blades;
+                TestEqual(TEXT("Assist blade matches equipped stance"), It->Kind,
+                    FString(Stance)==TEXT("ReturningFang") ? ENinjaProjectileKind::ReturningFang : ENinjaProjectileKind::GreatShuriken);
+            }
+        for (TActorIterator<AAttackProjectileBase> It(World); It; ++It)
+            if (!Before.Contains(*It) && It->bAssistProjectile) ++Kunai;
+        const bool bBarrage=FString(Stance)==TEXT("BarrageStance");
+        TestEqual(TEXT("Exactly one Fang/Shuriken, no duplicate notify"), Blades, bBarrage ? 0 : 1);
+        TestTrue(TEXT("Only Barrage fires a kunai volley"), bBarrage ? Kunai==3 : Kunai==0);
+        Assist->FinishCurrentAssist();
+        for (TActorIterator<ANinjaBuildProjectile> It(World); It; ++It) if (!Before.Contains(*It)) It->Destroy();
+        for (TActorIterator<AAttackProjectileBase> It(World); It; ++It) if (!Before.Contains(*It)) It->Destroy();
+    }
     World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
     return !HasAnyErrors();
 }

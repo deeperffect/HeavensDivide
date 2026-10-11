@@ -8,7 +8,9 @@ enum class EMinimapMarkerType : uint8
 {
 	Player,
 	Objective,
-	BossGate
+    BossGate,
+    HealingPickup,
+    MagnetPickup
 };
 
 UENUM(BlueprintType)

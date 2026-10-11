@@ -84,16 +84,13 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 	    Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::SamuraiDuelist) ||
 	    Upgrade->SpecialEffects.Contains(EUpgradeSpecialEffect::SamuraiDeathblow))
 		return false;
-	bool bMetaEligible = true;
-	if (Upgrade->Category == EUpgradeCategory::Synergy)
-	{
-		const UGameInstance* GameInstance = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
-		const USynergyMetaProgressionSubsystem* MetaSubsystem =
-		    GameInstance ? GameInstance->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-		bMetaEligible = MetaSubsystem ? MetaSubsystem->IsUpgradeMetaEligible(Upgrade)
-		                              : !Upgrade->bRequiresMetaUnlock || Upgrade->bUnlockedByDefault;
-	}
-
+	// Balance Lab deliberately previews any build; normal runs obey paid unlocks.
+ if (BalancePreviewMetaProfile < 0)
+ {
+  const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+  const auto* Meta = GI ? GI->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
+  if (Meta && !Meta->IsUpgradeMetaEligible(Upgrade)) return false;
+ }
 	bool bExclusivityEligible = true;
 	if (!Upgrade->ExclusivityGroup.IsNone())
 	{
@@ -109,7 +106,7 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 		}
 	}
 
-	return bMetaEligible && bExclusivityEligible && GetUpgradeLevel(Upgrade) < UpgradeRankLimit(Upgrade) &&
+	return bExclusivityEligible && GetUpgradeLevel(Upgrade) < UpgradeRankLimit(Upgrade) &&
 	       MeetsPrerequisites(Upgrade);
 }
 
@@ -285,7 +282,7 @@ bool UPlayerUpgradeComponent::IsValidUpgradeDefinition(const UUpgradeDefinition*
 bool UPlayerUpgradeComponent::IsUpgradeSuppressed(FName UpgradeId) const
 {
 	// Inspect raw stance ranks here: querying HasUpgradeId would recurse.
-	return UpgradeId.IsNone() || IsRetiredUpgrade(UpgradeId) || IsSamuraiUpgradeTemporarilyDisabled(UpgradeId) ||
+	return UpgradeId.IsNone() || IsRetiredUpgrade(UpgradeId) || IsRemovedSamuraiUpgrade(UpgradeId) ||
 	       (UpgradeLevels.FindRef(TEXT("GreatShuriken")) > 0 && FangBuild::IsLegacyShared(UpgradeId)) ||
 	       (UpgradeLevels.FindRef(TEXT("BarrageStance")) > 0 && BarrageBuild::IsLegacy(UpgradeId)) ||
 	       (UpgradeLevels.FindRef(TEXT("ReturningFang")) > 0 && FangBuild::IsLegacyShared(UpgradeId));

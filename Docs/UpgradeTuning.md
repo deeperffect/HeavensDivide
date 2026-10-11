@@ -1,5 +1,7 @@
 # Upgrade balance and VFX editing
 
+The current fixed-health pass is documented in [Combat Balance](CombatBalance.md). `Tools/combat_balance_v1.json` is the latest coordinated override; apply it after historical setup scripts. Mastery no longer grants damage, and elapsed time no longer raises enemy HP.
+
 Automatic ability families are retired. Edit the retained Blade Wave starter and branch assets under `/Game/HeavensDivide/Upgrades/Samurai`, or Grand Entrance under `/Game/HeavensDivide/Upgrades/Synergy`. Runtime Balance controls their parameters and Runtime VFX controls presentation. `Tools/upgrade_tuning_defaults.json` contains only retained upgrade defaults.
 
 Blade Wave frequency follows normal melee attacks. Its Velocity card changes projectile travel speed. Grand Entrance exposes `SamuraiRadius`, `NinjaBonusProjectiles`, and `NinjaFanAngle`.

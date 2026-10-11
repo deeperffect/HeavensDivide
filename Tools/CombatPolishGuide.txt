@@ -1,0 +1,31 @@
+Combat polish
+
+Magnet: break the cyan urn, then collect the floating horseshoe. It pulls all
+existing loose XP into the active character, including airborne chest rewards.
+It follows character swaps and preserves each drop's XP value. Health pickups
+and unopened chests remain available. New drops after activation behave normally.
+
+Balance window (Tools > Bloodshift Balance):
+- BP_EncounterDirector: first magnet at 75 seconds; later attempts 100-140
+  seconds apart. At most one magnet urn or loose magnet at a time.
+- BP_MagnetPickup: collection radius.
+- BP_MagnetUrn: reward class. Healing and magnet urns always break on the first
+  damaging player hit, regardless of their inherited health settings.
+- BP_ExperiencePickup: Magnet Travel Seconds (default 1.8).
+
+For species size, open the enemy Blueprint and select CollisionCylinder >
+Relative Scale 3D. The size pass scales body and collision together.
+
+Chest: the three reels show three portions of the actual XP reward, not bonus
+items. Space, Enter, gamepad A or click jumps to the reveal. The celebration
+pauses gameplay and releases the same XP shower after closing.
+
+Asset snapshots before this pass: Saved/CombatPolish/Backup.
+Species size report: Saved/CombatPolish/EnemySizes.json.
+Rendered review images: Saved/CombatPolish/Previews.
+
+Verification: Editor Development build succeeded. The 18 targeted mechanics and
+rendered-preview checks pass (see Saved/CombatPolish/FinalVerification.json).
+The broader pickup suite also ran the older HealingBurstScale test, which still
+fails because its expected particle-size scaling is absent. This pass did not
+change that healing effect asset. No full manual gameplay/FPS session was run.

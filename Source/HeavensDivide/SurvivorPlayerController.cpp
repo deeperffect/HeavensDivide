@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "SurvivorPlayerController.h"
+#include "UpgradeBalance.h"
 #include "CombatAudio.h"
 #include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
@@ -40,6 +41,8 @@
 #include "ShadowClone.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "RunTravelSubsystem.h"
+#include "RunLoadoutSubsystem.h"
+#include "RunChallengeSubsystem.h"
 #include "AutoAttackComponent.h"
 #include "CharacterStatsComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -101,6 +104,7 @@ ASurvivorPlayerController::ASurvivorPlayerController()
 	bAutoManageActiveCameraTarget = false;
 	CharacterManager = CreateDefaultSubobject<UCharacterManagerComponent>(TEXT("CharacterManager"));
 	PlayerHealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("PlayerHealthComponent"));
+	PlayerHealthComponent->DamageGracePeriod = .25f;
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 	SharedPlayerStatsComponent = CreateDefaultSubobject<USharedPlayerStatsComponent>(TEXT("SharedPlayerStatsComponent"));
 	PlayerUpgradeComponent = CreateDefaultSubobject<UPlayerUpgradeComponent>(TEXT("PlayerUpgradeComponent"));
@@ -176,6 +180,12 @@ void ASurvivorPlayerController::BeginPlay()
 		if (TravelState->RestoreToController(this) && GetWorld())
 		{
 			GetWorldTimerManager().SetTimerForNextTick(this, &ASurvivorPlayerController::StartRestoredBossArenaCombat);
+		}
+		else if (auto* Loadout = GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>())
+		{
+			if (auto* Meta = GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>()) Meta->BeginCurrencyRun();
+			if (auto* Challenge = GetGameInstance()->GetSubsystem<URunChallengeSubsystem>()) Challenge->BeginRun();
+			Loadout->ApplyToFreshRun(PlayerUpgradeComponent);
 		}
 	}
 
@@ -852,7 +862,7 @@ void ASurvivorPlayerController::HandleCharacterSwapped(ACharacterBase* OldCharac
 
 	if (PlayerUpgradeComponent && PlayerUpgradeComponent->GetSpecialEffectLevel(EUpgradeSpecialEffect::SwapRestoresDashCharge) > 0)
 	{
-		RestoreDashCharge(1, TEXT("Swap restored dash charge"));
+		RestoreDashCharge(FMath::Max(0,FMath::RoundToInt(UpgradeBalance::Value(PlayerUpgradeComponent, TEXT("SynergySwapRestoresDashCharge"), TEXT("ChargesRestored"), 1.f))), TEXT("Swap restored dash charge"));
 	}
 
 	ApplyHandoffBuff(NewCharacter);
@@ -1054,59 +1064,22 @@ void ASurvivorPlayerController::RequestBloodShrineUpgradeReward(int32 UpgradeCho
 
 void ASurvivorPlayerController::RequestTwinSoulSynergyReward(int32 UpgradeChoiceCount)
 {
-	if (bIsPlayerDead)
-	{
-		return;
-	}
-
-	TwinSoulRewardChoiceCount = FMath::Max(1, UpgradeChoiceCount);
-	++PendingTwinSoulRewards;
-	if (!bLevelUpSelectionActive)
-	{
-		StartNextUpgradeSelection();
-	}
+	// Retired objective: retained only for existing Blueprint references.
 }
 
 void ASurvivorPlayerController::RequestTwinSoulCompletionRewards(int32 NormalChoiceCount, int32 DiscoveryChoiceCount)
 {
-	if (bIsPlayerDead) return;
-	TwinSoulRewardChoiceCount = FMath::Max(1, NormalChoiceCount);
-	TwinSoulDiscoveryChoiceCount = FMath::Max(1, DiscoveryChoiceCount);
-	++PendingTwinSoulRewards;
-
-	USynergyMetaProgressionSubsystem* MetaSubsystem = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-	const bool bHasLockedCandidates = PlayerUpgradeComponent
-		&& PlayerUpgradeComponent->GetLockedSynergyDiscoveryCandidates().Num() > 0;
-	if (MetaSubsystem)
-	{
-		if (!bHasLockedCandidates)
-		{
-			MetaSubsystem->ResetTwinSoulDiscoveryProgress();
-		}
-		else if (MetaSubsystem->RecordTwinSoulCompletion())
-		{
-			++PendingTwinSoulDiscoveries;
-		}
-	}
-
-	if (!bLevelUpSelectionActive) StartNextUpgradeSelection();
+	// Retired objective: retained only for existing Blueprint references.
 }
 
 void ASurvivorPlayerController::RequestSamuraiTrialUpgradeReward(int32 UpgradeChoiceCount)
 {
-	if (bIsPlayerDead) return;
-	SamuraiTrialRewardChoiceCount = FMath::Max(1, UpgradeChoiceCount);
-	++PendingSamuraiTrialRewards;
-	if (!bLevelUpSelectionActive) StartNextUpgradeSelection();
+	// Retired objective: retained only for existing Blueprint references.
 }
 
 void ASurvivorPlayerController::RequestNinjaTrialUpgradeReward(int32 UpgradeChoiceCount)
 {
-	if (bIsPlayerDead) return;
-	NinjaTrialRewardChoiceCount = FMath::Max(1, UpgradeChoiceCount);
-	++PendingNinjaTrialRewards;
-	if (!bLevelUpSelectionActive) StartNextUpgradeSelection();
+	// Retired objective: retained only for existing Blueprint references.
 }
 
 void ASurvivorPlayerController::HandleLevelUpSelectionCompleted()
@@ -1327,9 +1300,8 @@ void ASurvivorPlayerController::StartNextLevelUpSelection()
 
 	PauseForLevelUpSelection();
 
-	const TArray<EUpgradeCategory> CategoryChoices = PlayerUpgradeComponent->GetCurrentCategoryChoices();
 	UE_LOG(LogTemp, Log, TEXT("CATEGORY OFFER:"));
-	for (const EUpgradeCategory Category : CategoryChoices)
+	for (const EUpgradeCategory Category : PlayerUpgradeComponent->GetCurrentCategoryChoices())
 	{
 		UE_LOG(LogTemp, Log, TEXT("  %s"), *UpgradeCategoryToLogString(Category));
 	}
@@ -1369,6 +1341,7 @@ void ASurvivorPlayerController::PauseForLevelUpSelection()
 {
 	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
 		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
+    for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It) It->SetMenuSimulationPaused(true);
 	if (UWorld* World = GetWorld())
 	{
 		if (!bLevelUpTimeDilationApplied)
@@ -1392,6 +1365,7 @@ void ASurvivorPlayerController::PauseForLevelUpSelection()
 
 void ASurvivorPlayerController::ResumeAfterLevelUpSelection()
 {
+    for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It) It->SetMenuSimulationPaused(false);
 	if (UWorld* World = GetWorld())
 	{
 		if (bLevelUpTimeDilationApplied)
@@ -1884,7 +1858,7 @@ void ASurvivorPlayerController::SpawnShadowCloneForCompletedDash()
 	AShadowClone* Clone = GetWorld()->SpawnActor<AShadowClone>(ShadowCloneClass, PendingShadowCloneTransform, Params);
 	if (!Clone) return;
 	const int32 BonusAttacks = FMath::Max(0, FMath::RoundToInt(PlayerUpgradeComponent->GetAccumulatedUpgradeMagnitude(TEXT("MultipleStrikes"))));
-	Clone->InitializeShadowClone(Ninja, this, 1 + BonusAttacks);
+	Clone->InitializeShadowClone(Ninja, this, FMath::Max(1,FMath::RoundToInt(UpgradeBalance::Value(PlayerUpgradeComponent, TEXT("ShadowStep"), TEXT("BaseAttacks"), 1.f))) + BonusAttacks);
 	ActiveShadowClones.Add(Clone);
 	OnShadowCloneSpawned.Broadcast(Clone);
 }

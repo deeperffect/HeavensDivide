@@ -24,6 +24,8 @@ void USwapPresentationComponent::StartArrivalMovement()
     else
     {
         ArrivalStartOffset=FVector(0,0,ArrivalDropHeight);
+        if(auto* Parent=Character->GetVisualRoot()->GetAttachParent())
+            ArrivalStartOffset=Parent->GetComponentTransform().InverseTransformVector(ArrivalStartOffset);
         ActiveMovementDuration=FMath::Max(.01f,ArrivalDropDuration);
         if(bSwapFreezeActive) ActiveMovementDuration=FMath::Min(ActiveMovementDuration,FreezeRemaining);
         else if(EntranceRemaining>0) ActiveMovementDuration=FMath::Min(ActiveMovementDuration,EntranceRemaining);

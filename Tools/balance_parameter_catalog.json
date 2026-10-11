@@ -1,0 +1,1618 @@
+{
+  "values": {
+    "BarrageProcession": {
+      "BounceCount": 3.0,
+      "BounceRetention": 0.75,
+      "SplitChanceConversion": 0.2
+    },
+    "BarrageCritical": {
+      "Chance": 0.15,
+      "DamageMultiplier": 2.0
+    },
+    "BarrageCriticalChance": {
+      "PerRank": 0.1
+    },
+    "BarrageAssist": {
+      "Chance": 0.05
+    },
+    "BarrageStance": {
+      "AttackSpeedBonus": 0.3,
+      "ProjectileDamageMultiplier": 0.6,
+      "BonusProjectiles": 2.0,
+      "PoisonCap": 20.0,
+      "PoisonHitFraction": 0.05,
+      "PoisonDuration": 5.0,
+      "PoisonTickInterval": 0.5
+    },
+    "BarragePointBlank": {
+      "AttackSpeedBonus": 0.5,
+      "RangeMultiplier": 0.3
+    },
+    "BarrageAssistChance": {
+      "PerRank": 0.05
+    },
+    "CrescentRange": {
+      "PerRank": 0.2
+    },
+    "FangRange": {
+      "PerRank": 0.15
+    },
+    "ForkingProjectiles": {
+      "Chance": 0.15
+    },
+    "BarrageSplitChance": {
+      "PerRank": 0.1
+    },
+    "BarrageRange": {
+      "PerRank": 0.15
+    },
+    "BarrageRush": {
+      "MoveSpeedBonus": 0.2,
+      "Duration": 3.0
+    },
+    "BarragePoisonCap": {
+      "PerRank": 4.0
+    },
+    "BarragePoisonLoad": {
+      "PerRank": 1
+    },
+    "BarragePoisonDuration": {
+      "PerRank": 1
+    },
+    "BarragePool": {
+      "Radius": 220.0,
+      "TickInterval": 0.5,
+      "Duration": 3.0
+    },
+    "BarrageBloom": {
+      "RemainingDamageFraction": 0.1
+    },
+    "BarragePoolRadius": {
+      "PerRank": 0.2
+    },
+    "CrescentAssist": {
+      "Chance": 0.05
+    },
+    "CrescentAssistChance": {
+      "PerRank": 0.05
+    },
+    "IaijutsuDashPact": {
+      "RechargeSecondsPerKill": 0.3
+    },
+    "BattleStance": {
+      "BleedStacksPerHit": 1.0,
+      "BleedDuration": 3.0,
+      "BleedTickInterval": 0.5,
+      "BleedStackCap": 5.0,
+      "BleedHitFraction": 0.125
+    },
+    "BloodPactPower": {
+      "BleedDamageMultiplier": 2.5
+    },
+    "Bloodletting": {
+      "PerRank": 1.0
+    },
+    "LingeringWounds": {
+      "PerRank": 1.0
+    },
+    "Iaijutsu": {
+      "ChargeDuration": 2,
+      "VacuumReach": 60.0,
+      "DamageMultiplier": 2.5,
+      "SlashRadius": 200,
+      "PostHitHoldDuration": 0.3,
+      "VacuumLeadTime": 0.2,
+      "VacuumSpeedMultiplier": 3.0,
+      "VacuumSpeed": 240.0,
+      "MarkBonus": 0.5,
+      "MarkDuration": 3.0,
+      "DashDistance": 800.0,
+      "Cooldown": 0.5
+    },
+    "IaijutsuPowerPact": {
+      "ChargeMultiplier": 1.3,
+      "DamageMultiplier": 1.5
+    },
+    "IaijutsuChargeSpeed": {
+      "PerRank": 0.15
+    },
+    "IaijutsuVacuumReach": {
+      "PerRank": 0.15
+    },
+    "ShurikenTwin": {
+      "Frequency": 4.0,
+      "SideAngle": 20.0
+    },
+    "GreatShuriken": {
+      "TravelSpeed": 900.0,
+      "Lifetime": 2.5,
+      "Radius": 95.0,
+      "CountSize": 0.12,
+      "HitInterval": 0.25
+    },
+    "LingeringShuriken": {
+      "LifetimeBonusPerRank": 0.3
+    },
+    "ShurikenHunger": {
+      "InitialSizeMultiplier": 0.7,
+      "GrowthPerKill": 0.1
+    },
+    "ShurikenOrbit": {
+      "OrbitRadius": 230.0,
+      "ContactMultiplier": 0.7
+    },
+    "NeedleRain": {
+      "Frequency": 4.0,
+      "ProjectileMultiplier": 2.0
+    },
+    "MarkedBlade": {
+      "NinjaDamageMultiplier": 2.0
+    },
+    "ShurikenTwinFrequency": {
+      "PerRank": 1.0
+    },
+    "ShurikenSize": {
+      "PerRank": 0.15
+    },
+    "BarrageRainFrequency": {
+      "PerRank": 1.0
+    },
+    "ReturningFang": {
+      "CountDamage": 0.25,
+      "FlightSpeedMultiplier": 0.5,
+      "MaximumFlightTime": 4.0,
+      "MaxLaunchesPerSecond": 2,
+      "TargetingRangeMultiplier": 0.5
+    },
+    "FangKillingEdge": {
+      "Chance": 0.15,
+      "AdditionalTargets": 2.0
+    },
+    "FangSplinter": {
+      "Lifetime": 2.0,
+      "DamageFraction": 0.4,
+      "Range": 700.0,
+      "ProjectileSpeed": 1400.0
+    },
+    "FangPursuitChance": {
+      "PerRank": 0.1
+    },
+    "EmbeddedBlades": {
+      "DamageFraction": 0.4,
+      "Range": 700.0
+    },
+    "FangRedline": {
+      "DamageMultiplier": 0.7,
+      "SpeedMultiplier": 1.6
+    },
+    "FangFarstrider": {
+      "SpeedMultiplier": 0.75,
+      "DistanceForMaximum": 1000.0,
+      "MaxDamageBonus": 2
+    },
+    "FangTwin": {
+      "Frequency": 4.0,
+      "ExtraBlades": 1
+    },
+    "RelentlessFang": {
+      "StreakCap": 5.0,
+      "DamagePerHit": 0.15,
+      "MaxBonus": 0.75
+    },
+    "FangCloseQuarters": {
+      "Radius": 300.0,
+      "PerRank": 0.1
+    },
+    "FangDeadeye": {
+      "Chance": 0.15,
+      "DamageMultiplier": 2.0
+    },
+    "FangPredator": {
+      "CriticalMultiplier": 1.5,
+      "NoncriticalMultiplier": 0.85
+    },
+    "FangResonance": {
+      "Radius": 250.0,
+      "DamageFraction": 0.5
+    },
+    "FangAssist": {
+      "Chance": 0.05,
+      "Cooldown": 1.0
+    },
+    "FangSpeed": {
+      "PerRank": 0.15
+    },
+    "FangTwinFrequency": {
+      "PerRank": 1
+    },
+    "FangPressure": {
+      "PerRank": 0.2
+    },
+    "FangCriticalChance": {
+      "PerRank": 0.1
+    },
+    "FangSplinterPower": {
+      "PerRank": 0.2
+    },
+    "FangResonantReach": {
+      "PerRank": 0.15
+    },
+    "FangBurstPower": {
+      "PerRank": 0.2
+    },
+    "FangAssistChance": {
+      "PerRank": 0.05
+    },
+    "SerratedEdge": {
+      "DamagePerHit": 0.15,
+      "DamageCap": 0.75
+    },
+    "ShurikenGrooves": {
+      "PerHitPerRank": 0.03,
+      "CapPerRank": 0.15
+    },
+    "WideOrbit": {
+      "MaxSizeMultiplier": 2.0,
+      "GrowthDistance": 1000.0
+    },
+    "BreakingWheel": {
+      "DamageFraction": 0.75,
+      "RadiusMultiplier": 2.0
+    },
+    "ShurikenPulse": {
+      "ContactMultiplier": 0.65,
+      "Interval": 1.0
+    },
+    "GrindingHalt": {
+      "SlowDuration": 1.0,
+      "SpeedMultiplier": 0.15
+    },
+    "ShurikenAssist": {
+      "Chance": 0.05
+    },
+    "ShurikenGrowth": {
+      "PerRank": 0.2
+    },
+    "ShurikenBurstPower": {
+      "PerRank": 0.15
+    },
+    "ShurikenGrindDuration": {
+      "PerRank": 0.2
+    },
+    "ShurikenAssistChance": {
+      "PerRank": 0.05
+    },
+    "IaijutsuChain": {
+      "ChainLimit": 1.0
+    },
+    "IaijutsuMarkPact": {
+      "WidthMultiplier": 0.8,
+      "MarkMultiplier": 2.0
+    },
+    "IaijutsuDoubleCut": {
+      "Frequency": 4.0,
+      "LengthMultiplier": 1.25,
+      "IntersectionFraction": 0.6,
+      "SideAngle": 30.0
+    },
+    "BloodCritical": {
+      "Chance": 0.15,
+      "DamageMultiplier": 2.0
+    },
+    "BloodEcho": {
+      "Chance": 0.2,
+      "DamageFraction": 1
+    },
+    "CrescentFieldPact": {
+      "WaveDamageMultiplier": 0.8,
+      "FieldDamageMultiplier": 2
+    },
+    "CrescentPowerPact": {
+      "DamageMultiplier": 1.5,
+      "SpeedMultiplier": 0.5
+    },
+    "CrescentDoubleCut": {
+      "Frequency": 4.0
+    },
+    "CrescentArc": {
+      "SideAngle": 20.0,
+      "Chance": 0.15
+    },
+    "DoubleCut": {
+      "Frequency": 4.0
+    },
+    "BloodAssist": {
+      "Chance": 0.05
+    },
+    "IaijutsuDashPower": {
+      "PerRank": 0.2
+    },
+    "IaijutsuDamage": {
+      "PerRank": 0.2
+    },
+    "IaijutsuWidth": {
+      "PerRank": 0.25
+    },
+    "IaijutsuDoubleCutFrequency": {
+      "PerRank": 1.0
+    },
+    "BloodCriticalChance": {
+      "PerRank": 0.1
+    },
+    "BloodEchoChance": {
+      "PerRank": 0.1
+    },
+    "CrescentDamage": {
+      "PerRank": 0.2
+    },
+    "CrescentDoubleCutFrequency": {
+      "PerRank": 1.0
+    },
+    "CrescentSpeed": {
+      "PerRank": 0.2
+    },
+    "DoubleCutFrequency": {
+      "PerRank": 1.0
+    },
+    "BloodAssistChance": {
+      "PerRank": 0.05
+    },
+    "IaijutsuInstant": {
+      "Chance": 0.15
+    },
+    "IaijutsuInstantChance": {
+      "PerRank": 0.05
+    },
+    "IaijutsuAssist": {
+      "Chance": 0.05
+    },
+    "IaijutsuAssistChance": {
+      "PerRank": 0.05
+    },
+    "IaijutsuAOE": {
+      "Chance": 0.15,
+      "Radius": 250.0
+    },
+    "IaijutsuAOEChance": {
+      "PerRank": 0.1
+    },
+    "CrescentArcChance": {
+      "PerRank": 0.05
+    },
+    "ReturningBlade": {
+      "ReturnDamageMultiplier": 0.5
+    },
+    "CrescentField": {
+      "Duration": 3.0,
+      "Chance": 0.15,
+      "TickInterval": 0.5,
+      "DamagePerSecond": 0.3
+    },
+    "CrescentSplit": {
+      "DamageMultiplier": 0.5,
+      "SizeMultiplier": 0.6,
+      "RangeMultiplier": 0.6,
+      "Angle": 90.0,
+      "Chance": 0.15
+    },
+    "CrescentFieldPower": {
+      "PerRank": 0.15
+    },
+    "CrescentFieldChance": {
+      "PerRank": 0.05
+    },
+    "CrescentSplitChance": {
+      "PerRank": 0.1
+    },
+    "BladeWave": {
+      "SlowFraction": 0.3,
+      "SlowDuration": 5.0,
+      "WaveWidth": 300.0,
+      "WaveTravelDistance": 650.0,
+      "WaveSpeed": 1400.0,
+      "WaveDamageMultiplier": 1.5,
+      "SpawnForwardOffset": 80.0,
+      "SpawnHeightOffset": 60.0,
+      "WaveThickness": 55.0,
+      "WaveHeight": 120.0,
+      "WaveVFXAuthoredDuration": 0.18,
+      "StatusStacks": 1.0
+    },
+    "BloodDetonation": {
+      "DamageMultiplier": 1.5,
+      "Radius": 300.0
+    },
+    "CrescentSlow": {
+      "PerRank": 0.05
+    },
+    "CrescentSlowDuration": {
+      "PerRank": 1.0
+    },
+    "BloodTransferArea": {
+      "PerRank": 0.1
+    },
+    "IaijutsuMarkDamage": {
+      "PerRank": 0.1
+    },
+    "IaijutsuCascadePower": {
+      "PerRank": 0.2
+    },
+    "CrescentEruptionPact": {
+      "EruptionDelay": 0.3
+    },
+    "ShurikenTempo": {
+      "PerRank": 0.15
+    },
+    "SynergySwapRestoresDashCharge": {
+      "ChargesRestored": 1.0
+    },
+    "ShadowStep": {
+      "BaseAttacks": 1.0
+    },
+    "BloodCapacity": {
+      "PerRank": 1.0
+    },
+    "CrossingBlades": {
+      "AttackFrequency": 3.0,
+      "WaveCount": 3.0,
+      "SideAngle": 30.0
+    },
+    "SplinterWave": {
+      "SplinterDamageMultiplier": 0.3,
+      "SplinterRadius": 120.0
+    },
+    "TagTeam": {
+      "SamuraiDamage": 12.0,
+      "NinjaDamage": 10.0,
+      "SamuraiRange": 420.0,
+      "NinjaRange": 1000.0,
+      "SamuraiTargets": 12.0,
+      "NinjaTargets": 5.0,
+      "ConeHalfAngle": 69.51268,
+      "PushDistance": 65.0,
+      "PushDuration": 0.15
+    },
+    "GrandEntrance": {
+      "SamuraiRadius": 600.0,
+      "NinjaBonusProjectiles": 8.0,
+      "NinjaFanAngle": 100.0
+    },
+    "BleedingEdge": {
+      "HitDamagePerTick": 0.1
+    },
+    "BloodTransfer": {
+      "TransferFraction": 0.5,
+      "Radius": 300.0,
+      "Targets": 5.0
+    },
+    "OverkillBurst": {
+      "Radius": 220.0,
+      "DamageMultiplier": 1.0
+    },
+    "WaveMultishot": {
+      "AnglePerWave": 8.0
+    },
+    "Crescendo": {
+      "BaseCap": 5.0,
+      "CapPerRank": 2.0,
+      "AttacksPerProjectile": 3.0
+    },
+    "HeavyShuriken": {
+      "SpeedReductionPerRank": 0.2
+    },
+    "FangDamage": {
+      "PerRank": 0.2
+    },
+    "NinjaDamage": {
+      "PerRank": 0.2
+    },
+    "NinjaSpeed": {
+      "PerRank": 0.15
+    },
+    "NinjaCoverage": {
+      "PerRank": 0.15
+    },
+    "ShurikenDamage": {
+      "PerRank": 0.2
+    },
+    "ShurikenSpeed": {
+      "PerRank": 0.15
+    },
+    "BloodRush": {
+      "Duration": 3.0,
+      "MoveSpeedBonus": 0.2
+    },
+    "IaijutsuDash": {
+      "DashDistanceBonus": 1.0
+    }
+  },
+  "sources": {
+    "BarrageProcession": {
+      "BounceCount": [
+        "AttackProjectileBase.cpp"
+      ],
+      "BounceRetention": [
+        "AttackProjectileBase.cpp"
+      ],
+      "SplitChanceConversion": [
+        "AttackProjectileBase.cpp"
+      ]
+    },
+    "BarrageCritical": {
+      "Chance": [
+        "AttackProjectileBase.cpp"
+      ],
+      "DamageMultiplier": [
+        "AttackProjectileBase.cpp"
+      ]
+    },
+    "BarrageCriticalChance": {
+      "PerRank": [
+        "AttackProjectileBase.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "BarrageAssist": {
+      "Chance": [
+        "AutoAttackComponent.cpp"
+      ]
+    },
+    "BarrageStance": {
+      "AttackSpeedBonus": [
+        "AutoAttackComponent.cpp"
+      ],
+      "ProjectileDamageMultiplier": [
+        "AutoAttackComponent.cpp",
+        "combat_balance_v1.json"
+      ],
+      "BonusProjectiles": [
+        "AutoAttackComponent.cpp"
+      ],
+      "PoisonCap": [
+        "BarragePoison.cpp"
+      ],
+      "PoisonHitFraction": [
+        "BarragePoison.cpp",
+        "BarragePoison.cpp"
+      ],
+      "PoisonDuration": [
+        "BarragePoison.cpp",
+        "BarragePoison.cpp",
+        "BarragePoison.cpp"
+      ],
+      "PoisonTickInterval": [
+        "BarragePoison.cpp",
+        "BarragePoison.cpp",
+        "BarragePoison.cpp",
+        "EnemyStatusEffectComponent.cpp"
+      ]
+    },
+    "BarragePointBlank": {
+      "AttackSpeedBonus": [
+        "AutoAttackComponent.cpp"
+      ],
+      "RangeMultiplier": [
+        "BarrageBuild.cpp"
+      ]
+    },
+    "BarrageAssistChance": {
+      "PerRank": [
+        "AutoAttackComponent.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "CrescentRange": {
+      "PerRank": [
+        "AutoAttackComponent.cpp",
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "FangRange": {
+      "PerRank": [
+        "AutoAttackComponent.cpp"
+      ]
+    },
+    "ForkingProjectiles": {
+      "Chance": [
+        "BarrageBuild.cpp"
+      ]
+    },
+    "BarrageSplitChance": {
+      "PerRank": [
+        "BarrageBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "BarrageRange": {
+      "PerRank": [
+        "BarrageBuild.cpp"
+      ]
+    },
+    "BarrageRush": {
+      "MoveSpeedBonus": [
+        "BarragePoison.cpp"
+      ],
+      "Duration": [
+        "BarragePoison.cpp"
+      ]
+    },
+    "BarragePoisonCap": {
+      "PerRank": [
+        "BarragePoison.cpp"
+      ]
+    },
+    "BarragePoisonLoad": {
+      "PerRank": [
+        "BarragePoison.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "BarragePoisonDuration": {
+      "PerRank": [
+        "BarragePoison.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "BarragePool": {
+      "Radius": [
+        "BarragePoisonPool.cpp"
+      ],
+      "TickInterval": [
+        "BarragePoisonPool.cpp"
+      ],
+      "Duration": [
+        "BarragePoisonPool.cpp"
+      ]
+    },
+    "BarrageBloom": {
+      "RemainingDamageFraction": [
+        "BarragePoisonPool.cpp"
+      ]
+    },
+    "BarragePoolRadius": {
+      "PerRank": [
+        "BarragePoisonPool.cpp"
+      ]
+    },
+    "CrescentAssist": {
+      "Chance": [
+        "CrescentBuild.cpp"
+      ]
+    },
+    "CrescentAssistChance": {
+      "PerRank": [
+        "CrescentBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "IaijutsuDashPact": {
+      "RechargeSecondsPerKill": [
+        "EnemyBase.cpp"
+      ]
+    },
+    "BattleStance": {
+      "BleedStacksPerHit": [
+        "EnemyStatusEffectComponent.cpp"
+      ],
+      "BleedDuration": [
+        "EnemyStatusEffectComponent.cpp",
+        "EnemyStatusEffectComponent.cpp"
+      ],
+      "BleedTickInterval": [
+        "EnemyStatusEffectComponent.cpp",
+        "EnemyStatusEffectComponent.cpp"
+      ],
+      "BleedStackCap": [
+        "UpgradeBalance.h"
+      ],
+      "BleedHitFraction": [
+        "samurai_build_upgrades.json"
+      ]
+    },
+    "BloodPactPower": {
+      "BleedDamageMultiplier": [
+        "EnemyStatusEffectComponent.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "Bloodletting": {
+      "PerRank": [
+        "EnemyStatusEffectComponent.cpp"
+      ]
+    },
+    "LingeringWounds": {
+      "PerRank": [
+        "EnemyStatusEffectComponent.cpp"
+      ]
+    },
+    "Iaijutsu": {
+      "ChargeDuration": [
+        "IaijutsuBuild.h",
+        "combat_balance_v1.json"
+      ],
+      "VacuumReach": [
+        "IaijutsuBuild.h"
+      ],
+      "DamageMultiplier": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ],
+      "SlashRadius": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ],
+      "PostHitHoldDuration": [
+        "SamuraiIaijutsu.cpp"
+      ],
+      "VacuumLeadTime": [
+        "SamuraiIaijutsu.cpp"
+      ],
+      "VacuumSpeedMultiplier": [
+        "SamuraiIaijutsu.cpp"
+      ],
+      "VacuumSpeed": [
+        "SamuraiIaijutsu.cpp"
+      ],
+      "MarkBonus": [
+        "SamuraiIaijutsu.cpp"
+      ],
+      "MarkDuration": [
+        "SamuraiIaijutsu.cpp"
+      ],
+      "DashDistance": [
+        "SamuraiIaijutsu.cpp"
+      ],
+      "Cooldown": [
+        "upgrade_tuning_defaults.json",
+        "combat_balance_v1.json"
+      ]
+    },
+    "IaijutsuPowerPact": {
+      "ChargeMultiplier": [
+        "IaijutsuBuild.h"
+      ],
+      "DamageMultiplier": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "IaijutsuChargeSpeed": {
+      "PerRank": [
+        "IaijutsuBuild.h"
+      ]
+    },
+    "IaijutsuVacuumReach": {
+      "PerRank": [
+        "IaijutsuBuild.h"
+      ]
+    },
+    "ShurikenTwin": {
+      "Frequency": [
+        "NinjaBuildComponent.cpp"
+      ],
+      "SideAngle": [
+        "NinjaBuildComponent.cpp"
+      ]
+    },
+    "GreatShuriken": {
+      "TravelSpeed": [
+        "NinjaBuildComponent.cpp"
+      ],
+      "Lifetime": [
+        "NinjaBuildComponent.cpp"
+      ],
+      "Radius": [
+        "NinjaBuildComponent.cpp"
+      ],
+      "CountSize": [
+        "NinjaBuildComponent.cpp"
+      ],
+      "HitInterval": [
+        "NinjaBuildProjectile.cpp",
+        "ShurikenBuild.cpp"
+      ]
+    },
+    "LingeringShuriken": {
+      "LifetimeBonusPerRank": [
+        "NinjaBuildComponent.cpp"
+      ]
+    },
+    "ShurikenHunger": {
+      "InitialSizeMultiplier": [
+        "NinjaBuildComponent.cpp"
+      ],
+      "GrowthPerKill": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenOrbit": {
+      "OrbitRadius": [
+        "NinjaBuildComponent.cpp",
+        "NinjaShurikenBuild.cpp"
+      ],
+      "ContactMultiplier": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "NeedleRain": {
+      "Frequency": [
+        "NinjaBuildComponent.cpp"
+      ],
+      "ProjectileMultiplier": [
+        "NinjaBuildComponent.cpp"
+      ]
+    },
+    "MarkedBlade": {
+      "NinjaDamageMultiplier": [
+        "NinjaBuildComponent.cpp"
+      ]
+    },
+    "ShurikenTwinFrequency": {
+      "PerRank": [
+        "NinjaBuildComponent.cpp"
+      ]
+    },
+    "ShurikenSize": {
+      "PerRank": [
+        "NinjaBuildComponent.cpp",
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "BarrageRainFrequency": {
+      "PerRank": [
+        "NinjaBuildComponent.cpp"
+      ]
+    },
+    "ReturningFang": {
+      "CountDamage": [
+        "NinjaBuildProjectile.cpp"
+      ],
+      "FlightSpeedMultiplier": [
+        "NinjaBuildProjectile.cpp"
+      ],
+      "MaximumFlightTime": [
+        "NinjaBuildProjectile.cpp"
+      ],
+      "MaxLaunchesPerSecond": [
+        "NinjaBuildProjectile.cpp",
+        "combat_balance_v1.json"
+      ],
+      "TargetingRangeMultiplier": [
+        "fang_build_upgrades.json"
+      ]
+    },
+    "FangKillingEdge": {
+      "Chance": [
+        "NinjaBuildProjectile.cpp"
+      ],
+      "AdditionalTargets": [
+        "NinjaBuildProjectile.cpp"
+      ]
+    },
+    "FangSplinter": {
+      "Lifetime": [
+        "NinjaBuildProjectile.cpp"
+      ],
+      "DamageFraction": [
+        "NinjaFangBuild.cpp"
+      ],
+      "Range": [
+        "NinjaFangBuild.cpp"
+      ],
+      "ProjectileSpeed": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangPursuitChance": {
+      "PerRank": [
+        "NinjaBuildProjectile.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "EmbeddedBlades": {
+      "DamageFraction": [
+        "NinjaEmbeddedBlades.cpp"
+      ],
+      "Range": [
+        "NinjaEmbeddedBlades.cpp"
+      ]
+    },
+    "FangRedline": {
+      "DamageMultiplier": [
+        "NinjaFangBuild.cpp"
+      ],
+      "SpeedMultiplier": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangFarstrider": {
+      "SpeedMultiplier": [
+        "NinjaFangBuild.cpp"
+      ],
+      "DistanceForMaximum": [
+        "NinjaFangBuild.cpp"
+      ],
+      "MaxDamageBonus": [
+        "NinjaFangBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "FangTwin": {
+      "Frequency": [
+        "NinjaFangBuild.cpp"
+      ],
+      "ExtraBlades": [
+        "NinjaFangBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "RelentlessFang": {
+      "StreakCap": [
+        "NinjaFangBuild.cpp",
+        "NinjaFangBuild.cpp"
+      ],
+      "DamagePerHit": [
+        "NinjaFangBuild.cpp"
+      ],
+      "MaxBonus": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangCloseQuarters": {
+      "Radius": [
+        "NinjaFangBuild.cpp"
+      ],
+      "PerRank": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangDeadeye": {
+      "Chance": [
+        "NinjaFangBuild.cpp"
+      ],
+      "DamageMultiplier": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangPredator": {
+      "CriticalMultiplier": [
+        "NinjaFangBuild.cpp"
+      ],
+      "NoncriticalMultiplier": [
+        "NinjaFangBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "FangResonance": {
+      "Radius": [
+        "NinjaFangBuild.cpp"
+      ],
+      "DamageFraction": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangAssist": {
+      "Chance": [
+        "NinjaFangBuild.cpp"
+      ],
+      "Cooldown": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangSpeed": {
+      "PerRank": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangTwinFrequency": {
+      "PerRank": [
+        "NinjaFangBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "FangPressure": {
+      "PerRank": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangCriticalChance": {
+      "PerRank": [
+        "NinjaFangBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "FangSplinterPower": {
+      "PerRank": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangResonantReach": {
+      "PerRank": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangBurstPower": {
+      "PerRank": [
+        "NinjaFangBuild.cpp"
+      ]
+    },
+    "FangAssistChance": {
+      "PerRank": [
+        "NinjaFangBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "SerratedEdge": {
+      "DamagePerHit": [
+        "NinjaShurikenBuild.cpp"
+      ],
+      "DamageCap": [
+        "NinjaShurikenBuild.cpp",
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenGrooves": {
+      "PerHitPerRank": [
+        "NinjaShurikenBuild.cpp"
+      ],
+      "CapPerRank": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "WideOrbit": {
+      "MaxSizeMultiplier": [
+        "NinjaShurikenBuild.cpp",
+        "NinjaShurikenBuild.cpp"
+      ],
+      "GrowthDistance": [
+        "ninja_build_upgrades.json"
+      ]
+    },
+    "BreakingWheel": {
+      "DamageFraction": [
+        "NinjaShurikenBuild.cpp"
+      ],
+      "RadiusMultiplier": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenPulse": {
+      "ContactMultiplier": [
+        "NinjaShurikenBuild.cpp"
+      ],
+      "Interval": [
+        "ShurikenBuild.cpp"
+      ]
+    },
+    "GrindingHalt": {
+      "SlowDuration": [
+        "NinjaShurikenBuild.cpp"
+      ],
+      "SpeedMultiplier": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenAssist": {
+      "Chance": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenGrowth": {
+      "PerRank": [
+        "NinjaShurikenBuild.cpp",
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenBurstPower": {
+      "PerRank": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenGrindDuration": {
+      "PerRank": [
+        "NinjaShurikenBuild.cpp"
+      ]
+    },
+    "ShurikenAssistChance": {
+      "PerRank": [
+        "NinjaShurikenBuild.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "IaijutsuChain": {
+      "ChainLimit": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "IaijutsuMarkPact": {
+      "WidthMultiplier": [
+        "SamuraiAutoAttack.cpp"
+      ],
+      "MarkMultiplier": [
+        "SamuraiIaijutsu.cpp"
+      ]
+    },
+    "IaijutsuDoubleCut": {
+      "Frequency": [
+        "SamuraiAutoAttack.cpp"
+      ],
+      "LengthMultiplier": [
+        "SamuraiAutoAttack.cpp"
+      ],
+      "IntersectionFraction": [
+        "SamuraiAutoAttack.cpp"
+      ],
+      "SideAngle": [
+        "SamuraiAutoAttack.cpp",
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "BloodCritical": {
+      "Chance": [
+        "SamuraiAutoAttack.cpp",
+        "SamuraiAutoAttack.cpp"
+      ],
+      "DamageMultiplier": [
+        "SamuraiAutoAttack.cpp",
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "BloodEcho": {
+      "Chance": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ],
+      "DamageFraction": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "CrescentFieldPact": {
+      "WaveDamageMultiplier": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ],
+      "FieldDamageMultiplier": [
+        "SamuraiWaveField.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "CrescentPowerPact": {
+      "DamageMultiplier": [
+        "SamuraiAutoAttack.cpp"
+      ],
+      "SpeedMultiplier": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "CrescentDoubleCut": {
+      "Frequency": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "CrescentArc": {
+      "SideAngle": [
+        "SamuraiAutoAttack.cpp"
+      ],
+      "Chance": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "DoubleCut": {
+      "Frequency": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "BloodAssist": {
+      "Chance": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "IaijutsuDashPower": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "IaijutsuDamage": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "IaijutsuWidth": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "IaijutsuDoubleCutFrequency": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "BloodCriticalChance": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp",
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "BloodEchoChance": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "CrescentDamage": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "CrescentDoubleCutFrequency": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "CrescentSpeed": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "DoubleCutFrequency": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "BloodAssistChance": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "IaijutsuInstant": {
+      "Chance": [
+        "SamuraiAutoAttack.cpp",
+        "SamuraiAutoAttack.cpp",
+        "SamuraiIaijutsu.cpp"
+      ]
+    },
+    "IaijutsuInstantChance": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp",
+        "SamuraiAutoAttack.cpp",
+        "SamuraiIaijutsu.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "IaijutsuAssist": {
+      "Chance": [
+        "SamuraiAutoAttack.cpp"
+      ]
+    },
+    "IaijutsuAssistChance": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "IaijutsuAOE": {
+      "Chance": [
+        "SamuraiAutoAttack.cpp"
+      ],
+      "Radius": [
+        "SamuraiIaijutsu.cpp"
+      ]
+    },
+    "IaijutsuAOEChance": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "CrescentArcChance": {
+      "PerRank": [
+        "SamuraiAutoAttack.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "ReturningBlade": {
+      "ReturnDamageMultiplier": [
+        "SamuraiBladeWave.cpp"
+      ]
+    },
+    "CrescentField": {
+      "Duration": [
+        "SamuraiBladeWave.cpp",
+        "SamuraiWaveField.cpp"
+      ],
+      "Chance": [
+        "SamuraiBladeWave.cpp"
+      ],
+      "TickInterval": [
+        "SamuraiWaveField.cpp"
+      ],
+      "DamagePerSecond": [
+        "SamuraiWaveField.cpp"
+      ]
+    },
+    "CrescentSplit": {
+      "DamageMultiplier": [
+        "SamuraiBladeWave.cpp"
+      ],
+      "SizeMultiplier": [
+        "SamuraiBladeWave.cpp"
+      ],
+      "RangeMultiplier": [
+        "SamuraiBladeWave.cpp"
+      ],
+      "Angle": [
+        "SamuraiBladeWave.cpp"
+      ],
+      "Chance": [
+        "SamuraiBladeWave.cpp"
+      ]
+    },
+    "CrescentFieldPower": {
+      "PerRank": [
+        "SamuraiBladeWave.cpp",
+        "SamuraiWaveField.cpp"
+      ]
+    },
+    "CrescentFieldChance": {
+      "PerRank": [
+        "SamuraiBladeWave.cpp"
+      ]
+    },
+    "CrescentSplitChance": {
+      "PerRank": [
+        "SamuraiBladeWave.cpp",
+        "combat_balance_v1.json"
+      ]
+    },
+    "BladeWave": {
+      "SlowFraction": [
+        "SamuraiBuildUpgrades.cpp"
+      ],
+      "SlowDuration": [
+        "SamuraiBuildUpgrades.cpp"
+      ],
+      "WaveWidth": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "WaveTravelDistance": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "WaveSpeed": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "WaveDamageMultiplier": [
+        "upgrade_tuning_defaults.json",
+        "combat_balance_v1.json"
+      ],
+      "SpawnForwardOffset": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "SpawnHeightOffset": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "WaveThickness": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "WaveHeight": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "WaveVFXAuthoredDuration": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "StatusStacks": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "BloodDetonation": {
+      "DamageMultiplier": [
+        "SamuraiBuildUpgrades.cpp",
+        "combat_balance_v1.json"
+      ],
+      "Radius": [
+        "SamuraiBuildUpgrades.cpp"
+      ]
+    },
+    "CrescentSlow": {
+      "PerRank": [
+        "SamuraiBuildUpgrades.cpp"
+      ]
+    },
+    "CrescentSlowDuration": {
+      "PerRank": [
+        "SamuraiBuildUpgrades.cpp"
+      ]
+    },
+    "BloodTransferArea": {
+      "PerRank": [
+        "SamuraiBuildUpgrades.cpp",
+        "SamuraiBuildUpgrades.cpp"
+      ]
+    },
+    "IaijutsuMarkDamage": {
+      "PerRank": [
+        "SamuraiIaijutsu.cpp"
+      ]
+    },
+    "IaijutsuCascadePower": {
+      "PerRank": [
+        "SamuraiIaijutsu.cpp"
+      ]
+    },
+    "CrescentEruptionPact": {
+      "EruptionDelay": [
+        "SamuraiWaveField.cpp"
+      ]
+    },
+    "ShurikenTempo": {
+      "PerRank": [
+        "ShurikenBuild.cpp",
+        "ShurikenBuild.cpp"
+      ]
+    },
+    "SynergySwapRestoresDashCharge": {
+      "ChargesRestored": [
+        "SurvivorPlayerController.cpp"
+      ]
+    },
+    "ShadowStep": {
+      "BaseAttacks": [
+        "SurvivorPlayerController.cpp"
+      ]
+    },
+    "BloodCapacity": {
+      "PerRank": [
+        "UpgradeBalance.h"
+      ]
+    },
+    "CrossingBlades": {
+      "AttackFrequency": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "WaveCount": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "SideAngle": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "SplinterWave": {
+      "SplinterDamageMultiplier": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "SplinterRadius": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "TagTeam": {
+      "SamuraiDamage": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "NinjaDamage": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "SamuraiRange": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "NinjaRange": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "SamuraiTargets": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "NinjaTargets": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "ConeHalfAngle": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "PushDistance": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "PushDuration": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "GrandEntrance": {
+      "SamuraiRadius": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "NinjaBonusProjectiles": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "NinjaFanAngle": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "BleedingEdge": {
+      "HitDamagePerTick": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "BloodTransfer": {
+      "TransferFraction": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "Radius": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "Targets": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "OverkillBurst": {
+      "Radius": [
+        "upgrade_tuning_defaults.json"
+      ],
+      "DamageMultiplier": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "WaveMultishot": {
+      "AnglePerWave": [
+        "upgrade_tuning_defaults.json"
+      ]
+    },
+    "Crescendo": {
+      "BaseCap": [
+        "ninja_build_upgrades.json"
+      ],
+      "CapPerRank": [
+        "ninja_build_upgrades.json"
+      ],
+      "AttacksPerProjectile": [
+        "ninja_build_upgrades.json"
+      ]
+    },
+    "HeavyShuriken": {
+      "SpeedReductionPerRank": [
+        "ninja_build_upgrades.json"
+      ]
+    },
+    "FangDamage": {
+      "PerRank": [
+        "fang_build_upgrades.json"
+      ]
+    },
+    "NinjaDamage": {
+      "PerRank": [
+        "fang_build_upgrades.json"
+      ]
+    },
+    "NinjaSpeed": {
+      "PerRank": [
+        "fang_build_upgrades.json"
+      ]
+    },
+    "NinjaCoverage": {
+      "PerRank": [
+        "fang_build_upgrades.json"
+      ]
+    },
+    "ShurikenDamage": {
+      "PerRank": [
+        "shuriken_build_upgrades.json"
+      ]
+    },
+    "ShurikenSpeed": {
+      "PerRank": [
+        "shuriken_build_upgrades.json"
+      ]
+    },
+    "BloodRush": {
+      "Duration": [
+        "Named local card lookup"
+      ],
+      "MoveSpeedBonus": [
+        "Named local card lookup"
+      ]
+    },
+    "IaijutsuDash": {
+      "DashDistanceBonus": [
+        "Named local card lookup"
+      ]
+    }
+  },
+  "conflicting_fallbacks": []
+}

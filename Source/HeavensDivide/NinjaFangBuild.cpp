@@ -1,3 +1,4 @@
+#include "UpgradeBalance.h"
 #include "NinjaBuildComponent.h"
 #include "UpgradeProcVFX.h"
 #include "AutoAttackComponent.h"
@@ -30,11 +31,11 @@ void UNinjaBuildComponent::FangLaunched(ANinjaBuildProjectile* P)
 {
     if (!P || P->bSpectralFang || P->bCloneProjectile || P->bAssistProjectile) return;
     ++FangLaunchCount;
-    const int32 Interval = FMath::Max(1, 4 - Upgrades()->GetUpgradeLevelById(TEXT("FangTwinFrequency")));
+    const int32 Interval = FMath::Max(1, FMath::RoundToInt(Tune(TEXT("FangTwin"), TEXT("Frequency"), 4.f) - UpgradeBalance::Rank(Upgrades(), TEXT("FangTwinFrequency"), 1.f)));
     if (!Has(TEXT("FangTwin")) || FangLaunchCount % Interval != 0) return;
     auto Candidates = Targets(P->GetActorLocation(), Attack()->GetEffectiveTargetingRange());
     Candidates.Remove(P->Target.Get());
-    for (int32 Index = 0; Index < 2; ++Index)
+    for (int32 Index = 0; Index < FMath::Clamp(FMath::RoundToInt(Tune(TEXT("FangTwin"), TEXT("ExtraBlades"), 2.f)), 1, 32); ++Index)
     {
         auto* TargetEnemy = Candidates.IsValidIndex(Index) ? Candidates[Index] : P->Target.Get();
         if (!TargetEnemy) continue;
@@ -61,7 +62,7 @@ float UNinjaBuildComponent::FangHit(ANinjaBuildProjectile* P, AEnemyBase* Enemy)
 {
     if (!P || !Enemy || Enemy->IsDead() || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Ninja)
         || !Enemy->GetHealthComponent() || !Enemy->GetHealthComponent()->IsDamageEnabled()) return 0;
-    P->Streak = P->LastVictim == Enemy ? FMath::Min(P->Streak + 1, 5) : 0;
+    P->Streak = P->LastVictim == Enemy ? FMath::Min(P->Streak + 1, FMath::Max(1, FMath::RoundToInt(Tune(TEXT("RelentlessFang"), TEXT("StreakCap"), 5.f)))) : 0;
     P->LastVictim = Enemy;
     const float Pressure = 1.f + FangBuild::Scaling(Upgrades(), TEXT("FangPressure"), .2f);
     float HitDamage = P->Damage;
@@ -86,7 +87,7 @@ float UNinjaBuildComponent::FangHit(ANinjaBuildProjectile* P, AEnemyBase* Enemy)
     const float Dealt = Hit(Enemy, HitDamage, false, P->bAssistProjectile);
     P->bFangHitThisTrip |= Dealt > 0;
     if (Dealt > 0 && Critical) PlayUpgradeProcVFX(Upgrades(), TEXT("FangDeadeye"), Position);
-    if (Dealt > 0 && Has(TEXT("RelentlessFang")) && P->Streak == 5)
+    if (Dealt > 0 && Has(TEXT("RelentlessFang")) && P->Streak == FMath::RoundToInt(Tune(TEXT("RelentlessFang"), TEXT("StreakCap"), 5.f)))
         PlayUpgradeProcVFX(Upgrades(), TEXT("RelentlessFang"), Position, 45.f);
     if (Enemy->IsDead())
     {
@@ -143,7 +144,7 @@ void UNinjaBuildComponent::ProcessFangScatter()
         if (!P) return;
         const auto Enemies = Targets(Event.Position, Tune(TEXT("FangSplinter"), TEXT("Range"), 700.f));
         P->Damage = Event.Damage;
-        P->Speed = 1400.f;
+        P->Speed = Tune(TEXT("FangSplinter"), TEXT("ProjectileSpeed"), 1400.f);
         P->Direction = Enemies.IsEmpty() ? FVector::ForwardVector.RotateAngleAxis(Event.Emitted * 137.5f, FVector::UpVector)
             : (Enemies[Event.Emitted % Enemies.Num()]->GetActorLocation() + FVector(0,0,45) - Event.Position).GetSafeNormal();
         ++Event.Emitted;

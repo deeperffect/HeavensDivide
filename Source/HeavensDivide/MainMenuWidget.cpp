@@ -10,6 +10,8 @@
 #include "TesterBalanceWidget.h"
 #include "MenuInkStyle.h"
 #include "MetaSkillTreeWidget.h"
+#include "StanceSelectionWidget.h"
+#include "RunStanceCatalog.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -92,7 +94,7 @@ namespace MainMenuCopy
 {
 	static const FText Title = FText::FromString(TEXT("BLOODSHIFT"));
 	static const FText ResetTitle = FText::FromString(TEXT("ERASE YOUR LEGACY?"));
-	static const FText ResetBody = FText::FromString(TEXT("This permanently removes all learned skills, Soul Embers, unlocked synergies, and Twin Soul discovery progress.\n\nThis cannot be undone."));
+	static const FText ResetBody = FText::FromString(TEXT("This permanently removes all purchased skills, stance and synergy unlocks, Soul Embers and Soul Sigils. Blood, Barrage and Tag Team remain available.\n\nThis cannot be undone."));
 }
 
 void UCollectionUpgradeTileButton::InitializeCollectionTile(UMainMenuWidget* InOwner, UUpgradeDefinition* InDefinition)
@@ -144,7 +146,8 @@ void UMainMenuWidget::NativeConstruct()
         // The game mode selects the main page immediately after AddToViewport.
         GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, PreviewPage]()
         {
-            if (PreviewPage == TEXT("Collection")) ShowCollectionPanel();
+            if (PreviewPage == TEXT("Stances")) ShowStanceSelection();
+            else if (PreviewPage == TEXT("Collection")) ShowCollectionPanel();
             else if (PreviewPage == TEXT("SkillTree")) ShowSkillTree();
             else if (PreviewPage == TEXT("Settings")) ShowSettingsPanel();
             else if (PreviewPage == TEXT("Keybinds")) { ShowSettingsPanel(); HandleKeybindSettings(); }
@@ -433,7 +436,7 @@ UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
         return Text;
     };
     Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionHeading"), TEXT("THE COLLECTION"), 34, BloodshiftMenu::Paper, true));
-    Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionSubtitle"), TEXT("Techniques discovered. Synergies awakened."), 18, BloodshiftMenu::Muted))
+    Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionSubtitle"), TEXT("Explore every technique. Purchase locked stances and synergies in the Skill Tree."), 18, BloodshiftMenu::Muted))
         ->SetPadding(FMargin(0, 8, 0, 2));
     AddSecondaryPageDivider(Panel);
     UHorizontalBox* Tabs = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CollectionTabs"));
@@ -730,7 +733,6 @@ void UMainMenuWidget::RebuildCollectionGrid()
 	CollectionTileButtons.Reset(); CollectionTileSelectionBorders.Reset(); CollectionTileSelectionImages.Reset(); CollectionTileIcons.Reset();
 	CollectionDefinitions = Meta->GetCollectionUpgradeDefinitions(SelectedCollectionCategory);
 	if (!CollectionDefinitions.Contains(SelectedCollectionUpgrade)) SelectedCollectionUpgrade = CollectionDefinitions.Num() ? CollectionDefinitions[0] : nullptr;
-	int32 UnlockedCount = 0;
 	const float TileScale = 1.10f;
 	const float TileDisplayExtent = 134.0f * TileScale;
 	const float TileSpacing = 20.0f;
@@ -751,8 +753,7 @@ void UMainMenuWidget::RebuildCollectionGrid()
 	for (int32 Index = 0; Index < CollectionDefinitions.Num(); ++Index)
 	{
 		UUpgradeDefinition* Definition = CollectionDefinitions[Index];
-		const bool bUnlocked = Meta->IsCollectionUpgradeUnlocked(Definition);
-		UnlockedCount += bUnlocked ? 1 : 0;
+		const bool bUnlocked=Meta->IsCollectionUpgradeUnlocked(Definition);
 		UCollectionUpgradeTileButton* Tile = WidgetTree->ConstructWidget<UCollectionUpgradeTileButton>(UCollectionUpgradeTileButton::StaticClass());
 		Tile->InitializeCollectionTile(this, Definition);
 		FButtonStyle Style = Tile->GetStyle(); FSlateBrush Empty; Empty.DrawAs = ESlateBrushDrawType::NoDrawType;
@@ -767,7 +768,7 @@ void UMainMenuWidget::RebuildCollectionGrid()
 		UOverlay* ContentLayers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
 		UOverlaySlot* ContentLayerSlot = AddFillLayer(TileLayers, ContentLayers); ContentLayerSlot->SetPadding(FMargin(3.0f * TileScale));
 		UBorder* BackgroundFallback = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
-		BackgroundFallback->SetBrushColor(bUnlocked ? BloodshiftMenu::Surface : BloodshiftMenu::Ink);
+		BackgroundFallback->SetBrushColor(BloodshiftMenu::Surface);
 		BackgroundFallback->SetVisibility(ESlateVisibility::HitTestInvisible);
 		AddFillLayer(ContentLayers, BackgroundFallback);
 		UImage* TileBackground = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
@@ -779,7 +780,7 @@ void UMainMenuWidget::RebuildCollectionGrid()
 		UTexture2D* DisplayTexture = Definition ? (Definition->Icon ? Definition->Icon : Definition->CardArtwork) : nullptr;
 		UImage* Icon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
 		Icon->SetBrushFromTexture(DisplayTexture, true);
-		Icon->SetColorAndOpacity(bUnlocked ? FLinearColor::White : FLinearColor(0.28f, 0.24f, 0.24f, 0.55f));
+		Icon->SetColorAndOpacity(bUnlocked?FLinearColor::White:FLinearColor(.38f,.38f,.38f,1));
 		Icon->SetVisibility(DisplayTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 		FVector2D IconSize(IconExtent);
 		if (DisplayTexture)
@@ -799,20 +800,6 @@ void UMainMenuWidget::RebuildCollectionGrid()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Collection WARNING: Missing icon for [%s]"), Definition ? *Definition->DisplayName.ToString() : TEXT("Invalid upgrade"));
 		}
-		if (!bUnlocked)
-		{
-			UImage* LockedOverlay = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
-				*FString::Printf(TEXT("Img_LockedOverlay_%d"), Index));
-			LockedOverlay->SetBrushFromTexture(TileBackgroundTexture, false);
-			LockedOverlay->SetDesiredSizeOverride(FVector2D(ContentExtent));
-			LockedOverlay->SetColorAndOpacity(FLinearColor(0.18f, 0.025f, 0.025f, 0.46f));
-			LockedOverlay->SetVisibility(ESlateVisibility::Collapsed);
-			AddFillLayer(ContentLayers, LockedOverlay);
-			UTextBlock* Lock = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass()); Lock->SetText(FText::FromString(TEXT("LOCKED")));
-			Lock->SetJustification(ETextJustify::Center); Lock->SetColorAndOpacity(FSlateColor(FLinearColor(0.62f,0.63f,0.66f)));
-			FSlateFontInfo Font = Lock->GetFont(); Font.Size = FMath::Max(1, FMath::RoundToInt(11.0f * TileScale)); Lock->SetFont(Font);
-			UOverlaySlot* LockSlot = ContentLayers->AddChildToOverlay(Lock); LockSlot->SetHorizontalAlignment(HAlign_Center); LockSlot->SetVerticalAlignment(VAlign_Bottom);
-		}
 		UImage* SelectedFrame = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(),
 			*FString::Printf(TEXT("Img_TileSelectedFrame_%d"), Index));
 		SelectedFrame->SetBrushFromTexture(TileSelectedTexture, false);
@@ -823,14 +810,25 @@ void UMainMenuWidget::RebuildCollectionGrid()
 		TileOrnament->SetContent(SNew(BloodshiftMenu::SInsetSurface).Fill(false).Compact(true));
 		TileOrnament->SetVisibility(ESlateVisibility::HitTestInvisible);
 		AddFillLayer(TileLayers, TileOrnament);
+		if(!bUnlocked)
+		{
+			UTextBlock* LockLabel=WidgetTree->ConstructWidget<UTextBlock>();
+			LockLabel->SetText(FText::FromString(TEXT("LOCKED")));
+			LockLabel->SetFont(BloodshiftMenu::BodyFont(13));
+			LockLabel->SetColorAndOpacity(BloodshiftMenu::Gold);
+			LockLabel->SetVisibility(ESlateVisibility::HitTestInvisible);
+			auto* LockSlot=TileLayers->AddChildToOverlay(LockLabel);
+			LockSlot->SetHorizontalAlignment(HAlign_Center);LockSlot->SetVerticalAlignment(VAlign_Bottom);
+			LockSlot->SetPadding(FMargin(0,0,0,9));
+		}
 		UUniformGridSlot* GridSlot = SynergyCollectionGrid->AddChildToUniformGrid(Tile, Index / ColumnCount, Index % ColumnCount);
 		GridSlot->SetHorizontalAlignment(HAlign_Center); GridSlot->SetVerticalAlignment(VAlign_Center);
 		CollectionTileButtons.Add(Tile); CollectionTileSelectionBorders.Add(Selection); CollectionTileSelectionImages.Add(SelectedFrame); CollectionTileIcons.Add(Icon);
 	}
-	CollectionDiscoveryCountText->SetText(FText::FromString(FString::Printf(TEXT("%d / %d UNLOCKED"), UnlockedCount, CollectionDefinitions.Num())));
-	if (SelectedCollectionCategory == EUpgradeCategory::Synergy && UnlockedCount < CollectionDefinitions.Num())
-		CollectionProgressText->SetText(FText::FromString(FString::Printf(TEXT("NEXT DISCOVERY  %d / %d"), Meta->GetTwinSoulDiscoveryProgress(), Meta->GetTwinSoulCompletionsPerDiscovery())));
-	else CollectionProgressText->SetText(FText::GetEmpty());
+	int32 UnlockedCount=0;
+	for(const UUpgradeDefinition* Definition:CollectionDefinitions)if(Meta->IsCollectionUpgradeUnlocked(Definition))++UnlockedCount;
+	CollectionDiscoveryCountText->SetText(FText::FromString(FString::Printf(TEXT("%d / %d UNLOCKED"),UnlockedCount,CollectionDefinitions.Num())));
+	CollectionProgressText->SetText(FText::FromString(TEXT("Stances and synergies are purchased with Soul Sigils.")));
 	RefreshCollectionDetails(); RefreshCollectionTileVisuals();
 }
 
@@ -845,8 +843,6 @@ void UMainMenuWidget::PreviewCollectionUpgrade(UUpgradeDefinition* Definition, b
 void UMainMenuWidget::RefreshCollectionDetails()
 {
 	if (!CollectionDetailName || !SelectedCollectionUpgrade) return;
-	USynergyMetaProgressionSubsystem* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-	const bool bUnlocked = Meta && Meta->IsCollectionUpgradeUnlocked(SelectedCollectionUpgrade);
 	UTexture2D* DisplayTexture = SelectedCollectionUpgrade->Icon ? SelectedCollectionUpgrade->Icon : SelectedCollectionUpgrade->CardArtwork;
 	CollectionDetailIcon->SetBrushFromTexture(DisplayTexture, true);
 	if (DisplayTexture)
@@ -856,13 +852,23 @@ void UMainMenuWidget::RefreshCollectionDetails()
 			FMath::Max(1.0f, CollectionDetailsArtworkSize.Y) / SourceSize.Y);
 		CollectionDetailIcon->SetDesiredSizeOverride(SourceSize * FitScale);
 	}
-	CollectionDetailIcon->SetColorAndOpacity(bUnlocked ? FLinearColor::White : FLinearColor(0.24f, 0.21f, 0.21f, 0.48f));
+	const auto* Meta=GetGameInstance()?GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>():nullptr;
+	const bool bUnlocked=Meta&&Meta->IsCollectionUpgradeUnlocked(SelectedCollectionUpgrade);
+	CollectionDetailIcon->SetColorAndOpacity(bUnlocked?FLinearColor::White:FLinearColor(.5f,.5f,.5f,1));
 	CollectionDetailIcon->SetVisibility(DisplayTexture ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
-	CollectionDetailName->SetText(bUnlocked ? SelectedCollectionUpgrade->DisplayName : FText::FromString(TEXT("UNKNOWN TECHNIQUE")));
-	CollectionDetailDescription->SetText(bUnlocked ? SelectedCollectionUpgrade->Description
-		: FText::FromString(TEXT("LOCKED. Find this upgrade during a run to unlock it.")));
-	CollectionDetailStats->SetText(bUnlocked ? FText::FromString(FString::Printf(TEXT("MAX LEVEL  %d\nRARITY  %s"),
-		SelectedCollectionUpgrade->MaxLevel, *UEnum::GetDisplayValueAsText(SelectedCollectionUpgrade->Rarity).ToString().ToUpper())) : FText::GetEmpty());
+	CollectionDetailName->SetText(SelectedCollectionUpgrade->DisplayName);
+	CollectionDetailDescription->SetText(SelectedCollectionUpgrade->GetBalanceDescription());
+	FString Ownership;
+	if(RunStances::Find(SelectedCollectionUpgrade->UpgradeId))
+		Ownership=bUnlocked?TEXT("STANCE UNLOCKED / SELECT IN NEW RUN"):FString::Printf(TEXT("STANCE LOCKED / %d SOUL SIGILS\nPurchase in Skill Tree / Stances"),Meta?Meta->GetStanceCost(SelectedCollectionUpgrade->UpgradeId):0);
+	else if(SelectedCollectionUpgrade->Category==EUpgradeCategory::Synergy)
+	{
+		const FName Id=SelectedCollectionUpgrade->MetaUnlockId.IsNone()?SelectedCollectionUpgrade->UpgradeId:SelectedCollectionUpgrade->MetaUnlockId;
+		Ownership=bUnlocked?TEXT("SYNERGY UNLOCKED / CAN APPEAR IN RUNS"):FString::Printf(TEXT("SYNERGY LOCKED / %d SOUL SIGILS\nPurchase in Skill Tree / Upgrades"),Meta?Meta->GetSynergyCost(Id):0);
+	}
+	else Ownership=TEXT("RUN UPGRADE / MATCHING BUILD REQUIRED");
+	CollectionDetailStats->SetText(FText::FromString(FString::Printf(TEXT("%s\n\nMAX LEVEL  %d\nRARITY  %s"),*Ownership,
+		SelectedCollectionUpgrade->MaxLevel,*UEnum::GetDisplayValueAsText(SelectedCollectionUpgrade->Rarity).ToString().ToUpper())));
 }
 
 void UMainMenuWidget::RefreshCollectionTileVisuals()
@@ -1126,7 +1132,21 @@ void UMainMenuWidget::SetSkillTreeVisible(bool bVisible)
 
 void UMainMenuWidget::HandleNewRun()
 {
-	UGameplayStatics::OpenLevel(this, TEXT("/Game/Maps/Lvl_B1_Lvl1"));
+	ShowStanceSelection();
+}
+
+void UMainMenuWidget::ShowStanceSelection()
+{
+	if (bInRunSettings || !MenuSwitcher) return;
+	ShowMainPanel();
+	if (!StanceSelectionPage)
+	{
+		StanceSelectionPage = CreateWidget<UStanceSelectionWidget>(this);
+		StanceSelectionPage->MenuOwner = this;
+		MenuSwitcher->AddChild(StanceSelectionPage);
+	}
+	MenuSwitcher->SetActiveWidget(StanceSelectionPage);
+	StanceSelectionPage->Open();
 }
 
 void UMainMenuWidget::HandleCollection() { ShowCollectionPanel(); }

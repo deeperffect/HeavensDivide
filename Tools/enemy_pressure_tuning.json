@@ -1,0 +1,2289 @@
+{
+  "population_multiplier": 0.9,
+  "spawn_rate_multiplier": 0.9,
+  "enemy_health_multiplier": 1.1,
+  "targets": {
+    "enemies": {
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla": {
+        "health": 660,
+        "xp": 72
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre": {
+        "health": 264,
+        "xp": 30
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear": {
+        "health": 35.2,
+        "xp": 5
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature": {
+        "health": 26.4,
+        "xp": 4
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged": {
+        "health": 52.8,
+        "xp": 8
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish": {
+        "health": 8.8,
+        "xp": 2
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton": {
+        "health": 17.6,
+        "xp": 3
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb": {
+        "health": 35.2,
+        "xp": 6
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler": {
+        "health": 13.2,
+        "xp": 3
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt": {
+        "health": 17.6,
+        "xp": 3
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshenMarcher": {
+        "health": 26.4,
+        "xp": 3
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer": {
+        "health": 61.6,
+        "xp": 9
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker": {
+        "health": 52.8,
+        "xp": 8
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle": {
+        "health": 105.6,
+        "xp": 15
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor": {
+        "health": 105.6,
+        "xp": 15
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper": {
+        "health": 70.4,
+        "xp": 10
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer": {
+        "health": 70.4,
+        "xp": 10
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver": {
+        "health": 79.2,
+        "xp": 11
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden": {
+        "health": 440,
+        "xp": 48
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla": {
+        "health": 825,
+        "xp": 90
+      },
+      "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer": {
+        "health": 158.4,
+        "xp": 22
+      }
+    },
+    "spawners": {
+      "blueprint": {
+        "hard_cap": 144,
+        "phases": [
+          {
+            "name": "MixedPressure_01",
+            "cap": 58,
+            "normal": 0.744444,
+            "accelerated": 0.4,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 26,
+                "max": 26
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 10,
+                "max": 10
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_02",
+            "cap": 64,
+            "normal": 0.721111,
+            "accelerated": 0.392222,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 31,
+                "max": 31
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 12,
+                "max": 12
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_03",
+            "cap": 70,
+            "normal": 0.697778,
+            "accelerated": 0.384444,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 35,
+                "max": 35
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 14,
+                "max": 14
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_04",
+            "cap": 77,
+            "normal": 0.674444,
+            "accelerated": 0.376667,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 40,
+                "max": 40
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 15,
+                "max": 15
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_05",
+            "cap": 83,
+            "normal": 0.651111,
+            "accelerated": 0.368889,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 44,
+                "max": 44
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 17,
+                "max": 17
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_06",
+            "cap": 89,
+            "normal": 0.627778,
+            "accelerated": 0.361111,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 49,
+                "max": 49
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 19,
+                "max": 19
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_07",
+            "cap": 95,
+            "normal": 0.604444,
+            "accelerated": 0.353333,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 53,
+                "max": 53
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 21,
+                "max": 21
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_08",
+            "cap": 102,
+            "normal": 0.581111,
+            "accelerated": 0.345556,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 58,
+                "max": 58
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 23,
+                "max": 23
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_09",
+            "cap": 108,
+            "normal": 0.557778,
+            "accelerated": 0.337778,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 62,
+                "max": 62
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 24,
+                "max": 24
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_10",
+            "cap": 114,
+            "normal": 0.534444,
+            "accelerated": 0.33,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 67,
+                "max": 67
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 26,
+                "max": 26
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_11",
+            "cap": 121,
+            "normal": 0.511111,
+            "accelerated": 0.322222,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 71,
+                "max": 71
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 28,
+                "max": 28
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_12",
+            "cap": 127,
+            "normal": 0.487778,
+            "accelerated": 0.314444,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 76,
+                "max": 76
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 30,
+                "max": 30
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          }
+        ]
+      },
+      "/Game/Maps/Lvl_B1_Lvl1": {
+        "hard_cap": 144,
+        "phases": [
+          {
+            "name": "MixedPressure_01",
+            "cap": 58,
+            "normal": 0.744444,
+            "accelerated": 0.4,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 26,
+                "max": 26
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 10,
+                "max": 10
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_02",
+            "cap": 64,
+            "normal": 0.721111,
+            "accelerated": 0.392222,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 31,
+                "max": 31
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 12,
+                "max": 12
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_03",
+            "cap": 70,
+            "normal": 0.697778,
+            "accelerated": 0.384444,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 35,
+                "max": 35
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 14,
+                "max": 14
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_04",
+            "cap": 77,
+            "normal": 0.674444,
+            "accelerated": 0.376667,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 40,
+                "max": 40
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 15,
+                "max": 15
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_05",
+            "cap": 83,
+            "normal": 0.651111,
+            "accelerated": 0.368889,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 44,
+                "max": 44
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 17,
+                "max": 17
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 0
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_06",
+            "cap": 89,
+            "normal": 0.627778,
+            "accelerated": 0.361111,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 49,
+                "max": 49
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 19,
+                "max": 19
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_07",
+            "cap": 95,
+            "normal": 0.604444,
+            "accelerated": 0.353333,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 53,
+                "max": 53
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 21,
+                "max": 21
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 0
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_08",
+            "cap": 102,
+            "normal": 0.581111,
+            "accelerated": 0.345556,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinCrawler.BP_EnemyGoblinCrawler_C",
+                "desired": 58,
+                "max": 58
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 23,
+                "max": 23
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_09",
+            "cap": 108,
+            "normal": 0.557778,
+            "accelerated": 0.337778,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyCreature.BP_EnemyCreature_C",
+                "desired": 62,
+                "max": 62
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 24,
+                "max": 24
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_10",
+            "cap": 114,
+            "normal": 0.534444,
+            "accelerated": 0.33,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFish.BP_EnemyFish_C",
+                "desired": 67,
+                "max": 67
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 26,
+                "max": 26
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_11",
+            "cap": 121,
+            "normal": 0.511111,
+            "accelerated": 0.322222,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyBear.BP_EnemyBear_C",
+                "desired": 71,
+                "max": 71
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 28,
+                "max": 28
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          },
+          {
+            "name": "MixedPressure_12",
+            "cap": 127,
+            "normal": 0.487778,
+            "accelerated": 0.314444,
+            "emergency": 0.211111,
+            "event_min": 64.444444,
+            "event_max": 94.444444,
+            "populations": [
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyFloatingSkeleton.BP_EnemyFloatingSkeleton_C",
+                "desired": 76,
+                "max": 76
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGrunt.BP_EnemyGrunt_C",
+                "desired": 30,
+                "max": 30
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_AshSeer.BP_AshSeer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HexSniper.BP_HexSniper_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_MireWeaver.BP_MireWeaver_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_HornLancer.BP_HornLancer_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FangStalker.BP_FangStalker_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_GraveCantor.BP_GraveCantor_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_WarDrummer.BP_WarDrummer_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_OgreWarden.BP_OgreWarden_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_StormGorilla.BP_StormGorilla_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Tactical/BP_FrostOracle.BP_FrostOracle_C",
+                "desired": 0,
+                "max": 2
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyDevilRanged.BP_EnemyDevilRanged_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Mobs/BP_EnemyGoblinBomb.BP_EnemyGoblinBomb_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyOgre.BP_EnemyOgre_C",
+                "desired": 0,
+                "max": 1
+              },
+              {
+                "class": "/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C",
+                "desired": 0,
+                "max": 1
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

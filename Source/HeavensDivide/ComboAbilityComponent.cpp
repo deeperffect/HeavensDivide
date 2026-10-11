@@ -17,6 +17,7 @@
 #include "SurvivorPlayerController.h"
 #include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
+#include "PlayerUpgradeComponent.h"
 
 UComboAbilityComponent::UComboAbilityComponent()
 {
@@ -43,12 +44,19 @@ void UComboAbilityComponent::EndPlay(const EEndPlayReason::Type Reason)
 }
 
 float UComboAbilityComponent::GetMaxCombo() const { return FMath::IsFinite(MaxCombo) ? FMath::Max(1.f, MaxCombo) : 100.f; }
-float UComboAbilityComponent::GetComboPercent() const { return FMath::Clamp(CurrentCombo / GetMaxCombo(), 0.f, 1.f); }
-bool UComboAbilityComponent::IsFull() const { return CurrentCombo >= GetMaxCombo(); }
+float UComboAbilityComponent::GetComboPercent() const { return IsComboUnlocked() ? FMath::Clamp(CurrentCombo / GetMaxCombo(), 0.f, 1.f) : 0.f; }
+bool UComboAbilityComponent::IsFull() const { return IsComboUnlocked() && CurrentCombo >= GetMaxCombo(); }
+bool UComboAbilityComponent::IsComboUnlocked() const
+{
+    const auto* PC=Cast<ASurvivorPlayerController>(GetOwner());
+    const auto* Upgrades=PC?PC->GetPlayerUpgrades():nullptr;
+    // The explicit BalanceLab full-meta profile supplies this bonus without editing the player's save.
+    return Upgrades && Upgrades->GetMetaSkillBonus(TEXT("ComboUnlock"))>0.f;
+}
 bool UComboAbilityComponent::CanRun() const
 {
     const auto* PC = Cast<ASurvivorPlayerController>(GetOwner());
-    return PC && PC->IsRunInProgress() && !PC->IsPlayerDead();
+    return PC && PC->IsRunInProgress() && !PC->IsPlayerDead() && IsComboUnlocked();
 }
 void UComboAbilityComponent::SetCombo(float Amount)
 {
@@ -57,10 +65,15 @@ void UComboAbilityComponent::SetCombo(float Amount)
     CurrentCombo = Value;
     OnComboChanged.Broadcast(CurrentCombo, GetMaxCombo(), GetComboPercent());
 }
-void UComboAbilityComponent::RestoreCombo(float Amount) { SetCombo(Amount); }
+void UComboAbilityComponent::RestoreCombo(float Amount) { SetCombo(IsComboUnlocked()?Amount:0.f); }
 void UComboAbilityComponent::AddCombo(float Amount)
 {
-    if (CanRun() && FMath::IsFinite(Amount) && Amount > 0.f) SetCombo(CurrentCombo + FMath::Min(Amount, GetMaxCombo()));
+    if (CanRun() && FMath::IsFinite(Amount) && Amount > 0.f)
+    {
+        const auto* Upgrades=CastChecked<ASurvivorPlayerController>(GetOwner())->GetPlayerUpgrades();
+        const float Multiplier=1.f+FMath::Max(0.f,Upgrades->GetMetaSkillBonus(TEXT("ComboCharge")));
+        SetCombo(CurrentCombo+FMath::Min(Amount*Multiplier,GetMaxCombo()));
+    }
 }
 void UComboAbilityComponent::NotifySynergyAttack() { AddCombo(SynergyGain); }
 void UComboAbilityComponent::HandleSwap(ACharacterBase* OldCharacter, ACharacterBase* NewCharacter)
@@ -87,6 +100,9 @@ bool UComboAbilityComponent::TryActivateAbility()
     auto* PC = CastChecked<ASurvivorPlayerController>(GetOwner());
     auto* Character = PC->GetCharacterManager()->GetActiveCharacter();
     ActiveSettings = Character->ComboAbility;
+    // Snapshot the bonus once, leaving the character's authored settings and subsequent pulses unchanged.
+    if(const auto* Upgrades=PC->GetPlayerUpgrades())
+        ActiveSettings.DamagePerPulse*=1.f+FMath::Max(0.f,Upgrades->GetMetaSkillBonus(TEXT("ComboPower")));
     ActiveSettings.EffectDelay = FMath::Max(0.f, ActiveSettings.EffectDelay);
     ActiveSettings.EffectDuration = FMath::Max(.01f, ActiveSettings.EffectDuration);
     ActiveSettings.PulseInterval = FMath::Max(.02f, ActiveSettings.PulseInterval);

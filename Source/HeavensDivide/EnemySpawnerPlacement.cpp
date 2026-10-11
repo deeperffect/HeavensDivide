@@ -9,6 +9,7 @@
 #include "DrawDebugHelpers.h"
 #include "HAL/IConsoleManager.h"
 #include "Stats/Stats.h"
+#include "Kismet/GameplayStatics.h"
 
 TAutoConsoleVariable<int32> CVarDebugEnemySpawnGround(
 	TEXT("hd.DebugEnemySpawnGround"),
@@ -18,6 +19,25 @@ TAutoConsoleVariable<int32> CVarDebugEnemySpawnGround(
 static constexpr float EnemySpawnWalkableGroundNormalZ = 0.7f;
 static constexpr ECollisionChannel EnemySpawnGroundTraceChannel = ECC_GameTraceChannel2;
 
+bool AEnemySpawner::ProjectEncounterGround(const FVector& Desired, FVector& OutGround) const
+{
+    return ProjectSpawnLocationToNavigation(Desired,OutGround)
+        && FVector::DistSquared2D(Desired,OutGround)<=FMath::Square(35.f)
+        && IsSpawnLocationInsideArena(OutGround);
+}
+
+bool AEnemySpawner::ValidateEncounterLocation(const FVector& Desired, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutLocation) const
+{
+    FVector Ground;
+    float Radius, HalfHeight;
+    GetEnemyCapsuleDimensions(EnemyClass, Radius, HalfHeight);
+    if (!ProjectSpawnLocationToNavigation(Desired, Ground)) return false;
+    // A formation cannot tolerate navigation moving individual members sideways.
+    if (FVector::DistSquared2D(Desired, Ground) > FMath::Square(35.f)) return false;
+    OutLocation = Ground + FVector(0,0,HalfHeight);
+    return IsSpawnLocationInsideArena(OutLocation) && IsSpawnLocationCollisionFree(OutLocation, EnemyClass);
+}
+
 static bool IsValidEnemySpawnGroundHit(const FHitResult& HitResult)
 {
 	AActor* HitActor = HitResult.GetActor();
@@ -25,6 +45,24 @@ static bool IsValidEnemySpawnGroundHit(const FHitResult& HitResult)
 		&& HitResult.GetComponent()
 		&& (!HitActor || (!Cast<AEnemyBase>(HitActor) && !Cast<ACharacterBase>(HitActor)))
 		&& HitResult.ImpactNormal.Z >= EnemySpawnWalkableGroundNormalZ;
+}
+
+// Multi-channel traces stop at the first blocker, even when that hit is later rejected.
+// Retry past transient characters so a crowd cannot hide valid floor from encounters.
+static void TraceSpawnGround(UWorld* World, TArray<FHitResult>& Hits, const FVector& Start,
+    const FVector& End, FCollisionQueryParams Params)
+{
+    for (int32 Attempt=0; Attempt<32; ++Attempt)
+    {
+        World->LineTraceMultiByChannel(Hits,Start,End,EnemySpawnGroundTraceChannel,Params);
+        AActor* Blocker=nullptr;
+        for (const FHitResult& Hit:Hits)
+            if (Hit.bBlockingHit && (Cast<AEnemyBase>(Hit.GetActor()) || Cast<ACharacterBase>(Hit.GetActor())))
+                Blocker=Hit.GetActor();
+        if (!Blocker) return;
+        Params.AddIgnoredActor(Blocker);
+    }
+    Hits.Reset(); // Fail safely if an unusually deep stack exceeds the bounded retry budget.
 }
 
 bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutSpawnLocation,
@@ -164,9 +202,10 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemySpawnerGroundTrace), false, this);
 	QueryParams.AddIgnoredActor(this);
+    QueryParams.AddIgnoredActor(UGameplayStatics::GetPlayerPawn(this,0));
 
 	TArray<FHitResult> HitResults;
-	const bool bHasGroundHits = World->LineTraceMultiByChannel(HitResults, TraceStart, TraceEnd, EnemySpawnGroundTraceChannel, QueryParams);
+	TraceSpawnGround(World, HitResults, TraceStart, TraceEnd, QueryParams);
 
 	FHitResult GroundHit;
 	bool bHitGround = false;
@@ -217,7 +256,7 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	const FVector NavGroundTraceStart = FVector(NavLocation.Location.X, NavLocation.Location.Y, CandidateLocation.Z + GroundTraceHeight);
 	const FVector NavGroundTraceEnd = FVector(NavLocation.Location.X, NavLocation.Location.Y, CandidateLocation.Z - GroundTraceDepth);
 	TArray<FHitResult> NavGroundHits;
-	World->LineTraceMultiByChannel(NavGroundHits, NavGroundTraceStart, NavGroundTraceEnd, EnemySpawnGroundTraceChannel, QueryParams);
+	TraceSpawnGround(World, NavGroundHits, NavGroundTraceStart, NavGroundTraceEnd, QueryParams);
 
 	FHitResult NavGroundHit;
 	bool bHitNavGround = false;

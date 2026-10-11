@@ -10,6 +10,7 @@ class USceneComponent;
 class USoundBase;
 class USphereComponent;
 class UStaticMeshComponent;
+class UMinimapMarkerComponent;
 
 UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AHealingPickup : public AActor
@@ -22,6 +23,7 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 
 protected:
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Healing Pickup|Components")

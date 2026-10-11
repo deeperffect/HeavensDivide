@@ -70,7 +70,7 @@ struct FEnemySpawnEntry
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner", meta = (ToolTip = "Whether this spawn entry is allowed to be selected. Disable to temporarily remove this enemy type from spawning."))
 	bool bEnabled = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Scaling", meta = (ClampMin = "0.0", UIMin = "0.0", ToolTip = "Continuous max-health growth per elapsed run minute for this enemy class. 0.05 means +5% base max health per minute."))
+	UPROPERTY(meta = (DeprecatedProperty, DeprecationMessage = "Time-based enemy health scaling is disabled."))
 	float HealthScalingPerMinute = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure", meta = (ToolTip = "Maintained enemies refill population deficits. Timed threats use phase MaxPopulation and death-based replacement cooldowns."))
@@ -180,8 +180,18 @@ class HEAVENSDIVIDE_API AEnemySpawner : public AActor
 	friend class FSpawnerDirectorTest;
 	friend class UTesterBalanceSettings;
 	friend class FTesterBalanceTest;
+	friend class URunChallengeSubsystem;
+	friend class FRunChallengeTest;
+	bool bRunChallengeApplied = false;
 
 public:
+    // Encounter formations use exactly the normal spawn ground, arena and clearance rules.
+    bool ValidateEncounterLocation(const FVector& Desired, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutLocation) const;
+    float ChooseSwarmDirection() const;
+    mutable TArray<int32> CachedSwarmCounts;
+    mutable double NextSwarmCountRefresh = -1.0;
+    bool ProjectEncounterGround(const FVector& Desired, FVector& OutGround) const;
+    bool IsEncounterInsideArena(const FVector& Position) const { return IsSpawnLocationInsideArena(Position); }
 	AEnemySpawner();
 
 	virtual void BeginPlay() override;
@@ -258,7 +268,7 @@ public:
 	FSpawnerEnemyBecameBloodbound OnEnemyBecameBloodbound;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Roster", meta = (ToolTip = "Enemy class definitions, runtime windows, health scaling and replacement cooldowns. Phase entries control population, priority and caps."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Roster", meta = (ToolTip = "Enemy class definitions, runtime windows and replacement cooldowns. Phase entries control population, priority and caps."))
 	TArray<FEnemySpawnEntry> EnemySpawnEntries;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure", meta = (ToolTip = "Authored population phases. Exactly one valid phase should contain the authoritative run time."))
@@ -277,7 +287,11 @@ protected:
 	int32 EmergencyMaxBatchSize = 4;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Threats", meta = (ClampMin = "0.0", ClampMax = "1.0", UIMin = "0.0", UIMax = "1.0", ToolTip = "Chance that an eligible timed threat takes a spawn slot while maintained population deficits also exist."))
-	float TimedThreatSpawnSlotChance = 0.20f;
+	float TimedThreatSpawnSlotChance = 0.18f;
+
+	/** Shared ceiling across all timed-threat classes, in addition to per-class caps. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Spawner|Pressure", meta=(ClampMin="0"))
+	int32 MaxTimedThreatsAlive = 6;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Events")
 	TArray<FEnemyPressureEventDefinition> PressureEvents;
@@ -293,15 +307,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.1", Units = "s")) float SpatialPressureEvaluationInterval = 2.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm/s")) float MinimumPlayerSpeedForDirectionalRecycling = 150.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", ClampMax = "1.0")) float MinimumGruntPopulationRatioForRecycling = 0.85f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm")) float StaleGruntMinimumDistance = 2800.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm")) float StaleGruntMinimumDistance = 2400.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "-1.0", ClampMax = "1.0")) float StaleGruntBehindDotThreshold = -0.50f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "1")) int32 MaxGruntsRecycledPerEvaluation = 4;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "1")) int32 MaxGruntsRecycledPerEvaluation = 6;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "s")) float MinimumSecondsAliveBeforeRecyclable = 5.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm")) float ReplacementSpawnDistanceMin = 1200.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "cm")) float ReplacementSpawnDistanceMax = 2000.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "4", ClampMax = "16")) int32 SpatialSectorCount = 8;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure") bool bPreferUnderrepresentedSectors = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", ClampMax = "1.0", ToolTip = "Blends inverse-density sector weights toward uniform randomness.")) float ReplacementSectorRandomness = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", ClampMax = "1.0", ToolTip = "Blends inverse-density sector weights toward uniform randomness.")) float ReplacementSectorRandomness = 0.1f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawner|Pressure|Spatial Pressure", meta = (ClampMin = "0.0", Units = "s")) float EventGruntRecycleProtectionSeconds = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal survival spawning uses PressurePhases.", ClampMin = "0.01", UIMin = "0.01"))
@@ -337,7 +351,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Placement", meta = (ToolTip = "Master switch for normal enemy spawning. Disable to stop this spawner from scheduling new normal spawn batches."))
 	bool bSpawningEnabled = true;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Run Scaling|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Normal enemy health uses FEnemySpawnEntry.HealthScalingPerMinute."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Run Scaling|Legacy", meta = (DeprecatedProperty, DeprecationMessage = "Time-based enemy health scaling is disabled."))
 	TObjectPtr<UCurveFloat> HealthMultiplierCurve;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawner|Run Scaling", meta = (ToolTip = "Optional curve evaluated by run time in seconds to scale enemy damage. If unset, the C++ default damage scaling is used."))
@@ -467,6 +481,7 @@ protected:
 	bool IsSpawnLocationCollisionFree(const FVector& Location, TSubclassOf<AEnemyBase> EnemyClass) const;
 	void GetEnemyCapsuleDimensions(TSubclassOf<AEnemyBase> EnemyClass, float& OutRadius, float& OutHalfHeight) const;
 	int32 GetAliveEnemyCount();
+	int32 GetAliveTimedThreatCount() const;
 	float GetHealthMultiplier(const FEnemySpawnEntry& SpawnEntry) const;
 	float GetDamageMultiplier() const;
 	float GetSpawnPressure() const;

@@ -103,6 +103,7 @@ public:
 	UFUNCTION(Exec)
 	void AbilityShowcase();
  UFUNCTION(Exec) void NinjaBuildPreview(const FString& BuildName);
+ UFUNCTION(Exec) void BalanceLab(const FString& Action, const FString& Value = TEXT(""), int32 Count = 1);
 	/** Preview one full family; branch 0 grants all three, 1-3 grants just that branch. */
 	UFUNCTION(Exec) void BuildPreview(const FString& FamilyId, int32 Branch = 0);
 	void BeginObjectiveChoiceInput(UWidget* FocusWidget);

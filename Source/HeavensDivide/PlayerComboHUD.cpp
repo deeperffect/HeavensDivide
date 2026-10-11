@@ -110,6 +110,8 @@ void UPlayerHUDWidget::UpdateComboPresentation()
 {
     if (ComboContainer) ComboContainer->SetVisibility(bShowComboMeter ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
     if (!bShowComboMeter) return;
+    const auto* Combo=SurvivorPlayerController?SurvivorPlayerController->FindComponentByClass<UComboAbilityComponent>():nullptr;
+    const bool bUnlocked=Combo&&Combo->IsComboUnlocked();
     const bool bReady = IsComboReady();
     const float RealTime = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.f;
     const float Glow = bReady ? ComboGlowIntensity * (.7f + .25f * FMath::Sin(RealTime * ComboGlowPulseSpeed * 2.f * PI)) : 0.f;
@@ -118,9 +120,16 @@ void UPlayerHUDWidget::UpdateComboPresentation()
     {
         ComboMeterBar->SetPercent(GetComboPercent());
         ComboMeterBar->SetFillColorAndOpacity(bReady ? ComboReadyColor : ComboChargingColor);
+        ComboMeterBar->SetRenderOpacity(bUnlocked?1.f:.35f);
     }
     if (ComboAbilityText)
     {
+        if(!bUnlocked)
+        {
+            ComboAbilityText->SetColorAndOpacity(FSlateColor(FLinearColor(.48f,.60f,.61f)));
+            ComboAbilityText->SetText(NSLOCTEXT("Combo","LockedHUD","COMBO LOCKED\nUnlock in Skill Tree / Abilities"));
+            return;
+        }
         ComboAbilityText->SetColorAndOpacity(FSlateColor(bReady ? ComboReadyColor : FLinearColor(.9f, .87f, .8f)));
         const auto* Character = GetActiveCharacter();
         const auto* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();

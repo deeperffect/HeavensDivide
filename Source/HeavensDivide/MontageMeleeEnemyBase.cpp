@@ -11,7 +11,7 @@ void AMontageMeleeEnemyBase::StartAttack()
 		return;
 	}
 
-	if (bIsDead || IsPlayerTargetDead() || bIsAttacking || !CurrentTarget || !IsTargetInAttackRange())
+	if (bIsDead || bGameplaySuspended || IsPlayerTargetDead() || bIsAttacking || !CurrentTarget || !IsTargetInAttackRange())
 	{
 		StopAttackTimer();
 		return;
@@ -58,6 +58,7 @@ void AMontageMeleeEnemyBase::StartAttack()
 
 void AMontageMeleeEnemyBase::PerformAttackHit()
 {
+	if (bIsDead || bGameplaySuspended || !bIsAttacking) return;
 	if (IsStressTestCombatDisabled())
 	{
 		return;

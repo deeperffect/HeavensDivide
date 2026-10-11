@@ -1,4 +1,5 @@
 #include "NinjaBuildComponent.h"
+#include "UpgradeBalance.h"
 #include "FangBuild.h"
 #include "AttackProjectileBase.h"
 #include "AutoAttackComponent.h"
@@ -227,8 +228,8 @@ bool UNinjaBuildComponent::ReplaceVolley(FVector Direction, bool bAssist)
     if(auto* P=SpawnShuriken(Ninja()->GetActorLocation() + Direction * 65 + FVector(0, 0, 50), Direction, !bAssist))
     {
         P->bAssistProjectile=bAssist;
-        if (!bAssist && ++ShurikenThrowCount % FMath::Max(1,4-Upgrades()->GetUpgradeLevelById(TEXT("ShurikenTwinFrequency"))) == 0 && Has(TEXT("ShurikenTwin")))
-            if (auto* Twin=SpawnShuriken(P->GetActorLocation(),Direction.RotateAngleAxis(20,FVector::UpVector),false))
+        if (!bAssist && ++ShurikenThrowCount % FMath::Max(1,FMath::RoundToInt(Tune(TEXT("ShurikenTwin"),TEXT("Frequency"),4.f)-UpgradeBalance::Rank(Upgrades(), TEXT("ShurikenTwinFrequency"), 1.f))) == 0 && Has(TEXT("ShurikenTwin")))
+            if (auto* Twin=SpawnShuriken(P->GetActorLocation(),Direction.RotateAngleAxis(Tune(TEXT("ShurikenTwin"),TEXT("SideAngle"),20.f),FVector::UpVector),false))
             {
                 Twin->Damage=P->Damage; Twin->Radius=P->Radius; Twin->InitialRadius=P->InitialRadius;
                 Twin->OrbitAngle=P->OrbitAngle+PI; Twin->UpdateShurikenVisualScale();
@@ -270,6 +271,7 @@ ANinjaBuildProjectile *UNinjaBuildComponent::SpawnShuriken(FVector Position, FVe
                              25.f, 300.f);
     P->Radius *= Has(TEXT("ShurikenHunger")) ? Tune(TEXT("ShurikenHunger"),TEXT("InitialSizeMultiplier"),.7f)
         : 1.f + FangBuild::Scaling(Upgrades(), TEXT("ShurikenSize"), .15f);
+    P->Radius *= 1.f + (Upgrades() ? Upgrades()->GetMetaSkillBonus(TEXT("ShurikenSize")) : 0.f);
     P->InitialRadius=P->Radius;
     P->OrbitOrigin=Ninja()->GetActorLocation()+FVector(0,0,50);
     P->OrbitAngle=FMath::Atan2(Direction.Y,Direction.X);
@@ -306,7 +308,7 @@ void UNinjaBuildComponent::ModifyVolleyWithCounter(int32 &Count, float &Spacing,
     if (!Has(TEXT("BarrageStance")))
         return;
     ++Volley;
-    if (Has(TEXT("NeedleRain")) && Volley % FMath::Max(1, 4-Upgrades()->GetUpgradeLevelById(TEXT("BarrageRainFrequency"))) == 0) Count *= 2;
+    if (Has(TEXT("NeedleRain")) && Volley % FMath::Max(1, FMath::RoundToInt(Tune(TEXT("NeedleRain"),TEXT("Frequency"),4.f)-UpgradeBalance::Rank(Upgrades(), TEXT("BarrageRainFrequency"), 1.f))) == 0) Count = FMath::RoundToInt(Count*FMath::Max(1.f,Tune(TEXT("NeedleRain"),TEXT("ProjectileMultiplier"),2.f)));
     if (Has(TEXT("BarrageProcession"))) Spacing = 0.f;
     Count = FMath::Clamp(Count, 1, 128);
 }
@@ -315,7 +317,7 @@ float UNinjaBuildComponent::Hit(AEnemyBase *Enemy, float Damage, bool bEmbed, bo
     if (!Enemy || !Upgrades() || Enemy->IsDead() || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Ninja))
         return 0;
     if (Enemy->IsMarked() && Enemy->ConsumeMark())
-        Damage *= 2;
+        Damage *= FMath::Max(1.f,Tune(TEXT("MarkedBlade"),TEXT("NinjaDamageMultiplier"),2.f));
     if (!ApplyEmbeddedHit(Enemy, Damage, Upgrades(), bEmbed))
         return 0;
     if ((Attack() && Attack()->ProjectileClass) || (bShuriken && ShurikenHitSound))

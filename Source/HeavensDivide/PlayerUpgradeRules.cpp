@@ -1,4 +1,5 @@
 #include "PlayerUpgradeRules.h"
+#include "BloodshiftBalanceData.h"
 
 #include "BarrageBuild.h"
 #include "ShurikenBuild.h"
@@ -8,9 +9,9 @@
 
 namespace PlayerUpgradeRules
 {
-// Temporary availability switch. Keep definitions, tuning and combat implementations
-// so these cards can be reused when the other Samurai routes are redesigned.
-bool IsSamuraiUpgradeTemporarilyDisabled(FName Id)
+// Stable IDs for removed Samurai cards. Keep this guard for legacy snapshots
+// and stale references; these assets no longer belong to the playable roster.
+bool IsRemovedSamuraiUpgrade(FName Id)
 {
 	static const TSet<FName> Disabled = {TEXT("OverkillBurst"),  TEXT("BurstRadius"),   TEXT("WaveMultishot"),
 	                                     TEXT("CrossingBlades"), TEXT("SplinterWave"),  TEXT("BladeWavePower"),
@@ -70,7 +71,7 @@ int32 UpgradeRankLimit(const UUpgradeDefinition* Card)
 	    Card->UpgradeId == TEXT("DoubleCutFrequency") || Card->UpgradeId == TEXT("IaijutsuDoubleCutFrequency") ||
 	    Card->UpgradeId == TEXT("CrescentDoubleCutFrequency") || Card->UpgradeId == TEXT("FangTwinFrequency") ||
 	    Card->UpgradeId == TEXT("BarrageRainFrequency") || Card->UpgradeId == TEXT("ShurikenTwinFrequency");
-	return bDoubleCutFrequency ? FMath::Min(3, Card->MaxLevel) : Card->MaxLevel;
+	return bDoubleCutFrequency ? FMath::Min(FMath::Clamp(UBloodshiftBalanceData::Get()->CadenceUpgradeRankCap,1,100), Card->MaxLevel) : Card->MaxLevel;
 }
 bool IsStanceRareUpgrade(const UUpgradeDefinition* U)
 {
@@ -95,6 +96,7 @@ bool IsTrialBuildStarter(const UUpgradeDefinition* Upgrade)
 }
 bool IsRetiredUpgrade(FName Id)
 {
+    if (IsRemovedSamuraiUpgrade(Id)) return true;
 	static const TSet<FName> Retired = [] {
 		TSet<FName> Ids = {TEXT("HeavyShuriken"), TEXT("CuttingReturn"),
 		                   TEXT("FinalPursuit"),

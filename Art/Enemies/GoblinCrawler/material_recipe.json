@@ -1,0 +1,9 @@
+{
+  "source_material": "/Game/Assets/EnemyCharacters/Goblin/Enemy_Goblin_Mat",
+  "material": "/Game/Assets/EnemyCharacters/Goblin/M_EnemyCrawler_SubtleColor",
+  "saturation": 1.2,
+  "brightness": 1.04,
+  "applied_to": "BP_EnemyGoblinCrawler only",
+  "preview": "Crawler_SubtleColor_Preview.png",
+  "mode": "Unreal material color adjustment, original texture unchanged"
+}

@@ -2,6 +2,8 @@
 #include "CombatAudio.h"
 #include "EnemyDeathComponent.h"
 #include "TesterBalanceSettings.h"
+#include "RunChallengeSubsystem.h"
+#include "Engine/GameInstance.h"
 
 #include "AnimNotify_BossAttackExecute.h"
 #include "BossGroundTelegraph.h"
@@ -48,7 +50,7 @@ AFinalBossBase::AFinalBossBase(const FObjectInitializer& ObjectInitializer) : Su
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> Cylinder(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OgreMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorRectangle.M_AttackIndicatorRectangle"));
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CircleMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle_Decal.M_AttackIndicatorCircle_Decal"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> CircleMaterial(TEXT("/Game/HeavensDivide/Materials/M_AttackIndicatorCircle.M_AttackIndicatorCircle"));
 	if (Cylinder.Succeeded()) CircleTelegraph->SetStaticMesh(Cylinder.Object);
 	if (OgreMaterial.Succeeded()) RectangleTelegraphMaterial = OgreMaterial.Object;
 	if (CircleMaterial.Succeeded()) CircleTelegraphMaterial = CircleMaterial.Object;
@@ -61,6 +63,16 @@ void AFinalBossBase::BeginPlay()
 	if (HealthComponent) HealthComponent->OnHealthChanged.AddUniqueDynamic(this, &AFinalBossBase::HandleBossHealthChangedForPhase);
 	MoveSpeed = BossMoveSpeed;
 	ApplySpawnInstanceModifiers(1.0f, 1.0f, 1.0f);
+	if (auto* GI = GetGameInstance())
+		if (auto* Challenges = GI->GetSubsystem<URunChallengeSubsystem>(); Challenges && Challenges->ApplyEnemy(this))
+		{
+			const float Damage = Challenges->GetMultiplier(TEXT("Damage"));
+			BossBaseDamage *= Damage;
+			ForwardAttackDamage *= Damage;
+			AoEDamage *= Damage;
+			DashDamage *= Damage;
+			GroundCircleDamage *= Damage;
+		}
 	PlayerController = ResolvePlayerController();
 	if (RectangleTelegraphMaterial)
 	{
@@ -462,6 +474,8 @@ void AFinalBossBase::HandleBossAttackExecute()
 	}
 	else if (CurrentAttack == EFinalBossAttack::PointBlankAoE) DamagePlayerInCircle(bPhase2Active ? Phase2AoERadius : AoERadius, AoEDamage * (bPhase2Active ? Phase2AOEDamageMultiplier : 1.0f));
 	else if (CurrentAttack == EFinalBossAttack::LongDash) StartDash();
+	if(CurrentAttack!=EFinalBossAttack::LongDash && IsValid(ActiveAttackTelegraph))
+	{ ActiveAttackTelegraph->PlayImpact(); ActiveAttackTelegraph=nullptr; }
 }
 
 void AFinalBossBase::HandleBossTelegraphEnd()

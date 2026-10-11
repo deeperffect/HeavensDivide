@@ -1,5 +1,7 @@
 # Samurai stance audit
 
+Current numeric tuning is in [Combat Balance](CombatBalance.md). The fixed-health pass supersedes historical damage, chance, and cadence values below; the mechanic descriptions remain useful.
+
 Audited 2026-10-03 against the saved upgrade pool, runtime combat code and acquisition rules. See [Build families](BuildFamilies.md) for asset paths and authoring controls.
 
 There are **63 enabled Samurai card assets**, organized into **three equal 21-card trees**. Each contains the stance plus **20 upgrades**. The nine damage/speed/size assets represent three shared investments that convert when a stance is chosen. Eight other Samurai cards remain disabled. The full game catalog has **106 cards, 98 enabled**.

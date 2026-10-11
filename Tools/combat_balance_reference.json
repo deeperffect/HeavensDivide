@@ -1,0 +1,1953 @@
+[
+  {
+    "id": "SynergySwapRestoresDashCharge",
+    "max_rank": 1,
+    "role": "<UpgradeRole.SPECIAL: 5>",
+    "parameters": {
+      "ChargesRestored": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "TagTeam",
+    "max_rank": 1,
+    "role": "<UpgradeRole.SPECIAL: 5>",
+    "parameters": {
+      "SamuraiDamage": 12,
+      "NinjaDamage": 10,
+      "SamuraiRange": 420,
+      "NinjaRange": 1000,
+      "SamuraiTargets": 12,
+      "NinjaTargets": 5,
+      "ConeHalfAngle": 69.51268005371094,
+      "PushDistance": 65,
+      "PushDuration": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "GlobalAttackSpeed",
+    "max_rank": 10,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [
+      0.05000000074505806,
+      0.07999999821186066,
+      0.11999999731779099
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SHARED_PLAYER: 2>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.ATTACK_SPEED_MULTIPLIER: 4>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.05000000074505806
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "GlobalDamage",
+    "max_rank": 10,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [
+      0.1,
+      0.15,
+      0.2
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SHARED_PLAYER: 2>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.DAMAGE_MULTIPLIER: 3>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.1
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "GlobalDashCharge",
+    "max_rank": 4,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SHARED_PLAYER: 2>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.MAX_DASH_CHARGES: 5>",
+        "operation": "<StatModifierOperation.ADD_FLAT: 0>",
+        "value_per_level": 1
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "GlobalMaxHealth",
+    "max_rank": 10,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [
+      0.05000000074505806,
+      0.07999999821186066,
+      0.11999999731779099
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SHARED_PLAYER: 2>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.MAX_HEALTH_MULTIPLIER: 1>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.05000000074505806
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "GlobalMovespeed",
+    "max_rank": 10,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [
+      0.05000000074505806,
+      0.07999999821186066,
+      0.11999999731779099
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SHARED_PLAYER: 2>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.05000000074505806
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "GlobalPickupRadius",
+    "max_rank": 10,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [
+      0.30000001192092896,
+      0.5,
+      0.800000011920929
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SHARED_PLAYER: 2>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.PICKUP_RADIUS_MULTIPLIER: 2>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.30000001192092896
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "MarkedBlade",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "NinjaDamageMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "SamuraiArea",
+    "max_rank": 5,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [
+      0.15000000596046448,
+      0.25,
+      0.4000000059604645
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.ATTACK_AREA_MULTIPLIER: 2>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.25
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "DoubleCut",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Frequency": 4
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "SamuraiHeavyBlade",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {},
+    "rarity": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.20000000298023224
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "Handoff",
+    "max_rank": 1,
+    "role": "<UpgradeRole.SPECIAL: 5>",
+    "parameters": {},
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "ShadowStep",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "BaseAttacks": 1,
+      "InitialAttackDelay": 0.20000000298023224,
+      "BaseAttackInterval": 1,
+      "TargetRetryInterval": 0.25,
+      "SafetyLifetime": 10,
+      "PostAttackLingerDuration": 0.6000000238418579,
+      "AttackRange": 1200
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "MultipleStrikes",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {},
+    "rarity": [
+      1,
+      2,
+      3
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"ShadowStep\"]"
+  },
+  {
+    "id": "AfterimageFrenzy",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {},
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ShadowStep\"]"
+  },
+  {
+    "id": "BladeWave",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "WaveWidth": 300,
+      "WaveTravelDistance": 650,
+      "WaveSpeed": 1400,
+      "WaveDamageMultiplier": 1.5,
+      "SpawnForwardOffset": 80,
+      "SpawnHeightOffset": 60,
+      "WaveThickness": 55,
+      "WaveHeight": 120,
+      "WaveVFXAuthoredDuration": 0.18000000715255737,
+      "StatusStacks": 1,
+      "SlowFraction": 0.30000001192092896,
+      "SlowDuration": 5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "ReturningBlade",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "ReturnDamageMultiplier": 0.5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "GrandEntrance",
+    "max_rank": 1,
+    "role": "<UpgradeRole.SPECIAL: 5>",
+    "parameters": {
+      "SamuraiRadius": 600,
+      "NinjaBonusProjectiles": 8,
+      "NinjaFanAngle": 100
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "BloodTransfer",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Radius": 300,
+      "TransferFraction": 0.5,
+      "Targets": 5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "Bloodletting",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "LingeringWounds",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "SamuraiTempo",
+    "max_rank": 5,
+    "role": "<UpgradeRole.STAT: 0>",
+    "parameters": {},
+    "rarity": [
+      0.1,
+      0.15,
+      0.2
+    ],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.ATTACK_SPEED_MULTIPLIER: 1>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.ADD_PERCENT: 1>",
+        "value_per_level": 0.10000000149011612
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "VenomousKunai",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {},
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "EmbeddedBlades",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "DamageFraction": 0.4000000059604645,
+      "Range": 700
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "FragmentDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {},
+    "rarity": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"EmbeddedBlades\"]"
+  },
+  {
+    "id": "FragmentLoad",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {},
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"EmbeddedBlades\"]"
+  },
+  {
+    "id": "FragmentReach",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {},
+    "rarity": [
+      0.15000000596046448,
+      0.2199999988079071,
+      0.30000001192092896
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"EmbeddedBlades\"]"
+  },
+  {
+    "id": "Iaijutsu",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "DashDistance": 800,
+      "SlashRadius": 200,
+      "ChargeDuration": 2,
+      "Cooldown": 0.5,
+      "VacuumReach": 60,
+      "VacuumSpeed": 240,
+      "MarkBonus": 0.5,
+      "MarkDuration": 3,
+      "PostHitHoldDuration": 0.30000001192092896,
+      "VacuumLeadTime": 0.20000000298023224,
+      "VacuumSpeedMultiplier": 3,
+      "DamageMultiplier": 2.5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "BattleStance",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "BleedHitFraction": 0.125,
+      "BleedStacksPerHit": 1,
+      "BleedDuration": 3,
+      "BleedTickInterval": 0.5,
+      "BleedStackCap": 5
+    },
+    "rarity": [],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.ATTACK_AREA_MULTIPLIER: 2>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 1.350000023841858
+      },
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.ATTACK_SPEED_MULTIPLIER: 1>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 1.2999999523162842
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "BloodEcho",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.2,
+      "DamageFraction": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "BloodCritical",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "DamageMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "BloodAssist",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.05000000074505806
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "BloodCapacity",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "BloodTransferArea",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.10000000149011612
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "DoubleCutFrequency",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\", \"DoubleCut\"]"
+  },
+  {
+    "id": "BloodCriticalChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\", \"BloodCritical\"]"
+  },
+  {
+    "id": "BloodEchoChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\", \"BloodEcho\"]"
+  },
+  {
+    "id": "BloodAssistChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\", \"BloodAssist\"]"
+  },
+  {
+    "id": "BloodPactPower",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "BleedDamageMultiplier": 2.5
+    },
+    "rarity": [],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.ATTACK_SPEED_MULTIPLIER: 1>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 0.699999988079071
+      }
+    ],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "BloodPactSpeed",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {},
+    "rarity": [],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.ATTACK_SPEED_MULTIPLIER: 1>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 1.399999976158142
+      },
+      {
+        "target": "<UpgradeStatTarget.SAMURAI: 0>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 0.75
+      }
+    ],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "BloodDetonation",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "DamageMultiplier": 1.5,
+      "Radius": 300
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "IaijutsuChain",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "ChainLimit": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuDoubleCut",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Frequency": 4,
+      "LengthMultiplier": 1.25,
+      "IntersectionFraction": 0.6000000238418579,
+      "SideAngle": 30
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuInstant",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuAOE",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "Radius": 250
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuAssist",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.05000000074505806
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuDash",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "DashDistanceBonus": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuChargeSpeed",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuWidth",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.25
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuMarkDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.10000000149011612
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuDoubleCutFrequency",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\", \"IaijutsuDoubleCut\"]"
+  },
+  {
+    "id": "IaijutsuAOEChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\", \"IaijutsuAOE\"]"
+  },
+  {
+    "id": "IaijutsuInstantChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\", \"IaijutsuInstant\"]"
+  },
+  {
+    "id": "IaijutsuAssistChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\", \"IaijutsuAssist\"]"
+  },
+  {
+    "id": "IaijutsuMarkPact",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "WidthMultiplier": 0.800000011920929,
+      "MarkMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuPowerPact",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "ChargeMultiplier": 1.2999999523162842,
+      "DamageMultiplier": 1.5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuDashPact",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "RechargeSecondsPerKill": 0.30000001192092896
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "CrescentDoubleCut",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Frequency": 4
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentSplit",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "DamageMultiplier": 0.5,
+      "SizeMultiplier": 0.6000000238418579,
+      "RangeMultiplier": 0.6000000238418579,
+      "Angle": 90
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentField",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "Duration": 3,
+      "DamagePerSecond": 0.30000001192092896,
+      "TickInterval": 0.5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentAssist",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.05000000074505806
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentArc",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "SideAngle": 20
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentSpeed",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentRange",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentSlow",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05000000074505806
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentDoubleCutFrequency",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentDoubleCut\"]"
+  },
+  {
+    "id": "CrescentFieldPower",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentField\"]"
+  },
+  {
+    "id": "CrescentSplitChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentSplit\"]"
+  },
+  {
+    "id": "CrescentAssistChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentAssist\"]"
+  },
+  {
+    "id": "CrescentFieldPact",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "WaveDamageMultiplier": 0.8,
+      "FieldDamageMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentField\"]"
+  },
+  {
+    "id": "CrescentPowerPact",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "DamageMultiplier": 1.5,
+      "SpeedMultiplier": 0.5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentEruptionPact",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "EruptionDelay": 0.30000001192092896
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentField\"]"
+  },
+  {
+    "id": "BloodRush",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "MoveSpeedBonus": 0.20000000298023224,
+      "Duration": 3
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BattleStance\"]"
+  },
+  {
+    "id": "IaijutsuVacuumReach",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\"]"
+  },
+  {
+    "id": "IaijutsuCascadePower",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\", \"IaijutsuChain\"]"
+  },
+  {
+    "id": "IaijutsuDashPower",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"Iaijutsu\", \"IaijutsuDash\"]"
+  },
+  {
+    "id": "CrescentSlowDuration",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\"]"
+  },
+  {
+    "id": "CrescentArcChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentArc\"]"
+  },
+  {
+    "id": "CrescentFieldChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05000000074505806
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BladeWave\", \"CrescentField\"]"
+  },
+  {
+    "id": "ReturningFang",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "CountDamage": 0.25,
+      "TargetingRangeMultiplier": 0.5,
+      "FlightSpeedMultiplier": 0.5,
+      "MaxLaunchesPerSecond": 2,
+      "MaximumFlightTime": 4
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "FangTwin",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Frequency": 4,
+      "ExtraBlades": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "RelentlessFang",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "DamagePerHit": 0.15000000596046448,
+      "MaxBonus": 0.75,
+      "StreakCap": 5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangResonance",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Radius": 250,
+      "DamageFraction": 0.5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangDeadeye",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "DamageMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangAssist",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.05000000074505806,
+      "Cooldown": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangSplinter",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "DamageFraction": 0.4000000059604645,
+      "Range": 700,
+      "Lifetime": 2,
+      "ProjectileSpeed": 1400
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangSpeed",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [
+      0.15000000596046448,
+      0.22499999403953552,
+      0.30000001192092896
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangRange",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [
+      0.15000000596046448,
+      0.22499999403953552,
+      0.30000001192092896
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangCloseQuarters",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.10000000149011612,
+      "Radius": 300
+    },
+    "rarity": [
+      0.10000000149011612,
+      0.15000000596046448,
+      0.20000000298023224
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangKillingEdge",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "AdditionalTargets": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangTwinFrequency",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangTwin\"]"
+  },
+  {
+    "id": "FangPressure",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"RelentlessFang\"]"
+  },
+  {
+    "id": "FangResonantReach",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangResonance\"]"
+  },
+  {
+    "id": "FangCriticalChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangDeadeye\"]"
+  },
+  {
+    "id": "FangAssistChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangAssist\"]"
+  },
+  {
+    "id": "FangSplinterPower",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangSplinter\"]"
+  },
+  {
+    "id": "FangFarstrider",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "SpeedMultiplier": 0.75,
+      "DistanceForMaximum": 1000,
+      "MaxDamageBonus": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangRedline",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "SpeedMultiplier": 1.600000023841858,
+      "DamageMultiplier": 0.699999988079071
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\"]"
+  },
+  {
+    "id": "FangPredator",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "CriticalMultiplier": 1.5,
+      "NoncriticalMultiplier": 0.85
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangDeadeye\"]"
+  },
+  {
+    "id": "NinjaDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "NinjaSpeed",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [
+      0.1,
+      0.15,
+      0.2
+    ],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "NinjaCoverage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [
+      0.15000000596046448,
+      0.22499999403953552,
+      0.30000001192092896
+    ],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "BarrageStance",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "AttackSpeedBonus": 0.30000001192092896,
+      "BonusProjectiles": 2,
+      "PoisonHitFraction": 0.05000000074505806,
+      "PoisonCap": 20,
+      "PoisonDuration": 5,
+      "PoisonTickInterval": 0.20000000298023224,
+      "ProjectileDamageMultiplier": 0.6
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "NeedleRain",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Frequency": 4,
+      "ProjectileMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "ForkingProjectiles",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarragePool",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Duration": 3,
+      "Radius": 220,
+      "TickInterval": 0.5
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageAssist",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.05000000074505806
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageCritical",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.15000000596046448,
+      "DamageMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageRush",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "MoveSpeedBonus": 0.20000000298023224,
+      "Duration": 3
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {},
+    "rarity": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageSpeed",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {},
+    "rarity": [
+      0.1,
+      0.15,
+      0.2
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageRange",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [
+      0.15000000596046448,
+      0.22499999403953552,
+      0.30000001192092896
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarragePoisonDuration",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarragePoisonLoad",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageRainFrequency",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\", \"NeedleRain\"]"
+  },
+  {
+    "id": "BarrageSplitChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\", \"ForkingProjectiles\"]"
+  },
+  {
+    "id": "BarrageAssistChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\", \"BarrageAssist\"]"
+  },
+  {
+    "id": "BarragePoolRadius",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\", \"BarragePool\"]"
+  },
+  {
+    "id": "BarrageCriticalChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\", \"BarrageCritical\"]"
+  },
+  {
+    "id": "BarragePoisonCap",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 4
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarragePointBlank",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "AttackSpeedBonus": 0.5,
+      "RangeMultiplier": 0.30000001192092896
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageProcession",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "BounceCount": 3,
+      "BounceRetention": 0.75,
+      "SplitChanceConversion": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\"]"
+  },
+  {
+    "id": "BarrageBloom",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "RemainingDamageFraction": 0.10000000149011612
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"BarrageStance\", \"BarragePool\"]"
+  },
+  {
+    "id": "GreatShuriken",
+    "max_rank": 1,
+    "role": "<UpgradeRole.STARTER: 1>",
+    "parameters": {
+      "Radius": 140,
+      "CountSize": 0.11999999731779099,
+      "HitInterval": 0.25,
+      "Lifetime": 1.5,
+      "TravelSpeed": 800
+    },
+    "rarity": [],
+    "modifiers": [
+      {
+        "target": "<UpgradeStatTarget.NINJA: 1>",
+        "character_stat": "<CharacterStatType.DAMAGE_MULTIPLIER: 0>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 1.5
+      },
+      {
+        "target": "<UpgradeStatTarget.NINJA: 1>",
+        "character_stat": "<CharacterStatType.ATTACK_SPEED_MULTIPLIER: 1>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 0.5
+      },
+      {
+        "target": "<UpgradeStatTarget.NINJA: 1>",
+        "character_stat": "<CharacterStatType.PROJECTILE_SPEED_MULTIPLIER: 4>",
+        "shared_player_stat": "<SharedPlayerStatType.MOVE_SPEED_MULTIPLIER: 0>",
+        "operation": "<StatModifierOperation.MULTIPLY: 2>",
+        "value_per_level": 0.44999998807907104
+      }
+    ],
+    "prerequisites": "[]"
+  },
+  {
+    "id": "GrindingHalt",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "SlowDuration": 1,
+      "SpeedMultiplier": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "WideOrbit",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "GrowthDistance": 1000,
+      "MaxSizeMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "BreakingWheel",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "DamageFraction": 0.75,
+      "RadiusMultiplier": 2
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenTwin",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Frequency": 4,
+      "SideAngle": 20
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenAssist",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "Chance": 0.05000000074505806
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "SerratedEdge",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "DamagePerHit": 0.15000000596046448,
+      "DamageCap": 0.75
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenDamage",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenSpeed",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [
+      0.1,
+      0.15,
+      0.2
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenSize",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [
+      0.15000000596046448,
+      0.2199999988079071,
+      0.30000001192092896
+    ],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "LingeringShuriken",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "LifetimeBonusPerRank": 0.30000001192092896
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenTempo",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenGrindDuration",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\", \"GrindingHalt\"]"
+  },
+  {
+    "id": "ShurikenGrowth",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\", \"WideOrbit\"]"
+  },
+  {
+    "id": "ShurikenBurstPower",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\", \"BreakingWheel\"]"
+  },
+  {
+    "id": "ShurikenTwinFrequency",
+    "max_rank": 3,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\", \"ShurikenTwin\"]"
+  },
+  {
+    "id": "ShurikenAssistChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.05
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\", \"ShurikenAssist\"]"
+  },
+  {
+    "id": "ShurikenGrooves",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerHitPerRank": 0.029999999329447746,
+      "CapPerRank": 0.15000000596046448
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\", \"SerratedEdge\"]"
+  },
+  {
+    "id": "ShurikenOrbit",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "ContactMultiplier": 0.699999988079071,
+      "OrbitRadius": 230
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenHunger",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "InitialSizeMultiplier": 0.699999988079071,
+      "GrowthPerKill": 0.10000000149011612
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\"]"
+  },
+  {
+    "id": "ShurikenPulse",
+    "max_rank": 1,
+    "role": "<UpgradeRole.MECHANIC: 4>",
+    "parameters": {
+      "ContactMultiplier": 0.6499999761581421,
+      "Interval": 1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"GreatShuriken\", \"BreakingWheel\"]"
+  },
+  {
+    "id": "FangPursuitChance",
+    "max_rank": 5,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.1
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangKillingEdge\"]"
+  },
+  {
+    "id": "FangBurstPower",
+    "max_rank": 10,
+    "role": "<UpgradeRole.SUPPORT: 2>",
+    "parameters": {
+      "PerRank": 0.20000000298023224
+    },
+    "rarity": [],
+    "modifiers": [],
+    "prerequisites": "[\"ReturningFang\", \"FangResonance\"]"
+  }
+]

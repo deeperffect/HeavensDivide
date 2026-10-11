@@ -2,6 +2,8 @@
 #include "NiagaraSystem.h"
 #include "NiagaraDataInterfaceColorCurve.h"
 #include "NiagaraDataInterfaceCurve.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Engine/World.h"
 #if WITH_EDITOR
 #include "NiagaraEmitterHandle.h"
 #include "NiagaraEmitter.h"
@@ -53,6 +55,23 @@ bool USwapVFXSetupLibrary::ConfigureFangCircleSlash(UNiagaraSystem* System)
     if (Count != 2) return false;
     System->PostEditChange();System->RequestCompile(true);System->WaitForCompilationComplete(true,false);
     return System->IsValid();
+#else
+    return false;
+#endif
+
+}
+
+bool USwapVFXSetupLibrary::RefreshPreviewAnimation(USkeletalMeshComponent* Mesh, float DeltaSeconds)
+{
+#if WITH_EDITOR
+    if (!Mesh || !Mesh->GetWorld() || Mesh->GetWorld()->IsGameWorld() || !Mesh->GetAnimInstance()) return false;
+    Mesh->TickAnimation(FMath::Max(0.f, DeltaSeconds), false);
+    Mesh->RefreshBoneTransforms();
+    Mesh->UpdateComponentToWorld();
+    Mesh->UpdateBounds();
+    Mesh->MarkRenderTransformDirty();
+    Mesh->MarkRenderDynamicDataDirty();
+    return true;
 #else
     return false;
 #endif

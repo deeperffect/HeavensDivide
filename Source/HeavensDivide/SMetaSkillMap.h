@@ -4,6 +4,7 @@
 #include "Widgets/SLeafWidget.h"
 
 class USynergyMetaProgressionSubsystem;
+struct FMetaSkillNode;
 DECLARE_DELEGATE_OneParam(FOnMetaNodeSelected, FName);
 
 /** Vector-drawn constellation. The same transform drives paint, hit tests and navigation. */
@@ -17,6 +18,9 @@ public:
 	SLATE_END_ARGS()
 	void Construct(const FArguments& Args);
 	void ResetView();
+	/** An explicit set also filters pointer hit tests and keyboard navigation. */
+	void SetVisibleNodes(const TArray<FName>& Ids, const FString& Title);
+	static FVector2D NodePosition(const FMetaSkillNode& Node);
 	void SetInspectTarget(TWeakPtr<SWidget> Target) { InspectTarget=Target; }
 	void Refresh() { Invalidate(EInvalidateWidgetReason::Paint); }
 	void SetLabelFont(const FSlateFontInfo& Font) { LabelFont=Font; Refresh(); }
@@ -31,6 +35,10 @@ public:
 	virtual FReply OnKeyDown(const FGeometry&, const FKeyEvent&) override;
 private:
 	friend class FMetaSkillMapHighlightTest;
+	friend class FMetaSkillMapLayoutTest;
+	friend class FMetaSkillMapFilterTest;
+	bool IsNodeVisible(FName Id) const { return !bFiltered || VisibleNodes.Contains(Id); }
+	FVector2D DisplayPosition(const FMetaSkillNode& Node) const;
 	TSet<FName> GetHighlightedAncestors() const;
 	void SetHoveredNode(FName Id);
 	FName HitNode(const FGeometry&, FVector2D Local) const;
@@ -43,6 +51,10 @@ private:
 	TAttribute<FName> Selected;
 	FOnMetaNodeSelected OnSelected;
 	FName Hovered;
+	TSet<FName> VisibleNodes;
+	TMap<FName, FVector2D> FilteredPositions;
+	FString FilterTitle;
+	bool bFiltered = false;
 	FSlateFontInfo LabelFont;
 	FVector2D Pan = FVector2D::ZeroVector;
 	FVector2D LastDrag = FVector2D::ZeroVector;

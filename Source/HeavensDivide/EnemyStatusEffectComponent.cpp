@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "EnemyStatusEffectComponent.h"
+#include "UpgradeBalance.h"
 
 #include "EnemyBase.h"
 #include "SurvivorAbilityComponent.h"
@@ -34,8 +35,8 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 			FX->UpgradeAccent(StarterId,Enemy->GetActorLocation(),45.f,Status==EEnemyStatusEffect::Bleed?FLinearColor(1,.05f,.08f):FLinearColor(.2f,1,.05f));
 	State.SourceUpgrades = SourceUpgrades;
     const bool bBleed = Status == EEnemyStatusEffect::Bleed;
-    const int32 Cap = bBleed ? 5 + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("BloodCapacity")), 0, 5) : MAX_int32;
-    const int32 AddedStacks = bBleed && !bIntrinsicStatus ? 1 + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("Bloodletting")), 0, 5) : 1;
+    const int32 Cap = bBleed ? UpgradeBalance::BloodCap(SourceUpgrades) : MAX_int32;
+    const int32 AddedStacks = bBleed && !bIntrinsicStatus ? FMath::Max(1, FMath::RoundToInt(UpgradeBalance::Value(SourceUpgrades, TEXT("BattleStance"), TEXT("BleedStacksPerHit"), 1.f) + UpgradeBalance::Rank(SourceUpgrades, TEXT("Bloodletting"), 1.f))) : 1;
     const int32 AcceptedStacks = FMath::Clamp(AddedStacks, 0, FMath::Max(0, Cap - State.Stacks));
     State.Stacks += AcceptedStacks;
     if (bBleed)
@@ -43,9 +44,9 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
         const auto* Stance = SourceUpgrades->FindUpgradeDefinition(TEXT("BattleStance"));
         const float Fraction = Stance ? Stance->GetBalanceValue(TEXT("BleedHitFraction"), .125f) : .125f;
         // 12.5% over six base ticks. Duration upgrades add ticks at this same rate.
-        State.BleedHitBonusPerTick += FMath::Max(0.f, ApplyingHitDamage) * FMath::Max(0.f, Fraction) / 6.f * AcceptedStacks;
+        State.BleedHitBonusPerTick += FMath::Max(0.f, ApplyingHitDamage) * FMath::Max(0.f, Fraction) / FMath::Max(1.f, UpgradeBalance::Value(SourceUpgrades, TEXT("BattleStance"), TEXT("BleedDuration"), 3.f) / FMath::Max(.01f, UpgradeBalance::Value(SourceUpgrades, TEXT("BattleStance"), TEXT("BleedTickInterval"), .5f))) * AcceptedStacks;
     }
-    State.RemainingDuration = bBleed ? 3.f + FMath::Clamp(SourceUpgrades->GetUpgradeLevelById(TEXT("LingeringWounds")), 0, 3) : PoisonDuration;
+    State.RemainingDuration = bBleed ? UpgradeBalance::Value(SourceUpgrades, TEXT("BattleStance"), TEXT("BleedDuration"), 3.f) + UpgradeBalance::Rank(SourceUpgrades, TEXT("LingeringWounds"), 1.f) : PoisonDuration;
 
 	if (!GetWorld()->GetTimerManager().IsTimerActive(State.TickTimer))
 	{
@@ -91,10 +92,10 @@ void UEnemyStatusEffectComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 
 FEnemyDamageStatusState& UEnemyStatusEffectComponent::GetState(EEnemyStatusEffect Status) { return Status == EEnemyStatusEffect::Bleed ? BleedState : PoisonState; }
 const FEnemyDamageStatusState& UEnemyStatusEffectComponent::GetState(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? BleedState : PoisonState; }
-float UEnemyStatusEffectComponent::GetTickInterval(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? .5f : PoisonTickInterval; }
+float UEnemyStatusEffectComponent::GetTickInterval(EEnemyStatusEffect Status) const { return Status == EEnemyStatusEffect::Bleed ? FMath::Max(.01f, UpgradeBalance::Value(BleedState.SourceUpgrades.Get(), TEXT("BattleStance"), TEXT("BleedTickInterval"), .5f)) : PoisonTickInterval; }
 float UEnemyStatusEffectComponent::GetEffectiveTickInterval(EEnemyStatusEffect Status, const FEnemyDamageStatusState& State) const
 {
-	if (Status == EEnemyStatusEffect::Poison && State.bBarragePoison) return .5f;
+	if (Status == EEnemyStatusEffect::Poison && State.bBarragePoison) return FMath::Max(.01f, UpgradeBalance::Value(State.SourceUpgrades.Get(), TEXT("BarrageStance"), TEXT("PoisonTickInterval"), .5f));
 	return GetTickInterval(Status);
 }
 
@@ -106,7 +107,7 @@ float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffe
 	if (Status == EEnemyStatusEffect::Bleed)
 	{
 		return Upgrades->HasUpgradeId(TEXT("BattleStance")) ? State.BleedHitBonusPerTick
-			* (Upgrades->HasUpgradeId(TEXT("BloodPactPower")) ? 1.7f : 1.f)
+			* (Upgrades->HasUpgradeId(TEXT("BloodPactPower")) ? UpgradeBalance::Value(Upgrades, TEXT("BloodPactPower"), TEXT("BleedDamageMultiplier"), 1.7f) : 1.f)
 			* (1.f + Upgrades->GetMetaSkillBonus(TEXT("Bleed"))) : 0.f;
 	}
 	return BasePoisonDamagePerTick * FMath::Max(0.f, Upgrades->GetNinjaPowerMultiplier()) * State.Stacks

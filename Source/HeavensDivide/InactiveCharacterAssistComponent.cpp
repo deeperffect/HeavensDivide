@@ -269,7 +269,7 @@ bool UInactiveCharacterAssistComponent::TryTriggerAssistWithCharacters(ACharacte
 		return false;
 	}
 
-	const bool bRangedAssist = AssistAttack->IsProjectileAttack();
+	const bool bRangedAssist = AssistAttack->UsesRangedAssistPlacement();
 	FVector AssistLocation = bRangedAssist ? GetRangedAssistLocation(ActiveCharacter, AssistCharacter) : FVector::ZeroVector;
 	AEnemyBase* TargetEnemy = bRangedAssist
 		? AssistAttack->FindAssistTargetNearLocation(AssistLocation, AssistAttack->GetEffectiveTargetingRange())

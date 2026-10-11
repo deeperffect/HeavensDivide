@@ -61,6 +61,9 @@ bool FBarrageBuildsTest::RunTest(const FString&)
  TestTrue(TEXT("Deep Venom has no Rush prerequisite"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("BarragePoisonCap"))));
  TestFalse(TEXT("Bloom requires Toxic Ground"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("BarrageBloom"))));
  TestFalse(TEXT("Old shared supports excluded"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("EmbeddedBlades"))));
+ Reset();
+ TestTrue(TEXT("Base Barrage kunai is six damage"),FMath::IsNearlyEqual(A->GetEffectiveAttackDamage(),6.f));
+ Grant(TEXT("BarrageDamage"));TestTrue(TEXT("Common damage rank scales the six-damage kunai"),FMath::IsNearlyEqual(A->GetEffectiveAttackDamage(),7.2f,.001f));
  Reset();auto* E=Spawn(FVector(300,0,0),100000);auto* S=E->GetStatusEffectComponent();
  S->ApplyBarragePoison(U,100);TestEqual(TEXT("One base poison stack"),S->GetStatusStacks(EEnemyStatusEffect::Poison),1);
  TestTrue(TEXT("Five percent over five seconds"),FMath::IsNearlyEqual(S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison),5.f,.001f));
@@ -68,8 +71,8 @@ bool FBarrageBuildsTest::RunTest(const FString&)
  TestEqual(TEXT("Base cap twenty"),S->GetStatusStacks(EEnemyStatusEffect::Poison),20);
  TestTrue(TEXT("Capped applications add no damage"),FMath::IsNearlyEqual(S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison),100.f,.001f));
  S->TickPoison();S->ApplyBarragePoison(U,9000);TestTrue(TEXT("Cap application refreshes existing damage budget"),FMath::IsNearlyEqual(S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison),100.f,.001f));
- Grant(TEXT("BarragePoisonDuration"));S->ApplyBarragePoison(U,100);TestTrue(TEXT("Duration adds ticks at unchanged rate"),FMath::IsNearlyEqual(S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison),140.f,.001f));
- S->ClearAllStatuses();Grant(TEXT("BarragePoisonLoad"));S->ApplyBarragePoison(U,100);TestEqual(TEXT("Load adds two stacks"),S->GetStatusStacks(EEnemyStatusEffect::Poison),3);
+ Grant(TEXT("BarragePoisonDuration"));S->ApplyBarragePoison(U,100);TestTrue(TEXT("Duration adds ticks at unchanged rate"),FMath::IsNearlyEqual(S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison),120.f,.001f));
+ S->ClearAllStatuses();Grant(TEXT("BarragePoisonLoad"));S->ApplyBarragePoison(U,100);TestEqual(TEXT("Load adds one stack"),S->GetStatusStacks(EEnemyStatusEffect::Poison),2);
  for(int I=0;I<5;++I)Grant(TEXT("BarragePoisonCap"));for(int I=0;I<20;++I)S->ApplyBarragePoison(U,100);TestEqual(TEXT("Rare cap reaches forty"),S->GetStatusStacks(EEnemyStatusEffect::Poison),40);
  Reset();E=Spawn(FVector(300,0,0),100000);S=E->GetStatusEffectComponent();Grant(TEXT("NeedleRain"));
  int32 Count=3;float Spread=10;B->VolleyCount=3;B->ModifyVolley(Count,Spread);TestEqual(TEXT("Fourth volley doubles"),Count,6);
