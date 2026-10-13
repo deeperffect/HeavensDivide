@@ -1,4 +1,5 @@
 #include "SurvivalFieldObjective.h"
+#include "RunReportSubsystem.h"
 #include "EncounterWall.h"
 #include "EnemySpawner.h"
 #include "SurvivorPlayerController.h"
@@ -15,6 +16,8 @@
 #include "CombatAudio.h"
 #include "UObject/ConstructorHelpers.h"
 #include "CombatGround.h"
+#include "ObjectiveInteractionComponent.h"
+#include "ObjectiveGuidanceSubsystem.h"
 
 ASurvivalFieldObjective::ASurvivalFieldObjective()
 {
@@ -25,19 +28,32 @@ ASurvivalFieldObjective::ASurvivalFieldObjective()
     static ConstructorHelpers::FObjectFinder<UStaticMesh> Plane(TEXT("/Engine/BasicShapes/Plane.Plane"));
     static ConstructorHelpers::FObjectFinder<UMaterialInterface> Material(TEXT("/Game/HeavensDivide/Materials/M_EnemyRoleRing"));
     Ring->SetStaticMesh(Plane.Object); Ring->SetMaterial(0,Material.Object);
+    static ConstructorHelpers::FObjectFinder<UMaterialInterface> HoldMaterial(TEXT("/Game/HeavensDivide/Materials/M_EmberCircleProgress.M_EmberCircleProgress"));
+    HoldRingMaterial=HoldMaterial.Object;
     Label=CreateDefaultSubobject<UTextRenderComponent>(TEXT("Instructions")); Label->SetupAttachment(RootComponent);
     Label->SetHorizontalAlignment(EHTA_Center); Label->SetWorldSize(38); Label->SetRelativeLocation(FVector(0,0,220));
     Label->SetTextRenderColor(FColor(255,225,160));
+    Label->SetVisibility(false);
+    ActivationMesh=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ActivationMesh"));
+    ActivationMesh->SetupAttachment(RootComponent);
+    ActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> Shrine(TEXT("/Game/Assets/Environment/Objectives/BloodShrine.BloodShrine"));
+    ActivationMesh->SetStaticMesh(Shrine.Object);
+    ActivationMesh->SetRelativeScale3D(FVector(4.f)); // Match the saved Blood Shrine's presentation.
+    ObjectiveInteraction=CreateDefaultSubobject<UObjectiveInteractionComponent>(TEXT("ObjectiveInteraction"));
+    ObjectiveInteraction->SetupAttachment(RootComponent);
+    ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Ember Circle")),300.f,1.f,240.f);
+    ObjectiveInteraction->SetPresentationVisual(ActivationMesh);
+    ActivationMesh->SetHiddenInGame(true);
     Marker=CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("Minimap"));
-}
-void ASurvivalFieldObjective::UpdateLabel(const FString& Text)
-{
-    Label->SetText(FText::FromString(Text));
 }
 bool ASurvivalFieldObjective::InitializeWallTrap(AEnemySpawner* Spawner)
 {
     if (!Spawner) return false;
     bWallTrap=true;
+    Ring->SetVisibility(false);
+    ActivationMesh->SetHiddenInGame(true);
+    ObjectiveInteraction->HidePrompt();
     TArray<FVector> Positions;
     const int32 Count=FMath::Clamp(FMath::CeilToInt(2*PI*Radius/200.f),16,64);
     for (int32 I=0; I<Count; ++I)
@@ -47,30 +63,79 @@ bool ASurvivalFieldObjective::InitializeWallTrap(AEnemySpawner* Spawner)
         if (!CombatGround::IsInsideArena(GetWorld(),Position,140.f)) return false;
         Positions.Add(Position);
     }
+    const int32 RockOffset=FMath::RandRange(0,10000);
     for (int32 I=0; I<Count; ++I)
     {
         FActorSpawnParameters Params; Params.Owner=this;
         Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
         auto* Wall=GetWorld()->SpawnActor<AEncounterWall>(Positions[I],FRotator(0,I*360.f/Count,0),Params);
         if (!Wall) { for (auto Existing:Walls) Existing->Destroy(); Walls.Reset(); return false; }
+        Wall->ConfigureRock(RockOffset+I);
         Walls.Add(Wall);
     }
     Marker->DisplayName=FText::FromString(TEXT("Break the seal"));
     Ring->SetWorldScale3D(FVector(Radius/50,Radius/50,1));
     RingMaterial=Ring->CreateDynamicMaterialInstance(0);
     if (RingMaterial) RingMaterial->SetVectorParameterValue(TEXT("Tint"),FLinearColor(1,.3f,.08f));
-    UpdateLabel(TEXT("WALLS RISING\nBreak a stone seal to escape"));
     UCombatAudioLibrary::PlayEvent(this,TEXT("BossWarning"),GetActorLocation(),false,.65f);
+    if(auto* Guidance=GetWorld()->GetSubsystem<UObjectiveGuidanceSubsystem>()) Guidance->Announce(this);
+    auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0));
+    if(PC && PC->TryBeginObjective(this))
+    {
+        bIntroPending=true;
+        if(!PC->ShowObjectiveIntro(this,NSLOCTEXT("Objectives","WallIntro","Survive or break out.. if you can.."),FLinearColor(.85f,.42f,.16f),
+            FSimpleDelegate::CreateUObject(this,&ASurvivalFieldObjective::BeginWall))) BeginWall();
+    }
     return true;
+}
+void ASurvivalFieldObjective::BeginWall()
+{
+    bIntroPending=false;
+    Age=0;
+    // The ambient wall event only reserves the objective slot during its introduction.
+    if(auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0))) PC->EndObjective(this);
 }
 void ASurvivalFieldObjective::InitializeHoldZone()
 {
-    Radius=800;
+    Radius=HoldZoneRadius;
+    bHoldInitialized=true;
+    Ring->SetVisibility(false);
+    ActivationMesh->SetHiddenInGame(false);
     Marker->DisplayName=FText::FromString(TEXT("Ember circle"));
     Ring->SetWorldScale3D(FVector(Radius/50,Radius/50,1));
+    Ring->SetMaterial(0,HoldRingMaterial);
     RingMaterial=Ring->CreateDynamicMaterialInstance(0);
-    if (RingMaterial) RingMaterial->SetVectorParameterValue(TEXT("Tint"),FLinearColor(.1f,.85f,.55f));
-    UpdateLabel(TEXT("EMBER CIRCLE\nHold inside for 20s\nLarge XP cache / +20 Embers / +1 Sigil"));
+    UpdateHoldPresentation();
+    Label->SetText(FText::GetEmpty());
+    Label->SetVisibility(false);
+    if(auto* Guidance=GetWorld()->GetSubsystem<UObjectiveGuidanceSubsystem>()) Guidance->Announce(this);
+}
+bool ASurvivalFieldObjective::CanInteract_Implementation(APawn* InteractingPawn) const
+{
+    const auto* PC=InteractingPawn?Cast<ASurvivorPlayerController>(InteractingPawn->GetController()):nullptr;
+    return bHoldInitialized && !bWallTrap && !bHoldActive && !bComplete && PC
+        && PC->IsRunInProgress() && !PC->IsPlayerDead() && !PC->IsSelectingUpgrade()
+        && !UGameplayStatics::IsGamePaused(this) && !PC->IsAnyObjectiveActive()
+        && ObjectiveInteraction && ObjectiveInteraction->IsInRange(InteractingPawn);
+}
+void ASurvivalFieldObjective::Interact_Implementation(APawn* InteractingPawn)
+{
+    if (!CanInteract_Implementation(InteractingPawn)) return;
+    auto* PC=Cast<ASurvivorPlayerController>(InteractingPawn->GetController());
+    if (!PC->TryBeginObjective(this)) return;
+    bHoldActive=true;
+    Ring->SetVisibility(true);
+    bIntroPending=true;
+    Age=0;
+    Marker->SetMarkerState(EMinimapMarkerState::Active);
+    ObjectiveInteraction->HidePrompt();
+    const FText Message=FText::Format(NSLOCTEXT("Objectives","SurvivalIntro","Survive inside for {0} seconds"),
+        FText::AsNumber(FMath::RoundToInt(HoldSeconds)));
+    if (!PC->ShowObjectiveIntro(this,Message,FLinearColor(.25f,.72f,.53f),FSimpleDelegate::CreateUObject(this,&ASurvivalFieldObjective::BeginHold))) BeginHold();
+}
+void ASurvivalFieldObjective::BeginHold()
+{
+    bIntroPending=false;
 }
 bool ASurvivalFieldObjective::ContainsPlayer(const FVector& Point) const
 {
@@ -78,9 +143,15 @@ bool ASurvivalFieldObjective::ContainsPlayer(const FVector& Point) const
 }
 void ASurvivalFieldObjective::AdvanceHold(float Delta, bool bInside)
 {
-    if (bWallTrap || bComplete || !bInside || !FMath::IsFinite(Delta) || Delta<=0) return;
-    Progress=FMath::Min(HoldSeconds,Progress+Delta);
+    if (bWallTrap || !bHoldActive || bIntroPending || bComplete || !FMath::IsFinite(Delta) || Delta<=0
+        || UGameplayStatics::IsGamePaused(this) || UGameplayStatics::GetGlobalTimeDilation(this)<.01f) return;
+    Progress=FMath::Clamp(Progress+(bInside?Delta:-Delta),0.f,HoldSeconds);
+    UpdateHoldPresentation();
     if (Progress>=HoldSeconds) CompleteHold();
+}
+void ASurvivalFieldObjective::UpdateHoldPresentation()
+{
+    if (RingMaterial) RingMaterial->SetScalarParameterValue(TEXT("Progress"),FMath::Clamp(Progress/FMath::Max(HoldSeconds,.01f),0.f,1.f));
 }
 void ASurvivalFieldObjective::CompleteHold()
 {
@@ -88,28 +159,30 @@ void ASurvivalFieldObjective::CompleteHold()
     auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0));
     if (!PC || PC->IsPlayerDead() || !PC->GetExperienceComponent()) return;
     bComplete=true; // Commit before AddXP can synchronously open an upgrade menu.
+    PC->EndObjective(this);
     Marker->SetMarkerState(EMinimapMarkerState::Completed);
+    RunReports::ObjectiveCompleted(this);
     RunChallenges::AwardCurrencies(this,EmberReward,1);
     const int32 XP=2*PC->GetExperienceComponent()->GetXPToNextLevel();
     PC->GetExperienceComponent()->AddXP(XP);
-    UpdateLabel(FString::Printf(TEXT("CIRCLE COMPLETE\n+%d XP / +%d Embers / +1 Sigil\nChallenge bonuses credited to wallet"),XP,EmberReward));
     UCombatAudioLibrary::PlayEvent(this,TEXT("UrnBreak"),GetActorLocation(),false,.7f);
-    SetLifeSpan(4);
+    Destroy();
 }
 void ASurvivalFieldObjective::Tick(float Delta)
 {
     Super::Tick(Delta);
     auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0));
     if (!PC || !PC->GetPawn() || PC->IsPlayerDead()) { Destroy(); return; }
-    if (PC->PlayerCameraManager) Label->SetWorldRotation((PC->PlayerCameraManager->GetCameraLocation()-Label->GetComponentLocation()).Rotation());
     // Neither a menu's near-zero time dilation nor another objective spends progress/lifetime.
-    if (UGameplayStatics::GetGlobalTimeDilation(this)<.01f || PC->IsAnyObjectiveActive())
+    if (UGameplayStatics::IsGamePaused(this) || UGameplayStatics::GetGlobalTimeDilation(this)<.01f
+        || (PC->IsAnyObjectiveActive() && PC->GetActiveObjective()!=this))
     {
         if (bWallTrap) for (auto Wall:Walls) if (IsValid(Wall)) Wall->SetSealed(false);
         bSealed=false;
+        WallWaveStartAge=-1.f;
         return;
     }
-    if (bComplete) return;
+    if (bComplete || bIntroPending) return;
     Age+=Delta;
     if (bWallTrap)
     {
@@ -122,8 +195,20 @@ void ASurvivalFieldObjective::Tick(float Delta)
             if (!bOccupied)
             {
                 bSealed=true;
-                for (auto Wall:Walls) if (IsValid(Wall)) Wall->SetSealed(true);
-                UpdateLabel(TEXT("BREAK THE SEAL\nDestroy a wall to escape"));
+                WallWaveStartAge=Age;
+            }
+        }
+        if (bSealed)
+        {
+            for (int32 I=0;I<Walls.Num();++I)
+            {
+                AEncounterWall* Wall=Walls[I];
+                if (!IsValid(Wall) || Wall->IsDead()) continue;
+                // The player can reach a later segment while the wave is rising.
+                if (Wall->Barrier->GetCollisionEnabled()==ECollisionEnabled::NoCollision
+                    && Wall->Barrier->Bounds.GetBox().ExpandBy(60).IsInside(PC->GetPawn()->GetActorLocation())) continue;
+                const float Delay=WallWaveSeconds*I/FMath::Max(1,Walls.Num()-1);
+                Wall->SetRevealProgress((Age-WallWaveStartAge-Delay)/FMath::Max(.05f,WallRiseSeconds));
             }
         }
         if (Age>=FMath::Max(1.f,WallLifetime)) Destroy();
@@ -134,14 +219,15 @@ void ASurvivalFieldObjective::Tick(float Delta)
         AdvanceHold(Delta,bInside);
         if (!bComplete)
         {
-            if (Progress>0) UpdateLabel(FString::Printf(TEXT("EMBER CIRCLE  %.1f / %.0fs\n%s"),Progress,HoldSeconds,bInside?TEXT("Hold your ground"):TEXT("Return to continue")));
-            Marker->SetMarkerState(bInside?EMinimapMarkerState::Active:EMinimapMarkerState::Available);
+            Marker->SetMarkerState(bHoldActive?EMinimapMarkerState::Active:EMinimapMarkerState::Available);
             if (Age>105) Destroy();
         }
     }
 }
 void ASurvivalFieldObjective::EndPlay(const EEndPlayReason::Type Reason)
 {
+    if (auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0))) PC->EndObjective(this);
+    if (ObjectiveInteraction) ObjectiveInteraction->HidePrompt();
     for (auto Wall:Walls) if (IsValid(Wall)) Wall->Destroy();
     Super::EndPlay(Reason);
 }

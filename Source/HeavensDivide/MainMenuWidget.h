@@ -399,6 +399,12 @@ private:
 	UFUNCTION()
 	void HandleAutoTargetingChanged(bool bIsChecked);
     UFUNCTION() void HandleMasterVolumeChanged(float Value);
+    UFUNCTION() void HandleMusicVolumeChanged(float Value);
+    UFUNCTION() void HandleSoundEffectsVolumeChanged(float Value);
+    UPROPERTY() TObjectPtr<class USlider> MusicVolumeSlider;
+    UPROPERTY() TObjectPtr<class USlider> SoundEffectsVolumeSlider;
+    UPROPERTY() TObjectPtr<UTextBlock> MusicVolumeValueText;
+    UPROPERTY() TObjectPtr<UTextBlock> SoundEffectsVolumeValueText;
     UPROPERTY() TObjectPtr<class USlider> MasterVolumeSlider;
     UPROPERTY() TObjectPtr<UTextBlock> MasterVolumeValueText;
 	UFUNCTION() void HandleCameraShakeChanged(float Value);
@@ -420,6 +426,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UWidgetSwitcher> MenuSwitcher;
+    UPROPERTY(Transient) TObjectPtr<class UNativeWidgetHost> LeaderboardHost;
 	UPROPERTY(Transient)
 	TObjectPtr<class UBorder> ResetConfirmationOverlay;
 	UPROPERTY(Transient)

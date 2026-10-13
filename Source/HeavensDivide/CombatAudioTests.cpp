@@ -5,6 +5,7 @@
 #include "Sound/SoundGenerator.h"
 #include "HAL/PlatformProcess.h"
 #include "Misc/Crc.h"
+#include "Engine/Engine.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FCombatAudioTest, "HeavensDivide.Audio.CombatPalette",
     EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -62,6 +63,51 @@ bool FCombatAudioTest::RunTest(const FString&)
         }
         TestNotEqual(Pair.Key.ToString()+TEXT(" varies across plays"),Hashes[0],Hashes[1]);
     }
+    return !HasAnyErrors();
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FChestJackpotAudioTest,"HeavensDivide.Audio.ChestJackpot",
+    EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
+bool FChestJackpotAudioTest::RunTest(const FString&)
+{
+    auto* Source=LoadObject<UMetaSoundSource>(nullptr,TEXT("/Game/HeavensDivide/Audio/MetaSounds/MS_ChestJackpot"));
+    if(!TestNotNull(TEXT("Jackpot MetaSound loads"),Source))return false;
+    TestTrue(TEXT("Jackpot is a one-shot"),Source->IsOneShot());
+    TestFalse(TEXT("Jackpot has bounded UI voices"),Source->ConcurrencySet.IsEmpty());
+    Source->InitResources();
+    uint32 Hashes[2]={};
+    for(int32 Play=0;Play<2;++Play)
+    {
+        TArray<FAudioParameter> Defaults;Source->InitParameters(Defaults,TEXT("ChestJackpotTest"));
+        FSoundGeneratorInitParams Params;
+        Params.AudioDeviceID=GEngine->GetMainAudioDeviceID();Params.InstanceID=900000+Play;Params.AudioComponentId=Params.InstanceID;
+        Params.SampleRate=48000;Params.NumChannels=1;Params.NumFramesPerCallback=512;Params.AudioMixerNumOutputFrames=512;
+        auto Generator=Source->CreateSoundGenerator(Params,MoveTemp(Defaults));
+        if(!TestTrue(TEXT("Jackpot graph builds"),Generator.IsValid()))return false;
+        Generator->OnBeginGenerate();
+        TArray<float> PCM,Buffer;Buffer.SetNumZeroed(512);
+        double Energy=0;float Peak=0;bool Started=false;
+        const double Deadline=FPlatformTime::Seconds()+5;
+        while(FPlatformTime::Seconds()<Deadline&&PCM.Num()<48000*4&&!Generator->IsFinished())
+        {
+            FMemory::Memzero(Buffer.GetData(),Buffer.Num()*sizeof(float));
+            Generator->GetNextBuffer(Buffer.GetData(),Buffer.Num());
+            bool Nonzero=false;
+            for(float Sample:Buffer)
+            {
+                if(!FMath::IsFinite(Sample)){AddError(TEXT("Nonfinite jackpot sample"));return false;}
+                Energy+=Sample*Sample;Peak=FMath::Max(Peak,FMath::Abs(Sample));Nonzero|=FMath::Abs(Sample)>1.e-6f;
+            }
+            Started|=Nonzero;
+            if(Started)PCM.Append(Buffer);else FPlatformProcess::Sleep(.002f);
+        }
+        TestTrue(TEXT("Jackpot produces audible PCM"),Energy>.01);
+        TestTrue(TEXT("Jackpot output is unclipped"),Peak<.99f);
+        TestTrue(TEXT("Jackpot releases its voice within four seconds"),Generator->IsFinished());
+        Hashes[Play]=FCrc::MemCrc32(PCM.GetData(),PCM.Num()*sizeof(float));
+        Generator->OnEndGenerate();Source->OnEndGenerate(Generator);
+        if(HasAnyErrors())return false;
+    }
+    TestNotEqual(TEXT("Jackpot pitch varies between plays"),Hashes[0],Hashes[1]);
     return !HasAnyErrors();
 }
 #endif

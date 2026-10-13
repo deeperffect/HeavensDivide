@@ -1,5 +1,6 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
+#include "PauseMenuWidget.h"
 #include "MenuFeedbackWidget.h"
 #include "MetaSkillTreeWidget.h"
 #include "Blueprint/WidgetTree.h"
@@ -94,7 +95,12 @@ bool FMenuFeedbackTest::RunTest(const FString&)
     auto TreeRoot = Tree->TakeWidget();
     UMenuFeedbackWidget* TreeFeedback = Tree;
     TreeFeedback->DiscoverButtons();
-    TestEqual(TEXT("Skill tree's four native Slate action buttons are covered"), TreeFeedback->Buttons.Num(), 4);
+    TestEqual(TEXT("Skill tree tabs, details and footer action buttons are covered"), TreeFeedback->Buttons.Num(), 8);
+    auto* Pause = CreateWidget<UPauseMenuWidget>(PC);
+    auto PauseRoot = Pause->TakeWidget();
+    UMenuFeedbackWidget* PauseFeedback = Pause; PauseFeedback->DiscoverButtons();
+    TestEqual(TEXT("Pause report tabs and three UMG actions share feedback"), PauseFeedback->Buttons.Num(), 7);
+    PauseFeedback->NativeDestruct();
     TreeFeedback->NativeDestruct();
     Menu->NativeDestruct();
     TestFalse(TEXT("Teardown removes feedback callbacks"), Dynamic->OnPressed.IsBound());

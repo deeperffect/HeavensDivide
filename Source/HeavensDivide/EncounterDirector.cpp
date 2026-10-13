@@ -22,6 +22,7 @@ void AEncounterDirector::BeginPlay()
 {
     Super::BeginPlay(); NextMarch=FirstMarchSeconds+FMath::FRandRange(0.f,15.f);
     NextMagnet=FirstMagnetSeconds;
+    NextUrn=FirstUrnSeconds;
     WallTimes[0]=FMath::FRandRange(120.f,165.f);
     WallTimes[1]=FMath::FRandRange(300.f,345.f);
     for (TActorIterator<AEnemySpawner> It(GetWorld());It;++It) { Spawner=*It; break; }
@@ -52,7 +53,7 @@ void AEncounterDirector::Tick(float Delta)
         const float Pressure=Now>=480 ? .78f : 1.f;
         NextMarch=Now+(bSpawned ? FMath::FRandRange(MarchIntervalMin,MarchIntervalMax)*Pressure : 12.f);
     }
-    if (Now>=NextUrn) { SpawnUrn(); NextUrn=Now+FMath::FRandRange(38.f,55.f); }
+    if (Now>=NextUrn) { SpawnUrn(); NextUrn=Now+FMath::FRandRange(FMath::Max(10.f,UrnIntervalMin),FMath::Max(10.f,FMath::Max(UrnIntervalMin,UrnIntervalMax))); }
     if (Now>=NextMagnet)
     {
         const bool Spawned=SpawnUrn(true);

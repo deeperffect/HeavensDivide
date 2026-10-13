@@ -94,7 +94,7 @@ bool FDraftToolsTest::RunTest(const FString&)
  for (int32 Run = 0; Run < 3; ++Run) Meta->AwardSkillRun(60, false);
  TestEqual(TEXT("Completing runs does not unlock rerolls"), Upgrades->GetRerollsRemaining(), 0);
  TestEqual(TEXT("Completing runs does not unlock banishes"), Upgrades->GetBanishesRemaining(), 0);
- Meta->CurrentSave->SoulEmbers = 200;
+ Meta->CurrentSave->SoulEmbers = 2000;
  TestFalse(TEXT("Banish requires its Abilities-page reroll prerequisite"), MetaSkillTree::Purchase(*Meta->CurrentSave, TEXT("Bond.Banish")));
  TestTrue(TEXT("Reroll has no cross-page stat prerequisite"), MetaSkillTree::Find(TEXT("Bond.Reroll"))->Prerequisites.IsEmpty());
  TestTrue(TEXT("Purchase reroll skill"), MetaSkillTree::Purchase(*Meta->CurrentSave, TEXT("Bond.Reroll")));

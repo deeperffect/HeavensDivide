@@ -1,6 +1,7 @@
+#include "EnemyStatusEffectComponent.h"
+#include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "EnemyStatusEffectComponent.h"
 #include "UpgradeBalance.h"
 
 #include "EnemyBase.h"
@@ -144,6 +145,9 @@ void UEnemyStatusEffectComponent::TickStatus(EEnemyStatusEffect Status)
 	const float Damage = CalculateStatusDamagePerTick(Status, State);
     // Spend this tick before damage can invoke death and transfer the remaining budget.
     State.RemainingDuration -= State.ActiveTickInterval > KINDA_SMALL_NUMBER ? State.ActiveTickInterval : GetTickInterval(Status);
+	FRunDamageScope DamageScope(Status == EEnemyStatusEffect::Bleed ? FName(TEXT("Bleed")) : State.bBarragePoison ? FName(TEXT("BarragePoison")) : FName(TEXT("Poison")), false, false,
+        State.bBarragePoison ? FName(TEXT("BarragePool")) : NAME_None,
+        State.bBarragePoison && State.PoisonDamagePerTick > 0.f ? State.PuddlePoisonDamagePerTick / State.PoisonDamagePerTick : 0.f);
 	Enemy->ApplyStatusDamage(Damage, Source);
 
 	if (Enemy->IsDead() || State.RemainingDuration <= KINDA_SMALL_NUMBER) ClearStatus(Status);
@@ -156,6 +160,7 @@ void UEnemyStatusEffectComponent::ClearStatus(EEnemyStatusEffect Status)
 	if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(State.TickTimer);
 	State.Stacks = 0;
  State.bBarragePoison = State.bDirectBarragePoison = false; State.PoisonDamagePerTick = 0.f;
+ State.PuddlePoisonDamagePerTick = 0.f;
 	State.BleedHitBonusPerTick = 0.f;
 	State.RemainingDuration = 0.0f;
 	State.ActiveTickInterval = 0.0f;

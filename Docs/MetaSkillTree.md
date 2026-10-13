@@ -4,9 +4,9 @@ Open **Main Menu > Skill Tree**. Select a node to inspect its effect, scope, pre
 
 ## Layout and controls
 
-The map follows three directions from a central seal: blue shared skills above, green Ninja skills to the lower left, and red Samurai skills to the lower right. Each hero has a general trunk and three stance branches. Circular symbols, rank pips, large decorative crests, engraved rings and thin prerequisite connections keep the layout close to the reference. The right inspector explains whether a skill benefits both heroes, one hero, or one stance. Its Learn button stays visible below the scrolling details. The large crests and central seal are decorations, not purchases.
+The four pages are Stances, Synergies, Abilities and Stats. Stances are grouped under Samurai and Ninja. Locked stances show their Sigil price; selecting Unlock opens a Yes/No confirmation stating the exact cost. Opening the dialog or choosing No spends nothing. Yes uses the existing transactional purchase, then opens that stance's skill tree.
 
-Click to select; scroll to zoom; drag to pan; arrows or D-pad to move selection. Enter/controller A on an affordable node focuses Learn. Tab moves between the map and buttons. Home or Reset View restores the camera. Escape/controller Back closes the page (or cancels a pending refund). Hovering another branch does not change the selected prerequisite highlight.
+Skill trees grow downward with larger circular symbols and rank pips. The map scrolls vertically with the wheel or scrollbar; zoom and drag panning are disabled. Arrows or D-pad move selection and scroll the selected node into view. Enter/controller A focuses Learn. Home scrolls to the top. Escape/controller Back closes the page or cancels a pending purchase/refund. The selected prerequisite path is gold; hovering another branch does not change it. Connections meet the node rings and route around labels using the same geometry for ordinary and highlighted paths. Labels share a fixed row offset and use measured font line spacing. Stats place Samurai on the left, shared skills in the middle and Ninja on the right, with the shared root centered. The inspector and Learn button remain alongside the scrolling tree.
 
 ## Progression and costs
 
@@ -15,7 +15,7 @@ Click to select; scroll to zoom; drag to pan; arrows or D-pad to move selection.
 - Rank price is base price multiplied by the new rank. Base prices are 5, 10, 15 or 20 Embers. Most skills have three ranks; capstones and draft tools have one.
 - Run rewards are unchanged: one Ember per completed 30 seconds, plus 20 for victory. Survival rewards cap at 120. Quitting a live run does not bank a reward.
 - Purchases and refunds are available from the menu, outside gameplay.
-- These are permanent stat upgrades purchased with Soul Embers. All six stances and all supported run-upgrade cards (including synergies) are available from the start; no discovery or trial unlock is required. In-run stance prerequisites, exclusive branches and rank limits still apply. Technique and Twin Soul trials are retired.
+- These are permanent stat upgrades purchased with Soul Embers. Blood and Barrage are the starting stances. Additional stances cost 18 Soul Sigils each. Starting synergies are selected from owned unlocks. Supported ordinary run-upgrade cards remain available without discovery or trial unlocks. In-run stance prerequisites, exclusive branches and rank limits still apply. Technique and Twin Soul trials are retired.
 
 The general character trunk requires Living Flame, then Tempered/Hidden Edge, then the attack-speed node, then Mountain Splitter/Assassin's Patience. The three stance paths open from that last damage node. There are no dependencies on purchasing the other hero's skills.
 
@@ -44,18 +44,18 @@ These effects reach actual attacks: Iaijutsu uses the charge-time calculation; F
 
 ## Existing saves
 
-Save version **5** performs a one-time full respec for earlier profiles because effects and prerequisite paths changed. All previously spent skill Embers are returned using the recorded historical spend, existing unspent Embers remain, and skill ranks are cleared. Legacy discovery history is preserved for save compatibility but no longer restricts availability. Reloading cannot grant the refund twice. The migration takes place when the game next loads the profile; the configuration script does not open player saves.
+The earlier save-version **5** migration performed a one-time full respec for earlier profiles because effects and prerequisite paths changed. All previously spent skill Embers are returned using the recorded historical spend, existing unspent Embers remain, and skill ranks are cleared. Legacy discovery history is preserved for save compatibility but no longer restricts availability. Reloading cannot grant the refund twice. The migration takes place when the game next loads the profile; the configuration script does not open player saves.
 
 Purchases and refunds roll back if saving fails. Failed run rewards remain pending in the game instance for retry on returning to the menu. Invalid ranks and orphaned nodes are sanitized. Stable modifier IDs prevent repeated stat rebuilds from stacking bonuses or refilling health/dashes. Stance effects are cleared when the build changes.
 
 ## Editing and maintenance
 
-The shipped catalog lives in **/Game/HeavensDivide/Balance/DA_GlobalBalance**, under Skills. Each node exposes Map Position, Required Stance and Passive Effect in addition to its existing price, ranks, magnitude and prerequisites. Positions use a 1020 x 850 map canvas; (-1, -1) retains the legacy placement fallback for custom nodes. Node IDs are persistent save identifiers.
+The shipped catalog lives in **/Game/HeavensDivide/Balance/DA_GlobalBalance**, under Skills. Each node exposes Map Position, Required Stance and Passive Effect in addition to its existing price, ranks, magnitude and prerequisites. The current vertical layout derives tiers and branch spacing from prerequisites, fitting width to the page and keeping height scrollable. Node IDs are persistent save identifiers.
 
 After compiling changed native defaults, run **Tools/configure_meta_stance_tree.py** through Unreal Python to install the default catalog. This backs up the asset and changes only Skills, preserving the other balance settings. Do not rerun it over intentional designer edits unless restoring the native catalog is desired.
 
 - MetaSkillTree.cpp: default catalog, descriptions, scope labels, prices, prerequisites, migration and model operations.
-- SMetaSkillMap.cpp: vector rendering, authored positions and mouse/controller navigation.
+- SMetaSkillMap.cpp: vector rendering, prerequisite layout and mouse/controller navigation.
 - MetaSkillTreeWidget.cpp: inspector, purchases, refund and menu actions.
 - SynergyMetaProgressionSubsystem: transactional saves and cached generic/stance passives.
 - PlayerUpgradeStats.cpp: scoped modifiers, runtime bonus lookup and BalanceLab profile previews.
@@ -65,7 +65,7 @@ The map retains the existing native menu panel, fonts and buttons. It scales to 
 
 ## Verification
 
-Automation coverage includes catalog costs and prerequisites, persistence and failure rollback, exact one-time refunds, node positions and hit tests at different pan/zoom settings, selection highlighting, all six stance effects, actual charge/range/shuriken behavior, inactive-assistant scope, and removal of stale bonuses after changing builds. Tests use disposable automation saves or BalanceLab preview profiles.
+Automation coverage includes catalog costs and prerequisites, persistence and failure rollback, exact one-time refunds, node positions and width-fit hit tests, wheel bubbling and disabled drag panning, selection highlighting, all six stance effects, actual charge/range/shuriken behavior, inactive-assistant scope, and removal of stale bonuses after changing builds. Tests use disposable automation saves or BalanceLab preview profiles.
 
 The Win64 Development Editor build passes. All 15 selected gameplay/progression suites pass across the initial run and corrected-fixture rerun; the combined result is Saved/MetaTreeRedesign/GameplayVerification.json. These cover the meta tree, all six combat builds, Tag Team, balance data, run preparation, and draft tools. Five of the existing suites report fixture/asset warnings.
 
@@ -74,3 +74,7 @@ D3D12-rendered SkillTree and DraftUnlocks suites also pass (Saved/MetaTreeRedesi
 The larger tree extends progression length. Its final difficulty and Ember pacing still need playtesting against real run outcomes.
 
 The subsequent upgrade-availability pass also passes 13 selected checks (`Saved/TrialRemoval/Verification.json`), including the meta-tree suites. Final rendered layout inspection is recorded in `Saved/MetaTreeRedesign/FinalVisual/index.json`. All supported run upgrades are available independently of permanent skill purchases; Technique and Twin Soul trials are retired.
+
+The Loadout and difficulty-unlock pass builds successfully and passes all nine selected menu/progression checks. Rendered previews include locked stance dropdowns, Samurai/Ninja categories, the Yes/No purchase dialog, and the larger vertical trees. Evidence is `Saved/LoadoutMenus/ValidationSummary.json`; automation uses disposable profiles.
+
+The menu/tree polish pass also builds and passes eleven focused checks, including continuous ring endpoints, clear label routing, all page layouts, Samurai/shared/Ninja ordering, combo assist charge and Display controls. D3D12 previews were inspected; evidence is `Saved/MenuTreePolish/ValidationSummary.json`.

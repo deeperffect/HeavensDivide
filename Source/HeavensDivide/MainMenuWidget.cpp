@@ -1,10 +1,14 @@
+#include "MainMenuWidget.h"
+#include "RunReportView.h"
+#include "DisplaySettingsView.h"
+#include "Components/ScaleBoxSlot.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "MainMenuWidget.h"
 #include "BloodshiftMenuStyle.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Engine/World.h"
+#include "Engine/Engine.h"
 #include "TimerManager.h"
 #include "Components/Spacer.h"
 #include "TesterBalanceWidget.h"
@@ -50,9 +54,17 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Rendering/DrawElementTypes.h"
 #include "Widgets/SLeafWidget.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Framework/Application/SlateApplication.h"
 
 namespace MainMenuReadability
 {
+    void CancelDisplayPreview(UMainMenuWidget* Menu)
+    {
+        if(auto* Host=Cast<UNativeWidgetHost>(Menu->GetWidgetFromName(TEXT("DisplaySettingsHost")));Host && Host->GetContent())
+            StaticCastSharedPtr<SDisplaySettingsView>(Host->GetContent())->Cancel();
+    }
 	const FLinearColor Label(0.96f, 0.89f, 0.74f);
 	const FLinearColor Ink(0.008f, 0.012f, 0.019f);
 	const FLinearColor Gold(0.68f, 0.47f, 0.22f);
@@ -159,6 +171,7 @@ void UMainMenuWidget::NativeConstruct()
 
 void UMainMenuWidget::NativeDestruct()
 {
+    MainMenuReadability::CancelDisplayPreview(this);
 	if (BackgroundMediaPlayer)
 	{
 		BackgroundMediaPlayer->OnMediaOpened.RemoveDynamic(this, &UMainMenuWidget::HandleBackgroundMediaOpened);
@@ -233,6 +246,12 @@ void UMainMenuWidget::BuildMenu()
 
 	UCanvasPanel* MainPage = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("MainPage"));
 	MenuSwitcher->AddChild(MainPage);
+    auto* BoardScaler = WidgetTree->ConstructWidget<UScaleBox>(); BoardScaler->SetStretch(EStretch::ScaleToFit); BoardScaler->SetStretchDirection(EStretchDirection::DownOnly);
+    auto* BoardSlot = MainPage->AddChildToCanvas(BoardScaler); BoardSlot->SetAnchors(FAnchors(.66f, .035f, .98f, .80f)); BoardSlot->SetOffsets(FMargin(0));
+    auto* BoardSize = WidgetTree->ConstructWidget<USizeBox>(); BoardSize->SetWidthOverride(430); BoardSize->SetHeightOverride(640); BoardScaler->SetContent(BoardSize);
+    if (auto* BoardScaleSlot = Cast<UScaleBoxSlot>(BoardSize->Slot)) { BoardScaleSlot->SetHorizontalAlignment(HAlign_Right); BoardScaleSlot->SetVerticalAlignment(VAlign_Top); }
+    LeaderboardHost = WidgetTree->ConstructWidget<UNativeWidgetHost>(UNativeWidgetHost::StaticClass(), TEXT("LeaderboardHost")); BoardSize->SetContent(LeaderboardHost);
+    LeaderboardHost->SetContent(SNew(SRunLeaderboardView).Leaderboards(GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLeaderboardSubsystem>() : nullptr));
 	UNativeWidgetHost* MenuShade = WidgetTree->ConstructWidget<UNativeWidgetHost>(UNativeWidgetHost::StaticClass(), TEXT("MainMenuLeftShade"));
 	MenuShade->SetContent(SNew(MainMenuReadability::SLeftMenuShade));
 	MenuShade->SetVisibility(ESlateVisibility::HitTestInvisible);
@@ -436,7 +455,7 @@ UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
         return Text;
     };
     Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionHeading"), TEXT("THE COLLECTION"), 34, BloodshiftMenu::Paper, true));
-    Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionSubtitle"), TEXT("Explore every technique. Purchase locked stances and synergies in the Skill Tree."), 18, BloodshiftMenu::Muted))
+    Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionSubtitle"), TEXT("Unlock stances and synergies in the Skill Tree."), 18, BloodshiftMenu::Muted))
         ->SetPadding(FMargin(0, 8, 0, 2));
     AddSecondaryPageDivider(Panel);
     UHorizontalBox* Tabs = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CollectionTabs"));
@@ -545,6 +564,11 @@ UVerticalBox* UMainMenuWidget::BuildSettingsPanel()
  SettingsSwitcher=WidgetTree->ConstructWidget<UWidgetSwitcher>(UWidgetSwitcher::StaticClass(),TEXT("SettingsSubpages"));
  Host->AddChildToVerticalBox(SettingsSwitcher)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
  SettingsSwitcher->AddChild(BuildGeneralSettingsPanel());SettingsSwitcher->AddChild(BuildKeybindPanel());
+ auto* Display=WidgetTree->ConstructWidget<UNativeWidgetHost>(UNativeWidgetHost::StaticClass(),TEXT("DisplaySettingsHost"));
+ const TWeakObjectPtr<UMainMenuWidget> WeakThis(this);
+ Display->SetContent(SNew(SDisplaySettingsView).World(GetWorld()).PageActive_Lambda([WeakThis]
+    {return WeakThis.IsValid() && WeakThis->bSettingsPopupOpen && WeakThis->SettingsSwitcher && WeakThis->SettingsSwitcher->GetActiveWidgetIndex()==2;}));
+ SettingsSwitcher->AddChild(Display);
  return Host;
 }
 UVerticalBox* UMainMenuWidget::BuildKeybindPanel()
@@ -562,7 +586,7 @@ UVerticalBox* UMainMenuWidget::BuildKeybindPanel()
  Panel=WidgetTree->ConstructWidget<UVerticalBox>();Scroll->AddChild(Panel);
  auto BodyFont=SecondaryBodyFont.Size>0?SecondaryBodyFont:Heading->GetFont();BodyFont.Size=CollectionDescriptionFontSize;
  auto* Help=WidgetTree->ConstructWidget<UTextBlock>();Help->SetFont(BodyFont);Help->SetColorAndOpacity(SecondaryBodyColor);
- Help->SetText(FText::FromString(TEXT("Keyboard & mouse. Select a binding, then press a key. Esc cancels.")));Help->SetAutoWrapText(true);
+ Help->SetText(FText::FromString(TEXT("Select a binding. Press a key. Esc cancels.")));Help->SetAutoWrapText(true);
  Panel->AddChildToVerticalBox(Help)->SetPadding(FMargin(0,0,0,16));
  const TCHAR* Labels[]={TEXT("Move Forward"),TEXT("Move Backward"),TEXT("Move Left"),TEXT("Move Right"),TEXT("Swap Character"),TEXT("Dash"),TEXT("Interact"),TEXT("Combo Ability")};
  const auto Actions=UHeavensDivideGameUserSettings::GetBindableActions();KeybindSelectors.Reset();
@@ -595,7 +619,7 @@ void UMainMenuWidget::ApplyKeyBinding(FName Action,FInputChord Key)
  if(bRefreshingKeybinds)return;
  auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
  const bool Saved=Settings&&Settings->SetKeyBinding(Action,Key.Key);
- if(KeybindStatus)KeybindStatus->SetText(FText::FromString(Saved?TEXT("Saved. Conflicting bindings exchange keys."):TEXT("Choose a keyboard or mouse button. Esc and ~ are reserved.")));
+ if(KeybindStatus)KeybindStatus->SetText(FText::FromString(Saved?TEXT("Saved."):TEXT("Choose a keyboard or mouse button. Esc and ~ are reserved.")));
  RefreshKeybindRows();
 }
 bool UMainMenuWidget::IsSelectingKeybind() const
@@ -604,14 +628,14 @@ bool UMainMenuWidget::IsSelectingKeybind() const
 }
 void UMainMenuWidget::HandleKeybindSettings()
 {
- RefreshKeybindRows();if(KeybindStatus)KeybindStatus->SetText(FText::FromString(TEXT("Changes save automatically. Conflicting bindings exchange keys.")));
+ RefreshKeybindRows();if(KeybindStatus)KeybindStatus->SetText(FText::FromString(TEXT("")));
  if(SettingsSwitcher)SettingsSwitcher->SetActiveWidgetIndex(1);
  if(!KeybindSelectors.IsEmpty())KeybindSelectors[0]->SetUserFocus(GetOwningPlayer());
 }
 void UMainMenuWidget::HandleResetKeybinds()
 {
  if(auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())Settings->ResetKeyBindings();
- RefreshKeybindRows();if(KeybindStatus)KeybindStatus->SetText(FText::FromString(TEXT("Default bindings restored.")));
+ RefreshKeybindRows();if(KeybindStatus)KeybindStatus->SetText(FText::FromString(TEXT("Defaults restored.")));
 }
 
 UVerticalBox* UMainMenuWidget::BuildGeneralSettingsPanel()
@@ -626,7 +650,6 @@ UVerticalBox* UMainMenuWidget::BuildGeneralSettingsPanel()
     UTextBlock* Heading = Text(TEXT("SETTINGS"), 32, BloodshiftMenu::Paper);
     FSlateFontInfo HeadingFont = SecondaryHeadingFont; HeadingFont.Size = 32; Heading->SetFont(HeadingFont);
     Panel->AddChildToVerticalBox(Heading);
-    Panel->AddChildToVerticalBox(Text(TEXT("Make the fight feel right."), 18, BloodshiftMenu::Muted))->SetPadding(FMargin(0, 8, 0, 0));
     AddSecondaryPageDivider(Panel);
     UHorizontalBox* AutoRow = WidgetTree->ConstructWidget<UHorizontalBox>();
     Panel->AddChildToVerticalBox(AutoRow)->SetPadding(FMargin(0, 8, 0, 30));
@@ -653,7 +676,7 @@ UVerticalBox* UMainMenuWidget::BuildGeneralSettingsPanel()
         Panel->AddChildToVerticalBox(Row)->SetPadding(FMargin(0, 8, 0, 28));
         UVerticalBox* Labels = WidgetTree->ConstructWidget<UVerticalBox>();
         Labels->AddChildToVerticalBox(Text(Label, 21, BloodshiftMenu::Paper));
-        Labels->AddChildToVerticalBox(Text(Help, 15, BloodshiftMenu::Muted))->SetPadding(FMargin(0, 6, 0, 0));
+        // Keep optional explanations in the slider tooltip.
         Row->AddChildToHorizontalBox(Labels)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
         USizeBox* Track = WidgetTree->ConstructWidget<USizeBox>(); Track->SetWidthOverride(300); Track->SetHeightOverride(36);
         OutSlider = WidgetTree->ConstructWidget<USlider>(USlider::StaticClass(), Name);
@@ -680,9 +703,35 @@ UVerticalBox* UMainMenuWidget::BuildGeneralSettingsPanel()
     AddSlider(TEXT("Master volume"), TEXT("Overall game audio level."), TEXT("MasterVolumeSlider"), Volume, VolumeValue);
     MasterVolumeSlider = Volume; MasterVolumeValueText = VolumeValue;
     MasterVolumeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::HandleMasterVolumeChanged);
+    USlider* Music = nullptr; UTextBlock* MusicValue = nullptr;
+    AddSlider(TEXT("Music volume"), TEXT("Music tracks."), TEXT("MusicVolumeSlider"), Music, MusicValue);
+    MusicVolumeSlider=Music; MusicVolumeValueText=MusicValue;
+    MusicVolumeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::HandleMusicVolumeChanged);
+    USlider* Effects = nullptr; UTextBlock* EffectsValue = nullptr;
+    AddSlider(TEXT("Sound effects volume"), TEXT("Combat, menus and ambience."), TEXT("SoundEffectsVolumeSlider"), Effects, EffectsValue);
+    SoundEffectsVolumeSlider=Effects; SoundEffectsVolumeValueText=EffectsValue;
+    SoundEffectsVolumeSlider->OnValueChanged.AddDynamic(this, &UMainMenuWidget::HandleSoundEffectsVolumeChanged);
     UHorizontalBox* Actions = WidgetTree->ConstructWidget<UHorizontalBox>();
     Panel->AddChildToVerticalBox(Actions)->SetPadding(FMargin(-12, 8, 0, 0));
     AddPageAction(Actions, FText::FromString(TEXT("KEYBOARD & MOUSE")), TEXT("KeybindSettingsButton"))->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleKeybindSettings);
+    auto* DisplayAction=WidgetTree->ConstructWidget<UNativeWidgetHost>(UNativeWidgetHost::StaticClass(),TEXT("DisplaySettingsButton"));
+    static const FButtonStyle DisplayStyle=BloodshiftMenu::ActionStyle();
+    const TWeakObjectPtr<UMainMenuWidget> WeakThis(this);
+    DisplayAction->SetContent(SNew(SButton).ButtonStyle(&DisplayStyle).OnClicked_Lambda([WeakThis]
+    {
+        if(WeakThis.IsValid())
+        {
+            if(WeakThis->GetWorld() && WeakThis->GetWorld()->WorldType==EWorldType::Game && GEngine && GEngine->GameViewport)
+                if(auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())Settings->ResetToCurrentSettings();
+            if(auto* Host=Cast<UNativeWidgetHost>(WeakThis->GetWidgetFromName(TEXT("DisplaySettingsHost")));Host && Host->GetContent())
+                StaticCastSharedPtr<SDisplaySettingsView>(Host->GetContent())->Refresh();
+            if(WeakThis->SettingsSwitcher)WeakThis->SettingsSwitcher->SetActiveWidgetIndex(2);
+            if(auto* Host=Cast<UNativeWidgetHost>(WeakThis->GetWidgetFromName(TEXT("DisplaySettingsHost")));Host && Host->GetContent())
+                StaticCastSharedPtr<SDisplaySettingsView>(Host->GetContent())->FocusInitial();
+        }
+        return FReply::Handled();
+    })[SNew(STextBlock).Text(FText::FromString(TEXT("DISPLAY"))).Font(BloodshiftMenu::BodyFont(18))]);
+    Actions->AddChildToHorizontalBox(DisplayAction)->SetPadding(FMargin(12,0,0,0));
     RefreshAutoTargetingSetting();
     return Panel;
 }
@@ -692,6 +741,10 @@ void UMainMenuWidget::RefreshAutoTargetingSetting()
 	const UHeavensDivideGameUserSettings* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
 	const bool bEnabled = !Settings || Settings->IsAutoTargetingEnabled();
     const float Volume = Settings ? Settings->GetMasterVolume() : 1.f;
+    if (MusicVolumeSlider) MusicVolumeSlider->SetValue(Settings?Settings->GetMusicVolume():1.f);
+    if (MusicVolumeValueText) MusicVolumeValueText->SetText(FText::AsPercent(Settings?Settings->GetMusicVolume():1.f));
+    if (SoundEffectsVolumeSlider) SoundEffectsVolumeSlider->SetValue(Settings?Settings->GetSoundEffectsVolume():1.f);
+    if (SoundEffectsVolumeValueText) SoundEffectsVolumeValueText->SetText(FText::AsPercent(Settings?Settings->GetSoundEffectsVolume():1.f));
     if (MasterVolumeSlider) MasterVolumeSlider->SetValue(Volume);
     if (MasterVolumeValueText) MasterVolumeValueText->SetText(FText::AsPercent(Volume));
 	const float ShakeIntensity = Settings ? Settings->GetCameraShakeIntensity() : 1.0f;
@@ -706,6 +759,17 @@ void UMainMenuWidget::HandleMasterVolumeChanged(float Value)
     if (auto* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings())
         Settings->SetMasterVolume(Value);
     if (MasterVolumeValueText) MasterVolumeValueText->SetText(FText::AsPercent(Value));
+}
+
+void UMainMenuWidget::HandleMusicVolumeChanged(float Value)
+{
+    if (auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings()) Settings->SetMusicVolume(Value);
+    if (MusicVolumeValueText) MusicVolumeValueText->SetText(FText::AsPercent(Value));
+}
+void UMainMenuWidget::HandleSoundEffectsVolumeChanged(float Value)
+{
+    if (auto* Settings=UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings()) Settings->SetSoundEffectsVolume(Value);
+    if (SoundEffectsVolumeValueText) SoundEffectsVolumeValueText->SetText(FText::AsPercent(Value));
 }
 
 void UMainMenuWidget::HandleCameraShakeChanged(float Value)
@@ -828,7 +892,7 @@ void UMainMenuWidget::RebuildCollectionGrid()
 	int32 UnlockedCount=0;
 	for(const UUpgradeDefinition* Definition:CollectionDefinitions)if(Meta->IsCollectionUpgradeUnlocked(Definition))++UnlockedCount;
 	CollectionDiscoveryCountText->SetText(FText::FromString(FString::Printf(TEXT("%d / %d UNLOCKED"),UnlockedCount,CollectionDefinitions.Num())));
-	CollectionProgressText->SetText(FText::FromString(TEXT("Stances and synergies are purchased with Soul Sigils.")));
+	CollectionProgressText->SetText(FText::FromString(TEXT("")));
 	RefreshCollectionDetails(); RefreshCollectionTileVisuals();
 }
 
@@ -864,7 +928,7 @@ void UMainMenuWidget::RefreshCollectionDetails()
 	else if(SelectedCollectionUpgrade->Category==EUpgradeCategory::Synergy)
 	{
 		const FName Id=SelectedCollectionUpgrade->MetaUnlockId.IsNone()?SelectedCollectionUpgrade->UpgradeId:SelectedCollectionUpgrade->MetaUnlockId;
-		Ownership=bUnlocked?TEXT("SYNERGY UNLOCKED / CAN APPEAR IN RUNS"):FString::Printf(TEXT("SYNERGY LOCKED / %d SOUL SIGILS\nPurchase in Skill Tree / Upgrades"),Meta?Meta->GetSynergyCost(Id):0);
+		Ownership=bUnlocked?TEXT("SYNERGY UNLOCKED / EQUIP IN NEW RUN"):FString::Printf(TEXT("SYNERGY LOCKED / %d SOUL SIGILS\nPurchase in Skill Tree / Synergies"),Meta?Meta->GetSynergyCost(Id):0);
 	}
 	else Ownership=TEXT("RUN UPGRADE / MATCHING BUILD REQUIRED");
 	CollectionDetailStats->SetText(FText::FromString(FString::Printf(TEXT("%s\n\nMAX LEVEL  %d\nRARITY  %s"),*Ownership,
@@ -1018,6 +1082,7 @@ void UMainMenuWidget::RefreshMenuEntryPresentation(float DeltaTime)
 
 void UMainMenuWidget::ShowMainPanel()
 {
+    MainMenuReadability::CancelDisplayPreview(this);
 	if (bInRunSettings) { InRunSettingsClosed.ExecuteIfBound(); return; }
 	SetSkillTreeVisible(false);
 	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->RetrySkillReward();
@@ -1063,6 +1128,7 @@ void UMainMenuWidget::OpenInRunSettings(FSimpleDelegate OnClosed)
 
 void UMainMenuWidget::ShowSettingsPanel()
 {
+    MainMenuReadability::CancelDisplayPreview(this);
 	if(SettingsSwitcher)SettingsSwitcher->SetActiveWidgetIndex(0);
 	SetSkillTreeVisible(false);
 	SetResetConfirmationVisible(false);
@@ -1093,6 +1159,7 @@ void UMainMenuWidget::FocusNamedWidget(FName WidgetName)
 void UMainMenuWidget::RefreshPagePresentation()
 {
     const bool bPageOpen = bCollectionOpen || bSkillTreeOpen || bSettingsPopupOpen || bResetConfirmationOpen;
+    if (LeaderboardHost) LeaderboardHost->SetVisibility(bPageOpen ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
     if (LogoPresentation) LogoPresentation->SetRenderScale(FVector2D(bPageOpen ? 0.67f : 1.0f));
 }
 
@@ -1108,6 +1175,7 @@ void UMainMenuWidget::SetResetConfirmationVisible(bool bVisible)
 
 void UMainMenuWidget::SetSettingsPopupVisible(bool bVisible)
 {
+    if(!bVisible)MainMenuReadability::CancelDisplayPreview(this);
 	bSettingsPopupOpen = bVisible;
 	RefreshPagePresentation();
 	if (SettingsPopupOverlay)
@@ -1159,7 +1227,24 @@ void UMainMenuWidget::ShowTesterBalance()
 }
 void UMainMenuWidget::HandleSettings() { ShowSettingsPanel(); }
 void UMainMenuWidget::HandleResetProgress() { ShowResetConfirmation(); }
-void UMainMenuWidget::HandleBack() { if(bSettingsPopupOpen&&SettingsSwitcher&&SettingsSwitcher->GetActiveWidgetIndex()==1){ShowSettingsPanel();FocusNamedWidget(TEXT("KeybindSettingsButton"));}else ShowMainPanel(); }
+void UMainMenuWidget::HandleBack()
+{
+    if(bSettingsPopupOpen && SettingsSwitcher && SettingsSwitcher->GetActiveWidgetIndex()>0)
+    {
+        const bool bDisplay=SettingsSwitcher->GetActiveWidgetIndex()==2;
+        if(bDisplay)
+            if(auto* Host=Cast<UNativeWidgetHost>(GetWidgetFromName(TEXT("DisplaySettingsHost")));Host && Host->GetContent())
+                if(StaticCastSharedPtr<SDisplaySettingsView>(Host->GetContent())->CloseOpenSelector())return;
+        ShowSettingsPanel();
+        if(bDisplay)
+        {
+            if(auto* Host=Cast<UNativeWidgetHost>(GetWidgetFromName(TEXT("DisplaySettingsButton")));Host && Host->GetContent())
+                FSlateApplication::Get().SetKeyboardFocus(Host->GetContent(),EFocusCause::SetDirectly);
+        }
+        else FocusNamedWidget(TEXT("KeybindSettingsButton"));
+    }
+    else ShowMainPanel();
+}
 void UMainMenuWidget::HandleCancelReset() { SetResetConfirmationVisible(false); }
 
 void UMainMenuWidget::HandleConfirmReset()

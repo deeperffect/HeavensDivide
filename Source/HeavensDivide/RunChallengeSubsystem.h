@@ -36,6 +36,8 @@ public:
     UFUNCTION(BlueprintPure, Category="Run|Challenges") float GetMultiplier(FName Id) const;
     UFUNCTION(BlueprintPure, Category="Run|Challenges") float GetRewardMultiplier() const;
     UFUNCTION(BlueprintPure, Category="Run|Challenges") bool CanEditModifiers() const;
+    int32 GetUnlockedRank(FName Id) const;
+    bool SetMap(FName Id);
     void BeginRun();
     bool ApplyEnemy(AEnemyBase* Enemy);
     bool ApplySpawner(AEnemySpawner* Spawner);
@@ -43,5 +45,6 @@ public:
 private:
     friend class FRunChallengeTest;
     UPROPERTY(Transient) TMap<FName, int32> Ranks;
+    FName MapId=TEXT("FallenGrove");
     int32 CommonKillsTowardEmber = 0;
 };

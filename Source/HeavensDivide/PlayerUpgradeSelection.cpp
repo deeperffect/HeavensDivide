@@ -49,15 +49,15 @@ bool TradeoffCopy(const UPlayerUpgradeComponent* U, const UUpgradeDefinition* Ca
 
 bool UPlayerUpgradeComponent::IsCategoryUnlocked(EUpgradeCategory Category) const
 {
-	// Categories are open from the start; each card still obeys its unlock and stance rules.
-	return Category != EUpgradeCategory::SamuraiTrial && Category != EUpgradeCategory::NinjaTrial;
+	// Synergies are starting equipment; purchased unlocks never put them back in drafts.
+	return Category != EUpgradeCategory::Synergy && Category != EUpgradeCategory::SamuraiTrial && Category != EUpgradeCategory::NinjaTrial;
 }
 
 TArray<EUpgradeCategory> UPlayerUpgradeComponent::GetEligibleCategories() const
 {
 	TArray<EUpgradeCategory> EligibleCategories;
 	constexpr EUpgradeCategory Categories[] = {EUpgradeCategory::Samurai, EUpgradeCategory::Ninja,
-	                                           EUpgradeCategory::Global, EUpgradeCategory::Synergy};
+	                                           EUpgradeCategory::Global};
 
 	for (const EUpgradeCategory Category : Categories)
 	{
@@ -98,6 +98,7 @@ TArray<EUpgradeCategory> UPlayerUpgradeComponent::RollCategoryChoices(int32 Choi
 TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetEligibleUpgradesForCategory(EUpgradeCategory Category) const
 {
 	TArray<UUpgradeDefinition*> CandidateUpgrades;
+	if (!IsCategoryUnlocked(Category)) return CandidateUpgrades;
 	for (UUpgradeDefinition* Upgrade : UpgradePool)
 	{
 		if (Upgrade && Upgrade->Category == Category && !IsTrialBuildStarter(Upgrade) && !IsBloodShrineUpgrade(Upgrade))
@@ -202,7 +203,7 @@ bool UPlayerUpgradeComponent::BeginBloodShrineSelection(int32 ChoiceCount)
 	    HasUpgradeId(TEXT("ReturningFang")) || HasUpgradeId(TEXT("BarrageStance")) || HasUpgradeId(TEXT("GreatShuriken")))
 	{
 		for (UUpgradeDefinition* Upgrade : UpgradePool)
-			if (IsBloodShrineUpgrade(Upgrade) && CanAcquireUpgrade(Upgrade))
+			if (Upgrade && Upgrade->Category != EUpgradeCategory::Synergy && IsBloodShrineUpgrade(Upgrade) && CanAcquireUpgrade(Upgrade))
 				CurrentUpgradeChoices.Add(Upgrade);
 		for (int32 Index = CurrentUpgradeChoices.Num() - 1; Index > 0; --Index)
 			CurrentUpgradeChoices.Swap(Index, FMath::RandRange(0, Index));
@@ -218,9 +219,8 @@ bool UPlayerUpgradeComponent::BeginBloodShrineSelection(int32 ChoiceCount)
 
 bool UPlayerUpgradeComponent::BeginDirectCategoryUpgradeSelection(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
-	if (Category == EUpgradeCategory::SamuraiTrial || Category == EUpgradeCategory::NinjaTrial)
-		return false;
 	ClearCurrentOffer();
+	if (!IsCategoryUnlocked(Category)) return false;
 	SelectedCategory = Category;
 	CurrentUpgradeChoices = RollUpgradeChoices(Category, UpgradeChoiceCount);
 	bHasSelectedCategory = !CurrentUpgradeChoices.IsEmpty();
@@ -246,7 +246,7 @@ bool UPlayerUpgradeComponent::SelectSynergyDiscoveryUpgrade(UUpgradeDefinition* 
 
 bool UPlayerUpgradeComponent::SelectCategory(EUpgradeCategory Category, int32 UpgradeChoiceCount)
 {
-	if (!CurrentCategoryChoices.Contains(Category))
+	if (!IsCategoryUnlocked(Category) || !CurrentCategoryChoices.Contains(Category))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Upgrade category selection rejected: %s was not offered."),
 		       *CategoryToString(Category));
@@ -290,7 +290,7 @@ bool UPlayerUpgradeComponent::SelectUpgrade(UUpgradeDefinition* Upgrade)
 			}
 		}
 	}
-	if (!bHasSelectedCategory || !ResolvedUpgrade || !CurrentUpgradeChoices.Contains(ResolvedUpgrade))
+	if (!bHasSelectedCategory || !ResolvedUpgrade || ResolvedUpgrade->Category == EUpgradeCategory::Synergy || !CurrentUpgradeChoices.Contains(ResolvedUpgrade))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Upgrade selection rejected: %s was not offered."), *UpgradeToLogString(Upgrade));
 		return false;
@@ -343,7 +343,7 @@ TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetEligibleUpgrades(
 	TArray<UUpgradeDefinition*> EligibleUpgrades;
 	for (UUpgradeDefinition* Upgrade : CandidateUpgrades)
 	{
-		if (CanAcquireUpgrade(Upgrade))
+		if (Upgrade && Upgrade->Category != EUpgradeCategory::Synergy && CanAcquireUpgrade(Upgrade))
 		{
 			EligibleUpgrades.Add(Upgrade);
 		}

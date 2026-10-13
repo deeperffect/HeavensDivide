@@ -1,4 +1,5 @@
 #include "NinjaBuildProjectile.h"
+#include "RunReportSubsystem.h"
 #include "UpgradeProcVFX.h"
 #include "NinjaBuildComponent.h"
 #include "NinjaCharacter.h"
@@ -48,6 +49,7 @@ void ANinjaBuildProjectile::ShurikenHit(AEnemyBase* Enemy, bool bBurst)
      if (B->Has(TEXT("ShurikenPulse"))) Amount*=B->Tune(TEXT("ShurikenPulse"),TEXT("ContactMultiplier"),.65f);
  }
  const bool bGrind=!bBurst && !bGrindingUsed && B->Has(TEXT("GrindingHalt")) && Enemy->GetDropCategory()!=EEnemyDropCategory::Normal;
+ FRunDamageScope DamageScope(bCloneProjectile ? FName(TEXT("ShadowClone")) : bAssistProjectile ? AssistDamageSource : bBurst ? FName(TEXT("BreakingWheel")) : FName(TEXT("GreatShuriken")));
  const float Dealt=B->Hit(Enemy,Amount,false,bAssistProjectile,true);
  if (Dealt<=0) return;
  if (!bBurst) {

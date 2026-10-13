@@ -16,6 +16,7 @@
 #include "MetaSkillTreeWidget.h"
 #include "SMetaSkillMap.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Layout/SScrollBox.h"
 #include "HeavensDivideMetaSaveGame.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "SurvivorPlayerController.h"
@@ -38,7 +39,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 {
 	const FString Slot = TEXT("Automation_SkillTree_") + FGuid::NewGuid().ToString(EGuidFormats::Digits);
 	const FString PreviousCommandLine = FCommandLine::Get();
-	FCommandLine::Set(*(PreviousCommandLine + TEXT(" -MetaSaveSlot=") + Slot));
+	FCommandLine::Set(*(TEXT("-MetaSaveSlot=") + Slot + TEXT(" ") + PreviousCommandLine));
 	UGameInstance* GI = NewObject<UGameInstance>(GEngine);
 	GI->InitializeStandalone();
 	FCommandLine::Set(*PreviousCommandLine);
@@ -50,8 +51,15 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	Meta->CreateFreshSave();
 	TestEqual(TEXT("New profiles have no currency"),Meta->GetSoulEmbers(),0);
 	TestFalse(TEXT("Cannot purchase with empty wallet"),Meta->PurchaseSkill(TEXT("Root.Vitality")));
-	Meta->CurrentSave->SoulEmbers = 3000;
- Meta->CurrentSave->SoulSigils = 40;
+	constexpr int32 StartingEmbers=10000;
+	Meta->CurrentSave->SoulEmbers = StartingEmbers;
+ Meta->CurrentSave->SoulSigils = 100;
+ TestEqual(TEXT("Combo unlock now costs three times its original price"),Meta->GetSkillCost(TEXT("Ability.ComboUnlock")),30);
+ TestEqual(TEXT("Dash unlock now costs three times its original price"),Meta->GetSkillCost(TEXT("Root.Dash")),60);
+ TestEqual(TEXT("Reroll unlock now costs three times its original price"),Meta->GetSkillCost(TEXT("Bond.Reroll")),45);
+ TestEqual(TEXT("Banish unlock now costs three times its original price"),Meta->GetSkillCost(TEXT("Bond.Banish")),45);
+ TestEqual(TEXT("Repeatable stat price is tripled too"),Meta->GetSkillCost(TEXT("Root.Vitality")),15);
+ TestEqual(TEXT("Stance-specific rank price is tripled too"),Meta->GetSkillCost(TEXT("Barrage.Edge")),30);
  for (const TCHAR* Id : {TEXT("Iaijutsu"), TEXT("BladeWave"), TEXT("ReturningFang"), TEXT("GreatShuriken")})
   TestTrue(TEXT("Purchase stance before its skill ranks"), Meta->PurchaseStance(Id));
 	Meta->CurrentSave->UnlockedSynergyUpgradeIds.Add(TEXT("Synergy.TestLegacy"));
@@ -65,13 +73,17 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 		TestFalse(TEXT("Stable node IDs unique"),Seen.Contains(N.Id));
 		for (FName P : N.Prerequisites) TestTrue(TEXT("Catalog topological and all prerequisites exist"),Seen.Contains(P));
 		Seen.Add(N.Id);
-  TotalSkillCost += N.BaseCost * N.MaxRank * (N.MaxRank + 1) / 2;
   for (FName P : N.Prerequisites) TestEqual(TEXT("Prerequisites remain within the same page"), MetaSkillTree::Find(P)->Page, N.Page);
 		TestTrue(TEXT("Node has concrete effect and text"),N.PerRank > 0 && !N.Description.IsEmpty());
-		for (int32 Rank=0;Rank<N.MaxRank;++Rank) TestTrue(TEXT("Legal rank purchase"),Meta->PurchaseSkill(N.Id));
+		for (int32 Rank=0;Rank<N.MaxRank;++Rank)
+		{
+   TestEqual(TEXT("Every permanent rank costs triple its catalog price"),Meta->GetSkillCost(N.Id),3*N.BaseCost*(Rank+1));
+   TotalSkillCost += Meta->GetSkillCost(N.Id);
+   TestTrue(TEXT("Legal rank purchase"),Meta->PurchaseSkill(N.Id));
+  }
 		TestFalse(TEXT("Rank cap enforced"),Meta->PurchaseSkill(N.Id));
 	}
-	const int32 WalletAfterAll = 3000 - TotalSkillCost;
+	const int32 WalletAfterAll = StartingEmbers - TotalSkillCost;
  TestEqual(TEXT("Complete tree deducts exact catalog cost"),Meta->GetSoulEmbers(),WalletAfterAll);
 	TestTrue(TEXT("Swap speed totals 30 percent"),FMath::IsNearlyEqual(Meta->GetSkillBonus(TEXT("Swap")),.3f));
 	Meta->LoadMetaProgression();
@@ -84,30 +96,37 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	TestEqual(TEXT("Failed refund restores wallet"),Meta->GetSoulEmbers(),WalletAfterAll);
 	Meta->bSimulateSaveFailure = false;
 	TestTrue(TEXT("Full refund"),Meta->RefundSkills());
-	TestEqual(TEXT("Exact paid cost returned"),Meta->GetSoulEmbers(),3000);
+	TestEqual(TEXT("Exact paid cost returned"),Meta->GetSoulEmbers(),StartingEmbers);
 	TestEqual(TEXT("Refund removes cached effects"),Meta->GetSkillBonus(TEXT("Swap")),0.f);
 	TestTrue(TEXT("Repeated refund safe"),Meta->RefundSkills());
-	TestEqual(TEXT("No duplicate refund"),Meta->GetSoulEmbers(),3000);
+	TestEqual(TEXT("No duplicate refund"),Meta->GetSoulEmbers(),StartingEmbers);
+ auto* OldPriceSave=NewObject<UHeavensDivideMetaSaveGame>();
+ OldPriceSave->SkillRanks.Add(TEXT("Ability.ComboUnlock"),1);
+ OldPriceSave->SkillEmbersSpent=10;
+ MetaSkillTree::Sanitize(*OldPriceSave);
+ TestEqual(TEXT("A bought combo remains owned after the price increase"),MetaSkillTree::Rank(*OldPriceSave,TEXT("Ability.ComboUnlock")),1);
+ TestEqual(TEXT("Refund returns the original price, not today's higher price"),MetaSkillTree::Refund(*OldPriceSave),10);
+ TestEqual(TEXT("Old-price refund cannot repeat"),MetaSkillTree::Refund(*OldPriceSave),0);
 	Meta->bSimulateSaveFailure = true;
 	TestFalse(TEXT("Failed purchase reports failure"),Meta->PurchaseSkill(TEXT("Root.Vitality")));
-	TestEqual(TEXT("Failed purchase restores wallet"),Meta->GetSoulEmbers(),3000);
+	TestEqual(TEXT("Failed purchase restores wallet"),Meta->GetSoulEmbers(),StartingEmbers);
 	TestEqual(TEXT("Failed purchase restores rank"),Meta->GetSkillRank(TEXT("Root.Vitality")),0);
 	const int32 SigilsBeforeRun=Meta->GetSoulSigils();
  TestFalse(TEXT("Failed run save retains pending award"),Meta->AwardSkillRun(125.f,true));
  TestEqual(TEXT("Failed save keeps both wallet currencies unchanged"),Meta->GetSoulSigils(),SigilsBeforeRun);
  TestEqual(TEXT("Boss sigils queue atomically with embers"),Meta->GetPendingSigils(),5);
-	TestEqual(TEXT("Pending reward not prematurely credited"),Meta->GetSoulEmbers(),3000);
+	TestEqual(TEXT("Pending reward not prematurely credited"),Meta->GetSoulEmbers(),StartingEmbers);
 	Meta->bSimulateSaveFailure = false;
 	Meta->RetrySkillReward(); Meta->RetrySkillReward();
-	TestEqual(TEXT("Retry credits once"),Meta->GetSoulEmbers(),3024);
+	TestEqual(TEXT("Retry credits once"),Meta->GetSoulEmbers(),StartingEmbers+24);
  TestEqual(TEXT("Retry also credits Sigils exactly once"),Meta->GetSoulSigils(),SigilsBeforeRun+5);
  TestFalse(TEXT("Successful atomic retry clears queue"),Meta->HasPendingSkillReward());
     Meta->bSimulateSaveFailure=true;
     Meta->AwardObjectiveEmbers(20);
-    TestEqual(TEXT("Failed objective save does not credit wallet early"),Meta->GetSoulEmbers(),3024);
+    TestEqual(TEXT("Failed objective save does not credit wallet early"),Meta->GetSoulEmbers(),StartingEmbers+24);
     Meta->bSimulateSaveFailure=false;
     Meta->RetrySkillReward();Meta->RetrySkillReward();
-    TestEqual(TEXT("Objective reward retries exactly once"),Meta->GetSoulEmbers(),3044);
+    TestEqual(TEXT("Objective reward retries exactly once"),Meta->GetSoulEmbers(),StartingEmbers+44);
     TestEqual(TEXT("Objective reward preserves run summary"),Meta->GetLastSkillRunReward(),24);
 	TestEqual(TEXT("Short defeat gives zero"),MetaSkillTree::RunReward(29,false),0);
 	TestEqual(TEXT("30 seconds grants one"),MetaSkillTree::RunReward(30,false),1);
@@ -121,12 +140,12 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
  Meta->CurrentSave->TwinSoulCompletionsTowardDiscovery=2;
  Meta->SaveMetaProgression();Meta->LoadMetaProgression();
  TestEqual(TEXT("Migration upgrades schema"),Meta->CurrentSave->SaveVersion,6);
- TestEqual(TEXT("Redesign returns exact historical spend"),Meta->GetSoulEmbers(),3181);
+ TestEqual(TEXT("Redesign returns exact historical spend"),Meta->GetSoulEmbers(),StartingEmbers+181);
  TestEqual(TEXT("Redesign clears old purchases"),Meta->CurrentSave->SkillRanks.Num(),0);
  TestEqual(TEXT("Redesign clears refunded spend"),Meta->CurrentSave->SkillEmbersSpent,0);
  TestEqual(TEXT("Discovery progress survives redesign"),Meta->GetTwinSoulDiscoveryProgress(),2);
  Meta->LoadMetaProgression();
- TestEqual(TEXT("Redesign refund cannot repeat"),Meta->GetSoulEmbers(),3181);
+ TestEqual(TEXT("Redesign refund cannot repeat"),Meta->GetSoulEmbers(),StartingEmbers+181);
 	auto* RetiredSave = NewObject<UHeavensDivideMetaSaveGame>();
 	RetiredSave->SoulEmbers = 100; RetiredSave->SkillEmbersSpent = 35;
 	RetiredSave->SkillRanks.Add(TEXT("Bond.Memory"), 2);
@@ -205,15 +224,38 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	TestTrue(TEXT("Skill tree Slate graph builds"),TreeSlate->GetVisibility().IsVisible());
 	Tree->SelectPage(EMetaTreePage::Stances);
 	TestFalse(TEXT("Stance purchase page has no skill map until a stance is opened"),Tree->SkillMap.IsValid());
+    const auto OldUnlocked=Meta->CurrentSave->UnlockedStanceIds;
+    const int32 OldSigils=Meta->CurrentSave->SoulSigils;
+    Meta->CurrentSave->UnlockedStanceIds.Remove(TEXT("Iaijutsu"));Meta->CurrentSave->SoulSigils=40;
+    PC->Destroy();
+    Tree->OpenStanceTree(TEXT("Iaijutsu"));
+    TestEqual(TEXT("Locked stance opens a confirmation"),Tree->PendingStance,FName(TEXT("Iaijutsu")));
+    TestEqual(TEXT("Opening confirmation spends nothing"),Meta->GetSoulSigils(),40);
+    if(FParse::Param(FCommandLine::Get(),TEXT("MetaSkillScreenshot")))
+    {
+        FWidgetRenderer PurchaseRenderer(false);
+        auto* Target=PurchaseRenderer.DrawWidget(TreeSlate,FVector2D(1280,720));
+        FlushRenderingCommands();TArray<FColor> Pixels;
+        if(Target && Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels))
+        {TArray64<uint8> PNG;FImageUtils::PNGCompressImageArray(1280,720,Pixels,PNG);FFileHelper::SaveArrayToFile(PNG,*(FPaths::ProjectSavedDir()/TEXT("LoadoutMenus/StanceConfirmation1280.png")));}
+    }
+    Tree->ConfirmStanceUnlock(false);
+    TestFalse(TEXT("No leaves the stance locked"),Meta->IsStanceUnlocked(TEXT("Iaijutsu")));
+    Tree->OpenStanceTree(TEXT("Iaijutsu"));Tree->ConfirmStanceUnlock(true);
+    TestTrue(TEXT("Yes purchases the stance"),Meta->IsStanceUnlocked(TEXT("Iaijutsu")));
+    TestEqual(TEXT("Confirmed purchase charges once"),Meta->GetSoulSigils(),22);
+    Tree->ConfirmStanceUnlock(true);TestEqual(TEXT("Repeated confirmation cannot spend twice"),Meta->GetSoulSigils(),22);
+    Meta->CurrentSave->UnlockedStanceIds=OldUnlocked;Meta->CurrentSave->SoulSigils=OldSigils;
+    Tree->SelectPage(EMetaTreePage::Stances);
 	const FReply OpenStanceReply=Tree->OpenStanceTree(TEXT("BattleStance"));
-	TestTrue(TEXT("Owned stance opens a dedicated constellation"),Tree->SkillMap.IsValid());
+	TestTrue(TEXT("Owned stance opens a dedicated tree"),Tree->SkillMap.IsValid());
 	TestTrue(TEXT("Opening a stance transfers focus to its new map"),OpenStanceReply.ShouldSetUserFocus()&&OpenStanceReply.GetUserFocusRecepient().Get()==Tree->SkillMap.Get());
 	for(FName Id:Tree->VisibleSkills())TestEqual(TEXT("Only the opened stance's skills are shown"),MetaSkillTree::Find(Id)->RequiredStance,FName(TEXT("BattleStance")));
 	const FReply CloseStanceReply=Tree->CloseTree();
 	TestTrue(TEXT("Returning to stances focuses the surviving tab"),CloseStanceReply.ShouldSetUserFocus()&&CloseStanceReply.GetUserFocusRecepient().Get()==Tree->StancesTab.Get());
 	Tree->SelectPage(EMetaTreePage::Abilities);
 	for(FName Id:Tree->VisibleSkills())TestTrue(TEXT("Abilities page filters by catalog category"),MetaSkillTree::Find(Id)->Page==EMetaSkillPage::Abilities);
-	Tree->SelectPage(EMetaTreePage::Upgrades);
+	Tree->SelectPage(EMetaTreePage::Synergies);
 	TestFalse(TEXT("Synergy purchase page does not show passive skills"),Tree->SkillMap.IsValid());
 	Tree->SelectPage(EMetaTreePage::Stats);
 	for(FName Id:Tree->VisibleSkills())TestTrue(TEXT("Stats page has generic skills only"),MetaSkillTree::Find(Id)->Page==EMetaSkillPage::Stats&&MetaSkillTree::Find(Id)->RequiredStance.IsNone());
@@ -221,12 +263,12 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	{
 		World->GetTimerManager().ClearAllTimersForObject(PC);
 		PC->Destroy();
-		Meta->CurrentSave->SkillRanks.Reset();Meta->CurrentSave->SoulEmbers=90;
+		Meta->CurrentSave->SkillRanks.Reset();Meta->CurrentSave->SoulEmbers=270;
 		for(const TCHAR* Id : {TEXT("Root.Vitality"),TEXT("Root.Gather"),TEXT("Root.Strength"),TEXT("Root.Step"),TEXT("Steel.Edge"),TEXT("Shadow.Edge"),TEXT("Bond.Flow")}) MetaSkillTree::Purchase(*Meta->CurrentSave,Id);
 		Meta->RefreshSkillBonuses();
         IFileManager::Get().MakeDirectory(*(FPaths::ProjectSavedDir()/TEXT("MetaTreeRedesign")),true);
         FWidgetRenderer Renderer(false);
-        auto Capture = [&](FName Selection, FVector2D Size, const TCHAR* Filename, EMetaTreePage Page=EMetaTreePage::Stats)
+        auto Capture = [&](FName Selection, FVector2D Size, const TCHAR* Filename, EMetaTreePage Page=EMetaTreePage::Stats,float ScrollOffset=0.f)
         {
             auto* Preview=CreateWidget<UMetaSkillTreeWidget>(GI);
             Preview->Selected=Selection;
@@ -241,6 +283,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 #endif
             FlushRenderingCommands();
             UTextureRenderTarget2D* Target=Renderer.DrawWidget(PreviewSlate,Size);
+            if(Preview->SkillScroll)Preview->SkillScroll->SetScrollOffset(ScrollOffset);
             for(int32 I=0;I<4;++I){PreviewSlate->Invalidate(EInvalidateWidgetReason::Prepass);Preview->ForceLayoutPrepass();Renderer.DrawWidget(Target,PreviewSlate,Size,1.f/60.f);}
             FlushRenderingCommands();
             TArray<FColor> Pixels;
@@ -254,14 +297,20 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
             Preview->ReleaseSlateResources(true);
         };
         Capture(TEXT("Root.Vitality"),{1920,1080},TEXT("MetaSkillTree.png"));
+        Capture(TEXT("Root.Vitality"),{1280,720},TEXT("MetaTreeRedesign/StatsSmall.png"));
+        IFileManager::Get().MakeDirectory(*(FPaths::ProjectSavedDir()/TEXT("MenuTreePolish")),true);
+        Capture(TEXT("Root.Gather"),{1280,720},TEXT("MenuTreePolish/StatsHighlighted1280.png"));
+        Capture(TEXT("Root.Area"),{1280,720},TEXT("MenuTreePolish/StatsScrolled1280.png"),EMetaTreePage::Stats,210.f);
+        Capture(TEXT("Bond.Relay"),{1280,720},TEXT("MenuTreePolish/AbilitiesHighlighted1280.png"));
+
         Capture(TEXT("Barrage.Twin"),{1920,1080},TEXT("MetaTreeRedesign/BarragePreview.png"));
         Capture(TEXT("Iaijutsu.Focus"),{1444,976},TEXT("MetaTreeRedesign/MenuBoundsPreview.png"));
         Capture(TEXT("Shuriken.Grind"),{1280,720},TEXT("MetaTreeRedesign/SmallPreview.png"));
         Capture(TEXT("Bond.Banish"),{1280,720},TEXT("MetaTreeRedesign/LongDescriptionPreview.png"));
         Capture(NAME_None,{1920,1080},TEXT("MetaTreeRedesign/StanceUnlocks.png"),EMetaTreePage::Stances);
         Capture(NAME_None,{1280,720},TEXT("MetaTreeRedesign/StanceUnlocksSmall.png"),EMetaTreePage::Stances);
-        Capture(NAME_None,{1920,1080},TEXT("MetaTreeRedesign/SynergyUnlocks.png"),EMetaTreePage::Upgrades);
-		Capture(NAME_None,{1280,720},TEXT("MetaTreeRedesign/SynergyUnlocksSmall.png"),EMetaTreePage::Upgrades);
+        Capture(NAME_None,{1920,1080},TEXT("MetaTreeRedesign/SynergyUnlocks.png"),EMetaTreePage::Synergies);
+		Capture(NAME_None,{1280,720},TEXT("MetaTreeRedesign/SynergyUnlocksSmall.png"),EMetaTreePage::Synergies);
 	}
 	Tree->ReleaseSlateResources(true);
 	World->GetTimerManager().ClearAllTimersForObject(PC);

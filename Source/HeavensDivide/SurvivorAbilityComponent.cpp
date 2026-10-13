@@ -1,4 +1,5 @@
 #include "SurvivorAbilityComponent.h"
+#include "RunReportSubsystem.h"
 
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
@@ -158,6 +159,7 @@ bool USurvivorAbilityComponent::ExecuteSetupAssist(ACharacterBase *Character)
             FVector::DotProduct(Forward, Direction) <
                 FMath::Cos(FMath::DegreesToRadians(AssistTune(TEXT("ConeHalfAngle"), 69.51268f))))
             continue;
+    FRunDamageScope DamageScope(TEXT("TagTeam"));
         if (!Enemy->ApplyPlayerDamage(
                 (bSamurai ? AssistTune(TEXT("SamuraiDamage"), 12) : AssistTune(TEXT("NinjaDamage"), 10)) *
                     Power(Character),

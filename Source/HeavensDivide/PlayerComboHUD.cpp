@@ -112,6 +112,7 @@ void UPlayerHUDWidget::UpdateComboPresentation()
     if (!bShowComboMeter) return;
     const auto* Combo=SurvivorPlayerController?SurvivorPlayerController->FindComponentByClass<UComboAbilityComponent>():nullptr;
     const bool bUnlocked=Combo&&Combo->IsComboUnlocked();
+    const bool bEquipped=Combo&&Combo->IsComboEquipped();
     const bool bReady = IsComboReady();
     const float RealTime = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.f;
     const float Glow = bReady ? ComboGlowIntensity * (.7f + .25f * FMath::Sin(RealTime * ComboGlowPulseSpeed * 2.f * PI)) : 0.f;
@@ -120,7 +121,7 @@ void UPlayerHUDWidget::UpdateComboPresentation()
     {
         ComboMeterBar->SetPercent(GetComboPercent());
         ComboMeterBar->SetFillColorAndOpacity(bReady ? ComboReadyColor : ComboChargingColor);
-        ComboMeterBar->SetRenderOpacity(bUnlocked?1.f:.35f);
+        ComboMeterBar->SetRenderOpacity(bEquipped?1.f:.35f);
     }
     if (ComboAbilityText)
     {
@@ -128,6 +129,12 @@ void UPlayerHUDWidget::UpdateComboPresentation()
         {
             ComboAbilityText->SetColorAndOpacity(FSlateColor(FLinearColor(.48f,.60f,.61f)));
             ComboAbilityText->SetText(NSLOCTEXT("Combo","LockedHUD","COMBO LOCKED\nUnlock in Skill Tree / Abilities"));
+            return;
+        }
+        if (!bEquipped)
+        {
+            ComboAbilityText->SetColorAndOpacity(FSlateColor(FLinearColor(.48f,.60f,.61f)));
+            ComboAbilityText->SetText(NSLOCTEXT("Combo","UnequippedHUD","NO COMBO EQUIPPED\nSelect in New Run"));
             return;
         }
         ComboAbilityText->SetColorAndOpacity(FSlateColor(bReady ? ComboReadyColor : FLinearColor(.9f, .87f, .8f)));

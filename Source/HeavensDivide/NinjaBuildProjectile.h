@@ -38,6 +38,8 @@ class HEAVENSDIVIDE_API ANinjaBuildProjectile : public AActor
     TWeakObjectPtr<AShadowClone> Clone;
     bool bCloneProjectile = false;
     bool bAssistProjectile = false;
+    FName AssistDamageSource = TEXT("TagTeam");
+    FName FragmentDamageSource = TEXT("EmbeddedBlades");
     bool bSpectralFang = false;
     bool bFangHitThisTrip = false;
     FVector AssistReturnOrigin = FVector::ZeroVector;

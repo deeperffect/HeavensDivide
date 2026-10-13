@@ -22,7 +22,9 @@ bool UEnemyStatusEffectComponent::ApplyBarragePoison(UPlayerUpgradeComponent* U,
  const int32 Accepted=FMath::Clamp(Add,0,FMath::Max(0,Cap-S.Stacks));
  S.SourceUpgrades=U;S.bBarragePoison=true;S.bDirectBarragePoison|=!bFromPuddle;
  S.Stacks+=Accepted;
- S.PoisonDamagePerTick+=HitDamage*BarrageBuild::Value(U,TEXT("BarrageStance"),TEXT("PoisonHitFraction"),.05f)/FMath::Max(1.f, UpgradeBalance::Value(U, TEXT("BarrageStance"), TEXT("PoisonDuration"), 5.f) / FMath::Max(.01f, UpgradeBalance::Value(U, TEXT("BarrageStance"), TEXT("PoisonTickInterval"), .5f)))*Accepted;
+ const float AddedPoisonDamage = HitDamage*BarrageBuild::Value(U,TEXT("BarrageStance"),TEXT("PoisonHitFraction"),.05f)/FMath::Max(1.f, UpgradeBalance::Value(U, TEXT("BarrageStance"), TEXT("PoisonDuration"), 5.f) / FMath::Max(.01f, UpgradeBalance::Value(U, TEXT("BarrageStance"), TEXT("PoisonTickInterval"), .5f)))*Accepted;
+ S.PoisonDamagePerTick += AddedPoisonDamage;
+ if (bFromPuddle) S.PuddlePoisonDamagePerTick += AddedPoisonDamage;
  S.RemainingDuration=UpgradeBalance::Value(U, TEXT("BarrageStance"), TEXT("PoisonDuration"), 5.f)+BarrageBuild::Scaling(U,TEXT("BarragePoisonDuration"),2.f);
  S.ActiveTickInterval=FMath::Max(.01f, UpgradeBalance::Value(U, TEXT("BarrageStance"), TEXT("PoisonTickInterval"), .5f));
  if(!GetWorld()->GetTimerManager().IsTimerActive(S.TickTimer))GetWorld()->GetTimerManager().SetTimer(S.TickTimer,this,&UEnemyStatusEffectComponent::TickPoison,S.ActiveTickInterval,true);

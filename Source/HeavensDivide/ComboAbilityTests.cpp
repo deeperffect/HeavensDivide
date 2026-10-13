@@ -68,6 +68,15 @@ bool FComboAbilityTest::RunTest(const FString&)
     TestTrue(TEXT("Core swapping remains available while combo is locked"),PC->CanSwap());
     Upgrades->BalancePreviewMetaProfile=1;
     TestTrue(TEXT("Full meta preview explicitly unlocks combo"),Combo->IsComboUnlocked());
+    const float ChargeMultiplier=1.f+FMath::Max(0.f,Upgrades->GetMetaSkillBonus(TEXT("ComboCharge")));
+    Combo->HandleAssist(Samurai,Ninja,Near);
+    TestTrue(TEXT("Committed assist grants reduced meter once"),FMath::IsNearlyEqual(Combo->GetCombo(),10.f*ChargeMultiplier));
+    Combo->HandleAssist(nullptr,Ninja,Near);
+    TestTrue(TEXT("Invalid assist cannot add meter"),FMath::IsNearlyEqual(Combo->GetCombo(),10.f*ChargeMultiplier));
+    Combo->SetCombo(0.f);
+    Combo->NotifySynergyAttack();
+    TestTrue(TEXT("Non-assist synergy retains its existing gain"),FMath::IsNearlyEqual(Combo->GetCombo(),Combo->SynergyGain*ChargeMultiplier));
+    Combo->SetCombo(0.f);
     TestTrue(TEXT("Full charge training grants fifteen percent"),FMath::IsNearlyEqual(Upgrades->GetMetaSkillBonus(TEXT("ComboCharge")),.15f));
     TestFalse(TEXT("Empty meter rejects activation"), Combo->TryActivateAbility());
     Party->OnCharacterSwapped.Broadcast(Samurai, Ninja);
@@ -75,9 +84,9 @@ bool FComboAbilityTest::RunTest(const FString&)
     Party->OnCharacterSwapped.Broadcast(Samurai, Samurai);
     TestEqual(TEXT("No-op swap gives no charge"), Combo->GetCombo(), 23.f);
     PC->FindComponentByClass<UInactiveCharacterAssistComponent>()->OnAssistAttackExecuted.Broadcast(Ninja, Samurai, Near);
-    TestEqual(TEXT("Tag Team event gives boosted charge once"), Combo->GetCombo(), 51.75f);
+    TestEqual(TEXT("Tag Team event gives reduced boosted charge once"), Combo->GetCombo(), 34.5f);
     Combo->AddCombo(-100.f);
-    TestEqual(TEXT("Negative gain ignored"), Combo->GetCombo(), 51.75f);
+    TestEqual(TEXT("Negative gain ignored"), Combo->GetCombo(), 34.5f);
     TestFalse(TEXT("Partial meter rejects activation"), Combo->TryActivateAbility());
     Combo->AddCombo(1000.f);
     TestEqual(TEXT("Charge caps at max"), Combo->GetCombo(), 100.f);

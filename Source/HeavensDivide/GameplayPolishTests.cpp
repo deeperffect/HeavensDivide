@@ -9,6 +9,7 @@
 #include "ExperienceComponent.h"
 #include "HealthComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "CombatGround.h"
 #include "HealingPickup.h"
@@ -52,18 +53,29 @@ bool FGameplayPolishTest::RunTest(const FString&)
   TestEqual(TEXT("Wall HP remains fixed"),Wall->GetHealthComponent()->GetCurrentHealth(),40.f);
   Wall->ApplyPlayerDamage(40,Source);
   TestTrue(TEXT("Destroyed wall opens escape immediately"),Wall->IsDead() && !Wall->GetActorEnableCollision());
+  Wall->SetRevealProgress(1.f);
+  TestFalse(TEXT("The reveal cannot restore a broken wall's collision"),Wall->GetActorEnableCollision());
   TestFalse(TEXT("Broken wall cannot pay out or take repeated damage"),Wall->ApplyPlayerDamage(40,Source));
   Wall->Destroy();
  }
  auto* Zone=W->SpawnActor<ASurvivalFieldObjective>();Zone->InitializeHoldZone();
- TestTrue(TEXT("Circle boundary included"),Zone->ContainsPlayer(FVector(800,0,100)));
- TestFalse(TEXT("Outside circle excluded"),Zone->ContainsPlayer(FVector(801,0,100)));
+ auto* CircleRing=Cast<UStaticMeshComponent>(FindFProperty<FObjectProperty>(ASurvivalFieldObjective::StaticClass(),TEXT("Ring"))->GetObjectPropertyValue_InContainer(Zone));
+ TestFalse(TEXT("Unactivated survival circle hides its progress ring"),CircleRing->IsVisible());
+ TestTrue(TEXT("Circle boundary included"),Zone->ContainsPlayer(FVector(1200,0,100)));
+ TestFalse(TEXT("Outside circle excluded"),Zone->ContainsPlayer(FVector(1201,0,100)));
  TestFalse(TEXT("Different floor excluded"),Zone->ContainsPlayer(FVector(0,0,500)));
+ Zone->AdvanceHold(10,true);TestEqual(TEXT("Walking inside does not start the circle"),Zone->GetProgress(),0.f);
+ Zone->Interact_Implementation(Player);
+ TestTrue(TEXT("Interacting reveals the survival progress circle"),CircleRing->IsVisible());
+ TestTrue(TEXT("Circle interaction claims the objective"),PC->GetActiveObjective()==Zone);
  Zone->AdvanceHold(10,true);Zone->AdvanceHold(8,false);
- TestEqual(TEXT("Leaving pauses without erasing progress"),Zone->GetProgress(),10.f);
- Zone->AdvanceHold(-100,true);TestEqual(TEXT("Negative delta rejected"),Zone->GetProgress(),10.f);
+ TestEqual(TEXT("Leaving drains progress at the survival rate"),Zone->GetProgress(),2.f);
+ Zone->AdvanceHold(-100,true);TestEqual(TEXT("Negative delta rejected"),Zone->GetProgress(),2.f);
+ Zone->AdvanceHold(8,false);TestEqual(TEXT("Progress drains no lower than zero"),Zone->GetProgress(),0.f);
+ Zone->AdvanceHold(10,true);
  auto* XP=PC->GetExperienceComponent();const int32 BeforeLevel=XP->GetCurrentLevel();
  Zone->AdvanceHold(10,true);TestTrue(TEXT("20 seconds completes objective"),Zone->IsComplete());
+ TestFalse(TEXT("Circle completion releases the objective"),PC->IsAnyObjectiveActive());
  TestTrue(TEXT("Completion pays XP"),XP->GetCurrentLevel()>BeforeLevel);
  const int32 PaidLevel=XP->GetCurrentLevel(),PaidXP=XP->GetCurrentXP();
  Zone->AdvanceHold(100,true);TestEqual(TEXT("Repeated completion cannot pay levels twice"),XP->GetCurrentLevel(),PaidLevel);
@@ -92,11 +104,41 @@ bool FGameplayPolishTest::RunTest(const FString&)
  // AI possession can replace a wall's Owner with its controller.
  for(TActorIterator<AEncounterWall> It(W);It;++It) if(*It!=Blocker && !It->IsActorBeingDestroyed()) ++WallCount;
  TestEqual(TEXT("Larger trap retains a sealed ring"),WallCount,51);
+ TestFalse(TEXT("Wall event has no orange ring"),Cast<UStaticMeshComponent>(FindFProperty<FObjectProperty>(ASurvivalFieldObjective::StaticClass(),TEXT("Ring"))->GetObjectPropertyValue_InContainer(Trap))->IsVisible());
  Trap->DispatchBeginPlay();
+ for(TActorIterator<AEncounterWall> It(W);It;++It) if(*It!=Blocker) It->DispatchBeginPlay();
+ auto VisibleRocks=[&]() { int32 N=0;for(TActorIterator<AEncounterWall> It(W);It;++It) if(*It!=Blocker && It->Stone->IsVisible()) ++N;return N; };
+ Trap->Tick(1.5f);
+ TestEqual(TEXT("Rocks stay buried through the initial warning"),VisibleRocks(),0);
+ Trap->Tick(.1f);
+ const int32 Early=VisibleRocks();
+ TestTrue(TEXT("First rocks rise before the rest of the ring"),Early>0 && Early<51);
+ AEncounterWall* LaterRock=nullptr;
+ for(TActorIterator<AEncounterWall> It(W);It;++It)
+    if(*It!=Blocker && FMath::IsNearlyEqual(float(It->GetActorRotation().Yaw),20*360.f/51.f,.1f)) { LaterRock=*It;break; }
+ TestNotNull(TEXT("A later rock in the wave is available"),LaterRock);
+ const FVector PlayerPosition=Player->GetActorLocation();
+ if(LaterRock)Player->SetActorLocation(LaterRock->GetActorLocation());
+ Trap->Tick(.4f);
+ if(LaterRock)TestEqual(TEXT("Later rocks do not rise through the player"),LaterRock->Barrier->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
+ Player->SetActorLocation(PlayerPosition);
+ TestTrue(TEXT("Wave progresses around the ring"),VisibleRocks()>Early && VisibleRocks()<51);
+ Trap->Tick(.5f);
+ TestEqual(TEXT("Whole rock wall rises in under one second"),VisibleRocks(),51);
+ TSet<UStaticMesh*> Variants;
+ for(TActorIterator<AEncounterWall> It(W);It;++It) if(*It!=Blocker)
+ {
+  Variants.Add(It->Stone->GetStaticMesh());
+  TestTrue(TEXT("Every rock remains an active player barrier"),It->Barrier->GetCollisionEnabled()!=ECollisionEnabled::NoCollision);
+  TestTrue(TEXT("Rock base is embedded in the floor"),FMath::IsNearlyEqual(float(It->Stone->Bounds.GetBox().Min.Z),-8.f,1.f));
+ }
+ TestEqual(TEXT("Ring uses all six authored rock meshes"),Variants.Num(),6);
+ Trap->Tick(7.5f);
+ TestFalse(TEXT("Wall trap survives the former ten-second expiry"),Trap->IsActorBeingDestroyed());
  Trap->Tick(9.99f);
- TestFalse(TEXT("Wall trap lasts until ten gameplay seconds"),Trap->IsActorBeingDestroyed());
+ TestFalse(TEXT("Wall trap lasts until twenty gameplay seconds"),Trap->IsActorBeingDestroyed());
  Trap->Tick(.02f);
- TestTrue(TEXT("Wall trap expires after ten gameplay seconds"),Trap->IsActorBeingDestroyed());
+ TestTrue(TEXT("Wall trap expires after twenty gameplay seconds"),Trap->IsActorBeingDestroyed());
  int32 RemainingWalls=0;
  for(TActorIterator<AEncounterWall> It(W);It;++It) if(*It!=Blocker && !It->IsActorBeingDestroyed()) ++RemainingWalls;
  TestEqual(TEXT("Expiry removes all wall segments"),RemainingWalls,0);

@@ -14,6 +14,19 @@ The level-specific material instance exposes texture size, tints, saturation, br
 
 Level 1 streams its own always-loaded `Lvl_B1_Lvl1_Lighting` sublevel, copied from the vendor lighting level. This is necessary because its original lights and heavy cyan fog lived outside the main map. The vendor level remains unchanged. The arena keeps its existing lighting actors. The volume named **Bloodshift Combat Grade** owns the grade at priority 50 and full blend weight. The older unbound volume is disabled to prevent its bloom, vignette and blur settings from mixing back in. Four short-range, shadowless lights accent the existing shrine lanterns in Level 1.
 
+Open **Lvl_B1_Lvl1** to play or edit the complete field. The separate Lighting map
+is a sublevel, not a second playable map or an unused draft. It loads automatically
+in the editor and game. To inspect it in Unreal, use **Window > Levels**, expand
+the main map's level list and select **Lvl_B1_Lvl1_Lighting**. Its streaming method
+is **Always Loaded**; its eye icon controls editor visibility. Lighting actors live
+there so the pass does not alter the shared vendor map.
+`Tools/verify_level1_lighting.py` checks the current saved connection, loaded/visible
+state, sun, fog and enabled grading volume without comparing old gameplay actor
+transforms. It writes `Saved/EnvironmentPolish/LightingConnection.json`.
+The 2026-10-11 recheck confirms `LevelStreamingAlwaysLoaded`, loaded and visible
+lighting actors, the authored sun/fog and the enabled grade at priority 50.
+Neither Level 1 map was changed during this inspection.
+
 Geometry, collision, gameplay actors, objective positions, enemy balance, camera behavior and the main menu are preserved. Original ground textures and shared materials are hash-checked. The two gameplay maps, the new Level 1 lighting sublevel, and four new material/texture assets contain the visual changes.
 
 ## Visual review

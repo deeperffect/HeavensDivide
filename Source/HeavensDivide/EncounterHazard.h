@@ -22,13 +22,14 @@ public:
         float WarningSeconds, float Damage, float ActiveSeconds = .18f, float Delay = 0.f);
     bool ContainsPoint(FVector Point, float Padding = 0.f) const;
     static AEncounterHazard* Spawn(AActor* Source, FVector Center, EEncounterShape Shape, float Size, float Width,
-        float Warning, float Damage, float Active = .18f, float Yaw = 0.f, float Delay = 0.f);
+        float Warning, float Damage, float Active = .18f, float Yaw = 0.f, float Delay = 0.f, bool bConstrainToArena = true);
     UPROPERTY(VisibleAnywhere) TObjectPtr<UDecalComponent> Visual;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> GroundSurface;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> ImpactColumn;
     bool HasVisibleWarning() const;
 private:
     friend class FEncounterExpansionTest;
+    friend class FBossSpellPressureTest;
     UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Material;
     UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ImpactMaterial;
     UPROPERTY() TObjectPtr<UMaterialInterface> SurfaceTemplate;

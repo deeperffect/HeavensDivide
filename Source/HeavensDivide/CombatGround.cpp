@@ -33,6 +33,17 @@ bool CombatGround::IsInsideArena(UWorld* World,const FVector& Location,float Rad
     const FVector Extent=PaddedExtent(Box,Radius);
     return FMath::Abs(Local.X)<=Extent.X && FMath::Abs(Local.Y)<=Extent.Y;
 }
+bool CombatGround::ArenaCoveringRadius(UWorld* World, const FVector& Center, float& OutRadius)
+{
+    OutRadius = 0;
+    UBoxComponent* Box = FindArenaBox(World);
+    if (!Box) return false;
+    const FVector Extent = Box->GetUnscaledBoxExtent();
+    for (int32 X : {-1, 1}) for (int32 Y : {-1, 1})
+        OutRadius = FMath::Max(OutRadius, float(FVector::Dist2D(Center,
+            Box->GetComponentTransform().TransformPosition(FVector(X * Extent.X, Y * Extent.Y, 0)))));
+    return true;
+}
 FVector CombatGround::ClampInsideArena(UWorld* World,const FVector& Location,float Radius)
 {
     auto* Box=FindArenaBox(World);if(!Box)return Location;

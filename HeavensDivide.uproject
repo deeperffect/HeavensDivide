@@ -16,6 +16,7 @@
 		}
 	],
 	"Plugins": [
+		{ "Name": "OnlineSubsystemSteam", "Enabled": true, "PlatformAllowList": ["Win64"] },
 		{ "Name": "EngineCameras", "Enabled": true },
 		{
 			"Name": "ModelingToolsEditorMode",

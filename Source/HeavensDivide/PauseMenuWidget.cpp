@@ -18,12 +18,12 @@ void UPauseMenuWidget::NativeOnInitialized()
 {
     Super::NativeOnInitialized();
     SetIsFocusable(true);
-    auto* Stack = BuildPromptPanel(TEXT("PauseTitle"), FText::FromString(TEXT("PAUSED")), FVector2D(900, 600));
+    auto* Stack = BuildRunPanel(TEXT("PauseTitle"), FText::FromString(TEXT("PAUSED")), false);
     if (!Stack) return;
+    auto* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
+    PromptActions->AddChildToVerticalBox(Row);
     auto AddAction = [&](const TCHAR* Label, const TCHAR* Name)
     {
-        auto* Row = WidgetTree->ConstructWidget<UHorizontalBox>();
-        PromptActions->AddChildToVerticalBox(Row)->SetHorizontalAlignment(HAlign_Center);
         return AddPromptButton(Row, FText::FromString(Label), Name);
     };
     ResumeButton = AddAction(TEXT("RESUME"), TEXT("ResumeButton"));

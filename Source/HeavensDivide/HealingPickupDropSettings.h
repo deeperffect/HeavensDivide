@@ -18,16 +18,16 @@ public:
 	TSoftClassPtr<AHealingPickup> HealingPickupClass;
 
 	UPROPERTY(Config, EditAnywhere, Category="Pickup", meta=(ClampMin="0.0", ClampMax="1.0"))
-	float NormalDropChance = 0.015f;
+	float NormalDropChance = 0.0075f;
 
 	UPROPERTY(Config, EditAnywhere, Category="Pickup", meta=(ClampMin="0.0", ClampMax="1.0"))
-	float EliteDropChance = 0.20f;
+	float EliteDropChance = 0.10f;
 
 	UPROPERTY(Config, EditAnywhere, Category="Pickup", meta=(ClampMin="0.0", ClampMax="1.0"))
-	float BossDropChance = 1.0f;
+	float BossDropChance = 0.5f;
 
 	UPROPERTY(Config, EditAnywhere, Category="Limits", meta=(ClampMin="0.0", Units="s"))
-	float HealDropCooldown = 20.0f;
+	float HealDropCooldown = 30.0f;
 
 	UPROPERTY(Config, EditAnywhere, Category="Limits", meta=(ClampMin="0"))
 	int32 MaximumActivePickups = 2;

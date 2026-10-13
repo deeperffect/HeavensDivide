@@ -41,6 +41,10 @@
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
 #include "TimerManager.h"
+#include "RenderingThread.h"
+#if WITH_EDITOR
+#include "AssetCompilingManager.h"
+#endif
 
 namespace
 {
@@ -74,6 +78,8 @@ bool FRunPreparationTest::RunTest(const FString&)
     auto* Loadout=GI->GetSubsystem<URunLoadoutSubsystem>();
     TestEqual(TEXT("New Samurai defaults to Blood"),Loadout->GetSamuraiStance(),FName(TEXT("BattleStance")));
     TestEqual(TEXT("New Ninja defaults to Barrage"),Loadout->GetNinjaStance(),FName(TEXT("BarrageStance")));
+    TestEqual(TEXT("New loadout starts with one synergy"),Loadout->GetSelectedSynergies().Num(),1);
+    TestTrue(TEXT("Tag Team is selected by default"),Loadout->GetSelectedSynergies().Contains(TEXT("TagTeam")));
     TestTrue(TEXT("Default pair is available"),Loadout->SetStances(TEXT("BattleStance"),TEXT("BarrageStance")));
     TestFalse(TEXT("Locked Samurai cannot enter a loadout"),Loadout->SetStances(TEXT("Iaijutsu"),TEXT("BarrageStance")));
     TestFalse(TEXT("Locked Ninja cannot enter a loadout"),Loadout->SetStances(TEXT("BattleStance"),TEXT("ReturningFang")));
@@ -92,6 +98,7 @@ bool FRunPreparationTest::RunTest(const FString&)
         for(const auto& Stance:RunStances::All)TestFalse(TEXT("Blueprint startup does not force a stance"),U->HasUpgradeId(Stance.Id));
         TestTrue(TEXT("All nine stance pairs accepted"),Loadout->SetStances(RunStances::All[A].Id,RunStances::All[B].Id));
         TestTrue(TEXT("Chosen pair granted to fresh run"),Loadout->ApplyToFreshRun(U));
+        TestTrue(TEXT("Selected Tag Team is active at run start"),U->HasUpgradeId(TEXT("TagTeam")));
         const int32 Steel=U->GetSamuraiMasteryPoints(),Shadow=U->GetNinjaMasteryPoints();
         TestTrue(TEXT("Applying twice is idempotent"),Loadout->ApplyToFreshRun(U));
         TestEqual(TEXT("No duplicate Samurai mastery"),U->GetSamuraiMasteryPoints(),Steel);
@@ -108,8 +115,8 @@ bool FRunPreparationTest::RunTest(const FString&)
         TestTrue(TEXT("Offered category can be selected"),U->SelectCategory(Category,3));
         TestEqual(TEXT("Selected category fills its offer from unlocked eligible cards"),U->GetCurrentUpgradeChoices().Num(),ExpectedChoices);
         const auto Synergies=U->GetEligibleUpgradesForCategory(EUpgradeCategory::Synergy);
-        TestEqual(TEXT("Only default synergy is offered before synergy purchases"),Synergies.Num(),1);
-        if(!Synergies.IsEmpty())TestEqual(TEXT("Default synergy is Tag Team"),Synergies[0]->UpgradeId,FName(TEXT("TagTeam")));
+        TestTrue(TEXT("Starting synergies do not consume level-up choices"),Synergies.IsEmpty());
+        TestFalse(TEXT("Synergy is excluded from level-up categories"),U->GetCurrentCategoryChoices().Contains(EUpgradeCategory::Synergy));
         TestTrue(TEXT("Category draft permits unlocked draft tools"),U->IsDraftToolOffer());
         for(auto* Card:U->GetCurrentUpgradeChoices())
         {
@@ -182,10 +189,12 @@ bool FRunPreparationVisualTest::RunTest(const FString&)
     auto* Meta=GI->GetSubsystem<USynergyMetaProgressionSubsystem>();
     Meta->TestSaveSlot=Slot;Meta->CreateFreshSave();
     auto* Challenge=GI->GetSubsystem<URunChallengeSubsystem>();
+    auto* Loadout=GI->GetSubsystem<URunLoadoutSubsystem>();
     auto* Screen=CreateWidget<UStanceSelectionWidget>(GI);
-    Screen->TakeWidget();
+    // A viewport retains this Slate root; keep it alive across setup-page rebuilds too.
+    const auto ScreenSlate=Screen->TakeWidget();
     TestTrue(TEXT("Default pair is ready to play"),Screen->CanStartRun());
-    TestEqual(TEXT("Only the two default stances are displayed"),Screen->GetVisibleStanceCount(),2);
+    TestEqual(TEXT("All six stances remain visible, including locked choices"),Screen->GetVisibleStanceCount(),6);
     TestFalse(TEXT("Locked stance is not selectable"),Screen->SelectStance(TEXT("Iaijutsu")));
     TestFalse(TEXT("Placeholder cannot become selected"),Screen->SelectMap(TEXT("CinderCitadel")));
     TestEqual(TEXT("Playable map remains selected"),Screen->GetSelectedMap(),FName(TEXT("FallenGrove")));
@@ -195,8 +204,14 @@ bool FRunPreparationVisualTest::RunTest(const FString&)
     {
         FWidgetRenderer Renderer(false);
         auto Slate=Widget->TakeWidget();
+#if WITH_EDITOR
+        // Newly loaded synergy/stance artwork can still be compiling on a cold editor start.
+        FAssetCompilingManager::Get().FinishAllCompilation();
+#endif
+        FlushRenderingCommands();
         auto* Target=Renderer.DrawWidget(Slate,Size);
         for(int32 I=0;I<4;++I){Slate->Invalidate(EInvalidateWidgetReason::Prepass);Widget->ForceLayoutPrepass();Renderer.DrawWidget(Target,Slate,Size,1.f/60.f);}
+        FlushRenderingCommands();
         TArray<FColor> Pixels;
         FReadSurfaceDataFlags Flags;Flags.SetLinearToGamma(false);
         TestTrue(TEXT("Widget render readable"),Target&&Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels,Flags));
@@ -206,19 +221,75 @@ bool FRunPreparationVisualTest::RunTest(const FString&)
     };
     Render(Screen,{1600,900},TEXT("NewRunDefault1600.png"));
     Render(Screen,{1280,720},TEXT("NewRunDefault1280.png"));
-    Meta->CurrentSave->SoulSigils=1000;
+    Screen->SelectSetupPage(ERunSetupPage::SynergiesAndCombo);
+    TestEqual(TEXT("Powers subpage opens on the retained widget"),Screen->GetSetupPage(),ERunSetupPage::SynergiesAndCombo);
+    TestEqual(TEXT("Only owned default synergy appears"),Screen->GetVisibleSynergyCount(),1);
+    TestTrue(TEXT("Default Tag Team is visibly selected"),Screen->IsSynergySelected(TEXT("TagTeam")));
+    TestFalse(TEXT("Locked synergy cannot be selected through the UI"),Screen->SetSynergySelected(TEXT("Handoff"),true));
+    TestFalse(TEXT("Locked combo cannot be selected"),Screen->SelectComboAbility(TEXT("SoulConvergence")));
+    TestFalse(TEXT("Future combo cannot be selected"),Screen->SelectComboAbility(TEXT("Veilbreaker")));
+    TestTrue(TEXT("Begin run remains available on powers page"),Screen->CanStartRun());
+    Render(Screen,{1600,900},TEXT("NewRunPowersDefault1600.png"));
+    Render(Screen,{1280,720},TEXT("NewRunPowersDefault1280.png"));
+    // Render the actual popup contents so locked choices and their artwork are reviewable.
+    for(int32 Kind=0;Kind<3;++Kind)
+    {
+        FWidgetRenderer Renderer(false);
+        const auto Choices=Screen->MakeLoadoutChoices(Kind);
+        const FVector2D Size(460,320);
+        auto* Target=Renderer.DrawWidget(Choices,Size);
+        FlushRenderingCommands();TArray<FColor> Pixels;
+        TestTrue(TEXT("Loadout popup render readable"),Target&&Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels));
+        TArray64<uint8> PNG;FImageUtils::PNGCompressImageArray(460,320,Pixels,PNG);
+        FFileHelper::SaveArrayToFile(PNG,*(Dir/FString::Printf(TEXT("LockedChoices%d.png"),Kind)));
+    }
+    TestTrue(TEXT("Default synergy can be unequipped"),Screen->SetSynergySelected(TEXT("TagTeam"),false));
+    TestTrue(TEXT("Combo can explicitly stay unequipped"),Screen->SelectComboAbility(NAME_None));
+    Screen->Open();Screen->SelectSetupPage(ERunSetupPage::SynergiesAndCombo);
+    TestTrue(TEXT("An intentionally empty synergy loadout survives reopen"),Loadout->GetSelectedSynergies().IsEmpty());
+    TestTrue(TEXT("An explicitly unequipped combo survives reopen"),Loadout->GetSelectedComboAbility().IsNone());
+    TestTrue(TEXT("Tag Team can be selected again"),Screen->SetSynergySelected(TEXT("TagTeam"),true));
+    Meta->CurrentSave->SoulSigils=100000;
+    Meta->CurrentSave->SoulEmbers=100000;
+    for(auto* Definition:Meta->GetSynergyUpgradeDefinitions())
+        if(!Meta->IsUpgradeMetaEligible(Definition))
+            TestTrue(TEXT("Purchase extra synergy for loadout menu"),Meta->PurchaseSynergy(Definition->MetaUnlockId.IsNone()?Definition->UpgradeId:Definition->MetaUnlockId));
+    TestTrue(TEXT("Purchase combo deliberately for menu coverage"),Meta->PurchaseSkill(TEXT("Ability.ComboUnlock")));
     for(const auto& Stance:RunStances::All)
         if(!RunStances::IsDefaultUnlocked(Stance.Id)) TestTrue(TEXT("Purchase extra stance for menu"),Meta->PurchaseStance(Stance.Id));
     Screen->Open();
     TestEqual(TEXT("Reopening shows newly purchased stances"),Screen->GetVisibleStanceCount(),6);
     TestTrue(TEXT("Purchased Samurai selectable"),Screen->SelectStance(TEXT("Iaijutsu")));
     TestTrue(TEXT("Purchased Ninja selectable"),Screen->SelectStance(TEXT("GreatShuriken")));
+    for(int32 Rank=0;Rank<3;++Rank)
+    {TMap<FName,int32> Completed;for(const auto& M:RunChallenges::Modifiers())Completed.Add(M.Id,Rank);Meta->RecordDifficultyVictory(TEXT("FallenGrove"),Completed);}
     TestTrue(TEXT("Menu health challenge editable"),Challenge->SetModifierRank(TEXT("Health"),3));
     TestTrue(TEXT("Menu damage challenge editable"),Challenge->SetModifierRank(TEXT("Damage"),1));
     TestTrue(TEXT("Menu speed challenge editable"),Challenge->SetModifierRank(TEXT("Speed"),2));
     TestTrue(TEXT("Challenge summary uses selected rank total"),FMath::IsNearlyEqual(Challenge->GetRewardMultiplier(),1.48f));
     Render(Screen,{1600,900},TEXT("Stances1600.png"));
     Render(Screen,{1280,720},TEXT("Stances1280.png"));
+    Screen->SelectSetupPage(ERunSetupPage::SynergiesAndCombo);
+    TestEqual(TEXT("Newly purchased synergies become visible"),Screen->GetVisibleSynergyCount(),Loadout->GetAvailableSynergies().Num());
+    for(auto* Definition:Loadout->GetAvailableSynergies())
+    {
+        const bool bShouldFit=Screen->IsSynergySelected(Definition->UpgradeId)||Loadout->GetSelectedSynergies().Num()<URunLoadoutSubsystem::MaxSelectedSynergies;
+        TestEqual(TEXT("Synergy UI enforces the active slot count"),Screen->SetSynergySelected(Definition->UpgradeId,true),bShouldFit);
+    }
+    TestEqual(TEXT("All available slots can be filled"),Loadout->GetSelectedSynergies().Num(),FMath::Min(URunLoadoutSubsystem::MaxSelectedSynergies,Loadout->GetAvailableSynergies().Num()));
+    TestTrue(TEXT("Explicit None survives buying the combo unlock"),Loadout->GetSelectedComboAbility().IsNone());
+    TestTrue(TEXT("Owned combo can be selected"),Screen->SelectComboAbility(TEXT("SoulConvergence")));
+    TestTrue(TEXT("Owned combo can be unequipped"),Screen->SelectComboAbility(NAME_None));
+    Screen->SelectSetupPage(ERunSetupPage::ArenaAndStances);
+    Screen->SelectSetupPage(ERunSetupPage::SynergiesAndCombo);
+    TestTrue(TEXT("Page switches preserve unequipped combo"),Loadout->GetSelectedComboAbility().IsNone());
+    TestTrue(TEXT("Owned combo can be reselected"),Screen->SelectComboAbility(TEXT("SoulConvergence")));
+    TestFalse(TEXT("Future combo remains unavailable after purchases"),Screen->SelectComboAbility(TEXT("CrimsonEclipse")));
+    TestEqual(TEXT("Rejected future combo preserves current selection"),Loadout->GetSelectedComboAbility(),FName(TEXT("SoulConvergence")));
+    TestEqual(TEXT("Samurai choice survives setup page switches"),Screen->GetSelectedSamurai(),FName(TEXT("Iaijutsu")));
+    TestEqual(TEXT("Ninja choice survives setup page switches"),Screen->GetSelectedNinja(),FName(TEXT("GreatShuriken")));
+    Render(Screen,{1600,900},TEXT("NewRunPowersUnlocked1600.png"));
+    Render(Screen,{1280,720},TEXT("NewRunPowersUnlocked1280.png"));
     auto* PC=W->SpawnActor<ASurvivorPlayerController>(PreparationControllerClass());
     PC->SetPlayer(NewObject<ULocalPlayer>(GEngine));
     auto* Bounds=W->SpawnActor<AMinimapBounds>();

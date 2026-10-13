@@ -41,6 +41,8 @@ public:
 	UFUNCTION(BlueprintPure, Category="Boss") EFinalBossAttack GetCurrentAttack() const { return CurrentAttack; }
 	UFUNCTION(BlueprintPure, Category="Boss|Phase 2") bool IsPhase2Active() const { return bPhase2Active; }
 	UFUNCTION(BlueprintPure, Category="Boss") FText GetBossDisplayName() const { return BossDisplayName; }
+	/** Keep the victory freeze from cutting off an authored death montage. */
+	float GetDeathPresentationSeconds() const;
 	UFUNCTION(BlueprintCallable, Category="Boss|Animation") void HandleBossTelegraphStart();
 	UFUNCTION(BlueprintCallable, Category="Boss|Animation") void HandleBossAttackExecute();
 	UFUNCTION(BlueprintCallable, Category="Boss|Animation") void HandleBossTelegraphEnd();

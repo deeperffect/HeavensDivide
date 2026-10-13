@@ -1,4 +1,5 @@
 #include "SamuraiIaijutsu.h"
+#include "RunReportSubsystem.h"
 #include "UpgradeBalance.h"
 #include "UpgradeProcVFX.h"
 #include "SamuraiCharacter.h"
@@ -364,6 +365,7 @@ bool ASamuraiIaijutsu::HitEnemy(AEnemyBase* Enemy)
     // Its own newly applied mark does not amplify the applying hit.
     Enemy->ApplyIaijutsuMark(U, Bonus, IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("MarkDuration"), 3.f),
         U && U->HasUpgradeId(TEXT("IaijutsuDashPact")));
+    FRunDamageScope DamageScope(bAssistAttack ? AssistDamageSource : FName(TEXT("Iaijutsu")));
     if (!Enemy->ApplyPlayerDamage(ActualDamage / Enemy->GetIaijutsuDamageMultiplier(), EPlayerAttackSource::Samurai)) return false;
     if (U)
     {
@@ -384,7 +386,7 @@ void ASamuraiIaijutsu::SpawnKillFollowUp(FVector Location)
     const auto Budget = ChainBudget;
     const auto Source = SourceCharacter;
     // Defer to avoid recursive damage/spawning when an instant cast kills.
-    GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(U, [Source, Location, Budget, U, bAssist = bAssistAttack]
+    GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(U, [Source, Location, Budget, U, bAssist = bAssistAttack, CommittedAssistSource = AssistDamageSource]
     {
         auto* Samurai = Source.Get();
         auto* Attack = Samurai ? Samurai->FindComponentByClass<UAutoAttackComponent>() : nullptr;
@@ -406,6 +408,7 @@ void ASamuraiIaijutsu::SpawnKillFollowUp(FVector Location)
         if (Direction.IsNearlyZero()) Direction = Samurai->GetVisualForwardVector();
         const float Charge = FMath::FRand() < IaijutsuBuild::Chance(U, TEXT("IaijutsuInstant"), TEXT("IaijutsuInstantChance"), .15f, .1f)
             ? 0.f : IaijutsuBuild::Charge(U);
+        TGuardValue<FName> AssistSource(Attack->AssistDamageSource, CommittedAssistSource);
         Attack->SpawnIaijutsuSlashes(Location, Direction, Range, Charge, false, Budget,
             1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuCascadePower"), .2f), bAssist);
     }));

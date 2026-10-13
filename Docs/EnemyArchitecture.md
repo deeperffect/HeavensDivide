@@ -2,6 +2,8 @@
 
 See [Enemy spawner guide](EnemySpawnerArchitecture.md) for the director's code layout and tuning categories.
 
+See [Veshra's boss ability audit](BossAbilityAudit.md) for the active arena boss's seven spells, summoned guardians, saved values and timing behavior.
+
 Enemy Blueprints supply tuning, meshes, animation classes, montages and effects. Native classes implement their behavior. Property names, class paths, component names and saved tuning are preserved by the cleanup.
 
 ## Enemy roster
@@ -20,7 +22,7 @@ Enemy Blueprints supply tuning, meshes, animation classes, montages and effects.
 | `BP_GraveCantor`, `BP_WarDrummer` | `TacticalEnemy`: healing and haste support casts |
 | `BP_OgreWarden`, `BP_StormGorilla` | `TacticalEnemy`: ring and crossed-lane telegraphs |
 | `BP_AshenMarcher` | `TacticalEnemy`: encounter marching formation and movement contact hit |
-| `BP_CinderOracle` | `CinderOracleBoss`: phased spell patterns, telegraphs and summoned guardians |
+| `BP_CinderOracle` (Veshra — The Pale Stinger) | `CinderOracleBoss`: phased spell patterns, telegraphs and summoned guardians; six-legged scorpion rig and authored locomotion/cast/death clips |
 
 The current roster contains 26 enemy actor Blueprints, including trial enemies and the dummy. `Tools/audit_enemy_attacks.py` reads their saved ancestry and attack defaults across `/Game` into `Saved/EnemyAttackAudit.json`. See [Basic melee attacks](BasicMeleeAttacks.md) for the current seven combat profiles. Spell, charge, bomb, aura and boss behaviors retain their specialized attack paths.
 

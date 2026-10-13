@@ -1,4 +1,5 @@
 #include "RunChallengeSubsystem.h"
+#include "RunReportSubsystem.h"
 #include "BalanceLabDirector.h"
 #include "CinderOracleBoss.h"
 #include "EncounterWall.h"
@@ -42,13 +43,25 @@ const TArray<FRunChallengeModifier>& RunChallenges::Modifiers()
 }
 int32 URunChallengeSubsystem::GetModifierRank(FName Id) const
 {
-    return FindChallenge(Id) ? FMath::Clamp(Ranks.FindRef(Id), 0, 5) : 0;
+    return FindChallenge(Id) ? FMath::Clamp(Ranks.FindRef(Id), 0, GetUnlockedRank(Id)) : 0;
 }
 bool URunChallengeSubsystem::SetModifierRank(FName Id, int32 Rank)
 {
-    if (!FindChallenge(Id) || Rank < 0 || Rank > 5 || !CanEditModifiers()) return false;
+    if (!FindChallenge(Id) || Rank < 0 || Rank > GetUnlockedRank(Id) || !CanEditModifiers()) return false;
     Ranks.Add(Id, Rank);
     return true;
+}
+int32 URunChallengeSubsystem::GetUnlockedRank(FName Id) const
+{
+ const auto* Meta=GetGameInstance()?GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>():nullptr;
+ return Meta?Meta->GetUnlockedDifficultyRank(MapId,Id):0;
+}
+bool URunChallengeSubsystem::SetMap(FName Id)
+{
+ if(!CanEditModifiers() || !RunReports::FindMap(Id))return false;
+ MapId=Id;
+ for(auto& Rank:Ranks)Rank.Value=FMath::Clamp(Rank.Value,0,GetUnlockedRank(Rank.Key));
+ return true;
 }
 float URunChallengeSubsystem::GetMultiplier(FName Id) const
 {

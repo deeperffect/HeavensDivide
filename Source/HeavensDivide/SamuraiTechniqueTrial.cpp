@@ -1,4 +1,5 @@
 #include "SamuraiTechniqueTrial.h"
+#include "RunReportSubsystem.h"
 #include "CombatAudio.h"
 
 #include "CharacterBase.h"
@@ -349,6 +350,7 @@ void ASamuraiTechniqueTrial::CompleteAllRounds()
 void ASamuraiTechniqueTrial::HandleRewardCompleted()
 {
 	if (MemoryState != ESamuraiMemoryTrialState::AwaitingReward) return;
+	RunReports::ObjectiveCompleted(this);
 	MemoryState = ESamuraiMemoryTrialState::Completed;
 	FinishChallenge();
 }

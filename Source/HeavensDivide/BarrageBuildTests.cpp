@@ -14,6 +14,9 @@
 #include "BarrageBuild.h"
 #include "BarragePoisonPool.h"
 #include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "Components/SphereComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "EnemyStatusEffectComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -62,6 +65,8 @@ bool FBarrageBuildsTest::RunTest(const FString&)
  TestFalse(TEXT("Bloom requires Toxic Ground"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("BarrageBloom"))));
  TestFalse(TEXT("Old shared supports excluded"),U->CanAcquireUpgrade(U->FindUpgradeDefinition(TEXT("EmbeddedBlades"))));
  Reset();
+ int32 BaseCount=3;float BaseSpacing=10.f;B->ModifyVolley(BaseCount,BaseSpacing);
+ TestEqual(TEXT("Barrage fan spacing is slightly wider"),BaseSpacing,12.5f);
  TestTrue(TEXT("Base Barrage kunai is six damage"),FMath::IsNearlyEqual(A->GetEffectiveAttackDamage(),6.f));
  Grant(TEXT("BarrageDamage"));TestTrue(TEXT("Common damage rank scales the six-damage kunai"),FMath::IsNearlyEqual(A->GetEffectiveAttackDamage(),7.2f,.001f));
  Reset();auto* E=Spawn(FVector(300,0,0),100000);auto* S=E->GetStatusEffectComponent();
@@ -124,6 +129,32 @@ bool FBarrageBuildsTest::RunTest(const FString&)
  A->bAutoAttackEnabled=true;A->bIsAttacking=true;A->bAttackNotifyConsumed=false;A->SpawnAutoAttackProjectile();
  auto* Assist=PC->FindComponentByClass<UInactiveCharacterAssistComponent>();TestFalse(TEXT("Volley-triggered assist is busy and cannot overlap"),Assist->TryBarrageAssist());
  TestEqual(TEXT("Samurai is assisting after the volley"),Samurai->GetCharacterMode(),ECharacterMode::Assisting);Assist->DeactivateAssistEffect(true);AssistCard->BalanceParameters=SavedAssist;
+ // Test the shipped projectile, not a stand-in: travel-limited beams and an explicit fade survive impact.
+ auto* ProjectileClass=LoadClass<AAttackProjectileBase>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_NinjaProjectile.BP_NinjaProjectile_C"));
+ if(TestNotNull(TEXT("Shipped Ninja projectile"),ProjectileClass))
+ {
+  auto* P=World->SpawnActor<AAttackProjectileBase>(ProjectileClass,FVector(10000,0,50),FRotator::ZeroRotator,Params);
+  P->DispatchBeginPlay();P->InitializeProjectile(N,FVector::ForwardVector,6,1800,EProjectileTargetType::Enemies,1000);
+  TestTrue(TEXT("Shipped beam has explicit fade controls"),P->ControlledTrails.Num()>0);
+  P->SetActorLocation(FVector(10120,0,50));P->Tick(.016f);
+  TestTrue(TEXT("Beam growth follows actual travelled distance"),FMath::IsNearlyEqual(P->TrailTravel,120.f));
+  P->HandleProjectileOverlap(nullptr,E,nullptr,0,false,FHitResult());
+  TestTrue(TEXT("Impact stops gameplay collision immediately"),P->CollisionComponent->GetCollisionEnabled()==ECollisionEnabled::NoCollision);
+  TestTrue(TEXT("Impact stops movement immediately"),P->ProjectileMovement->Velocity.IsNearlyZero());
+  TestFalse(TEXT("Impact retains actor for fading"),P->IsActorBeingDestroyed());
+  TestTrue(TEXT("Authored kill-on-deactivate effect stays active for controlled fade"),P->ControlledTrails.Num()>0&&P->ControlledTrails[0]->IsActive());
+  P->Tick(.175f);
+  const FNiagaraVariable Opacity(FNiagaraTypeDefinition::GetFloatDef(),TEXT("User.ProjectileOpacity"));
+  if(P->ControlledTrails.Num()>0)TestTrue(TEXT("Midpoint opacity is half"),FMath::IsNearlyEqual(P->ControlledTrails[0]->GetOverrideParameters().GetParameterValue<float>(Opacity),.5f,.001f));
+  P->Tick(.175f);
+  if(P->ControlledTrails.Num()>0)TestTrue(TEXT("Opacity reaches zero before actor destruction"),FMath::IsNearlyZero(P->ControlledTrails[0]->GetOverrideParameters().GetParameterValue<float>(Opacity)));
+  P->LifeSpanExpired();TestTrue(TEXT("Faded projectile is cleaned up"),P->IsActorBeingDestroyed());
+  A->ProjectileClass=ProjectileClass;
+  A->SpawnProjectileInstance(FVector(-100,0,50),FVector::ForwardVector,6,1800,0);
+  bool FoundForward=false;
+  for(TActorIterator<AAttackProjectileBase> I(World);I;++I)if(I->GetClass()==ProjectileClass&&!I->IsActorBeingDestroyed()&&I->GetActorLocation().X>0&&I->GetActorLocation().X<500)FoundForward=true;
+  TestTrue(TEXT("Barrage release cannot originate behind Ninja"),FoundForward);
+ }
  B->ClearProjectiles();PC->Destroy();World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;
 }
 #endif

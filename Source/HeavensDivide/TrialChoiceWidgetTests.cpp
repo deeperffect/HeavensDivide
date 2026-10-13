@@ -51,12 +51,14 @@ bool FTrialChoiceLayoutTest::RunTest(const FString&)
             if (TestNotNull(TEXT("Death screen keeps run time"), Time))
                 TestEqual(TEXT("Final run time updates"), Time->GetText().ToString(), FString(TEXT("02:05")));
         }
-        auto* Background = Cast<UImage>(Choice->GetWidgetFromName(TEXT("MenuPromptBackground")));
+        auto* Background = bTrial ? Choice->GetWidgetFromName(TEXT("MenuPromptBackground")) : Choice->GetWidgetFromName(TEXT("RunPromptSurface"));
         auto* MenuClass = LoadClass<UMainMenuWidget>(nullptr, TEXT("/Game/HeavensDivide/Blueprints/UI/MainMenu/WBP_MainMenu.WBP_MainMenu_C"));
         if (TestNotNull(TEXT("Background image exists"), Background) && TestNotNull(TEXT("Authored menu exists"), MenuClass))
         {
-            TestTrue(TEXT("Background uses the authored menu texture"), Background->GetBrush().GetResourceObject()
-                && Background->GetBrush().GetResourceObject() == MenuClass->GetDefaultObject<UMainMenuWidget>()->GetPageBackgroundTexture());
+            if (bTrial)
+                TestTrue(TEXT("Trial background uses authored menu texture"), Cast<UImage>(Background)->GetBrush().GetResourceObject()
+                    && Cast<UImage>(Background)->GetBrush().GetResourceObject() == MenuClass->GetDefaultObject<UMainMenuWidget>()->GetPageBackgroundTexture());
+            else TestNotNull(TEXT("Result screen has the new report tabs"), Choice->GetWidgetFromName(TEXT("RunReportHost")));
             // Arrange the actual Slate hierarchy at two viewport sizes, rather than only checking slot settings.
             auto Root = Choice->WidgetTree->RootWidget->TakeWidget();
             Root->SlatePrepass(1.0f);

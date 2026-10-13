@@ -4,10 +4,11 @@
 #include "Widgets/SLeafWidget.h"
 
 class USynergyMetaProgressionSubsystem;
+class SScrollBox;
 struct FMetaSkillNode;
 DECLARE_DELEGATE_OneParam(FOnMetaNodeSelected, FName);
 
-/** Vector-drawn constellation. The same transform drives paint, hit tests and navigation. */
+/** Vertical skill forest. The same layout drives connectors, paint, hit tests and navigation. */
 class SMetaSkillMap : public SLeafWidget
 {
 public:
@@ -20,7 +21,7 @@ public:
 	void ResetView();
 	/** An explicit set also filters pointer hit tests and keyboard navigation. */
 	void SetVisibleNodes(const TArray<FName>& Ids, const FString& Title);
-	static FVector2D NodePosition(const FMetaSkillNode& Node);
+	void SetScrollTarget(TWeakPtr<SScrollBox> Target) { ScrollTarget=Target; }
 	void SetInspectTarget(TWeakPtr<SWidget> Target) { InspectTarget=Target; }
 	void Refresh() { Invalidate(EInvalidateWidgetReason::Paint); }
 	void SetLabelFont(const FSlateFontInfo& Font) { LabelFont=Font; Refresh(); }
@@ -38,7 +39,11 @@ private:
 	friend class FMetaSkillMapLayoutTest;
 	friend class FMetaSkillMapFilterTest;
 	bool IsNodeVisible(FName Id) const { return !bFiltered || VisibleNodes.Contains(Id); }
+	void BuildLayout();
 	FVector2D DisplayPosition(const FMetaSkillNode& Node) const;
+	TArray<FVector2D> ConnectorPath(const FMetaSkillNode& Parent, const FMetaSkillNode& Child) const;
+	double NodeLabelWidth(FName Id) const;
+    TArray<FString> NodeLabelLines(const FMetaSkillNode& Node,int32& FontSize,double& LineHeight) const;
 	TSet<FName> GetHighlightedAncestors() const;
 	void SetHoveredNode(FName Id);
 	FName HitNode(const FGeometry&, FVector2D Local) const;
@@ -52,13 +57,12 @@ private:
 	FOnMetaNodeSelected OnSelected;
 	FName Hovered;
 	TSet<FName> VisibleNodes;
-	TMap<FName, FVector2D> FilteredPositions;
+	TMap<FName, FVector2D> LayoutPositions;
+	TMap<FName, double> LabelWidths;
+	FVector2D CanvasSize = FVector2D(1020,850);
 	FString FilterTitle;
 	bool bFiltered = false;
+    bool bStatsLayout = false;
 	FSlateFontInfo LabelFont;
-	FVector2D Pan = FVector2D::ZeroVector;
-	FVector2D LastDrag = FVector2D::ZeroVector;
-	float Zoom = 1.f;
-	bool bDragging = false;
+	TWeakPtr<SScrollBox> ScrollTarget;
 };
-

@@ -4,6 +4,7 @@
 #include "MetaSkillTree.h"
 #include "RunStanceCatalog.h"
 #include "RunChallengeSubsystem.h"
+#include "RunReportSubsystem.h"
 #include "BalanceLabDirector.h"
 #include "SurvivorPlayerController.h"
 #include "Engine/World.h"
@@ -117,6 +118,7 @@ bool USynergyMetaProgressionSubsystem::ResetMetaProgression()
 		return false;
 	}
 	PendingSkillReward = PendingSigils = LastSkillRunReward = RunEmbers = RunSigils = 0;
+ PendingDifficultyRanks.Reset();
  EmberFraction = SigilFraction = 0;
 	return true;
 }
@@ -272,9 +274,31 @@ bool USynergyMetaProgressionSubsystem::IsStanceUnlocked(FName Id) const
 {
  return RunStances::Find(Id) && (RunStances::IsDefaultUnlocked(Id) || (CurrentSave && CurrentSave->UnlockedStanceIds.Contains(Id)));
 }
+int32 USynergyMetaProgressionSubsystem::GetUnlockedDifficultyRank(FName MapId,FName ModifierId) const
+{
+ if(!RunReports::FindMap(MapId) || !RunChallenges::Modifiers().ContainsByPredicate([ModifierId](const auto& M){return M.Id==ModifierId;}))return 0;
+ const FName Key(*(MapId.ToString()+TEXT(".")+ModifierId.ToString()));
+ return CurrentSave?FMath::Clamp(CurrentSave->UnlockedDifficultyRanks.FindRef(Key),0,5):0;
+}
+void USynergyMetaProgressionSubsystem::RecordDifficultyVictory(FName MapId,const TMap<FName,int32>& CompletedRanks)
+{
+ if(!CurrentSave || !RunReports::FindMap(MapId))return;
+ for(const auto& Modifier:RunChallenges::Modifiers())
+ {
+  const auto* Rank=CompletedRanks.Find(Modifier.Id);
+  if(!Rank || *Rank<0 || *Rank>GetUnlockedDifficultyRank(MapId,Modifier.Id))return;
+ }
+ for(const auto& Modifier:RunChallenges::Modifiers())
+ {
+  const FName Key(*(MapId.ToString()+TEXT(".")+Modifier.Id.ToString()));
+  const int32 Next=FMath::Min(5,CompletedRanks.FindRef(Modifier.Id)+1);
+  if(Next>GetUnlockedDifficultyRank(MapId,Modifier.Id))PendingDifficultyRanks.FindOrAdd(Key)=FMath::Max(PendingDifficultyRanks.FindRef(Key),Next);
+ }
+ RetrySkillReward();
+}
 int32 USynergyMetaProgressionSubsystem::GetStanceCost(FName Id) const
 {
- return RunStances::Find(Id) && !IsStanceUnlocked(Id) ? 6 : 0;
+ return RunStances::Find(Id) && !IsStanceUnlocked(Id) ? 18 : 0;
 }
 FString USynergyMetaProgressionSubsystem::GetStancePurchaseBlock(FName Id) const
 {
@@ -298,7 +322,7 @@ bool USynergyMetaProgressionSubsystem::PurchaseStance(FName Id)
 }
 int32 USynergyMetaProgressionSubsystem::GetSynergyCost(FName Id) const
 {
- return !Id.IsNone() && !IsSynergyUpgradeUnlocked(Id) ? 4 : 0;
+ return !Id.IsNone() && !IsSynergyUpgradeUnlocked(Id) ? 12 : 0;
 }
 FString USynergyMetaProgressionSubsystem::GetSynergyPurchaseBlock(FName Id) const
 {
@@ -366,6 +390,21 @@ namespace
  {
   return static_cast<int32>(FMath::Min<int64>(MAX_int32, int64(Current) + FMath::Max(0, Amount)));
  }
+ int32 ScaleCurrency(int32 Amount,double Multiplier,double& Fraction)
+ {
+  const double Total=FMath::Max(0,Amount)*Multiplier+Fraction;
+  const int32 Whole=static_cast<int32>(FMath::Min<double>(MAX_int32,FMath::FloorToDouble(Total+0.000001)));
+  Fraction=Total>=MAX_int32?0.0:FMath::Max(0.0,Total-Whole);
+  return Whole;
+ }
+}
+FIntPoint USynergyMetaProgressionSubsystem::PreviewCurrencyReward(int32 Embers,int32 Sigils) const
+{
+ const auto* GI=GetGameInstance();
+ const auto* Challenge=GI?GI->GetSubsystem<URunChallengeSubsystem>():nullptr;
+ const double Multiplier=(1.0+GetSkillBonus(TEXT("Currency")))*(Challenge?Challenge->GetRewardMultiplier():1.f);
+ double EF=EmberFraction,SF=SigilFraction;
+ return FIntPoint(ScaleCurrency(Embers,Multiplier,EF),ScaleCurrency(Sigils,Multiplier,SF));
 }
 void USynergyMetaProgressionSubsystem::BeginCurrencyRun()
 {
@@ -380,14 +419,7 @@ void USynergyMetaProgressionSubsystem::AwardCurrencies(int32 Embers, int32 Sigil
  const auto* GI = GetGameInstance();
  const auto* Challenge = GI ? GI->GetSubsystem<URunChallengeSubsystem>() : nullptr;
  const double Multiplier = (1.0 + GetSkillBonus(TEXT("Currency"))) * (Challenge ? Challenge->GetRewardMultiplier() : 1.f);
- auto Scale = [Multiplier](int32 Amount, double& Fraction)
- {
-  const double Total = FMath::Max(0, Amount) * Multiplier + Fraction;
-  const int32 Whole = static_cast<int32>(FMath::Min<double>(MAX_int32, FMath::FloorToDouble(Total + 0.000001)));
-  Fraction = Total >= MAX_int32 ? 0.0 : FMath::Max(0.0, Total - Whole);
-  return Whole;
- };
- const int32 EarnedEmbers = Scale(Embers, EmberFraction), EarnedSigils = Scale(Sigils, SigilFraction);
+ const int32 EarnedEmbers = ScaleCurrency(Embers, Multiplier, EmberFraction), EarnedSigils = ScaleCurrency(Sigils, Multiplier, SigilFraction);
  PendingSkillReward = AddCurrency(PendingSkillReward, EarnedEmbers);
  PendingSigils = AddCurrency(PendingSigils, EarnedSigils);
  RunEmbers = AddCurrency(RunEmbers, EarnedEmbers);
@@ -409,13 +441,15 @@ void USynergyMetaProgressionSubsystem::AwardObjectiveEmbers(int32 Amount)
 void USynergyMetaProgressionSubsystem::RetrySkillReward()
 {
  if (!HasPendingSkillReward() || !CurrentSave) return;
+ const auto OldDifficulty=CurrentSave->UnlockedDifficultyRanks;
+ for(const auto& Unlock:PendingDifficultyRanks)CurrentSave->UnlockedDifficultyRanks.FindOrAdd(Unlock.Key)=FMath::Max(CurrentSave->UnlockedDifficultyRanks.FindRef(Unlock.Key),Unlock.Value);
  const int32 OldEmbers = CurrentSave->SoulEmbers, OldSigils = CurrentSave->SoulSigils;
  const double OldEmberFraction=CurrentSave->EmberFraction, OldSigilFraction=CurrentSave->SigilFraction;
  CurrentSave->EmberFraction=EmberFraction; CurrentSave->SigilFraction=SigilFraction;
  CurrentSave->SoulEmbers = AddCurrency(OldEmbers, PendingSkillReward);
  CurrentSave->SoulSigils = AddCurrency(OldSigils, PendingSigils);
- if (SaveMetaProgression()) PendingSkillReward = PendingSigils = 0;
- else { CurrentSave->SoulEmbers = OldEmbers; CurrentSave->SoulSigils = OldSigils;
+ if (SaveMetaProgression()) { PendingSkillReward = PendingSigils = 0;PendingDifficultyRanks.Reset(); }
+ else { CurrentSave->UnlockedDifficultyRanks=OldDifficulty;CurrentSave->SoulEmbers = OldEmbers; CurrentSave->SoulSigils = OldSigils;
   CurrentSave->EmberFraction=OldEmberFraction; CurrentSave->SigilFraction=OldSigilFraction; }
 }
 

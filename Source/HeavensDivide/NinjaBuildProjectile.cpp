@@ -1,4 +1,5 @@
 #include "NinjaBuildProjectile.h"
+#include "RunReportSubsystem.h"
 
 #include "AttackProjectileBase.h"
 #include "AutoAttackComponent.h"
@@ -219,6 +220,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
                 continue;
             LastHits.Add(E, Age);
             int32 &Count = HitCounts.FindOrAdd(E);
+            FRunDamageScope DamageScope(bCloneProjectile ? FName(TEXT("ShadowClone")) : bAssistProjectile ? AssistDamageSource : Kind == ENinjaProjectileKind::Fragment ? FragmentDamageSource : Kind == ENinjaProjectileKind::GreatShuriken ? FName(TEXT("GreatShuriken")) : FName(TEXT("ReturningFang")));
             B->Hit(E,
                    Damage * (Kind == ENinjaProjectileKind::GreatShuriken && B->Has(TEXT("SerratedEdge"))
                                  ? 1 + FMath::Min(Count, 5) * .15f

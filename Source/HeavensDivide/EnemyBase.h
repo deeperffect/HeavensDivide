@@ -59,6 +59,8 @@ class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
 	friend class FEnemyHitFlashTest;
 	friend class FEnemyDeathTest;
 	friend class FEncounterExpansionTest;
+	friend class FBossSpellPressureTest;
+	friend class FXPRewardGroupingTest;
 	friend class URunChallengeSubsystem;
 	friend class FRunChallengeTest;
 	bool bRunChallengeApplied = false;
@@ -459,7 +461,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Random horizontal scatter radius for the XP pickup spawned at this enemy's death location."))
 	float ExperiencePickupSpawnScatterRadius = 35.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "1", UIMin = "1", AdvancedDisplay, ToolTip = "Preferred XP value assigned to each pickup when a larger reward is split."))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "1", UIMin = "1", AdvancedDisplay, ToolTip = "Legacy saved setting. Enemy rewards now use Experience Pickup Drops grouping and retain their complete XP value."))
 	int32 ExperiencePerPickup = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "0.0", UIMin = "0.0", AdvancedDisplay, ToolTip = "Random horizontal scatter radius used when an XP reward creates multiple pickups."))

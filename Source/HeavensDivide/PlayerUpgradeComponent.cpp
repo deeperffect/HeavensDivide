@@ -5,6 +5,7 @@
 #include "PlayerUpgradeRules.h"
 #include "SurvivorPlayerController.h"
 #include "SynergyMetaProgressionSubsystem.h"
+#include "RunLoadoutSubsystem.h"
 
 using namespace PlayerUpgradeRules;
 
@@ -44,6 +45,13 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 	if (!IsValidUpgradeDefinition(Upgrade))
 		return false;
 	const FName Id = Upgrade->UpgradeId;
+	if (Upgrade->Category == EUpgradeCategory::Synergy && BalancePreviewMetaProfile < 0 && !HasUpgradeId(Id))
+	{
+		int32 ActiveSynergies = 0;
+		for (const auto& Pair : AcquiredUpgradeDefinitions)
+			if (Pair.Value && Pair.Value->Category == EUpgradeCategory::Synergy && HasUpgradeId(Pair.Key)) ++ActiveSynergies;
+		if (ActiveSynergies >= URunLoadoutSubsystem::MaxSelectedSynergies) return false;
+	}
 	const bool bWheel = HasUpgradeId(TEXT("GreatShuriken"));
 	if (ShurikenBuild::IsUpgrade(Id) && !bWheel) return false;
 	const bool bBarrage = HasUpgradeId(TEXT("BarrageStance"));
@@ -107,7 +115,7 @@ bool UPlayerUpgradeComponent::CanAcquireUpgrade(UUpgradeDefinition* Upgrade) con
 	}
 
 	return bExclusivityEligible && GetUpgradeLevel(Upgrade) < UpgradeRankLimit(Upgrade) &&
-	       MeetsPrerequisites(Upgrade);
+	       ((bGrantingStartingSynergy && Upgrade->Category == EUpgradeCategory::Synergy) || MeetsPrerequisites(Upgrade));
 }
 
 bool UPlayerUpgradeComponent::AcquireUpgrade(UUpgradeDefinition* Upgrade)

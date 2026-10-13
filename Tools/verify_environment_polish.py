@@ -24,7 +24,20 @@ for map_path in ['/Game/Maps/Lvl_B1_Lvl1','/Game/Maps/Lvl_B1_Arena']:
  expected='MI_Lvl1_Ground' if map_path.endswith('Lvl1') else 'MI_Arena_Stone'
  assert mi.get_path_name()==folder+'/'+expected+'.'+expected
  assert mi.get_base_material().get_editor_property('shading_model')==u.MaterialShadingModel.MSM_DEFAULT_LIT
- if map_path.endswith('Lvl1'):assert lib.get_material_instance_scalar_parameter_value(mi,'GrassTileSize')==350
+ if map_path.endswith('Lvl1'):
+  ground_code='\n'.join(e.get_editor_property('code') for e in lib.get_material_expressions(mi.get_base_material()) if isinstance(e,u.MaterialExpressionCustom))
+  reference_ground='REFERENCE_GROUND' in ground_code
+  expected_scalars=({'GrassTileSize':1000,'DirtTileSize':1500,'StoneTileSize':2200,'LayoutEdgeVariation':0} if reference_ground else {'GrassTileSize':350})
+  for key,value in expected_scalars.items():assert abs(lib.get_material_instance_scalar_parameter_value(mi,key)-value)<.001,key
+  if reference_ground:
+   for layer in ['Grass','Dirt','Stone']:
+    texture=lib.get_material_instance_texture_parameter_value(mi,layer+'Texture')
+    assert texture and texture.get_path_name().startswith('/Game/HeavensDivide/Materials/ReferenceGround/T_ReferenceGround_'+layer)
+  for key,expected_value in [('LayoutOrigin',(-7600,-7600)),('LayoutSize',(15200,15200))]:
+   value=lib.get_material_instance_vector_parameter_value(mi,key)
+   assert near((value.r,value.g),expected_value),key
+  texture=lib.get_material_instance_texture_parameter_value(mi,'LayoutTexture')
+  assert texture and texture.get_path_name()==folder+'/T_Lvl1_GroundWeights.T_Lvl1_GroundWeights'
  checks.append(map_path+': correct lit ground material')
  sun=next(a for a in all_actors if isinstance(a,u.DirectionalLight))
  sc=sun.get_component_by_class(u.DirectionalLightComponent)

@@ -85,7 +85,7 @@ TArray<TPair<FString, FString>> UTesterBalanceSettings::Roster()
     Add(TEXT("Ogre"), TEXT("EnemyCharacters/Elites"), TEXT("BP_EnemyOgre"));
     Add(TEXT("Gorilla"), TEXT("EnemyCharacters/Elites"), TEXT("BP_EnemyGorilla"));
     Add(TEXT("Samurai Boss"), TEXT("EnemyCharacters/Bosses/SamuraiBoss"), TEXT("BP_SamuraiBoss"));
-    Add(TEXT("Cinder Oracle Boss"), TEXT("EnemyCharacters/Bosses/CinderOracle"), TEXT("BP_CinderOracle"));
+    Add(TEXT("Veshra - The Pale Stinger"), TEXT("EnemyCharacters/Bosses/CinderOracle"), TEXT("BP_CinderOracle"));
     for (const TCHAR* Name : {TEXT("AshSeer"), TEXT("HexSniper"), TEXT("MireWeaver"), TEXT("HornLancer"), TEXT("FangStalker"),
         TEXT("GraveCantor"), TEXT("WarDrummer"), TEXT("OgreWarden"), TEXT("StormGorilla"), TEXT("FrostOracle"), TEXT("AshenMarcher")})
         Add(Name, TEXT("EnemyCharacters/Tactical"), *(FString(TEXT("BP_")) + Name));

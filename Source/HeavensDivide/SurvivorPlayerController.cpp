@@ -1,6 +1,7 @@
+#include "SurvivorPlayerController.h"
+#include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "SurvivorPlayerController.h"
 #include "UpgradeBalance.h"
 #include "CombatAudio.h"
 #include "SwapPresentationComponent.h"
@@ -185,6 +186,7 @@ void ASurvivorPlayerController::BeginPlay()
 		{
 			if (auto* Meta = GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>()) Meta->BeginCurrencyRun();
 			if (auto* Challenge = GetGameInstance()->GetSubsystem<URunChallengeSubsystem>()) Challenge->BeginRun();
+			if (auto* Report = GetGameInstance()->GetSubsystem<URunReportSubsystem>()) Report->BeginRun(this);
 			Loadout->ApplyToFreshRun(PlayerUpgradeComponent);
 		}
 	}
@@ -239,6 +241,7 @@ void ASurvivorPlayerController::BuildRuntimeKeyMappings(const UHeavensDivideGame
 
 void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    CancelObjectiveIntro();
     CancelLevelUpPresentation();
     ClosePauseMenu();
 	if(const auto* InputPlayer=GetLocalPlayer())if(auto* Subsystem=InputPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
@@ -252,12 +255,17 @@ void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason
 		RemoveHandoffBuff(CharacterManager->GetNinja());
 	}
 
+	ReleaseMenuMovement();
 	Super::EndPlay(EndPlayReason);
 }
 
 void ASurvivorPlayerController::PlayerTick(float DeltaTime)
 {
+	ReconcileMenuMovement();
 	Super::PlayerTick(DeltaTime);
+    if (IsRunInProgress() && !IsPlayerDead() && !IsObjectiveIntroPlaying() && !bLevelUpSelectionActive && !UGameplayStatics::IsGamePaused(this))
+        if (auto* Report = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunReportSubsystem>() : nullptr) Report->AdvanceTime(DeltaTime);
+    if (IsObjectiveIntroPlaying()) return;
 	UpdateLevelUpPresentation(static_cast<float>(FApp::GetDeltaTime()));
 
 	UpdateManualTargetingInput();
@@ -322,6 +330,7 @@ bool ASurvivorPlayerController::TryBeginObjective(AActor* ObjectiveActor)
 
 void ASurvivorPlayerController::EndObjective(AActor* ObjectiveActor)
 {
+    if (ObjectiveIntroOwner.Get() == ObjectiveActor) CancelObjectiveIntro();
 	if (ObjectiveActor && ActiveObjective.Get() == ObjectiveActor)
 	{
 		ActiveObjective.Reset();
@@ -685,7 +694,7 @@ void ASurvivorPlayerController::HideBossHealthBar(AFinalBossBase* Boss)
 
 void ASurvivorPlayerController::Move(const FInputActionValue& Value)
 {
-	if (bIsPlayerDead || bLevelUpSelectionActive)
+	if (bIsPlayerDead || bLevelUpSelectionActive || bMenuMovementBlocked || UGameplayStatics::IsGamePaused(this))
 	{
 		return;
 	}
@@ -738,6 +747,7 @@ void ASurvivorPlayerController::ActivateComboAbility()
 
 void ASurvivorPlayerController::Interact()
 {
+	if (UGameplayStatics::IsGamePaused(this)) return;
 	if (bLevelUpSelectionActive) return;
 	if (bIsPlayerDead || bLevelUpSelectionActive || !GetWorld())
 	{
@@ -887,6 +897,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 
 	UCombatAudioLibrary::PlayEvent(this, TEXT("PlayerDeath"), FVector::ZeroVector, true);
 	RunEndState = ERunEndState::Defeat;
+    if (auto* Report = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunReportSubsystem>() : nullptr) Report->Finish(this, false);
 	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->AwardSkillRun(GetRunTimeSeconds(), false);
 	bIsPlayerDead = true;
 	StopRunGameplay(true);
@@ -896,6 +907,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 
 void ASurvivorPlayerController::StopRunGameplay(bool bPlayDeathPresentation)
 {
+    CancelObjectiveIntro();
     CancelLevelUpPresentation();
     ClosePauseMenu();
 	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
@@ -958,11 +970,15 @@ void ASurvivorPlayerController::HandleFinalBossDefeated(AFinalBossBase* Boss)
 {
 	if (RunEndState != ERunEndState::Playing || !IsValid(Boss) || Boss->GetBossState() != EFinalBossState::Dead) return;
 	RunEndState = ERunEndState::Victory;
+    if (auto* Report = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunReportSubsystem>() : nullptr) Report->Finish(this, true);
 	if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr) Meta->AwardSkillRun(GetRunTimeSeconds(), true);
 	HideBossHealthBar(Boss);
 	StopRunGameplay(false);
 	UE_LOG(LogTemp, Log, TEXT("[RunEnd] Victory confirmed by final boss %s"), *GetNameSafe(Boss));
-	PresentVictory();
+	const float DeathPresentationSeconds=Boss->GetDeathPresentationSeconds();
+	if(DeathPresentationSeconds>0.f)
+		GetWorldTimerManager().SetTimer(VictoryPresentationTimerHandle,this,&ASurvivorPlayerController::PresentVictory,DeathPresentationSeconds,false);
+	else PresentVictory();
 }
 
 void ASurvivorPlayerController::SetSwapLocked(bool bLocked)
@@ -1339,6 +1355,7 @@ bool ASurvivorPlayerController::EnsureLevelUpWidget()
 
 void ASurvivorPlayerController::PauseForLevelUpSelection()
 {
+    BeginMenuMovement();
 	if(auto* SwapCharacter=CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
 		if(SwapCharacter->SwapPresentation) SwapCharacter->SwapPresentation->FinishSwapFreeze();
     for (TActorIterator<ACharacterBase> It(GetWorld()); It; ++It) It->SetMenuSimulationPaused(true);
@@ -1376,6 +1393,7 @@ void ASurvivorPlayerController::ResumeAfterLevelUpSelection()
 	}
 
 	ConfigureInputMode();
+    EndMenuMovement();
 }
 
 void ASurvivorPlayerController::CloseLevelUpWidget()

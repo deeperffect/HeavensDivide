@@ -28,6 +28,8 @@ struct FEnemyDamageStatusState
  bool bBarragePoison = false;
  bool bDirectBarragePoison = false;
  float PoisonDamagePerTick = 0.f;
+ // Attribution only: the additive share seeded by pools; never changes poison gameplay.
+ float PuddlePoisonDamagePerTick = 0.f;
 };
 
 /** Lightweight, timer-driven damage-over-time state owned by one enemy. */

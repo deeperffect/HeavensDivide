@@ -11,8 +11,9 @@ class UUpgradeDefinition;
 class SBox;
 class SButton;
 class SMetaSkillMap;
+class SScrollBox;
 
-enum class EMetaTreePage : uint8 { Stances, Upgrades, Abilities, Stats };
+enum class EMetaTreePage : uint8 { Stances, Synergies, Abilities, Stats };
 
 UCLASS()
 class HEAVENSDIVIDE_API UMetaSkillTreeWidget : public UMenuFeedbackWidget
@@ -42,13 +43,17 @@ private:
 	USynergyMetaProgressionSubsystem* Progression() const;
 	void SelectPage(EMetaTreePage Page);
 	FReply OpenStanceTree(FName Id);
+    FReply ConfirmStanceUnlock(bool bYes);
 	void RefreshPage();
 	TSharedRef<SWidget> BuildSkillPage();
 	TSharedRef<SWidget> BuildStancePage();
-	TSharedRef<SWidget> BuildUpgradePage();
+	TSharedRef<SWidget> BuildSynergyPage();
 	TArray<FName> VisibleSkills() const;
 	TSharedPtr<SBox> PageHost;
 	TSharedPtr<SMetaSkillMap> SkillMap;
+    TSharedPtr<SScrollBox> SkillScroll;
+    TSharedPtr<SBox> ConfirmationHost;
+    FName PendingStance;
 	TSharedPtr<SButton> StancesTab;
 	EMetaTreePage CurrentPage = EMetaTreePage::Stats;
 	FName OpenStance;

@@ -12,26 +12,33 @@ def preserve(asset,ext='.uasset'):
   b=backup/p.relative_to(root);b.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(p,b)
 def save(obj):assert u.EditorAssetLibrary.save_loaded_asset(obj,False)
 for name in ['T_Lvl1_GroundWeights','M_Lvl1_Ground','MI_Lvl1_Ground']:preserve(folder+'/'+name)
-task=u.AssetImportTask()
-for k,v in dict(filename=str(root/'Art/EnvironmentPolish/Lvl1_GroundWeights.png'),destination_path=folder,destination_name='T_Lvl1_GroundWeights',automated=True,replace_existing=True,save=False).items():task.set_editor_property(k,v)
-u.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
-mask=u.load_asset(folder+'/T_Lvl1_GroundWeights');mask.set_editor_property('srgb',False)
-mask.set_editor_property('compression_settings',u.TextureCompressionSettings.TC_MASKS)
-mask.set_editor_property('address_x',u.TextureAddress.TA_CLAMP);mask.set_editor_property('address_y',u.TextureAddress.TA_CLAMP);save(mask)
 mat=u.load_asset(folder+'/M_Lvl1_Ground')
-expr=next(e for e in lib.get_material_expressions(mat) if isinstance(e,u.MaterialExpressionCustom) and 'automaticWeights' in e.get_editor_property('code'))
-code=expr.get_editor_property('code')
-start=code.index('float3 rgb =') if 'float3 rgb =' in code else code.index('// Original stone color')
-code=code[:start]+'''// Original stone color: only vegetation and soil receive the material grade.
-float variation = 1.0 + (n.noise(macro * .47 + 12.0) - .5) * MacroVariation;
-float3 gradedGrass = lerp(dot(grass,float3(.2126,.7152,.0722)).xxx,grass,Saturation)*Brightness*variation;
-float3 gradedDirt = lerp(dot(dirt,float3(.2126,.7152,.0722)).xxx,dirt,Saturation)*Brightness*variation;
-float3 originalStone = Texture2DSample(StoneTexture,StoneTextureSampler,p/max(StoneTileSize,1.0)).rgb;
-return max(0.0,gradedGrass*weights.x+gradedDirt*weights.y+originalStone*weights.z);
-'''
-expr.set_editor_property('code',code);lib.recompile_material(mat);save(mat)
-mi=u.load_asset(folder+'/MI_Lvl1_Ground');lib.set_material_instance_vector_parameter_value(mi,'StoneTint',u.LinearColor(1,1,1,1));lib.update_material_instance(mi);save(mi)
-report['ground']='Stone samples bypass material tint, saturation, brightness and macro darkening; natural lighting still applies.'
+reference_ground=mat and any(isinstance(e,u.MaterialExpressionCustom) and 'REFERENCE_GROUND' in e.get_editor_property('code') for e in lib.get_material_expressions(mat))
+if reference_ground:
+ # Keep the latest ground shader, texture overrides and scale when rerunning this older pass.
+ runpy.run_path(str(root/'Tools/apply_reference_ground.py'))
+ report['ground']='Reference ground refreshed with the current focused ground pipeline.'
+else:
+ task=u.AssetImportTask()
+ for k,v in dict(filename=str(root/'Art/EnvironmentPolish/Lvl1_GroundWeights.png'),destination_path=folder,destination_name='T_Lvl1_GroundWeights',automated=True,replace_existing=True,save=False).items():task.set_editor_property(k,v)
+ u.AssetToolsHelpers.get_asset_tools().import_asset_tasks([task])
+ mask=u.load_asset(folder+'/T_Lvl1_GroundWeights');mask.set_editor_property('srgb',False)
+ mask.set_editor_property('compression_settings',u.TextureCompressionSettings.TC_MASKS)
+ mask.set_editor_property('address_x',u.TextureAddress.TA_CLAMP);mask.set_editor_property('address_y',u.TextureAddress.TA_CLAMP);save(mask)
+ mat=u.load_asset(folder+'/M_Lvl1_Ground')
+ expr=next(e for e in lib.get_material_expressions(mat) if isinstance(e,u.MaterialExpressionCustom) and 'automaticWeights' in e.get_editor_property('code'))
+ code=expr.get_editor_property('code')
+ start=code.index('float3 rgb =') if 'float3 rgb =' in code else code.index('// Original stone color')
+ code=code[:start]+'''// Original stone color: only vegetation and soil receive the material grade.
+ float variation = 1.0 + (n.noise(macro * .47 + 12.0) - .5) * MacroVariation;
+ float3 gradedGrass = lerp(dot(grass,float3(.2126,.7152,.0722)).xxx,grass,Saturation)*Brightness*variation;
+ float3 gradedDirt = lerp(dot(dirt,float3(.2126,.7152,.0722)).xxx,dirt,Saturation)*Brightness*variation;
+ float3 originalStone = Texture2DSample(StoneTexture,StoneTextureSampler,p/max(StoneTileSize,1.0)).rgb;
+ return max(0.0,gradedGrass*weights.x+gradedDirt*weights.y+originalStone*weights.z);
+ '''
+ expr.set_editor_property('code',code);lib.recompile_material(mat);save(mat)
+ mi=u.load_asset(folder+'/MI_Lvl1_Ground');lib.set_material_instance_vector_parameter_value(mi,'StoneTint',u.LinearColor(1,1,1,1));lib.update_material_instance(mi);save(mi)
+ report['ground']='Stone samples bypass material tint, saturation, brightness and macro darkening; natural lighting still applies.'
 runpy.run_path(str(root/'Tools/create_encounter_wall_material.py'))
 
 vfx=runpy.run_path(str(root/'Tools/create_swap_vfx.py'))

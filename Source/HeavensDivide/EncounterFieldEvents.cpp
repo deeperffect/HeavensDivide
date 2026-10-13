@@ -41,7 +41,7 @@ bool AEncounterDirector::SpawnEmberCircle()
         for (int32 I=0; I<12 && bValid; ++I)
         {
             const float T=2*PI*I/12; FVector Edge;
-            bValid=Spawner->ValidateEncounterLocation(Center+FVector(FMath::Cos(T),FMath::Sin(T),0)*800,AEncounterWall::StaticClass(),Edge)
+            bValid=Spawner->ValidateEncounterLocation(Center+FVector(FMath::Cos(T),FMath::Sin(T),0)*ASurvivalFieldObjective::HoldZoneRadius,AEncounterWall::StaticClass(),Edge)
                 && FMath::Abs(Edge.Z-Ground.Z)<60;
         }
         if (!bValid) continue;

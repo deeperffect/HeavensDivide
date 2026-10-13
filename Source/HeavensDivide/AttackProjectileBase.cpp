@@ -1,6 +1,8 @@
+#include "AttackProjectileBase.h"
+#include "ShadowClone.h"
+#include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "AttackProjectileBase.h"
 #include "UpgradeProcVFX.h"
 #include "FangBuild.h"
 #include "BarrageBuild.h"
@@ -19,6 +21,7 @@
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
 #include "Engine/OverlapResult.h"
@@ -41,14 +44,18 @@ static const UPlayerUpgradeComponent* GetPlayerUpgradesForMarkedForDeath(const U
 
 AAttackProjectileBase::AAttackProjectileBase()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	SetRootComponent(Root);
+	// Keep the named scene component for saved Blueprint attachments.
+	// The primitive must be the moving root so fast projectiles sweep overlaps.
+
 
 	CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
-	CollisionComponent->SetupAttachment(Root);
+	SetRootComponent(CollisionComponent);
+	Root->SetupAttachment(CollisionComponent);
+	CollisionComponent->SetGenerateOverlapEvents(true);
 	CollisionComponent->InitSphereRadius(16.0f);
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	CollisionComponent->SetCollisionObjectType(ECC_WorldDynamic);
@@ -61,7 +68,7 @@ AAttackProjectileBase::AAttackProjectileBase()
 	VisualMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	ProjectileMovement->UpdatedComponent = Root;
+	ProjectileMovement->UpdatedComponent = CollisionComponent;
 	ProjectileMovement->InitialSpeed = ProjectileSpeed;
 	ProjectileMovement->MaxSpeed = ProjectileSpeed;
 	ProjectileMovement->bRotationFollowsVelocity = true;
@@ -72,9 +79,53 @@ AAttackProjectileBase::AAttackProjectileBase()
 void AAttackProjectileBase::BeginPlay()
 {
 	Super::BeginPlay();
+	if (GetRootComponent() != CollisionComponent)
+	{
+		CollisionComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
+		SetRootComponent(CollisionComponent);
+		Root->AttachToComponent(CollisionComponent, FAttachmentTransformRules::KeepWorldTransform);
+	}
+	ProjectileMovement->SetUpdatedComponent(CollisionComponent);
 
 	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AAttackProjectileBase::HandleProjectileOverlap);
 	SetLifeSpan(ProjectileLifetime);
+    TrailLastLocation = GetActorLocation();
+    TArray<UNiagaraComponent*> Effects;GetComponents(Effects);
+    const FNiagaraVariable Opacity(FNiagaraTypeDefinition::GetFloatDef(),TEXT("User.ProjectileOpacity"));
+    for(auto* FX:Effects) if(FX && FX->GetAsset() && FX->GetAsset()->GetExposedParameters().IndexOf(Opacity)>=0)
+    {
+        FX->SetVariableFloat(TEXT("User.ProjectileOpacity"),1.f);
+        FX->SetVariableFloat(TEXT("User.ProjectileTravel"),0.f);
+        ControlledTrails.Add(FX);
+    }
+    if(!ControlledTrails.IsEmpty())
+    {
+        PrimaryActorTick.TickGroup=TG_PostPhysics;
+        AddTickPrerequisiteComponent(ProjectileMovement);
+        SetActorTickEnabled(true);
+    }
+}
+
+void AAttackProjectileBase::Tick(float Delta)
+{
+    Super::Tick(Delta);
+    if(bImpactResolved) TrailFadeElapsed += Delta;
+    else
+    {
+        TrailTravel += FVector::Distance(GetActorLocation(),TrailLastLocation);
+        TrailLastLocation=GetActorLocation();
+    }
+    const float Alpha=bImpactResolved?1.f-FMath::Clamp(TrailFadeElapsed/FMath::Max(.01f,TrailFadeSeconds),0.f,1.f):1.f;
+    for(UNiagaraComponent* FX:ControlledTrails) if(IsValid(FX))
+    {
+        FX->SetVariableFloat(TEXT("User.ProjectileOpacity"),Alpha);
+        FX->SetVariableFloat(TEXT("User.ProjectileTravel"),TrailTravel);
+    }
+}
+void AAttackProjectileBase::LifeSpanExpired()
+{
+    if(!bImpactResolved && !ControlledTrails.IsEmpty()) BeginImpactTrailFade();
+    else Super::LifeSpanExpired();
 }
 
 void AAttackProjectileBase::InitializeProjectile(
@@ -233,6 +284,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
             { bBarrageCritical=true; FinalDamage*=BarrageBuild::Value(PlayerUpgrades,TEXT("BarrageCritical"),TEXT("DamageMultiplier"),2.f); }
           HitEnemy->GetStatusEffectComponent()->ApplyBarragePoison(const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades),FinalDamage);
         }
+        FRunDamageScope DamageScope(GameplayOwner && GameplayOwner->IsA<AShadowClone>() ? FName(TEXT("ShadowClone")) : bAssistProjectile ? AssistDamageSource : bBarrageProjectile ? FName(TEXT("Barrage")) : AttackSource == EPlayerAttackSource::Samurai ? FName(TEXT("SamuraiAttack")) : FName(TEXT("NinjaAttack")));
         const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
         if (bDamageApplied && bBarrageCritical) PlayUpgradeProcVFX(PlayerUpgrades,TEXT("BarrageCritical"),FeedbackLocation);
 		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
@@ -353,11 +405,13 @@ void AAttackProjectileBase::BeginImpactTrailFade()
 	{
 		if (NiagaraComponent)
 		{
-			NiagaraComponent->Deactivate();
+            // Authored kill-on-deactivate beams use an explicit opacity fade instead.
+            if(!ControlledTrails.Contains(NiagaraComponent)) NiagaraComponent->Deactivate();
 		}
 	}
 
-	const float SafeFadeDuration = FMath::Max(0.0f, ImpactTrailFadeDuration);
+	const float SafeFadeDuration = FMath::Max(ControlledTrails.IsEmpty()?0.f:.35f, ImpactTrailFadeDuration);
+    TrailFadeSeconds=SafeFadeDuration;TrailFadeElapsed=0.f;
 	if (SafeFadeDuration <= KINDA_SMALL_NUMBER)
 	{
 		Destroy();
@@ -475,6 +529,7 @@ void AAttackProjectileBase::SpawnSplitProjectile(const FVector& SpawnLocation, c
 	AAttackProjectileBase* Child = GetWorld()->SpawnActor<AAttackProjectileBase>(GetClass(), SpawnLocation + Direction * 20.0f, Direction.Rotation(), SpawnParameters);
 	if (!Child) return;
 	Child->bAssistProjectile=bAssistProjectile;
+	Child->AssistDamageSource=AssistDamageSource;
 	Child->InitializeProjectile(GameplayOwner, Direction, ProjectileDamage * 0.5f, ProjectileSpeed, TargetType, SourceTargetingRange,
 		HitEnemy, true, AdditionalPierceCount, RemainingBounces, 0);
 	Child->DamagedEnemies = DamagedEnemies;

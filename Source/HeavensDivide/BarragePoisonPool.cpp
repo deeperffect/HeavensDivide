@@ -1,4 +1,5 @@
 #include "BarragePoisonPool.h"
+#include "RunReportSubsystem.h"
 #include "BarrageBuild.h"
 #include "EnemyBase.h"
 #include "EnemyStatusEffectComponent.h"
@@ -67,6 +68,7 @@ void ABarragePoisonPool::Pulse()
  {
   auto* E=Cast<AEnemyBase>(Hit.GetActor());if(!E||E->IsDead()||Seen.Contains(E)||!E->CanReceivePlayerDamage(EPlayerAttackSource::Ninja))continue;
   Seen.Add(E);auto* S=E->GetStatusEffectComponent();if(!S)continue;
+    FRunDamageScope DamageScope(TEXT("BarrageBloom"));
   if(bBloom)E->ApplyStatusDamage(S->CalculateRemainingStatusDamage(EEnemyStatusEffect::Poison)*BarrageBuild::Value(U,TEXT("BarrageBloom"),TEXT("RemainingDamageFraction"),.1f),EPlayerAttackSource::Ninja);
   else S->ApplyBarragePoison(U,HitDamage,true);
  }

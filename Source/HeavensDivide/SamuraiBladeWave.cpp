@@ -1,5 +1,7 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
 #include "SamuraiBladeWave.h"
+#include "CombatGround.h"
+#include "RunReportSubsystem.h"
+// Copyright Epic Games, Inc. All Rights Reserved.
 #include "CrescentBuild.h"
 #include "SamuraiWaveField.h"
 #include "TimerManager.h"
@@ -99,6 +101,8 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
    if (bGroundSlash)
    {
     GroundPresentation = *Settings;
+    // Ground projection replaces the legacy lowering offset from elevated casts.
+    GroundPresentation.LocationOffset.Z = FMath::Max(0., GroundPresentation.LocationOffset.Z);
     PhaseOrigin = GetActorLocation();
     PhaseDirection = Direction;
     PhaseDistance = FMath::Max(1.f, InTravelDistance);
@@ -131,16 +135,21 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
 void ASamuraiBladeWave::FollowGround()
 {
     const FVector Position = GetActorLocation();
-    const float Trace = FMath::Max(1.f, GroundPresentation.GroundTraceDistance);
-    FCollisionQueryParams Query(SCENE_QUERY_STAT(BladeWaveGround), false, this);
-    if (SourceSamurai.IsValid()) Query.AddIgnoredActor(SourceSamurai.Get());
-    FHitResult Hit;
-    // Restrict ground detection to static geometry, so enemies cannot lift the wave.
-    if (GetWorld()->LineTraceSingleByObjectType(Hit, Position + FVector(0,0,Trace),
-        Position - FVector(0,0,Trace), FCollisionObjectQueryParams(ECC_WorldStatic), Query))
+    FVector Surface;
+    // Assists launch from a capsule-height origin. The short static-object trace
+    // can miss the visible floor and follow an underlying collision surface.
+    if (CombatGround::FindSurface(GetWorld(), Position, this, Surface,
+        FMath::Max(600.f, GroundPresentation.GroundTraceDistance),
+        FMath::Max(2000.f, GroundPresentation.GroundTraceDistance)))
     {
-        GroundAnchor = Hit.ImpactPoint + FVector(0,0,GroundPresentation.GroundOffset);
-        SetActorLocation(FVector(Position.X, Position.Y, Hit.ImpactPoint.Z + WaveHeight * .5f), false);
+        GroundAnchor = Surface + FVector(0,0,GroundPresentation.GroundOffset);
+        bGroundAnchorValid = true;
+        SetActorLocation(FVector(Position.X, Position.Y, Surface.Z + WaveHeight * .5f), false);
+    }
+    else if (bGroundAnchorValid)
+    {
+        GroundAnchor.X = Position.X; GroundAnchor.Y = Position.Y;
+        SetActorLocation(FVector(Position.X, Position.Y, GroundAnchor.Z - GroundPresentation.GroundOffset + WaveHeight * .5f), false);
     }
     else
         GroundAnchor = Position - FVector(0,0,WaveHeight * .5f) + FVector(0,0,GroundPresentation.GroundOffset);
@@ -227,6 +236,7 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
 	FVector ImpactLocation, ImpactNormal;
 	Enemy->GetImpactContact(GetActorLocation(), ImpactLocation, ImpactNormal);
 	const float HealthBeforeHit = Health ? Health->GetCurrentHealth() : 0.f;
+    FRunDamageScope DamageScope(DamageSource);
 	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Samurai);
 	if (bApplied && SourceUpgrades.IsValid()) SourceUpgrades->HandleSamuraiDirectHit(Enemy, Damage, HealthBeforeHit);
 	if (bApplied && SourceSamurai->GetOwner())
@@ -275,7 +285,8 @@ void ASamuraiBladeWave::SpawnSplitWaves(AActor* FirstTarget)
         {
             Wave->bCanSplit = false;
             Wave->HitThisPhase.Add(FirstTarget);
-            Wave->InitializeBladeWave(SourceSamurai.Get(), U, Direction, Damage * DamageScale, WaveWidth * SizeScale,
+            Wave->DamageSource = DamageSource;
+        Wave->InitializeBladeWave(SourceSamurai.Get(), U, Direction, Damage * DamageScale, WaveWidth * SizeScale,
                 TravelDistance * RangeScale, Speed, false, VisualAreaScale * SizeScale, FieldDamage * DamageScale, bFieldTriggered);
         }
     }

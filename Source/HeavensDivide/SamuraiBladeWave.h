@@ -21,12 +21,16 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API ASamuraiBladeWave : public AActor
 {
 	GENERATED_BODY()
+    friend class FCombatBugRegressionTest;
+    friend class FMenuMovementRegressionTest;
     friend class FTagTeamRegressionTest;
 	friend class FSamuraiBuildsTest;
     friend class FCrescentBuildsTest;
 	friend class FGroundSlashMotionTest;
 public:
 	ASamuraiBladeWave();
+    FName DamageSource = TEXT("Crescent");
+    bool bGroundAnchorValid = false;
 	virtual void Tick(float DeltaSeconds) override;
 	void InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,
 		float InDamage, float InWidth, float InTravelDistance, float InSpeed, bool bInReturns, float InAreaScale = 1.0f, float InFieldDamage = -1.f,

@@ -15,15 +15,17 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Widgets/Images/SImage.h"
 #include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SComboButton.h"
+#include "MenuLockVisual.h"
+#include "MenuDropdownStyle.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScaleBox.h"
+#include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SNullWidget.h"
 #include "Widgets/Text/STextBlock.h"
-
-using namespace BloodshiftMenu;
 
 namespace
 {
@@ -46,6 +48,7 @@ public:
     virtual int32 OnPaint(const FPaintArgs&, const FGeometry& G, const FSlateRect&,
         FSlateWindowElementList& Out, int32 Layer, const FWidgetStyle& Style, bool) const override
     {
+        using namespace BloodshiftMenu;
         const auto Size = G.GetLocalSize();
         const FOrnamentPainter P{Out, G, Layer, Style.GetColorAndOpacityTint().A};
         const auto Accent = MapIndex == 0 ? Gold : Muted.CopyWithNewOpacity(.55f);
@@ -81,6 +84,7 @@ private:
 
 UStanceSelectionWidget::UStanceSelectionWidget(const FObjectInitializer& Initializer) : Super(Initializer)
 {
+    using namespace BloodshiftMenu;
     SetIsFocusable(true);
     HoverScale = 1.015f;
     PressScale = 1.025f;
@@ -99,6 +103,7 @@ UStanceSelectionWidget::UStanceSelectionWidget(const FObjectInitializer& Initial
 
 FSlateFontInfo UStanceSelectionWidget::Font(int32 Size, bool bHeading) const
 {
+    using namespace BloodshiftMenu;
     auto Result = bHeading ? HeadingFont : BodyFont(Size);
     Result.Size = Size;
     return Result;
@@ -107,8 +112,10 @@ FSlateFontInfo UStanceSelectionWidget::Font(int32 Size, bool bHeading) const
 void UStanceSelectionWidget::Open()
 {
     bStarting = false;
+    SetupPage = ERunSetupPage::ArenaAndStances;
     if (auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr)
     {
+        Loadout->SanitizeSelections();
         SelectedSamurai = Loadout->GetSamuraiStance();
         SelectedNinja = Loadout->GetNinjaStance();
     }
@@ -116,6 +123,33 @@ void UStanceSelectionWidget::Open()
     if (PageContent) PageContent->SetContent(BuildPage());
     else TakeWidget();
     FocusButton(0);
+}
+
+void UStanceSelectionWidget::SelectSetupPage(ERunSetupPage Page)
+{
+    if (bStarting || SetupPage == Page) return;
+    SetupPage = Page;
+    if (PageContent) PageContent->SetContent(BuildPage());
+    FocusButton(Page == ERunSetupPage::ArenaAndStances ? 0 : 1);
+}
+
+bool UStanceSelectionWidget::IsSynergySelected(FName Id) const
+{
+    const auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+    return Loadout && Loadout->GetSelectedSynergies().Contains(Id);
+}
+
+bool UStanceSelectionWidget::SetSynergySelected(FName Id, bool bSelected)
+{
+    auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+    return !bStarting && Loadout && SynergyDefinitions.ContainsByPredicate([Id](const auto& D) { return D && D->UpgradeId == Id; }) &&
+        Loadout->SetSynergySelected(Id,bSelected);
+}
+
+bool UStanceSelectionWidget::SelectComboAbility(FName Id)
+{
+    auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+    return !bStarting && Loadout && Loadout->SetSelectedComboAbility(Id);
 }
 
 bool UStanceSelectionWidget::IsStanceAvailable(FName Id) const
@@ -129,9 +163,7 @@ bool UStanceSelectionWidget::IsStanceAvailable(FName Id) const
 
 int32 UStanceSelectionWidget::GetVisibleStanceCount() const
 {
-    int32 Count = 0;
-    for (const auto& Stance : RunStances::All) if (IsStanceAvailable(Stance.Id)) ++Count;
-    return Count;
+    return UE_ARRAY_COUNT(RunStances::All);
 }
 
 bool UStanceSelectionWidget::SelectStance(FName Id)
@@ -146,7 +178,7 @@ bool UStanceSelectionWidget::SelectMap(FName Id)
 {
     if (bStarting) return false;
     for (const auto& Map : RunMaps)
-        if (Id == Map.Id && Map.bAvailable) { SelectedMap = Id; return true; }
+        if (Id == Map.Id && Map.bAvailable) { if(auto* C=GetGameInstance()?GetGameInstance()->GetSubsystem<URunChallengeSubsystem>():nullptr)C->SetMap(Id);SelectedMap = Id; return true; }
     return false;
 }
 
@@ -164,7 +196,7 @@ bool UStanceSelectionWidget::IsSelected(int32 Index) const
     return (Stance.bSamurai ? SelectedSamurai : SelectedNinja) == Stance.Id;
 }
 
-void UStanceSelectionWidget::AddNavigation(const TSharedRef<SButton>& Button, FVector2D Position)
+void UStanceSelectionWidget::AddNavigation(const TSharedRef<SWidget>& Button, FVector2D Position)
 {
     Buttons.Add(Button);
     NavigationPositions.Add(Position);
@@ -172,6 +204,7 @@ void UStanceSelectionWidget::AddNavigation(const TSharedRef<SButton>& Button, FV
 
 TSharedRef<SWidget> UStanceSelectionWidget::MakeMapCard(int32 Index)
 {
+    using namespace BloodshiftMenu;
     const auto& Map = RunMaps[Index];
     auto Button = SNew(SButton).ButtonStyle(&CardStyle).ContentPadding(0).IsEnabled(Map.bAvailable)
         .ToolTipText(FText::FromString(Map.bAvailable ? TEXT("The first arena. Choose your challenges below.") : TEXT("A future destination. Not available yet.")))
@@ -198,6 +231,7 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeMapCard(int32 Index)
 
 TSharedRef<SWidget> UStanceSelectionWidget::MakeModifierRow(int32 Index)
 {
+    using namespace BloodshiftMenu;
     const auto& Modifier = RunChallenges::Modifiers()[Index];
     const FName Id = Modifier.Id;
     const FString InlineDescription = Id == TEXT("Count")
@@ -208,14 +242,16 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeModifierRow(int32 Index)
     for (int32 Rank=0; Rank<=5; ++Rank)
     {
         auto Button = SNew(SButton).ButtonStyle(&RankStyle).ContentPadding(0)
-            .IsEnabled_Lambda([this,Challenge]() { return !bStarting && Challenge && Challenge->CanEditModifiers(); })
-            .ToolTipText(FText::FromString(Rank == 0 ? TEXT("Standard difficulty") : FString::Printf(TEXT("Rank %d: +%d%%"),Rank,FMath::RoundToInt(100.f*Rank*Modifier.PerRank))))
+            .IsEnabled_Lambda([this,Challenge,Id,Rank]() { return !bStarting && Challenge && Challenge->CanEditModifiers() && Rank<=Challenge->GetUnlockedRank(Id); })
+            .ToolTipText(FText::FromString(Challenge && Rank>Challenge->GetUnlockedRank(Id) ? FString::Printf(TEXT("Win with rank %d to unlock."),Rank-1) : Rank == 0 ? TEXT("Standard difficulty") : FString::Printf(TEXT("Rank %d: +%d%%"),Rank,FMath::RoundToInt(100.f*Rank*Modifier.PerRank))))
             .OnClicked_Lambda([Challenge,Id,Rank]() { if(Challenge) Challenge->SetModifierRank(Id,Rank); return FReply::Handled(); })
             [SNew(SBorder).Padding(1)
              .BorderImage_Lambda([this,Challenge,Id,Rank]() { return (Challenge ? Challenge->GetModifierRank(Id) : 0) == Rank ? &SelectedBrush : &EmptyBrush; })
              [SNew(SBorder).Padding(3).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(Ink)
-              [SNew(STextBlock).Text(FText::AsNumber(Rank)).Font(Font(15)).Justification(ETextJustify::Center)
-               .ColorAndOpacity_Lambda([Challenge,Id,Rank]() { return (Challenge ? Challenge->GetModifierRank(Id) : 0) == Rank ? BloodshiftMenu::Gold : Paper; })]]];
+              [SNew(SOverlay)
+              +SOverlay::Slot()[SNew(STextBlock).Text(FText::AsNumber(Rank)).Font(Font(15)).Justification(ETextJustify::Center)
+               .ColorAndOpacity_Lambda([Challenge,Id,Rank]() { return (Challenge ? Challenge->GetModifierRank(Id) : 0) == Rank ? BloodshiftMenu::Gold : Paper; })]
+              +SOverlay::Slot().HAlign(HAlign_Right).VAlign(VAlign_Bottom)[SNew(SBox).WidthOverride(14).HeightOverride(14)[SNew(SMenuLockVisual).Chains(false).Visibility_Lambda([Challenge,Id,Rank](){return !Challenge || Rank>Challenge->GetUnlockedRank(Id)?EVisibility::HitTestInvisible:EVisibility::Collapsed;})]]]]];
         AddNavigation(Button,{float(Rank),float(Index+2)});
         RankButtons->AddSlot().AutoWidth().Padding(Rank ? 5 : 0,0,0,0)[SNew(SBox).WidthOverride(30).HeightOverride(30)[Button]];
     }
@@ -235,96 +271,209 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeModifierRow(int32 Index)
            .Text_Lambda([Challenge,Id,PerRank=Modifier.PerRank]() { return FText::FromString(FString::Printf(TEXT("+%d%%"),FMath::RoundToInt(100.f*PerRank*(Challenge ? Challenge->GetModifierRank(Id) : 0)))); })]]];
 }
 
-TSharedRef<SWidget> UStanceSelectionWidget::MakeStanceCard(int32 Index, int32 Count, int32 Column)
-{
-    const auto& Stance = RunStances::All[Index];
-    const FLinearColor Accent = Stance.bSamurai ? FLinearColor(.85f,.26f,.16f) : FLinearColor(.59f,.43f,.87f);
-    const bool bWide = Count == 1;
-    auto Labels = SNew(SVerticalBox)
-        +SVerticalBox::Slot().AutoHeight()
-        [SNew(STextBlock).Text(FText::FromString(Stance.Name)).Font(Font(bWide ? 25 : 17,true)).ColorAndOpacity(Paper)
-         .Justification(bWide ? ETextJustify::Left : ETextJustify::Center).WrapTextAt(bWide ? 390 : 182)]
-        +SVerticalBox::Slot().AutoHeight().Padding(0,7,0,0)
-        [SNew(STextBlock).Text(FText::FromString(Stance.Tagline)).Font(Font(10)).ColorAndOpacity(Accent)
-         .Justification(bWide ? ETextJustify::Left : ETextJustify::Center).WrapTextAt(bWide ? 390 : 182)]
-        +SVerticalBox::Slot().AutoHeight().Padding(0,10,0,0)
-        [SNew(STextBlock).Text(FText::FromString(Stance.Summary)).Font(Font(15)).ColorAndOpacity(Paper.CopyWithNewOpacity(.85f))
-         .WrapTextAt(380).Visibility(bWide ? EVisibility::Visible : EVisibility::Collapsed)]
-        +SVerticalBox::Slot().AutoHeight().Padding(0,bWide ? 17 : 10,0,0)
-        [SNew(STextBlock).Font(Font(11)).Justification(bWide ? ETextJustify::Left : ETextJustify::Center)
-         .ColorAndOpacity_Lambda([this,Index]() { return IsSelected(Index) ? BloodshiftMenu::Gold : Muted; })
-         .Text_Lambda([this,Index]() { return FText::FromString(IsSelected(Index) ? TEXT("SELECTED") : TEXT("CHOOSE STANCE")); })];
-    auto Art = SNew(SBox).WidthOverride(bWide ? 150 : 105).HeightOverride(bWide ? 162 : 82)
-        [SNew(SScaleBox).Stretch(EStretch::ScaleToFit)[SNew(SImage).Image(&Artwork[Index])]];
-    TSharedRef<SWidget> Content = SNullWidget::NullWidget;
-    if (bWide)
-        Content = SNew(SHorizontalBox)
-            +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[Art]
-            +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center).Padding(22,0,0,0)[Labels];
-    else
-        Content = SNew(SVerticalBox)
-            +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center)[Art]
-            +SVerticalBox::Slot().AutoHeight().Padding(0,6,0,0)[Labels];
-    auto Button = SNew(SButton).ButtonStyle(&CardStyle).ContentPadding(0)
-        .ToolTipText(Definitions[Index]->GetBalanceDescription())
-        .OnClicked_Lambda([this, Index]() { SelectStance(RunStances::All[Index].Id); return FReply::Handled(); })
-        [SNew(SBorder).Padding(2)
-         .BorderImage_Lambda([this,Index]() { return IsSelected(Index) ? &SelectedBrush : &EmptyBrush; })
-         [SNew(SOverlay)
-          +SOverlay::Slot()[SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(Ink)]
-          +SOverlay::Slot()[SNew(SInsetSurface).Compact(true).Fill(false).Visibility(EVisibility::HitTestInvisible)]
-          +SOverlay::Slot().Padding(bWide ? 18 : 10)[Content]]];
-    AddNavigation(Button,{float(7+Column),Stance.bSamurai ? 2.f : 5.f});
-    return SNew(SBox).WidthOverride((660.f - (Count-1)*10.f)/Count).HeightOverride(214)[Button];
-}
-
-TSharedRef<SWidget> UStanceSelectionWidget::MakeCharacterGroup(bool bSamurai)
-{
-    TArray<int32> Available;
-    for(int32 I=0;I<UE_ARRAY_COUNT(RunStances::All);++I)
-        if(RunStances::All[I].bSamurai == bSamurai && IsStanceAvailable(RunStances::All[I].Id)) Available.Add(I);
-    auto Cards = SNew(SHorizontalBox);
-    for(int32 I=0;I<Available.Num();++I)
-        Cards->AddSlot().AutoWidth().Padding(I ? 10 : 0,0,0,0)[MakeStanceCard(Available[I],Available.Num(),I)];
-    return SNew(SVerticalBox)
-        +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)
-        [SNew(SHorizontalBox)
-         +SHorizontalBox::Slot().FillWidth(1)
-         [SNew(STextBlock).Text(FText::FromString(bSamurai ? TEXT("SAMURAI") : TEXT("NINJA"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
-         +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
-         [SNew(STextBlock).Text(FText::FromString(TEXT("CHOOSE A STANCE"))).Font(Font(11)).ColorAndOpacity(Muted)]]
-        +SVerticalBox::Slot().AutoHeight()[Cards];
-}
-
 TSharedRef<SWidget> UStanceSelectionWidget::RebuildWidget()
 {
     return SAssignNew(PageContent,SBox)[BuildPage()];
 }
 
+TSharedRef<SWidget> UStanceSelectionWidget::MakeSetupTab(ERunSetupPage Page)
+{
+    using namespace BloodshiftMenu;
+    auto Button = SNew(SButton).ButtonStyle(&RankStyle).ContentPadding(FMargin(16,12))
+        .OnClicked_Lambda([this,Page]() {
+            SelectSetupPage(Page);
+            return FReply::Handled().SetUserFocus(Buttons[Page == ERunSetupPage::ArenaAndStances ? 0 : 1].ToSharedRef(),EFocusCause::Navigation);
+        })
+        [SNew(STextBlock).Font(Font(15)).ColorAndOpacity(SetupPage == Page ? BloodshiftMenu::Gold : Muted)
+         .Text(FText::FromString(Page == ERunSetupPage::ArenaAndStances ? TEXT("ARENA") : TEXT("LOADOUT")))];
+    AddNavigation(Button,{Page == ERunSetupPage::ArenaAndStances ? 1.f : 7.f,-2});
+    return SNew(SBorder).Padding(1).BorderImage(SetupPage == Page ? &SelectedBrush : &EmptyBrush)[Button];
+}
+
+TSharedRef<SWidget> UStanceSelectionWidget::BuildArenaPage()
+{
+    using namespace BloodshiftMenu;
+    auto Maps=SNew(SHorizontalBox);
+    for(int32 I=0;I<UE_ARRAY_COUNT(RunMaps);++I)
+        Maps->AddSlot().AutoWidth().Padding(I?11:0,0,0,0)[MakeMapCard(I)];
+    auto Modifiers=SNew(SVerticalBox);
+    for(int32 I=0;I<RunChallenges::Modifiers().Num();++I)
+        Modifiers->AddSlot().AutoHeight()[MakeModifierRow(I)];
+    return SNew(SHorizontalBox)
+        +SHorizontalBox::Slot().FillWidth(1).Padding(0,0,40,0)
+        [SNew(SVerticalBox)
+         +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)[SNew(STextBlock).Text(FText::FromString(TEXT("DESTINATION"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
+         +SVerticalBox::Slot().AutoHeight()[Maps]]
+        +SHorizontalBox::Slot().FillWidth(1)
+        [SNew(SVerticalBox)
+         +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)[SNew(STextBlock).Text(FText::FromString(TEXT("CHALLENGES"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
+         +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,16)[SNew(STextBlock).Text(FText::FromString(TEXT("Win to unlock the next rank."))).Font(Font(15)).ColorAndOpacity(Muted)]
+         +SVerticalBox::Slot().AutoHeight()[Modifiers]
+         +SVerticalBox::Slot().AutoHeight().Padding(0,16,0,0)
+         [SNew(STextBlock).Font(Font(17,true)).ColorAndOpacity(BloodshiftMenu::Gold)
+          .Text_Lambda([this](){const auto* C=GetGameInstance()?GetGameInstance()->GetSubsystem<URunChallengeSubsystem>():nullptr;
+              return FText::FromString(FString::Printf(TEXT("CURRENCY REWARDS   +%d%%"),FMath::RoundToInt(100.f*((C?C->GetRewardMultiplier():1.f)-1.f))));})]];
+}
+
+TSharedRef<SWidget> UStanceSelectionWidget::MakeSynergyCard(int32 Index)
+{
+    using namespace BloodshiftMenu;
+    auto* Definition = SynergyDefinitions[Index].Get();
+    const FName Id = Definition->UpgradeId;
+    auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+    auto Button = SNew(SButton).ButtonStyle(&CardStyle).ContentPadding(0)
+        .IsEnabled_Lambda([this,Loadout,Id]() { return !bStarting && Loadout &&
+            (IsSynergySelected(Id) || Loadout->GetSelectedSynergies().Num() < URunLoadoutSubsystem::MaxSelectedSynergies); })
+        .ToolTipText(Definition->GetBalanceDescription())
+        .OnClicked_Lambda([this,Id]() { SetSynergySelected(Id,!IsSynergySelected(Id)); return FReply::Handled(); })
+        [SNew(SBorder).Padding(1).BorderImage_Lambda([this,Id]() { return IsSynergySelected(Id) ? &SelectedBrush : &EmptyBrush; })
+         [SNew(SBorder).Padding(14).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(Ink)
+          [SNew(SHorizontalBox)
+           +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Top).Padding(0,4,12,0)
+           [SNew(SBox).WidthOverride(60).HeightOverride(84)
+            [SNew(SScaleBox).Stretch(EStretch::ScaleToFit)[SNew(SImage).Image(&SynergyArtwork[Index])]]]
+           +SHorizontalBox::Slot().FillWidth(1)
+           [SNew(SVerticalBox)
+            +SVerticalBox::Slot().AutoHeight()
+            [SNew(STextBlock).Text(Definition->DisplayName).Font(Font(17,true)).ColorAndOpacity(Paper).WrapTextAt(305)]
+            +SVerticalBox::Slot().AutoHeight().Padding(0,7,0,0)
+            [SNew(STextBlock).Text(Definition->GetBalanceDescription()).Font(Font(13)).ColorAndOpacity(Muted).WrapTextAt(305)]
+            +SVerticalBox::Slot().AutoHeight().Padding(0,10,0,0)
+            [SNew(STextBlock).Font(Font(11))
+             .ColorAndOpacity_Lambda([this,Id]() { return IsSynergySelected(Id) ? BloodshiftMenu::Gold : Muted; })
+             .Text_Lambda([this,Id]() { return FText::FromString(IsSynergySelected(Id) ? TEXT("ACTIVE AT RUN START  /  REMOVE") : TEXT("ADD TO RUN")); })]]]]];
+    ScrollNavigationIndices.Add(Buttons.Num());
+    AddNavigation(Button,{float(1+(Index%2)*3),float(1+(Index/2)*2)});
+    return SNew(SBox).MinDesiredHeight(146)[Button];
+}
+
+TSharedRef<SWidget> UStanceSelectionWidget::BuildSynergyPage()
+{
+    using namespace BloodshiftMenu;
+    auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+    auto Synergies = SNew(SVerticalBox);
+    for (int32 I=0; I<SynergyDefinitions.Num(); I+=2)
+    {
+        auto Row = SNew(SHorizontalBox);
+        for (int32 Column=0; Column<2; ++Column)
+            Row->AddSlot().FillWidth(1).Padding(Column ? 10 : 0,0,0,0)
+                [I+Column < SynergyDefinitions.Num() ? MakeSynergyCard(I+Column) : SNullWidget::NullWidget];
+        Synergies->AddSlot().AutoHeight().Padding(0,0,0,10)[Row];
+    }
+    return SNew(SHorizontalBox)
+        +SHorizontalBox::Slot().FillWidth(1).Padding(0,0,32,0)
+        [SNew(SVerticalBox)
+         +SVerticalBox::Slot().AutoHeight()
+         [SNew(SHorizontalBox)
+          +SHorizontalBox::Slot().FillWidth(1)[SNew(STextBlock).Text(FText::FromString(TEXT("STARTING SYNERGIES"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
+          +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[SNew(STextBlock).Font(Font(17)).ColorAndOpacity(BloodshiftMenu::Gold)
+           .Text_Lambda([Loadout]() { return FText::FromString(FString::Printf(TEXT("%d / %d ACTIVE"),Loadout ? Loadout->GetSelectedSynergies().Num() : 0,URunLoadoutSubsystem::MaxSelectedSynergies)); })]]
+         +SVerticalBox::Slot().AutoHeight().Padding(0,8,0,12)
+         [SNew(STextBlock).Text(FText::FromString(TEXT("Equip up to five synergies."))).Font(Font(14)).ColorAndOpacity(Muted).WrapTextAt(825)]
+         +SVerticalBox::Slot().FillHeight(1)
+         [SAssignNew(SynergyScroll,SScrollBox).ScrollBarAlwaysVisible(true)+SScrollBox::Slot()[Synergies]]
+         +SVerticalBox::Slot().AutoHeight().Padding(0,10,0,0)
+         [SNew(STextBlock).Text(FText::FromString(TEXT("Unlock more in the Skill Tree."))).Font(Font(13)).ColorAndOpacity(Muted).WrapTextAt(825)]]
+        +SHorizontalBox::Slot().AutoWidth()
+        [SNew(SBox).WidthOverride(460)
+         [SNew(SVerticalBox)
+          +SVerticalBox::Slot().AutoHeight()[MakeLoadoutPicker(0)]
+          +SVerticalBox::Slot().AutoHeight().Padding(0,24,0,0)[MakeLoadoutPicker(1)]
+          +SVerticalBox::Slot().AutoHeight().Padding(0,24,0,0)[MakeLoadoutPicker(2)]]];
+}
+
+TSharedRef<SWidget> UStanceSelectionWidget::MakeLoadoutPicker(int32 Kind)
+{
+    using namespace BloodshiftMenu;
+    auto Label=[this,Kind]()
+    {
+        if(Kind<2){const auto* Stance=RunStances::Find(Kind==0?SelectedSamurai:SelectedNinja);return FText::FromString(Stance?Stance->Name:TEXT("Choose stance"));}
+        const auto* L=GetGameInstance()?GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>():nullptr;
+        return FText::FromString(L&&!L->GetSelectedComboAbility().IsNone()?TEXT("Soul Convergence"):TEXT("No combo"));
+    };
+    SAssignNew(LoadoutPickers[Kind],SComboButton).ComboButtonStyle(&MenuDropdown::ButtonStyle()).ContentPadding(FMargin(16,14)).HasDownArrow(false)
+        .OnGetMenuContent_Lambda([this,Kind](){return MakeLoadoutChoices(Kind);})
+        .ButtonContent()[SNew(SHorizontalBox)
+         +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)[SNew(STextBlock).Text_Lambda(Label).Font(Font(20,true)).ColorAndOpacity(FSlateColor::UseForeground())]
+         +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(16,0,0,0)[SNew(SMenuDropdownArrow)]];
+    const TSharedRef<SWidget> PickerWidget=LoadoutPickers[Kind].ToSharedRef();
+    AddNavigation(PickerWidget->GetChildren()->GetChildAt(0),{8,float(1+Kind*2)});
+    return SNew(SVerticalBox)
+        +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)
+         [SNew(STextBlock).Text(FText::FromString(Kind==0?TEXT("SAMURAI STANCE"):Kind==1?TEXT("NINJA STANCE"):TEXT("COMBO ABILITY"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
+        +SVerticalBox::Slot().AutoHeight()[LoadoutPickers[Kind].ToSharedRef()];
+}
+
+TSharedRef<SWidget> UStanceSelectionWidget::MakeLoadoutChoices(int32 Kind)
+{
+    using namespace BloodshiftMenu;
+    auto Choices=SNew(SVerticalBox);
+    TSharedPtr<SButton> FirstAvailable;
+    auto AddChoice=[this,Kind,Choices,&FirstAvailable](FName Id,const FString& Name,bool bAvailable,int32 ArtIndex)
+    {
+        auto Row=SNew(SHorizontalBox);
+        if(ArtIndex>=0)Row->AddSlot().AutoWidth().Padding(0,0,14,0)
+            [SNew(SBox).WidthOverride(64).HeightOverride(64)
+             [SNew(SOverlay)+SOverlay::Slot()[SNew(SScaleBox).Stretch(EStretch::ScaleToFit)[SNew(SImage).Image(&Artwork[ArtIndex])]]
+              +SOverlay::Slot()[SNew(SMenuLockVisual).Visibility(bAvailable?EVisibility::Collapsed:EVisibility::HitTestInvisible)]]];
+        Row->AddSlot().FillWidth(1).VAlign(VAlign_Center)
+            [SNew(STextBlock).Text(FText::FromString(Name)).Font(Font(18,true)).ColorAndOpacity(Paper)];
+        if(!bAvailable)Row->AddSlot().AutoWidth().VAlign(VAlign_Center).Padding(12,0)
+            [SNew(SBox).WidthOverride(28).HeightOverride(28)[SNew(SMenuLockVisual).Chains(false)]];
+        TSharedPtr<SButton> Choice;
+        Choices->AddSlot().AutoHeight()[SAssignNew(Choice,SButton).ButtonStyle(&CardStyle).ContentPadding(12).IsEnabled(bAvailable)
+            .ToolTipText(FText::FromString(bAvailable?TEXT(""):(Kind==2 && Id!=TEXT("SoulConvergence")?TEXT("Coming later."):TEXT("Unlock in the Skill Tree."))))
+            .OnClicked_Lambda([this,Kind,Id](){if(Kind<2)SelectStance(Id);else SelectComboAbility(Id);LoadoutPickers[Kind]->SetIsOpen(false);return FReply::Handled();})[Row]];
+        if(bAvailable && !FirstAvailable)FirstAvailable=Choice;
+    };
+    if(Kind<2)for(int32 I=0;I<UE_ARRAY_COUNT(RunStances::All);++I)
+    {
+        const auto& Stance=RunStances::All[I];
+        if(Stance.bSamurai==(Kind==0))AddChoice(Stance.Id,Stance.Name,IsStanceAvailable(Stance.Id),I);
+    }
+    else
+    {
+        const auto* L=GetGameInstance()?GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>():nullptr;
+        AddChoice(NAME_None,TEXT("No combo"),true,-1);
+        AddChoice(TEXT("SoulConvergence"),TEXT("Soul Convergence"),L&&L->IsComboAbilityUnlocked(TEXT("SoulConvergence")),-1);
+        AddChoice(TEXT("Veilbreaker"),TEXT("Veilbreaker"),false,-1);
+        AddChoice(TEXT("CrimsonEclipse"),TEXT("Crimson Eclipse"),false,-1);
+    }
+    LoadoutPickers[Kind]->SetMenuContentWidgetToFocus(FirstAvailable);
+    return SNew(SBorder).BorderImage(&MenuDropdown::ButtonStyle().MenuBorderBrush).Padding(2)
+        [SNew(SBox).WidthOverride(456)[Choices]];
+}
+
 TSharedRef<SWidget> UStanceSelectionWidget::BuildPage()
 {
-    Definitions.Reset(); Artwork.Reset(); Buttons.Reset(); NavigationPositions.Reset();
+    using namespace BloodshiftMenu;
+    Definitions.Reset(); Artwork.Reset(); SynergyDefinitions.Reset(); SynergyArtwork.Reset();
+    Buttons.Reset(); NavigationPositions.Reset(); ScrollNavigationIndices.Reset(); SynergyScroll.Reset();
+    for(auto& Picker:LoadoutPickers)Picker.Reset();
     const auto* PCClass = LoadClass<ASurvivorPlayerController>(nullptr, TEXT("/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController.BP_SurvivorPlayerController_C"));
     const auto* Upgrades = PCClass ? PCClass->GetDefaultObject<ASurvivorPlayerController>()->GetPlayerUpgrades() : nullptr;
+    auto MakeArtwork = [](UUpgradeDefinition* Definition)
+    {
+        auto* Texture = Definition ? (Definition->CardArtwork ? Definition->CardArtwork.Get() : Definition->Icon.Get()) : nullptr;
+        FSlateBrush Brush; Brush.ImageSize = Texture ? FVector2D(Texture->GetSizeX(),Texture->GetSizeY()) : FVector2D(256,256);
+        Brush.SetResourceObject(Texture); return Brush;
+    };
     for (const auto& Stance : RunStances::All)
     {
         auto* Definition = Upgrades ? Upgrades->FindUpgradeDefinition(Stance.Id) : nullptr;
-        Definitions.Add(Definition);
-        auto* Texture = Definition ? (Definition->CardArtwork ? Definition->CardArtwork.Get() : Definition->Icon.Get()) : nullptr;
-        FSlateBrush Brush; Brush.ImageSize = Texture ? FVector2D(Texture->GetSizeX(),Texture->GetSizeY()) : FVector2D(256,256);
-        Brush.SetResourceObject(Texture);
-        Artwork.Add(Brush);
+        Definitions.Add(Definition); Artwork.Add(MakeArtwork(Definition));
+    }
+    if(auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr)
+    {
+        Loadout->SanitizeSelections();
+        for (auto* Definition : Loadout->GetAvailableSynergies())
+        { SynergyDefinitions.Add(Definition); SynergyArtwork.Add(MakeArtwork(Definition)); }
     }
     if(!IsStanceAvailable(SelectedSamurai)) SelectedSamurai=TEXT("BattleStance");
     if(!IsStanceAvailable(SelectedNinja)) SelectedNinja=TEXT("BarrageStance");
-    auto Maps = SNew(SHorizontalBox);
-    for(int32 I=0;I<UE_ARRAY_COUNT(RunMaps);++I)
-        Maps->AddSlot().AutoWidth().Padding(I ? 11 : 0,0,0,0)[MakeMapCard(I)];
-    auto Modifiers = SNew(SVerticalBox);
-    for(int32 I=0;I<RunChallenges::Modifiers().Num();++I)
-        Modifiers->AddSlot().AutoHeight()[MakeModifierRow(I)];
-    auto Samurai = MakeCharacterGroup(true);
-    auto Ninja = MakeCharacterGroup(false);
+    auto ArenaTab = MakeSetupTab(ERunSetupPage::ArenaAndStances);
+    auto SynergyTab = MakeSetupTab(ERunSetupPage::SynergiesAndCombo);
+    auto Content = SetupPage == ERunSetupPage::ArenaAndStances ? BuildArenaPage() : BuildSynergyPage();
     auto Back = SNew(SButton).ButtonStyle(&ActionStyle)
         .OnClicked_Lambda([this]() { if (MenuOwner) MenuOwner->ShowMainPanel(); return FReply::Handled(); })
         [SNew(STextBlock).Text(FText::FromString(TEXT("BACK"))).Font(Font(17)).ColorAndOpacity(FSlateColor::UseForeground())];
@@ -332,7 +481,9 @@ TSharedRef<SWidget> UStanceSelectionWidget::BuildPage()
         .IsEnabled_Lambda([this]() { return CanStartRun(); })
         .OnClicked_UObject(this, &UStanceSelectionWidget::ConfirmRun)
         [SNew(STextBlock).Text(FText::FromString(TEXT("BEGIN RUN"))).Font(Font(20,true)).ColorAndOpacity(FSlateColor::UseForeground())];
-    AddNavigation(Back,{0,8}); AddNavigation(Start,{9,8});
+    const float FooterNavigationY = SetupPage == ERunSetupPage::SynergiesAndCombo
+        ? FMath::Max(8.f,2.f + 2.f*FMath::DivideAndRoundUp(SynergyDefinitions.Num(),2)) : 8.f;
+    AddNavigation(Back,{0,FooterNavigationY}); AddNavigation(Start,{9,FooterNavigationY});
     return SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("NoBrush")).Padding(20)
         [SNew(SScaleBox).Stretch(EStretch::ScaleToFit)
          [SNew(SBox).WidthOverride(1440).HeightOverride(850)
@@ -341,35 +492,17 @@ TSharedRef<SWidget> UStanceSelectionWidget::BuildPage()
            +SOverlay::Slot().Padding(44,32)
            [SNew(SVerticalBox)
             +SVerticalBox::Slot().AutoHeight()
-            [SNew(STextBlock).Text(FText::FromString(TEXT("PREPARE YOUR RUN"))).Font(Font(31,true)).ColorAndOpacity(Paper)]
-            +SVerticalBox::Slot().AutoHeight().Padding(0,7,0,0)
-            [SNew(STextBlock).Text(FText::FromString(TEXT("Choose your destination, raise the stakes, and bring a stance for each soul."))).Font(Font(16)).ColorAndOpacity(Muted)]
-            +SVerticalBox::Slot().AutoHeight().Padding(0,18,0,18)[SNew(SOrnamentDivider)]
-            +SVerticalBox::Slot().FillHeight(1)
             [SNew(SHorizontalBox)
-             +SHorizontalBox::Slot().AutoWidth()
-             [SNew(SBox).WidthOverride(640)
-              [SNew(SVerticalBox)
-               +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)
-               [SNew(STextBlock).Text(FText::FromString(TEXT("DESTINATION"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
-               +SVerticalBox::Slot().AutoHeight()[Maps]
-               +SVerticalBox::Slot().AutoHeight().Padding(0,14,0,0)
-               [SNew(STextBlock).Text(FText::FromString(TEXT("CHALLENGES"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
-               +SVerticalBox::Slot().AutoHeight().Padding(0,5,0,8)
-               [SNew(STextBlock).Text(FText::FromString(TEXT("0 is standard. Each rank increases currency rewards by 8%."))).Font(Font(13)).ColorAndOpacity(Muted)]
-               +SVerticalBox::Slot().AutoHeight()[Modifiers]
-               +SVerticalBox::Slot().AutoHeight().Padding(0,7,0,0)
-               [SNew(STextBlock).Font(Font(17,true)).ColorAndOpacity(BloodshiftMenu::Gold)
-                .Text_Lambda([this]() { const auto* C=GetGameInstance() ? GetGameInstance()->GetSubsystem<URunChallengeSubsystem>() : nullptr;
-                    return FText::FromString(FString::Printf(TEXT("CURRENCY REWARDS   +%d%%"),FMath::RoundToInt(100.f*((C ? C->GetRewardMultiplier() : 1.f)-1.f)))); })]]]
-             +SHorizontalBox::Slot().FillWidth(1)[SNew(SBox)]
-             +SHorizontalBox::Slot().AutoWidth()
-             [SNew(SBox).WidthOverride(660)
-              [SNew(SVerticalBox)
-               +SVerticalBox::Slot().AutoHeight()[Samurai]
-               +SVerticalBox::Slot().AutoHeight().Padding(0,18,0,0)[Ninja]
-               +SVerticalBox::Slot().AutoHeight().Padding(0,7,0,0)
-               [SNew(STextBlock).Text(FText::FromString(TEXT("Unlock more stances in the skill tree."))).Font(Font(13)).ColorAndOpacity(Muted)]]]]
+             +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)
+             [SNew(STextBlock).Text(FText::FromString(TEXT("PREPARE YOUR RUN"))).Font(Font(31,true)).ColorAndOpacity(Paper)]
+             +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ArenaTab]
+             +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(10,0,0,0)[SynergyTab]]
+            +SVerticalBox::Slot().AutoHeight().Padding(0,7,0,0)
+            [SNew(STextBlock).Text(FText::FromString(SetupPage == ERunSetupPage::ArenaAndStances
+                ? TEXT("Choose your map and difficulty.")
+                : TEXT("Choose your loadout."))).Font(Font(16)).ColorAndOpacity(Muted)]
+            +SVerticalBox::Slot().AutoHeight().Padding(0,18,0,18)[SNew(SOrnamentDivider)]
+            +SVerticalBox::Slot().FillHeight(1)[Content]
             +SVerticalBox::Slot().AutoHeight().Padding(0,17,0,16)[SNew(SOrnamentDivider)]
             +SVerticalBox::Slot().AutoHeight()
             [SNew(SHorizontalBox)
@@ -398,7 +531,11 @@ void UStanceSelectionWidget::FocusButton(int32 Index)
     if(Buttons.IsEmpty()) return;
     FocusedButton = FMath::Clamp(Index,0,Buttons.Num()-1);
     if (Buttons[FocusedButton] && Buttons[FocusedButton]->IsEnabled())
+    {
         FSlateApplication::Get().SetKeyboardFocus(Buttons[FocusedButton], EFocusCause::Navigation);
+        if (SynergyScroll && ScrollNavigationIndices.Contains(FocusedButton))
+            SynergyScroll->ScrollDescendantIntoView(Buttons[FocusedButton],false,EDescendantScrollDestination::IntoView);
+    }
 }
 
 void UStanceSelectionWidget::MoveFocus(FVector2D Direction)
@@ -428,6 +565,17 @@ FReply UStanceSelectionWidget::NativeOnFocusReceived(const FGeometry& Geometry, 
 FReply UStanceSelectionWidget::NativeOnPreviewKeyDown(const FGeometry& Geometry, const FKeyEvent& Event)
 {
     const FKey Key = Event.GetKey();
+    for(auto& Picker:LoadoutPickers)if(Picker && Picker->IsOpen())
+    {
+        if(Key==EKeys::Escape || Key==EKeys::Gamepad_FaceButton_Right)
+        {Picker->SetIsOpen(false);return FReply::Handled();}
+        return Super::NativeOnPreviewKeyDown(Geometry,Event);
+    }
+    if (Key == EKeys::Gamepad_LeftShoulder || Key == EKeys::Gamepad_RightShoulder)
+    {
+        SelectSetupPage(SetupPage == ERunSetupPage::ArenaAndStances ? ERunSetupPage::SynergiesAndCombo : ERunSetupPage::ArenaAndStances);
+        return FReply::Handled();
+    }
     if (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right)
     { if (MenuOwner) MenuOwner->ShowMainPanel(); return FReply::Handled(); }
     for (int32 I=0; I<Buttons.Num(); ++I)
@@ -451,5 +599,6 @@ FReply UStanceSelectionWidget::NativeOnPreviewKeyDown(const FGeometry& Geometry,
 void UStanceSelectionWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
     Super::ReleaseSlateResources(bReleaseChildren);
-    Buttons.Reset(); NavigationPositions.Reset(); PageContent.Reset();
+    Buttons.Reset(); NavigationPositions.Reset(); ScrollNavigationIndices.Reset(); SynergyScroll.Reset();
+    for(auto& Picker:LoadoutPickers)Picker.Reset(); PageContent.Reset();
 }

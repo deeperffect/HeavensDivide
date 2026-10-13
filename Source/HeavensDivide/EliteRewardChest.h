@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "ChestRewardRoll.h"
 #include "EliteRewardChest.generated.h"
 
 class AExperiencePickup;
@@ -21,16 +22,19 @@ class HEAVENSDIVIDE_API AEliteRewardChest : public AActor
  GENERATED_BODY()
 public:
  AEliteRewardChest();
+ const FChestRewardValues& GetRolledReward() const { return RolledReward; }
+ float GetRevealDuration() const { return FMath::Max(1.5f,OpeningDuration)+(RolledReward.IsJackpot()?1.2f:0.f); }
  void InitializeReward(int32 Value, TSubclassOf<AExperiencePickup> Pickup, UExperienceComponent* Experience, UCharacterManagerComponent* Manager);
  virtual void Tick(float DeltaSeconds) override;
  virtual void EndPlay(const EEndPlayReason::Type Reason) override;
  void RequestSkipOpening() { if(bOpening) bSkipRequested=true; }
- UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward", meta=(ClampMin="1",ClampMax="64")) int32 OrbCount=40;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward", meta=(ClampMin="1",ClampMax="64")) int32 OrbCount=12;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward", meta=(ClampMin="1.5",ClampMax="6")) float OpeningDuration=3.6f;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward", meta=(ClampMin="55")) float CollectRadius=140.f;
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward") FName LidBone=TEXT("Bone");
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward") FRotator LidOpenRotation=FRotator(0,0,105);
  UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward") TObjectPtr<USoundBase> OpeningSound;
+ UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward") TObjectPtr<USoundBase> JackpotSound;
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Reward") TObjectPtr<UPoseableMeshComponent> ChestMesh;
  UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Reward") TObjectPtr<UNiagaraComponent> RewardGlow;
 private:
@@ -45,7 +49,8 @@ private:
  UPROPERTY() TSubclassOf<AExperiencePickup> PickupClass;
  TWeakObjectPtr<ASurvivorPlayerController> Player;
  TWeakObjectPtr<AActor> PreviousView;
- int32 TotalXP=0;
+ FChestRewardValues RolledReward,DisplayedReward;
+ bool bRewardInitialized=false,bPlayedJackpotSound=false;
  bool bOpening=false,bOwnsPause=false,bRewardReleased=false,bPlayedOpeningSound=false;
  bool bSkipRequested=false,bPreviousMouseCursor=false;
  double OpeningStarted=0,LastRealTime=0;

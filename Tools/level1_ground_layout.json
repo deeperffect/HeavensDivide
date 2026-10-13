@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "world_min": [
     -7600,
     -7600
@@ -12,7 +12,7 @@
   "paths": [
     {
       "name": "Shrine approach",
-      "width": 560,
+      "width": 1300,
       "points": [
         [
           4800,
@@ -51,11 +51,11 @@
           25
         ]
       ],
-      "stone": 0.9
+      "stone": 1.0
     },
     {
       "name": "North meadow circuit",
-      "width": 310,
+      "width": 1000,
       "points": [
         [
           2900,
@@ -94,11 +94,11 @@
           35
         ]
       ],
-      "stone": 0.58
+      "stone": 1.0
     },
     {
       "name": "South footpath",
-      "width": 280,
+      "width": 950,
       "points": [
         [
           2150,
@@ -137,7 +137,7 @@
           35
         ]
       ],
-      "stone": 0.48
+      "stone": 1.0
     }
   ],
   "clearings": [
@@ -148,10 +148,10 @@
         0
       ],
       "radius": [
-        690,
-        460
+        1282,
+        998
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "Eastern encounter clearing",
@@ -160,10 +160,10 @@
         0
       ],
       "radius": [
-        520,
-        430
+        1092,
+        1378
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "North-east clearing",
@@ -172,10 +172,10 @@
         2000
       ],
       "radius": [
-        510,
-        440
+        1235,
+        1045
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "Northern shrine stop",
@@ -184,10 +184,10 @@
         3000
       ],
       "radius": [
-        640,
-        430
+        1378,
+        1092
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "North-west glade",
@@ -196,10 +196,10 @@
         1500
       ],
       "radius": [
-        450,
-        460
+        1092,
+        1188
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "Shrine forecourt",
@@ -208,10 +208,10 @@
         25
       ],
       "radius": [
-        500,
-        610
+        1235,
+        1378
       ],
-      "stone": 0.68
+      "stone": 1.0
     },
     {
       "name": "Western junction",
@@ -220,10 +220,10 @@
         35
       ],
       "radius": [
-        390,
-        340
+        950,
+        998
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "South-west glade",
@@ -232,10 +232,10 @@
         -2000
       ],
       "radius": [
-        500,
-        380
+        1330,
+        1045
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "Southern clearing",
@@ -244,10 +244,10 @@
         -3000
       ],
       "radius": [
-        570,
-        420
+        1425,
+        1188
       ],
-      "stone": 0.65
+      "stone": 1.0
     },
     {
       "name": "South-east clearing",
@@ -256,124 +256,231 @@
         -2000
       ],
       "radius": [
-        460,
-        390
+        1188,
+        1140
       ],
-      "stone": 0.65
+      "stone": 1.0
     }
   ],
   "rock_patches": [
     {
       "center": [
-        -2860,
-        550
+        -3100,
+        1700
       ],
       "radius": [
-        594,
-        473
+        808,
+        950
       ]
     },
     {
       "center": [
-        -3000,
-        -510
+        3850,
+        3350
       ],
       "radius": [
-        580,
-        526
+        855,
+        712
       ]
     },
     {
       "center": [
-        -1650,
-        2350
+        2700,
+        -3650
       ],
       "radius": [
-        486,
-        284
-      ]
-    },
-    {
-      "center": [
-        3380,
-        3230
-      ],
-      "radius": [
-        310,
-        473
-      ]
-    },
-    {
-      "center": [
-        2350,
-        -3380
-      ],
-      "radius": [
-        526,
-        243
+        1140,
+        570
       ]
     }
   ],
   "grass_islands": [
     {
       "center": [
-        1050,
-        290
+        820,
+        1350
       ],
       "radius": [
-        160,
-        95
+        520,
+        400
+      ],
+      "lobes": [
+        {
+          "offset": [
+            298,
+            161
+          ],
+          "radius": [
+            338,
+            260
+          ]
+        }
+      ],
+      "indents": [
+        {
+          "offset": [
+            -320,
+            246
+          ],
+          "radius": [
+            218,
+            240
+          ]
+        }
       ]
     },
     {
       "center": [
-        1710,
-        -260
+        1500,
+        -1550
       ],
       "radius": [
-        110,
-        130
+        650,
+        390
+      ],
+      "lobes": [
+        {
+          "offset": [
+            228,
+            -236
+          ],
+          "radius": [
+            422,
+            254
+          ]
+        }
+      ],
+      "indents": [
+        {
+          "offset": [
+            433,
+            218
+          ],
+          "radius": [
+            273,
+            234
+          ]
+        }
       ]
     },
     {
       "center": [
-        1380,
-        3310
+        -1300,
+        3000
       ],
       "radius": [
-        170,
-        100
+        700,
+        470
+      ],
+      "lobes": [
+        {
+          "offset": [
+            -460,
+            113
+          ],
+          "radius": [
+            455,
+            306
+          ]
+        }
+      ],
+      "indents": [
+        {
+          "offset": [
+            -106,
+            -403
+          ],
+          "radius": [
+            294,
+            282
+          ]
+        }
       ]
     },
     {
       "center": [
-        3220,
-        2210
+        3530,
+        650
       ],
       "radius": [
-        95,
-        180
+        430,
+        530
+      ],
+      "lobes": [
+        {
+          "offset": [
+            -127,
+            336
+          ],
+          "radius": [
+            280,
+            344
+          ]
+        }
+      ],
+      "indents": [
+        {
+          "offset": [
+            -306,
+            -264
+          ],
+          "radius": [
+            181,
+            318
+          ]
+        }
       ]
     },
     {
       "center": [
-        3700,
-        -1850
+        -2400,
+        -1570
       ],
       "radius": [
-        110,
-        100
-      ]
-    },
-    {
-      "center": [
-        4400,
-        270
+        570,
+        340
       ],
-      "radius": [
-        170,
-        90
+      "lobes": [
+        {
+          "offset": [
+            -229,
+            -195
+          ],
+          "radius": [
+            370,
+            221
+          ]
+        }
+      ],
+      "indents": [
+        {
+          "offset": [
+            449,
+            -125
+          ],
+          "radius": [
+            239,
+            204
+          ]
+        }
       ]
     }
-  ]
+  ],
+  "playable_bounds": {
+    "world_min": [
+      -4939.61,
+      -4939.61
+    ],
+    "world_max": [
+      4939.61,
+      4939.61
+    ]
+  },
+  "blend": {
+    "stone_edge_width": 12,
+    "grass_edge_width": 75,
+    "large_edge_breakup": 120,
+    "fine_edge_breakup": 22,
+    "dirt_shoulder": 650
+  }
 }

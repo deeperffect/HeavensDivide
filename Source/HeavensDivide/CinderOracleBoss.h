@@ -37,7 +37,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Pacing", meta=(ClampMin="0.01"))
     float BurstActiveTime = 0.2f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Falling Embers", meta=(ClampMin="1", ClampMax="32"))
-    int32 EmberCount = 5;
+    int32 EmberCount = 10;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Falling Embers", meta=(ClampMin="0"))
     float EmberSpacing = 175.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Falling Embers", meta=(ClampMin="1"))
@@ -45,17 +45,25 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Falling Embers", meta=(ClampMin="0"))
     float EmberStagger = 0.24f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Lances", meta=(ClampMin="0", ClampMax="180"))
-    float LanceSideAngle = 32.0f;
+    float LanceSideAngle = 55.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Lances", meta=(ClampMin="1"))
-    float LanceLength = 1300.0f;
+    float LanceLength = 2600.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Lances", meta=(ClampMin="1"))
-    float LanceWidth = 125.0f;
+    float LanceWidth = 340.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Nova", meta=(ClampMin="1"))
     float NovaRadius = 950.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Nova", meta=(ClampMin="0"))
     float NovaSafeRadius = 340.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Nova", meta=(ClampMin="0.01"))
-    float NovaWarning = 1.5f;
+    float NovaWarning = 0.85f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Cursed Ground")
+    bool bGroundFillsScreen = true;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Cursed Ground", meta=(ClampMin="4", ClampMax="128"))
+    int32 GroundMaxScreenCircles = 64;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Cursed Ground", meta=(ClampMin="2.1", ClampMax="4"))
+    float GroundScreenSpacingMultiplier = 2.25f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Cursed Ground", meta=(ClampMin="0"))
+    float GroundScreenSweepSeconds = 0.35f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Cursed Ground", meta=(ClampMin="1", ClampMax="32"))
     int32 GroundCount = 3;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Cursed Ground", meta=(ClampMin="0"))
@@ -76,8 +84,18 @@ public:
     float GuardianSideOffset = 210.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Summon", meta=(ClampMin="1"))
     float SummonBlastRadius = 200.0f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Summon")
+    TArray<TSubclassOf<AEnemyBase>> HordeClasses;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Summon", meta=(ClampMin="0", ClampMax="128"))
+    int32 HordePerCast = 20;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Summon", meta=(ClampMin="0", ClampMax="128"))
+    int32 HordeLimit = 60;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Summon", meta=(ClampMin="100"))
+    float HordeSpawnRadius = 750.0f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Safety", meta=(ClampMin="36", ClampMax="256"))
+    int32 MaxActiveSpellHazards = 128;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Spiral", meta=(ClampMin="1", ClampMax="32"))
-    int32 SpiralCount = 8;
+    int32 SpiralCount = 20;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Spiral", meta=(ClampMin="0"))
     float SpiralStartRadius = 200.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Spiral", meta=(ClampMin="0"))
@@ -87,9 +105,9 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Spiral", meta=(ClampMin="1"))
     float SpiralBlastRadius = 100.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Spiral", meta=(ClampMin="0"))
-    float SpiralStagger = 0.2f;
+    float SpiralStagger = 0.12f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Eclipse", meta=(ClampMin="1"))
-    float EclipseOuterRadius = 620.0f;
+    float EclipseOuterRadius = 10000.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Eclipse", meta=(ClampMin="0"))
     float EclipseInnerRadius = 290.0f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Eclipse", meta=(ClampMin="0.01"))
@@ -106,9 +124,13 @@ protected:
 private:
     TWeakObjectPtr<class AEnemyAttackCue> CastCue;
     friend class FEncounterExpansionTest;
+    friend class FBossSpellPressureTest;
     bool bOracleActive = false;
     float NextCast = 2, CastRecovery = 0;
     int32 SpellIndex = 0;
     TArray<TWeakObjectPtr<ATacticalEnemy>> Guardians;
+    TArray<TWeakObjectPtr<AEnemyBase>> Horde;
+    AEnemyBase* SpawnSummon(TSubclassOf<AEnemyBase> Class, FVector Desired);
+    void CastScreenGround(FVector Player, float Warning);
     UPROPERTY() TArray<TObjectPtr<UStaticMeshComponent>> Embers;
 };

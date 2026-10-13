@@ -1,0 +1,39 @@
+{
+  "version": 3,
+  "seed": 2026101107,
+  "target_count": 76,
+  "count_range": [60, 90],
+  "cluster_count": 20,
+  "quad_coverage_range": [0.30, 0.42],
+  "world_min": [-4939.61, -4939.61],
+  "world_max": [4939.61, 4939.61],
+  "boundary_margin": 75,
+  "z": 1.3,
+  "quad_gap": 15,
+  "hero_length": [1000, 1500],
+  "companion_length": [420, 700],
+  "hero_variants": [0, 3],
+  "aspect_jitter": [0.9, 1.1],
+  "atlas_regions": "Art/ReferenceGround/RockAtlasRegions.json",
+  "cluster_min_separation": 1150,
+  "cluster_radius": [1250, 1750],
+  "cluster_yaw_variation": 30,
+  "cluster_max_count": 5,
+  "cluster_max_companions": 3,
+  "start": {"center": [1413.402649, 0], "radius": 200},
+  "objectives": {
+    "radius": 200,
+    "centers": [[4500, 0], [3500, 2000], [1500, 3000], [-500, 1500], [-1500, 0], [-500, -2000], [1500, -3000], [3500, -2000]]
+  },
+  "western_props": [
+    {"world_min": [-4939.61, -800], "world_max": [-2460, 800]},
+    {"world_min": [-2750, -440], "world_max": [-950, 470]}
+  ],
+  "route_clearance": {"Shrine approach": 110, "North meadow circuit": 80, "South footpath": 80},
+  "preferred_start_clusters": [[1800, 850], [2200, -900], [2650, 850], [600, -1000]],
+  "grass_center_limit": 0.55,
+  "grass_core_limit": 0.80,
+  "mask": "Art/EnvironmentPolish/Lvl1_GroundWeights.png",
+  "routes": "Tools/level1_ground_layout.json",
+  "output": "Art/ReferenceGround/RockScatterLayout.json"
+}

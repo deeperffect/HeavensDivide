@@ -1,5 +1,6 @@
 #include "UpgradeBalance.h"
 #include "NinjaBuildComponent.h"
+#include "RunReportSubsystem.h"
 #include "UpgradeProcVFX.h"
 #include "AutoAttackComponent.h"
 #include "AttackProjectileBase.h"
@@ -84,6 +85,7 @@ float UNinjaBuildComponent::FangHit(ANinjaBuildProjectile* P, AEnemyBase* Enemy)
     else if (Has(TEXT("FangPredator"))) HitDamage *= Tune(TEXT("FangPredator"), TEXT("NoncriticalMultiplier"), .75f);
     const int32 Count = ++FangVictimHits.FindOrAdd(Enemy);
     const FVector Position = Enemy->GetActorLocation() + FVector(0, 0, 45);
+    FRunDamageScope DamageScope(P->bCloneProjectile ? FName(TEXT("ShadowClone")) : P->bAssistProjectile ? P->AssistDamageSource : FName(TEXT("ReturningFang")));
     const float Dealt = Hit(Enemy, HitDamage, false, P->bAssistProjectile);
     P->bFangHitThisTrip |= Dealt > 0;
     if (Dealt > 0 && Critical) PlayUpgradeProcVFX(Upgrades(), TEXT("FangDeadeye"), Position);
@@ -112,6 +114,7 @@ void UNinjaBuildComponent::FangReturned(ANinjaBuildProjectile* P)
             * (1.f + FangBuild::Scaling(Upgrades(), TEXT("FangResonantReach"), .15f));
         const float Damage = P->Damage * Tune(TEXT("FangResonance"), TEXT("DamageFraction"), .5f)
             * (1.f + FangBuild::Scaling(Upgrades(), TEXT("FangBurstPower"), .2f));
+        FRunDamageScope DamageScope(TEXT("FangResonance"));
         for (auto* Enemy : Targets(Origin, Radius)) Hit(Enemy, Damage, false);
         if (FangReturnBurstVFX)
             PlayScaledUpgradeBurst(this, FangReturnBurstVFX, Origin, Radius / 250.f);
@@ -143,6 +146,7 @@ void UNinjaBuildComponent::ProcessFangScatter()
         auto* P = SpawnBlade(ENinjaProjectileKind::Fragment, Event.Position);
         if (!P) return;
         const auto Enemies = Targets(Event.Position, Tune(TEXT("FangSplinter"), TEXT("Range"), 700.f));
+        P->FragmentDamageSource = TEXT("FangSplinter");
         P->Damage = Event.Damage;
         P->Speed = Tune(TEXT("FangSplinter"), TEXT("ProjectileSpeed"), 1400.f);
         P->Direction = Enemies.IsEmpty() ? FVector::ForwardVector.RotateAngleAxis(Event.Emitted * 137.5f, FVector::UpVector)

@@ -1,3 +1,4 @@
+#include "RunReportSubsystem.h"
 #include "UpgradeBalance.h"
 #include "SwapPresentationComponent.h"
 #include "UpgradeProcVFX.h"
@@ -207,6 +208,7 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
         Slash->ChainBudget = ChainBudget;
         Slash->ChainTriggered = ChainTriggered;
         Slash->bEndpointBurst = bEndpoint && Index == 0;
+        Slash->AssistDamageSource = AssistDamageSource;
         Slash->EndpointMontage = IaijutsuEndpointMontage;
         Slash->Initialize(Samurai, U, SlashDirection, Damage, SlashDistance, Radius, ChargeDuration,
             AttackMontage.Get(),
@@ -406,6 +408,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
         Enemy->GetImpactContact(AttackOrigin, Location, Normal);
         const float HealthBeforeHit =
             Enemy->GetHealthComponent() ? Enemy->GetHealthComponent()->GetCurrentHealth() : 0.f;
+        FRunDamageScope DamageScope(bActiveAttackIsAssist ? AssistDamageSource : bDoubleCutFollowUpActive ? FName(TEXT("DoubleCut")) : GrandEntrance ? GrandEntrance->UpgradeId : FName(TEXT("SamuraiAttack")));
         const bool bApplied = Enemy->ApplyPlayerDamage(Damage, AttackSource);
         if (bApplied)
         {
@@ -561,6 +564,7 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
     }
     else for (int32 Index = 0; Index < WaveCount; ++Index)
         Angles.Add(WaveCount > 1 ? FMath::Lerp(-FanHalfAngle, FanHalfAngle, static_cast<float>(Index)/(WaveCount-1)) : 0.f);
+    AssistCommittedDuration = FMath::Max(0, Angles.Num()-1) * WaveDelay + .1f;
     for (int32 Index = 0; Index < Angles.Num(); ++Index)
     {
         const float Angle = Angles[Index];
@@ -571,15 +575,19 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
         // upgrade changes must not redirect or rescale the rest of this salvo.
         auto SpawnWave = [this, Source = TWeakObjectPtr<ASamuraiCharacter>(Samurai),
             SourceUpgrades = TWeakObjectPtr<UPlayerUpgradeComponent>(Upgrades), WaveClass = BladeWaveClass,
-            SpawnLocation, Direction, WaveDamage, WaveWidth, TravelDistance, Speed, bReturns, VisualArea, FieldDamage]()
+            SpawnLocation, Direction, WaveDamage, WaveWidth, TravelDistance, Speed, bReturns, VisualArea, FieldDamage,
+            CommittedSource = bActiveAttackIsAssist ? AssistDamageSource : FName(TEXT("Crescent"))]()
         {
             if (!Source.IsValid() || !SourceUpgrades.IsValid() || !GetWorld()) return;
             FActorSpawnParameters Params;
             Params.Owner = Source.Get(); Params.Instigator = Source.Get();
             Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
             if (auto* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(WaveClass, SpawnLocation, Direction.Rotation(), Params))
+            {
+                Wave->DamageSource = CommittedSource;
                 Wave->InitializeBladeWave(Source.Get(), SourceUpgrades.Get(), Direction, WaveDamage, WaveWidth,
                     TravelDistance, Speed, bReturns, VisualArea, FieldDamage);
+            }
         };
         if (Index == 0 || WaveDelay <= 0.f) SpawnWave();
         else
@@ -907,6 +915,7 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
   Seen.Add(Enemy);
   const float HitDamage = Damage * (bCircular || Enemy==Primary ? 1.f : FMath::Clamp(SecondaryTargetDamageMultiplier,0.f,1.f));
   const float Before=Enemy->GetHealthComponent()->GetCurrentHealth();
+  FRunDamageScope DamageScope(TEXT("BloodEcho"));
   if(Enemy->ApplyPlayerDamage(HitDamage,EPlayerAttackSource::Samurai))
   {
    U->HandleSamuraiDirectHit(Enemy,HitDamage,Before);

@@ -1,6 +1,7 @@
+#include "EnemyBase.h"
+#include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "EnemyBase.h"
 #include "UpgradeBalance.h"
 #include "CrescentBuild.h"
 #include "EliteRewardChest.h"
@@ -28,6 +29,7 @@
 #include "EnemyStatusIndicatorWidget.h"
 #include "ExperiencePickup.h"
 #include "ExperienceComponent.h"
+#include "ExperienceDropSubsystem.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/WidgetComponent.h"
@@ -455,6 +457,7 @@ bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource Attac
 		return false;
 	}
 
+	FRunDamageScope DamageScope(AttackSource == EPlayerAttackSource::Ninja ? FName(TEXT("NinjaAttack")) : FName(TEXT("SamuraiAttack")), true, true);
 	const float PreviousHealth = HealthComponent->GetCurrentHealth();
 	HealthComponent->ApplyDamage(DamageAmount * GetIaijutsuDamageMultiplier());
 	return HealthComponent->GetCurrentHealth() < PreviousHealth;
@@ -980,43 +983,16 @@ void AEnemyBase::SpawnExperiencePickup()
 		}
 		// A failed chest spawn must still drop the original reward.
 	}
-	const int32 XPPerPickup = FMath::Max(1, ExperiencePerPickup);
-	const int32 PickupCount = FMath::DivideAndRoundUp(XPReward, XPPerPickup);
-	const float ScatterRadius = PickupCount > 1
-		? FMath::Max(0.0f, MultipleExperiencePickupScatterRadius)
-		: FMath::Max(0.0f, ExperiencePickupSpawnScatterRadius);
-	int32 RemainingXP = XPReward;
-	for (int32 PickupIndex = 0; PickupIndex < PickupCount; ++PickupIndex)
-	{
-		FVector SpawnLocation = GetActorLocation();
-		if (ScatterRadius > 0.0f)
-		{
-			const FVector2D RandomOffset = FMath::RandPointInCircle(ScatterRadius);
-			SpawnLocation.X += RandomOffset.X;
-			SpawnLocation.Y += RandomOffset.Y;
-		}
+    FVector SpawnLocation=GetActorLocation();
+    const FVector2D Offset=FMath::RandPointInCircle(FMath::Max(0.f,ExperiencePickupSpawnScatterRadius));
+    SpawnLocation.X+=Offset.X; SpawnLocation.Y+=Offset.Y;
+    SpawnLocation=CombatGround::ClampInsideArena(GetWorld(),SpawnLocation,18.f);
+    FVector Ground;
+    if (CombatGround::FindSurface(GetWorld(),SpawnLocation,this,Ground)) SpawnLocation.Z=Ground.Z+18.f;
+    if (auto* Drops=GetWorld()->GetSubsystem<UExperienceDropSubsystem>())
+        Drops->DropReward(this,SpawnLocation,ExperiencePickupClass,XPReward,CachedPlayerExperienceComponent,ObservedCharacterManager);
+    else CachedPlayerExperienceComponent->AddXP(XPReward); // Never lose an earned reward if the subsystem is unavailable.
 
-        FVector Ground;
-        SpawnLocation=CombatGround::ClampInsideArena(GetWorld(),SpawnLocation,18.f);
-        if (CombatGround::FindSurface(GetWorld(),SpawnLocation,this,Ground)) SpawnLocation.Z=Ground.Z+18.f;
-
-        AExperiencePickup* Pickup = GetWorld()->SpawnActor<AExperiencePickup>(
-			ExperiencePickupClass,
-			SpawnLocation,
-			FRotator::ZeroRotator,
-			SpawnParameters);
-
-		if (!Pickup)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Enemy %s failed to spawn XP pickup %d/%d using class %s."),
-				*GetNameSafe(this), PickupIndex + 1, PickupCount, *GetNameSafe(ExperiencePickupClass.Get()));
-			continue;
-		}
-
-		const int32 PickupXP = FMath::Min(XPPerPickup, RemainingXP);
-		RemainingXP -= PickupXP;
-		Pickup->InitializePickup(PickupXP, CachedPlayerExperienceComponent, ObservedCharacterManager);
-	}
 }
 
 void AEnemyBase::UpdateAnimationProfilingState()

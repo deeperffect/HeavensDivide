@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "Containers/Ticker.h"
 #include "SurvivorPlayerController.generated.h"
 
 class UInputAction;
@@ -53,6 +54,8 @@ UCLASS()
 class HEAVENSDIVIDE_API ASurvivorPlayerController : public APlayerController
 {
 	GENERATED_BODY()
+    friend class FCombatBugRegressionTest;
+    friend class FMenuMovementRegressionTest;
     friend class FIaijutsuTest;
 
 public:
@@ -65,6 +68,7 @@ private:
 	friend class FGrandEntranceTest;
 	friend class FKeybindSettingsTest;
     friend class FPauseMenuTest;
+	friend class FScorpionBossTest;
 	friend class FLevelUpPresentationTest;
 	void HandleCameraShakeIntensityChanged(float Intensity);
 	TWeakObjectPtr<class UCameraShakeBase> ActiveGameplayShake;
@@ -93,6 +97,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Player")
 	bool IsPlayerDead() const;
+    void BeginMenuMovement();
+    void EndMenuMovement();
+    void ReconcileMenuMovement();
+    void ReleaseMenuMovement();
+    TSharedPtr<class FMenuMovementInput> MenuMovementInput;
+    bool bMenuMovementBlocked = false, bMenuMovementReconcile = false;
     void TogglePauseMenu();
     void ResumePausedRun();
     void ReturnToMenuFromPause();
@@ -132,6 +142,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Objectives")
 	AActor* GetActiveObjective() const;
+
+    bool ShowObjectiveIntro(AActor* Objective, const FText& Message, FLinearColor Accent, FSimpleDelegate OnFinished);
+    bool IsObjectiveIntroPlaying() const { return ObjectiveIntroWidget != nullptr; }
 
 	UFUNCTION(BlueprintPure, Category = "Player|Swap")
 	bool CanSwap() const;
@@ -426,6 +439,14 @@ protected:
 	void Interact();
 	void ConfigureInputMode();
     void ClosePauseMenu();
+    friend class FObjectiveIntroTest;
+    void UpdateObjectiveIntro(float RealDelta);
+    void CancelObjectiveIntro();
+    UPROPERTY(Transient) TObjectPtr<class UObjectiveIntroWidget> ObjectiveIntroWidget;
+    TWeakObjectPtr<AActor> ObjectiveIntroOwner;
+    FTSTicker::FDelegateHandle ObjectiveIntroTicker;
+    FSimpleDelegate ObjectiveIntroFinished;
+    float ObjectiveIntroElapsed = 0.f;
     UPROPERTY(Transient) TObjectPtr<class UPauseMenuWidget> PauseMenu;
 	void InitializePlayerCameraRig();
 	void InitializePlayerHUD();
@@ -485,6 +506,7 @@ protected:
     FVector IaijutsuDashOrigin = FVector::ZeroVector;
     TWeakObjectPtr<ACharacterBase> IaijutsuDashCharacter;
 	FTimerHandle DashRechargeTimerHandle;
+	FTimerHandle VictoryPresentationTimerHandle;
 	FVector2D LastMovementInput = FVector2D::ZeroVector;
 	FVector LastValidControllerAimDirection = FVector::ForwardVector;
 	bool bControllerIsActiveTargetingDevice = false;

@@ -1,4 +1,5 @@
 #include "SamuraiWaveField.h"
+#include "RunReportSubsystem.h"
 #include "UpgradeBalance.h"
 #include "CrescentBuild.h"
 #include "Components/SceneComponent.h"
@@ -50,7 +51,7 @@ void ASamuraiWaveField::DealDamage(float Amount)
     TSet<AEnemyBase*> Seen;
     for (const auto& Hit : Hits)
         if (auto* Enemy = Cast<AEnemyBase>(Hit.GetActor()); Enemy && !Seen.Contains(Enemy))
-        { Seen.Add(Enemy); Enemy->ApplyStatusDamage(Amount, EPlayerAttackSource::Samurai); }
+        { FRunDamageScope DamageScope(TEXT("LingeringWake")); Seen.Add(Enemy); Enemy->ApplyStatusDamage(Amount, EPlayerAttackSource::Samurai); }
 }
 void ASamuraiWaveField::Pulse()
 {

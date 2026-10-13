@@ -5,6 +5,7 @@
 #include "AutoAttackComponent.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
+#include "CombatGround.h"
 #include "Components/CapsuleComponent.h"
 #include "EnemyBase.h"
 #include "HAL/IConsoleManager.h"
@@ -80,11 +81,6 @@ void UInactiveCharacterAssistComponent::DeactivateAssistEffect(bool bCancelActiv
 	bAssistEffectActive = false;
 	bAssistPending = false;
 	CurrentAttackCount = 0;
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(AssistCleanupTimerHandle);
-	}
-
 	if (bCancelActiveAssist)
 	{
 		CancelCurrentAssist();
@@ -319,6 +315,17 @@ bool UInactiveCharacterAssistComponent::TryTriggerAssistWithCharacters(ACharacte
 		}
 	}
 
+	AssistAttack->AssistDamageSource = TEXT("TagTeam");
+    if (bBloodAssistRequest)
+    {
+        const TPair<FName,FName> Triggers[] = {
+            {TEXT("BattleStance"),TEXT("BloodAssist")}, {TEXT("Iaijutsu"),TEXT("IaijutsuAssist")},
+            {TEXT("BladeWave"),TEXT("CrescentAssist")}, {TEXT("ReturningFang"),TEXT("FangAssist")},
+            {TEXT("BarrageStance"),TEXT("BarrageAssist")}, {TEXT("GreatShuriken"),TEXT("ShurikenAssist")}};
+        const bool bSamurai = ActiveCharacter->IsA<ASamuraiCharacter>();
+        for (int32 I=bSamurai?0:3; I<(bSamurai?3:6); ++I)
+            if (PlayerUpgrades->HasUpgradeId(Triggers[I].Key)) { AssistAttack->AssistDamageSource=Triggers[I].Value; break; }
+    }
 	float ExpectedDuration = 0.0f;
 	if (!AssistAttack->TryStartAssistAttackAtTarget(TargetEnemy, ExpectedDuration))
 	{
@@ -463,8 +470,15 @@ FVector UInactiveCharacterAssistComponent::GetRangedAssistLocation(const ACharac
 
 	const FVector LocalOffset = AssistCharacter->IsA<ANinjaCharacter>() ? NinjaAssistOffset : SamuraiAssistOffset;
 	const FRotator ActiveFacing = ActiveCharacter->GetVisualFacingRotation();
-	return ActiveCharacter->GetActorLocation()
+	FVector Location = ActiveCharacter->GetActorLocation()
 		+ ActiveFacing.RotateVector(FVector(LocalOffset.X, LocalOffset.Y, 0.0f));
+	const float AssistHalfHeight = AssistCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	Location.Z += AssistHalfHeight - ActiveCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	Location = CombatGround::ClampInsideArena(GetWorld(), Location, AssistCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius());
+	FVector Surface;
+	if (CombatGround::FindSurface(GetWorld(), Location, AssistCharacter, Surface))
+		Location.Z = Surface.Z + AssistHalfHeight + 2.f;
+	return Location;
 }
 
 bool UInactiveCharacterAssistComponent::TryFindMeleeAssistLocation(ACharacterBase* AssistCharacter, const ACharacterBase* ActiveCharacter, const AEnemyBase* TargetEnemy, FVector& OutAssistLocation) const
@@ -483,13 +497,26 @@ bool UInactiveCharacterAssistComponent::TryFindMeleeAssistLocation(ACharacterBas
 		DirectionFromTargetToAssist.Normalize();
 	}
 
-	constexpr float CandidateAngles[] = { 0.0f, 45.0f, -45.0f, 90.0f, -90.0f };
+	constexpr float CandidateAngles[] = { 0.0f, 45.0f, -45.0f, 90.0f, -90.0f, 135.0f, -135.0f, 180.0f };
 	const FVector TargetLocation = TargetEnemy->GetActorLocation();
+	const UCapsuleComponent* AssistCapsule = AssistCharacter->GetCapsuleComponent();
+	const UCapsuleComponent* TargetCapsule = TargetEnemy->GetCapsuleComponent();
+	const float AssistRadius = AssistCapsule->GetScaledCapsuleRadius();
+	const float TargetRadius = TargetCapsule ? TargetCapsule->GetScaledCapsuleRadius() : 0.f;
+	// Fixed 150cm placement can put every candidate inside a large boss capsule.
+	const float PlacementDistance = FMath::Max(MeleeAssistDistance, TargetRadius + AssistRadius + 12.f);
+	const float FeetAlignedZ = ActiveCharacter->GetActorLocation().Z
+		- ActiveCharacter->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()
+		+ AssistCapsule->GetScaledCapsuleHalfHeight();
 	for (const float CandidateAngle : CandidateAngles)
 	{
 		const FVector CandidateDirection = DirectionFromTargetToAssist.RotateAngleAxis(CandidateAngle, FVector::UpVector).GetSafeNormal();
-		FVector CandidateLocation = TargetLocation + CandidateDirection * MeleeAssistDistance;
-		CandidateLocation.Z = AssistCharacter->GetActorLocation().Z;
+		FVector CandidateLocation = TargetLocation + CandidateDirection * PlacementDistance;
+		CandidateLocation.Z = FeetAlignedZ;
+		if (!CombatGround::IsInsideArena(GetWorld(), CandidateLocation, AssistRadius)) continue;
+		FVector Surface;
+		if (CombatGround::FindSurface(GetWorld(), CandidateLocation, AssistCharacter, Surface))
+			CandidateLocation.Z = Surface.Z + AssistCapsule->GetScaledCapsuleHalfHeight() + 2.f;
 
 		if (!IsAssistLocationBlocked(AssistCharacter, CandidateLocation))
 		{

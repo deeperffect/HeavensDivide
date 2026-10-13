@@ -4,7 +4,7 @@ Re-running updates this pass only; shared/vendor textures and materials stay int
 """
 from pathlib import Path
 from datetime import datetime
-import hashlib,json,shutil,unreal as u
+import hashlib,json,shutil,runpy,unreal as u
 root=Path(u.Paths.project_dir()).resolve();out=root/'Saved/EnvironmentPolish';out.mkdir(parents=True,exist_ok=True)
 backup=out/'Backups'/datetime.now().strftime('%Y%m%d_%H%M%S');backup.mkdir(parents=True,exist_ok=True)
 folder='/Game/HeavensDivide/Materials/EnvironmentPolish';source='/Game/HeavensDivide/Materials/StylizedGround'
@@ -22,50 +22,57 @@ def save(a):assert u.EditorAssetLibrary.save_loaded_asset(a,False),a.get_path_na
 shared={p:hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'Content/HeavensDivide/Materials/StylizedGround').glob('*.uasset')}
 for p in ['/Game/Maps/Lvl_B1_Lvl1','/Game/Maps/Lvl_B1_Arena']:preserve(p,'.umap')
 for name in ['T_Lvl1_GroundWeights','M_Lvl1_Ground','MI_Lvl1_Ground','MI_Arena_Stone']:preserve(folder+'/'+name)
-task=u.AssetImportTask();put(task,filename=str(root/'Art/EnvironmentPolish/Lvl1_GroundWeights.png'),destination_path=folder,destination_name='T_Lvl1_GroundWeights',automated=True,replace_existing=True,save=False)
-assets.import_asset_tasks([task]);mask=u.load_asset(folder+'/T_Lvl1_GroundWeights');assert mask
-put(mask,srgb=False,compression_settings=u.TextureCompressionSettings.TC_MASKS,address_x=u.TextureAddress.TA_CLAMP,address_y=u.TextureAddress.TA_CLAMP,lod_group=u.TextureGroup.TEXTUREGROUP_WORLD,max_texture_size=1024);save(mask)
-mat=u.load_asset(folder+'/M_Lvl1_Ground') if u.EditorAssetLibrary.does_asset_exist(folder+'/M_Lvl1_Ground') else u.EditorAssetLibrary.duplicate_asset(source+'/M_StylizedGround',folder+'/M_Lvl1_Ground');assert mat
-expressions=lib.get_material_expressions(mat)
-blend=next(e for e in expressions if isinstance(e,u.MaterialExpressionCustom) and 'automaticWeights' in e.get_editor_property('code'))
-# Start from the unmodified lit parent code on every run.
-original=next(e for e in lib.get_material_expressions(u.load_asset(source+'/M_StylizedGround')) if isinstance(e,u.MaterialExpressionCustom) and 'automaticWeights' in e.get_editor_property('code')).get_editor_property('code')
-insert='''float2 layoutUV = (p - LayoutOrigin.xy) / max(LayoutSize.xy, 1.0);
-float2 breakup = float2(n.noise(p/85.0 + 7.0), n.noise(p/85.0 + 47.0)) - .5;
-float3 authored = Texture2DSample(LayoutTexture, LayoutTextureSampler, layoutUV + breakup * LayoutEdgeVariation / max(LayoutSize.xy, 1.0)).rgb;
-weights = authored / max(dot(authored,1.0), .001);
-'''
-original=original.replace('float3 grass =',insert+'float3 grass =')
-# Blend a rotated sample at a different frequency to soften repeating brush strokes.
-variation='''float2 alternate = float2(p.x*.866-p.y*.5, p.x*.5+p.y*.866);
-float detailBlend = .25 + .5*n.noise(p/620.0 + 31.0);
-grass = lerp(grass, Texture2DSample(GrassTexture, GrassTextureSampler, alternate*1.17/max(GrassTileSize,1.0)+.37).rgb*GrassTint.rgb, detailBlend);
-dirt = lerp(dirt, Texture2DSample(DirtTexture, DirtTextureSampler, alternate*1.23/max(DirtTileSize,1.0)+.63).rgb*DirtTint.rgb, detailBlend);
-'''
-original=original.replace('float3 rgb =',variation+'float3 rgb =')
-original=original[:original.index('float3 rgb =')]+'''// Original stone color: grade vegetation and soil only.
-float variation = 1.0 + (n.noise(macro * .47 + 12.0) - .5) * MacroVariation;
-float3 gradedGrass = lerp(dot(grass,float3(.2126,.7152,.0722)).xxx,grass,Saturation)*Brightness*variation;
-float3 gradedDirt = lerp(dot(dirt,float3(.2126,.7152,.0722)).xxx,dirt,Saturation)*Brightness*variation;
-float3 originalStone = Texture2DSample(StoneTexture,StoneTextureSampler,p/max(StoneTileSize,1.0)).rgb;
-return max(0.0,gradedGrass*weights.x+gradedDirt*weights.y+originalStone*weights.z);
-'''
-blend.set_editor_property('code',original);blend.set_editor_property('description','Level 1 authored routes: RGB = grass, dirt, stone')
-params=[('LayoutTexture',u.MaterialExpressionTextureObjectParameter,mask),('LayoutOrigin',u.MaterialExpressionVectorParameter,u.LinearColor(-7600,-7600,0,0)),('LayoutSize',u.MaterialExpressionVectorParameter,u.LinearColor(15200,15200,0,0)),('LayoutEdgeVariation',u.MaterialExpressionScalarParameter,24.)]
-nodes_to_connect=[]
-pins=list(blend.get_editor_property('inputs'));pin_names={str(p.get_editor_property('input_name')) for p in pins}
-for index,(name,cls,value) in enumerate(params):
- node=next((e for e in expressions if isinstance(e,cls) and str(e.get_editor_property('parameter_name'))==name),None)
- if not node:node=lib.create_material_expression(mat,cls,-1400,2050+index*190)
- put(node,parameter_name=name,group='Level layout')
- if name=='LayoutTexture':put(node,texture=value,sampler_type=u.MaterialSamplerType.SAMPLERTYPE_MASKS)
- else:put(node,default_value=value)
- if name not in pin_names:
-  pin=u.CustomInput();pin.set_editor_property('input_name',name);pins.append(pin)
- nodes_to_connect.append((node,name))
-blend.set_editor_property('inputs',pins)
-for node,name in nodes_to_connect:assert lib.connect_material_expressions(node,'',blend,name)
-lib.recompile_material(mat);save(mat)
+mat=u.load_asset(folder+'/M_Lvl1_Ground') if u.EditorAssetLibrary.does_asset_exist(folder+'/M_Lvl1_Ground') else None
+reference_ground=mat and any(isinstance(e,u.MaterialExpressionCustom) and 'REFERENCE_GROUND' in e.get_editor_property('code') for e in lib.get_material_expressions(mat))
+if reference_ground:
+ # Refresh the current Level 1 ground without restoring this pass's older shader or tuning.
+ runpy.run_path(str(root/'Tools/apply_reference_ground.py'))
+ mat=u.load_asset(folder+'/M_Lvl1_Ground')
+else:
+ task=u.AssetImportTask();put(task,filename=str(root/'Art/EnvironmentPolish/Lvl1_GroundWeights.png'),destination_path=folder,destination_name='T_Lvl1_GroundWeights',automated=True,replace_existing=True,save=False)
+ assets.import_asset_tasks([task]);mask=u.load_asset(folder+'/T_Lvl1_GroundWeights');assert mask
+ put(mask,srgb=False,compression_settings=u.TextureCompressionSettings.TC_MASKS,address_x=u.TextureAddress.TA_CLAMP,address_y=u.TextureAddress.TA_CLAMP,lod_group=u.TextureGroup.TEXTUREGROUP_WORLD,max_texture_size=1024);save(mask)
+ mat=u.load_asset(folder+'/M_Lvl1_Ground') if u.EditorAssetLibrary.does_asset_exist(folder+'/M_Lvl1_Ground') else u.EditorAssetLibrary.duplicate_asset(source+'/M_StylizedGround',folder+'/M_Lvl1_Ground');assert mat
+ expressions=lib.get_material_expressions(mat)
+ blend=next(e for e in expressions if isinstance(e,u.MaterialExpressionCustom) and 'automaticWeights' in e.get_editor_property('code'))
+ # Start from the unmodified lit parent code on every run.
+ original=next(e for e in lib.get_material_expressions(u.load_asset(source+'/M_StylizedGround')) if isinstance(e,u.MaterialExpressionCustom) and 'automaticWeights' in e.get_editor_property('code')).get_editor_property('code')
+ insert='''float2 layoutUV = (p - LayoutOrigin.xy) / max(LayoutSize.xy, 1.0);
+ float2 breakup = float2(n.noise(p/85.0 + 7.0), n.noise(p/85.0 + 47.0)) - .5;
+ float3 authored = Texture2DSample(LayoutTexture, LayoutTextureSampler, layoutUV + breakup * LayoutEdgeVariation / max(LayoutSize.xy, 1.0)).rgb;
+ weights = authored / max(dot(authored,1.0), .001);
+ '''
+ original=original.replace('float3 grass =',insert+'float3 grass =')
+ # Blend a rotated sample at a different frequency to soften repeating brush strokes.
+ variation='''float2 alternate = float2(p.x*.866-p.y*.5, p.x*.5+p.y*.866);
+ float detailBlend = .25 + .5*n.noise(p/620.0 + 31.0);
+ grass = lerp(grass, Texture2DSample(GrassTexture, GrassTextureSampler, alternate*1.17/max(GrassTileSize,1.0)+.37).rgb*GrassTint.rgb, detailBlend);
+ dirt = lerp(dirt, Texture2DSample(DirtTexture, DirtTextureSampler, alternate*1.23/max(DirtTileSize,1.0)+.63).rgb*DirtTint.rgb, detailBlend);
+ '''
+ original=original.replace('float3 rgb =',variation+'float3 rgb =')
+ original=original[:original.index('float3 rgb =')]+'''// Original stone color: grade vegetation and soil only.
+ float variation = 1.0 + (n.noise(macro * .47 + 12.0) - .5) * MacroVariation;
+ float3 gradedGrass = lerp(dot(grass,float3(.2126,.7152,.0722)).xxx,grass,Saturation)*Brightness*variation;
+ float3 gradedDirt = lerp(dot(dirt,float3(.2126,.7152,.0722)).xxx,dirt,Saturation)*Brightness*variation;
+ float3 originalStone = Texture2DSample(StoneTexture,StoneTextureSampler,p/max(StoneTileSize,1.0)).rgb;
+ return max(0.0,gradedGrass*weights.x+gradedDirt*weights.y+originalStone*weights.z);
+ '''
+ blend.set_editor_property('code',original);blend.set_editor_property('description','Level 1 authored routes: RGB = grass, dirt, stone')
+ params=[('LayoutTexture',u.MaterialExpressionTextureObjectParameter,mask),('LayoutOrigin',u.MaterialExpressionVectorParameter,u.LinearColor(-7600,-7600,0,0)),('LayoutSize',u.MaterialExpressionVectorParameter,u.LinearColor(15200,15200,0,0)),('LayoutEdgeVariation',u.MaterialExpressionScalarParameter,24.)]
+ nodes_to_connect=[]
+ pins=list(blend.get_editor_property('inputs'));pin_names={str(p.get_editor_property('input_name')) for p in pins}
+ for index,(name,cls,value) in enumerate(params):
+  node=next((e for e in expressions if isinstance(e,cls) and str(e.get_editor_property('parameter_name'))==name),None)
+  if not node:node=lib.create_material_expression(mat,cls,-1400,2050+index*190)
+  put(node,parameter_name=name,group='Level layout')
+  if name=='LayoutTexture':put(node,texture=value,sampler_type=u.MaterialSamplerType.SAMPLERTYPE_MASKS)
+  else:put(node,default_value=value)
+  if name not in pin_names:
+   pin=u.CustomInput();pin.set_editor_property('input_name',name);pins.append(pin)
+  nodes_to_connect.append((node,name))
+ blend.set_editor_property('inputs',pins)
+ for node,name in nodes_to_connect:assert lib.connect_material_expressions(node,'',blend,name)
+ lib.recompile_material(mat);save(mat)
 def instance(name,parent,scalars,vectors):
  p=folder+'/'+name
  obj=u.load_asset(p) if u.EditorAssetLibrary.does_asset_exist(p) else assets.create_asset(name,folder,u.MaterialInstanceConstant,u.MaterialInstanceConstantFactoryNew())
@@ -79,7 +86,10 @@ def instance(name,parent,scalars,vectors):
   got=lib.get_material_instance_vector_parameter_value(obj,k)
   assert all(abs(a-b)<.0001 for a,b in zip((got.r,got.g,got.b,got.a),v)),k
  lib.update_material_instance(obj);save(obj);return obj
-lvl_mat=instance('MI_Lvl1_Ground',mat,{'Brightness':1.10,'Saturation':.88,'MacroVariation':.11,'GrassTileSize':350,'DirtTileSize':750,'StoneTileSize':800,'Roughness':.88,'Specular':.14},{'GrassTint':(.9,1.03,.87,1),'DirtTint':(1.00,1.02,1.03,1),'StoneTint':(.95,1.01,1.07,1)})
+if reference_ground:
+ lvl_mat=u.load_asset(folder+'/MI_Lvl1_Ground');assert lvl_mat
+else:
+ lvl_mat=instance('MI_Lvl1_Ground',mat,{'Brightness':1.10,'Saturation':.88,'MacroVariation':.11,'GrassTileSize':350,'DirtTileSize':750,'StoneTileSize':800,'Roughness':.88,'Specular':.14},{'GrassTint':(.9,1.03,.87,1),'DirtTint':(1.00,1.02,1.03,1),'StoneTint':(.95,1.01,1.07,1)})
 arena_mat=instance('MI_Arena_Stone',u.load_asset(source+'/M_StylizedGround'),{'UsePaint':0,'GrassCoverage':0,'StoneCoverage':1,'StoneTileSize':600,'Brightness':.95,'Saturation':.22,'MacroVariation':.12,'Roughness':.88,'Specular':.16},{'StoneTint':(.68,.76,.88,1)})
 lighting_source='/Game/Assets/Environment/Stylized_Village/Maps/Stylized_Village_Fall/Stylized_Village_Fall_Lighting'
 lighting_path='/Game/Maps/Lvl_B1_Lvl1_Lighting'

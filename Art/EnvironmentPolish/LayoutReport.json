@@ -1,4 +1,5 @@
 {
+  "version": 3,
   "resolution": 1024,
   "world_min": [
     -7600,
@@ -9,13 +10,30 @@
     15200
   ],
   "weights": {
-    "grass": 0.8741071327055817,
-    "dirt": 0.08362687054808772,
-    "stone": 0.042265996745981485
+    "grass": 0.6766993728338503,
+    "dirt": 0.11467063006232767,
+    "stone": 0.208629997103822
   },
+  "playable_bounds": {
+    "world_min": [
+      -4939.61,
+      -4939.61
+    ],
+    "world_max": [
+      4939.61,
+      4939.61
+    ]
+  },
+  "playable_weights": {
+    "grass": 0.2922648138334413,
+    "dirt": 0.22682996545388348,
+    "stone": 0.4809052207126752
+  },
+  "playable_solid_stone_area": 0.4708740271803335,
   "routes": [
     "Shrine approach",
     "North meadow circuit",
     "South footpath"
-  ]
+  ],
+  "notes": "Solid stone interiors; earth shoulders; clustered grass islands. All edge breakup is baked offline."
 }

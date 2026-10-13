@@ -893,6 +893,12 @@ void AFinalBossBase::BeginDeathPresentation_Implementation()
 	Super::BeginDeathPresentation_Implementation();
 }
 
+float AFinalBossBase::GetDeathPresentationSeconds() const
+{
+	if (!DeathMontage || !GetMesh() || !GetMesh()->GetAnimInstance()) return 0.f;
+	return DeathMontage->GetPlayLength()/FMath::Max(.01f,FMath::Abs(DeathMontage->RateScale))+.1f;
+}
+
 void AFinalBossBase::HandleBossDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	DestroyAfterDeath();

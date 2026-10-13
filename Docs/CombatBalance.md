@@ -63,7 +63,7 @@ Basics take roughly 1–4 unupgraded hits; Bear takes five Samurai hits as the s
 
 | Enemy | Fixed HP | XP | Seconds at 30 effective DPS |
 | --- | ---: | ---: | ---: |
-| CinderOracle | 6000 | 0 | 200.0 |
+| CinderOracle (Veshra) | 6000 | 0 | 200.0 |
 | SamuraiBoss | 6000 | 0 | 200.0 |
 | EnemyGorilla | 660 | 72 | 22.0 |
 | EnemyOgre | 264 | 30 | 8.8 |
@@ -96,7 +96,7 @@ Basic attacks deal 6–14 damage; tactical attacks 8–28; major boss attacks 16
 
 - Keep basic population growth and enemy introduction times; composition and density replace HP inflation.
 - Timed threats share a six-enemy ceiling plus per-class caps. Spawn-slot chance is 18%, down from 30%. The separate marching formation is not counted in this ceiling.
-- Blood Shrines: 3 and 5 minutes; boss gate: 8. Technique Trials and Twin Soul trials no longer spawn, including through legacy debug shortcuts. Synergies join normal level-up offers from the first level without discovery unlocks.
+- Blood Shrines: 3 and 5 minutes; boss gate: 8. Technique Trials and Twin Soul trials no longer spawn, including through legacy debug shortcuts. Equip up to five unlocked synergies in New Run; synergies do not appear in run drafts.
 - Preserve the XP curve and 30-seconds-per-Ember economy. Replace two nonfunctional XP knobs with a working whole-curve multiplier, default 1.0.
 - Full permanent damage × ordinary cadence is approximately **2.08×** fresh-save output before stance-specific utility (1.17 shared damage × 1.33 character damage × 1.14 shared cadence × 1.17 character cadence). Projectile count exists only on the Barrage branch. See [MetaSkillTree.md](MetaSkillTree.md) for all six stance paths and their distinct mechanics.
 
@@ -184,20 +184,32 @@ Tag Team now checks the **assisting character’s stance**. Crescent fires a wav
 
 Cleanup validation: Development Editor build passed. All 14 relevant automation tests passed across `Automation/index.json` and the final targeted rerun in `AutomationFinal/index.json`, including all six Tag Team stances, stored extra-hit counters, cooldown preservation, duplicate notifies, old-run retirement, the balance catalog and montage-owned Ninja VFX. All 186 saved balance checks passed; the math report covers 150 cards and 26 enemies. SHA-256 comparison confirms all 150 retained upgrade packages are unchanged. See `Saved/UpgradeCleanup/ValidationSummary.json`, `BuildTests.log`, `TestsFinal.log` and `Verify.log`.
 
+### Boss-entry assist audit
+
+Restoring a run now cancels any old assist and refreshes Tag Team's attack bindings after the upgrade snapshot is installed. This covers boss arrivals that keep Samurai active and therefore bypass the swap refresh. Assist placement aligns each character's feet to the current floor; melee arrivals clear the combined target and assistant capsule radii, search around the full target, and stay within arena bounds. Disabling the Tag Team counter without canceling an ongoing assist preserves its cleanup timer.
+
+Validation: Development Editor build and all 12 targeted tests pass. The Tag Team regression restores captured runs with either character active, triggers assists against a large boss, verifies melee damage and raised-floor placement, and advances an allowed assist through cleanup after deactivation. The other checks cover all stance builds, combo behavior, swap freezing and run loadouts. Evidence: `Saved/TagTeamBossAudit/ValidationSummary.json`, `BuildFinal.log`, `TestsPassed.log` and `AutomationPassed/index.json`.
+
 ## Unlocks, currencies and run preparation
 
-New Run combines a map selector with five optional challenge modifiers and the two heroes' unlocked stance choices. Level 1 is playable; two future destinations are visibly disabled placeholders. The first profile selects Blood + Barrage. Buying a stance makes it appear the next time New Run opens; resetting progression also clears any now-invalid selection. Run retries and boss travel keep the chosen modifiers.
+New Run has two setup pages: **Arena & Stances** contains the map, five optional challenge modifiers and unlocked stance choices; **Synergies & Combo** equips up to five owned synergies and one combo ability. Level 1 is playable; two future destinations are disabled placeholders. The first profile selects Blood + Barrage with Tag Team equipped. Buying a stance or synergy makes it available in New Run; resetting progression also clears invalid selections. Run retries and boss travel keep the chosen loadout and modifiers.
+
+Selected synergies are active from the start of the run. They never appear as a category or card in level-up, random or chest drafts. Their existing effects and trigger conditions still apply. Soul Convergence is the existing combo, with Samurai/Ninja variants selected by the active hero. Unlock it in Abilities, then equip it in New Run; **None** leaves the combo slot empty. Future combo choices are disabled placeholders. Selections persist between maps and retries during the current game session.
 
 The Skill Tree retains its ink/gold styling and has four pages:
 
-- **Stances:** Blood and Barrage are free. Iaijutsu, Crescent, Returning Fang and Great Shuriken each cost **6 Soul Sigils**. Open an owned stance to purchase its three-node Ember tree.
-- **Upgrades:** Tag Team is free; every other supported synergy costs **4 Soul Sigils**. Buying it adds the card to eligible run drafts; its normal prerequisites still apply.
-- **Abilities:** Soul Convergence unlocks the combo burst for **10 Embers**. Combo meter gains and combo damage have three +5% ranks each. Existing swap recharge, additional dash charge, reroll and banish purchases live here. Basic swapping remains available from the start.
+- **Stances:** Blood and Barrage are free. Iaijutsu, Crescent, Returning Fang and Great Shuriken each cost **18 Soul Sigils**. Open an owned stance to purchase its three-node Ember tree.
+- **Synergies:** Tag Team is free; every other supported synergy costs **12 Soul Sigils**. Buying it makes it selectable in New Run. Five can be equipped at once.
+- **Abilities:** Soul Convergence unlocks the combo burst for **30 Embers**. The additional dash charge costs **60**, rerolls **45** and banishes **45**. Combo meter gains and combo damage have three +5% ranks each. Swap recharge purchases also live here; basic swapping remains available from the start.
 - **Stats:** health, damage, movement, XP pickup, adaptive attack cadence, adaptive attack coverage and currency gains. Soul Harvest has five +5% ranks; Expanding Presence has five +4% ranks. Existing shared and hero-wide stat investments remain valid.
 
 Generic cadence translates to attack rate for Blood/Crescent/Barrage, charge speed for Iaijutsu, flight speed for Returning Fang, and contact/pulse frequency for Great Shuriken. Generic coverage translates to Samurai attack width/radius, Fang targeting reach, Barrage kunai and poison-pool size, or Shuriken blade radius. Bonuses follow the relevant hero's owned stance, including assists. Barrage's extra projectile remains a Barrage-specific purchase.
 
-Rank price is BaseCost × next rank. Refund returns the recorded Ember spend and keeps purchased stance/synergy unlocks. The 45-node skill catalog is stored in DA_GlobalBalance; use Tools/configure_meta_stance_tree.py after rebuilding to install native catalog changes without overwriting other balance rules.
+**Every permanent purchase costs 3× its previous price.** Skill ranks cost 3 × BaseCost × next rank, including generic stats, stance-specific skills and ability improvements. Stance and synergy unlock prices are also tripled. For example, Living Flame now costs 15 / 30 / 45 Embers for its three ranks. Refund returns the recorded Ember spend, including the original price of older purchases, and keeps purchased stance/synergy unlocks. The 45-node skill catalog is stored in DA_GlobalBalance; the price multiplier applies to its values at runtime. Use Tools/configure_meta_stance_tree.py after rebuilding to install native catalog changes without overwriting other balance rules.
+
+All skill maps grow from top to bottom. Branches share perpendicular connectors and keep each subtree together. Stance trees are vertical three-node chains; Stats and Abilities retain their actual prerequisites. Pan, zoom and keyboard/controller navigation remain available.
+
+Loadout revision validation: the Development Editor build and all **16 targeted automation checks** passed. Coverage includes every permanent rank's 3× price, original-price refunds, starting equipment, the five-synergy limit (including restored runs), draft exclusion, combo selection and the 20-second wall expiry. New Run and vertical skill-tree captures were visually reviewed at 1280x720 and larger sizes. Reports are under `Saved/LoadoutRevision`, with the consolidated result in `ValidationSummary.json`. Validation used isolated automation saves; no packaged build or full-run difficulty playtest was performed.
 
 ### Challenge starting values
 
@@ -222,7 +234,7 @@ Rewards are automatically collected; no extra pickup actors are created. The run
 | Every fifth ordinary eligible kill | 1 | 0 |
 | Tactical kill | 2 | 0 |
 | Elite kill | 3 | 1 |
-| Open elite chest | 5 | 1 |
+| Open elite chest | Tier roll (see below) | Tier roll (see below) |
 | Complete Blood Shrine | 10 | 2 |
 | Complete Ember Circle | 20 | 1 |
 | Survive 30 seconds | 1, paid at run end | 0 |
@@ -233,6 +245,25 @@ An elite and its chest both pay their listed amounts. Currency bonuses use (1 + 
 Version 6 preserves Ember balances, Sigils and invested skill ranks. It replaces the older blanket availability/trial discovery state with Blood/Barrage/Tag Team defaults. Existing ranks for a now-locked stance are retained but inactive until that stance is purchased; refunding ranks still returns the recorded spend. Reset Progression clears ranks, paid unlocks and both currencies.
 
 Technique Trials and Twin Soul trials remain retired. Legacy classes/fields stay loadable for compatibility and cannot grant unlocks. Ordinary run cards and Blood Shrine pacts remain available subject to their normal stance/prerequisite rules.
+
+### Elite chest tiers and jackpot
+
+Each chest rolls once when initialized. XP uses the defeated elite's authored XP as its baseline; integer percentage rolls and currency rolls are inclusive. Skipping, repainting and repeated initialization cannot reroll the reward. Empty/invalid XP rewards grant no currencies.
+
+| Tier | Chance | XP baseline multiplier | Embers | Soul Sigils |
+| --- | ---: | ---: | ---: | ---: |
+| Common | 70% | 0.80–1.20× | 3–5 | 1 |
+| Rare | 23% | 1.25–1.75× | 6–9 | 1–2 |
+| Epic | 6% | 2.00–3.00× | 12–18 | 2–3 |
+| Jackpot | 1% | 5.00–8.00× | 40–60 | 6–10 |
+
+The weighted averages before currency bonuses are 1.26× baseline XP, 5.925 Embers and 1.275 Sigils. Tuning lives in `ChestRewardRoll.cpp`. Currency bonuses use the existing shared payout calculation, including saved fractions. The reveal shows the final currency amounts; XP remains an orb shower with a default budget of 12 actors (previously 40) and exact XP conservation. Designer overrides are bounded at 64.
+
+Jackpots extend the normal reveal by 1.2 seconds, add a distinct original bell/arpeggio fanfare, a gold radial burst, a particle shower, and pulses when each reward card settles. Common/Rare/Epic keep the short reveal and use tier accents. Effects draw only in the chest overlay while the world is paused; no extra enemy ticks or reward pickup actors are added.
+
+Reproduce the audio with `Tools/generate_chest_jackpot_audio.py`, then run `Tools/import_chest_jackpot_audio.py` in Unreal Python. Regression tests cover 100,000 seeded rolls, tier ranges/chances, overflow, zero rewards, XP conservation, repeated completion/initialization, jackpot pause/skip timing, bonus previews across saved fractions, and rendered normal/jackpot screens.
+
+Validation: Development Editor build and all five focused tests passed (`Saved/ChestJackpot/FinalAutomation/index.json`). The seeded sample produced 984 jackpots out of 100,000 rolls. Normal and jackpot previews were visually reviewed, and the new MetaSound rendered twice with audible unclipped PCM, different pitch variations and correct one-shot completion. The older broad CombatPalette check still has a pre-existing 56-versus-58 catalog assertion; the focused jackpot audio check is independent and runs with audio enabled. Evidence is consolidated in `Saved/ChestJackpot/ValidationSummary.json`.
 
 ### Progression validation
 

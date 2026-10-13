@@ -1,3 +1,4 @@
+#include "RunReportSubsystem.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "EnemyStatusEffectComponent.h"
@@ -51,6 +52,7 @@ void USurvivorAbilityComponent::BladeWaveImpact(AEnemyBase *Enemy, float Damage,
         {
             if (!IsValid(Target) || Target->IsDead() || !Controller->IsRunInProgress() || Controller->IsPlayerDead())
                 continue;
+    FRunDamageScope DamageScope(TEXT("SplinterWave"));
             if (!Target->ApplyPlayerDamage(SplinterDamage, EPlayerAttackSource::Samurai))
                 continue;
             FamilyAccent(4, Target->GetActorLocation(), Target->GetActorLocation(), FamilySpec(4).Radius,

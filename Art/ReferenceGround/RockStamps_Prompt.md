@@ -1,0 +1,10 @@
+# Placed ground rock atlas
+
+Built-in imagegen; style-transfer edit with a transparent background. Input 1:
+`Stone_BaseColor.png`; input 2: the user's ground reference `Untitled.png`.
+The output is one intentional 2 x 2 atlas used by four material instances.
+
+Use case: style-transfer. Asset type: a production game ground-decal atlas, exactly a 2 by 2 arrangement of FOUR separate painted flat rock slab cutouts on a truly TRANSPARENT background. Image 1 is the existing painted stone texture to transform into individual stamp assets. Image 2 is the user's style reference: use ONLY the large flat natural rock slabs embedded in its ground; ignore every character, building, VFX, particles and colored lights.
+Make FOUR DISTINCT individual irregular slate/olive-gray slab shapes. Top-left: a broad chipped angular natural rock slab with a few quiet facets. Top-right: a longer jagged split rock formation, two adjoining large flat pieces. Bottom-left: a wide asymmetrical fractured plate with one pronounced notch and two faint cracks. Bottom-right: a low broad layered outcrop, three interlocking angular pieces with one smaller broken end. They must look like large weathered STONE BEDROCK patches from Image 2, not round stepping stones, regular paving, pebbles or raised boulders.
+Each whole variant is centered completely inside its own equal square quadrant, roughly 80-88% of that quadrant's dimensions, leaving transparent padding on all sides. No shape touches or crosses a quadrant boundary. The four quadrants have no visible frames, labels, grids or gutters except transparent space. Keep the painted surface scale and palette consistent across the four variants.
+Colors: muted sage gray, olive gray and khaki highlights as in the reference, restrained contrast. Broad calm hand-painted facets, subtle pale beveled edges, sparse thin cracks, matte albedo. Flush surface with only a hairline dark edge; NO cast shadows, tall sides, rim glow, black silhouettes, dirt, grass or opaque background. Straight overhead orthographic, no perspective. Real alpha transparency everywhere outside the actual rocks. No text, characters or props.

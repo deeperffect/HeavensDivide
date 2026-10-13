@@ -22,11 +22,15 @@ public:
 	UFUNCTION(BlueprintPure, Category="Meta Progression") int32 GetStanceCost(FName Id) const;
 	UFUNCTION(BlueprintPure, Category="Meta Progression") FString GetStancePurchaseBlock(FName Id) const;
 	UFUNCTION(BlueprintCallable, Category="Meta Progression") bool PurchaseStance(FName Id);
+    int32 GetUnlockedDifficultyRank(FName MapId,FName ModifierId) const;
+    void RecordDifficultyVictory(FName MapId,const TMap<FName,int32>& CompletedRanks);
 	UFUNCTION(BlueprintPure, Category="Meta Progression") int32 GetSynergyCost(FName Id) const;
 	UFUNCTION(BlueprintPure, Category="Meta Progression") FString GetSynergyPurchaseBlock(FName Id) const;
 	UFUNCTION(BlueprintCallable, Category="Meta Progression") bool PurchaseSynergy(FName Id);
 	/** Automatic collection; fractional bonuses accumulate and saves are batched. */
 	void AwardCurrencies(int32 Embers, int32 Sigils);
+	/** Exact next payout, including saved fractional bonuses, without awarding it. */
+	FIntPoint PreviewCurrencyReward(int32 Embers, int32 Sigils) const;
 	void BeginCurrencyRun();
 	int32 GetRunEmbers() const { return RunEmbers; }
 	int32 GetRunSigils() const { return RunSigils; }
@@ -44,7 +48,7 @@ public:
 	bool AwardSkillRun(float Seconds, bool bVictory);
     void AwardObjectiveEmbers(int32 Amount);
 	int32 GetLastSkillRunReward() const { return LastSkillRunReward; }
-	bool HasPendingSkillReward() const { return PendingSkillReward > 0 || PendingSigils > 0; }
+	bool HasPendingSkillReward() const { return PendingSkillReward > 0 || PendingSigils > 0 || !PendingDifficultyRanks.IsEmpty(); }
 	void RetrySkillReward();
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
@@ -96,6 +100,7 @@ public:
 
 private:
 	friend class FMetaSkillTreeTest;
+    friend class FRunChallengeTest;
 	friend class FDraftToolsTest;
 	friend class FUpgradeAvailabilityTest;
 	friend class FRunPreparationTest;
@@ -107,6 +112,7 @@ private:
 	int32 LastSkillRunReward = 0;
 	int32 PendingSkillReward = 0;
 	int32 PendingSigils = 0;
+    TMap<FName,int32> PendingDifficultyRanks;
 	int32 RunEmbers = 0;
 	int32 RunSigils = 0;
 	double EmberFraction = 0.0;

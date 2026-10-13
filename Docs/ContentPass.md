@@ -30,7 +30,7 @@ behavior by setting that category and configuring XP Reward/Experience Pickup Cl
 
 The chest opens on proximity to the active character. Combat pauses during a 2.8s
 close-up with an animated lid, gold loot glow, light and pickup chime. It restores
-the previous camera and releases 40 arcing XP orbs. The original XP total is split
+the previous camera and releases 12 arcing XP orbs. The original XP total is split
 exactly, including remainders; orbs cannot collect until their flight finishes.
 Repeat completion cannot duplicate rewards. Existing pause/upgrade menus block
 opening. Destruction restores the camera and any pause owned by the chest.

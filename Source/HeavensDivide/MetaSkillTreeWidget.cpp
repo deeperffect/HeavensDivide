@@ -11,6 +11,7 @@
 #include "Engine/Texture2D.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Widgets/SOverlay.h"
+#include "Widgets/SNullWidget.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
@@ -32,7 +33,7 @@ namespace
   switch(Page)
   {
    case EMetaTreePage::Stances:return TEXT("STANCES");
-   case EMetaTreePage::Upgrades:return TEXT("UPGRADES");
+   case EMetaTreePage::Synergies:return TEXT("SYNERGIES");
    case EMetaTreePage::Abilities:return TEXT("ABILITIES");
    default:return TEXT("STATS");
   }
@@ -76,44 +77,75 @@ TArray<FName> UMetaSkillTreeWidget::VisibleSkills() const
 }
 void UMetaSkillTreeWidget::SelectPage(EMetaTreePage Page)
 {
+ PendingStance=NAME_None;if(ConfirmationHost)ConfirmationHost->SetContent(SNullWidget::NullWidget);
  CurrentPage=Page;OpenStance=NAME_None;Message.Empty();bConfirmRefund=false;RefreshPage();
 }
 FReply UMetaSkillTreeWidget::OpenStanceTree(FName Id)
 {
  auto* Meta=Progression();
- if(!Meta||(!Meta->IsStanceUnlocked(Id)&&!Meta->PurchaseStance(Id)))
+ if(!Meta)return FReply::Handled();
+ if(!Meta->IsStanceUnlocked(Id))
  {
-  Message=TEXT("Could not save the unlock. No Sigils were spent; try again.");
-  return FReply::Handled();
+  const auto Block=Meta->GetStancePurchaseBlock(Id);
+  if(!Block.IsEmpty() || !ConfirmationHost){Message=Block;return FReply::Handled();}
+  PendingStance=Id;
+  TSharedPtr<SButton> No;
+  ConfirmationHost->SetContent(SNew(SBox).WidthOverride(620)
+   [SNew(SBorder).BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush")).BorderBackgroundColor(BloodshiftMenu::Ink).Padding(32)
+    [SNew(SVerticalBox)
+     +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,20)[SNew(STextBlock).Text(FText::FromString(MetaSkillTree::StanceName(Id))).Font(MenuFont(27,true)).ColorAndOpacity(Paper)]
+     +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,26)[SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("You are spending %d Soul Sigils to unlock this stance."),Meta->GetStanceCost(Id)))).Font(MenuFont(20)).ColorAndOpacity(Paper).WrapTextAt(556)]
+     +SVerticalBox::Slot().AutoHeight()[SNew(SHorizontalBox)
+      +SHorizontalBox::Slot().FillWidth(1).Padding(0,0,12,0)[SNew(SButton).ButtonStyle(&MenuActionStyle).OnClicked_Lambda([this](){return ConfirmStanceUnlock(true);})[SNew(STextBlock).Text(FText::FromString(TEXT("YES"))).Font(MenuFont(18))]]
+      +SHorizontalBox::Slot().FillWidth(1)[SAssignNew(No,SButton).ButtonStyle(&MenuActionStyle).OnClicked_Lambda([this](){return ConfirmStanceUnlock(false);})[SNew(STextBlock).Text(FText::FromString(TEXT("NO"))).Font(MenuFont(18))]]]]]);
+  return FReply::Handled().SetUserFocus(No.ToSharedRef(),EFocusCause::Navigation);
  }
  CurrentPage=EMetaTreePage::Stances;OpenStance=Id;Message.Empty();bConfirmRefund=false;RefreshPage();
  return SkillMap.IsValid()?FReply::Handled().SetUserFocus(SkillMap.ToSharedRef(),EFocusCause::Navigation):FReply::Handled();
 }
+FReply UMetaSkillTreeWidget::ConfirmStanceUnlock(bool bYes)
+{
+ const FName Id=PendingStance;if(Id.IsNone())return FReply::Handled();
+ PendingStance=NAME_None;if(ConfirmationHost)ConfirmationHost->SetContent(SNullWidget::NullWidget);
+ if(bYes)
+ {
+  auto* Meta=Progression();
+  if(Meta && Meta->PurchaseStance(Id))return OpenStanceTree(Id);
+  Message=TEXT("Could not unlock. No Sigils were spent.");
+ }
+ return StancesTab?FReply::Handled().SetUserFocus(StancesTab.ToSharedRef(),EFocusCause::Navigation):FReply::Handled();
+}
 void UMetaSkillTreeWidget::RefreshPage()
 {
  if(!PageHost)return;
- SkillMap.Reset();
+ SkillMap.Reset();SkillScroll.Reset();
  if(CurrentPage==EMetaTreePage::Stances&&OpenStance.IsNone())PageHost->SetContent(BuildStancePage());
- else if(CurrentPage==EMetaTreePage::Upgrades)PageHost->SetContent(BuildUpgradePage());
+ else if(CurrentPage==EMetaTreePage::Synergies)PageHost->SetContent(BuildSynergyPage());
  else
  {
   const auto Visible=VisibleSkills();
   if(!Visible.Contains(Selected))Selected=Visible.IsEmpty()?NAME_None:Visible[0];
   PageHost->SetContent(BuildSkillPage());
+  SkillMap->SetScrollTarget(SkillScroll);
  }
 }
 
 TSharedRef<SWidget> UMetaSkillTreeWidget::BuildStancePage()
 {
+ auto Groups=SNew(SVerticalBox);
+ for(bool Samurai:{true,false})
+ {
  auto Grid=SNew(SUniformGridPanel).SlotPadding(FMargin(0,0,16,12));
+ Groups->AddSlot().AutoHeight().Padding(0,0,0,12)[SNew(STextBlock).Text(FText::FromString(Samurai?TEXT("SAMURAI"):TEXT("NINJA"))).Font(MenuFont(24,true)).ColorAndOpacity(Ember)];
+ int32 Column=0;
  const TCHAR* Summaries[]={TEXT("Wide melee strikes that stack bleeding wounds."),TEXT("Charged slashes pull and mark foes for follow-up damage."),
   TEXT("Piercing blade waves damage and slow groups of foes."),TEXT("Seeking blades return. Fight close to attack faster."),
   TEXT("Rapid kunai volleys stack poison across groups."),TEXT("Heavy piercing blades hit enemies repeatedly.")};
  for(int32 I=0;I<UE_ARRAY_COUNT(RunStances::All);++I)
  {
-  const auto& Stance=RunStances::All[I];const FName Id=Stance.Id;
+  const auto& Stance=RunStances::All[I];if(Stance.bSamurai!=Samurai)continue;const FName Id=Stance.Id;
   const FLinearColor Accent=Stance.bSamurai?FLinearColor(.85f,.26f,.16f):FLinearColor(.48f,.72f,.45f);
-  Grid->AddSlot(I%3,I/3)
+  Grid->AddSlot(Column++,0)
   [SNew(SBox).HeightOverride(240)
    [SNew(SOverlay)
     +SOverlay::Slot()[SNew(BloodshiftMenu::SInsetSurface).Visibility(EVisibility::HitTestInvisible)]
@@ -138,13 +170,15 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildStancePage()
        [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(FSlateColor::UseForeground())
         .Text_Lambda([this,Id](){const auto* M=Progression();return FText::FromString(M&&M->IsStanceUnlocked(Id)?TEXT("OPEN SKILL TREE"):FString::Printf(TEXT("UNLOCK / %d SIGILS"),M?M->GetStanceCost(Id):0));})]]]]]];
  }
+ Groups->AddSlot().AutoHeight().Padding(0,0,0,24)[Grid];
+ }
  return SNew(SVerticalBox)
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,20)
-  [SNew(STextBlock).Text(FText::FromString(TEXT("Blood and Barrage are yours from the start. Unlock new styles with Soul Sigils, then strengthen each stance with Soul Embers."))).Font(MenuFont(17)).ColorAndOpacity(Muted).AutoWrapText(true)]
-  +SVerticalBox::Slot().FillHeight(1)[SNew(SScrollBox)+SScrollBox::Slot()[Grid]];
+  [SNew(STextBlock).Text(FText::FromString(TEXT("Unlock with Sigils. Upgrade with Embers."))).Font(MenuFont(17)).ColorAndOpacity(Muted).AutoWrapText(true)]
+  +SVerticalBox::Slot().FillHeight(1)[SNew(SScrollBox)+SScrollBox::Slot()[Groups]];
 }
 
-TSharedRef<SWidget> UMetaSkillTreeWidget::BuildUpgradePage()
+TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSynergyPage()
 {
  auto Grid=SNew(SUniformGridPanel).SlotPadding(FMargin(0,0,18,16));
  for(int32 I=0;I<SynergyDefinitions.Num();++I)
@@ -166,17 +200,17 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildUpgradePage()
       +SVerticalBox::Slot().FillHeight(1)[SNew(SBox).MinDesiredHeight(10)]
       +SVerticalBox::Slot().AutoHeight().Padding(0,8,0,8)
       [SNew(STextBlock).Font(MenuFont(13)).ColorAndOpacity(Ember).WrapTextAt(530)
-       .Text_Lambda([this,Id](){const auto* M=Progression();return FText::FromString(!M?TEXT("Progression unavailable."):M->IsSynergyUpgradeUnlocked(Id)?TEXT("UNLOCKED / CAN APPEAR IN RUNS"):M->GetSoulSigils()<M->GetSynergyCost(Id)?FString::Printf(TEXT("NEED %d MORE SIGILS"),M->GetSynergyCost(Id)-M->GetSoulSigils()):TEXT("PERMANENT SYNERGY UNLOCK"));})]
+       .Text_Lambda([this,Id](){const auto* M=Progression();return FText::FromString(!M?TEXT("Progression unavailable."):M->IsSynergyUpgradeUnlocked(Id)?TEXT("UNLOCKED / EQUIP IN NEW RUN"):M->GetSoulSigils()<M->GetSynergyCost(Id)?FString::Printf(TEXT("NEED %d MORE SIGILS"),M->GetSynergyCost(Id)-M->GetSoulSigils()):TEXT("PERMANENT SYNERGY UNLOCK"));})]
       +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Left)
       [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(12,2))
        .IsEnabled_Lambda([this,Id](){const auto* M=Progression();return M&&!M->IsSynergyUpgradeUnlocked(Id)&&M->GetSynergyPurchaseBlock(Id).IsEmpty();})
-       .OnClicked_Lambda([this,Id](){if(auto* M=Progression())Message=M->PurchaseSynergy(Id)?TEXT("Synergy unlocked. It can now appear among your run upgrades."):TEXT("Could not save the unlock. No Sigils were spent; try again.");return FReply::Handled();})
+       .OnClicked_Lambda([this,Id](){if(auto* M=Progression())Message=M->PurchaseSynergy(Id)?TEXT("Synergy unlocked. Equip it when setting up a New Run."):TEXT("Could not save the unlock. No Sigils were spent; try again.");return FReply::Handled();})
        [SNew(STextBlock).Font(MenuFont(15)).ColorAndOpacity(FSlateColor::UseForeground())
         .Text_Lambda([this,Id](){const auto* M=Progression();return FText::FromString(M&&M->IsSynergyUpgradeUnlocked(Id)?TEXT("UNLOCKED"):FString::Printf(TEXT("UNLOCK / %d SIGILS"),M?M->GetSynergyCost(Id):0));})]]]]]];
  }
  return SNew(SVerticalBox)
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,20)
-  [SNew(STextBlock).Text(FText::FromString(TEXT("Tag Team is available from the start. Spend Soul Sigils to add more synergies to your run upgrade pool. Unlocking a synergy does not equip it."))).Font(MenuFont(17)).ColorAndOpacity(Muted).AutoWrapText(true)]
+  [SNew(STextBlock).Text(FText::FromString(TEXT("Unlock with Sigils. Equip in New Run."))).Font(MenuFont(17)).ColorAndOpacity(Muted).AutoWrapText(true)]
   +SVerticalBox::Slot().FillHeight(1)[SNew(SScrollBox)+SScrollBox::Slot()[Grid]];
 }
 
@@ -187,7 +221,7 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
  SAssignNew(SkillMap,SMetaSkillMap).Progression(Progression()).Selected_Lambda([this](){return Selected;})
   .OnSelected_Lambda([this](FName Id){Selected=Id;Message.Empty();bConfirmRefund=false;});
  SkillMap->SetVisibleNodes(VisibleSkills(),OpenStance.IsNone()?FString(PageName(CurrentPage)):MetaSkillTree::StanceName(OpenStance));
- SkillMap->SetLabelFont(MenuFont(12,true));
+ SkillMap->SetLabelFont(MenuFont(18,true));
  TSharedPtr<SButton> LearnButton;
  SAssignNew(LearnButton,SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(8,12)).HAlign(HAlign_Center)
   .IsEnabled_Lambda([this,Meta](){return Meta()&&Meta()->GetSkillPurchaseBlock(Selected).IsEmpty();})
@@ -208,7 +242,13 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)
   [SNew(STextBlock).Font(MenuFont(15)).ColorAndOpacity(Ember).WrapTextAt(300).Text_Lambda([Node](){return FText::FromString(Node()?MetaSkillTree::Scope(*Node()):TEXT("PERMANENT PASSIVE"));})]
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)
-  [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Muted).WrapTextAt(300).Text_Lambda([Node](){return FText::FromString(Node()&&!Node()->RequiredStance.IsNone()?TEXT("Active when this stance is selected, including while the hero assists."):TEXT("Applies automatically in every new run."));})]
+  [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Muted).WrapTextAt(300).Text_Lambda([Node]()
+   {
+    const auto* Skill=Node();
+    if(Skill&&Skill->Effect==TEXT("ComboUnlock"))return FText::FromString(TEXT("Equip Soul Convergence in New Run."));
+    if(Skill&&Skill->Effect.ToString().StartsWith(TEXT("Combo")))return FText::FromString(TEXT("Applies while Soul Convergence is equipped. Select it in New Run."));
+    return FText::FromString(Skill&&!Skill->RequiredStance.IsNone()?TEXT("Active when this stance is selected, including while the hero assists."):TEXT("Applies automatically in every new run."));
+   })]
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)
   [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Muted).WrapTextAt(300)
    .Text_Lambda([Meta,Node](){if(!Node()||!Meta())return FText::GetEmpty();FString Text;if(Node()->Prerequisites.IsEmpty())Text=TEXT("Starting skill / No prerequisite.");else{Text=TEXT("REQUIRES ONE RANK IN\n");for(FName Id:Node()->Prerequisites)Text+=(Meta()->GetSkillRank(Id)>0?TEXT("Learned: "):TEXT("Required: "))+(MetaSkillTree::Find(Id)?MetaSkillTree::Find(Id)->Name:Id.ToString())+TEXT("\n");}return FText::FromString(Text);})]
@@ -217,12 +257,12 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
  if(!OpenStance.IsNone())Header->AddSlot().AutoWidth().Padding(0,0,20,0)
   [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(16,8)).OnClicked_Lambda([this](){return CloseTree();})[SNew(STextBlock).Text(FText::FromString(TEXT("ALL STANCES"))).Font(MenuFont(14)).ColorAndOpacity(FSlateColor::UseForeground())]];
  Header->AddSlot().FillWidth(1).VAlign(VAlign_Center)
-  [SNew(STextBlock).Text(FText::FromString(CurrentPage==EMetaTreePage::Abilities?TEXT("Unlock your combo burst and improve its power, charge and your swap rhythm."):CurrentPage==EMetaTreePage::Stats?TEXT("Permanent strength for every stance. Speed and area adapt to each fighting style."):TEXT("Strengthen this stance with Soul Embers. Each rank is permanent."))).Font(MenuFont(17)).ColorAndOpacity(Muted).AutoWrapText(true)];
+  [SNew(STextBlock).Text(FText::FromString(CurrentPage==EMetaTreePage::Abilities?TEXT("Strengthen your combo and swaps."):CurrentPage==EMetaTreePage::Stats?TEXT("Permanent upgrades for every stance."):TEXT("Strengthen this stance with Soul Embers. Each rank is permanent."))).Font(MenuFont(17)).ColorAndOpacity(Muted).AutoWrapText(true)];
  return SNew(SVerticalBox)
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)[Header]
   +SVerticalBox::Slot().FillHeight(1)
   [SNew(SHorizontalBox)
-   +SHorizontalBox::Slot().FillWidth(1).Padding(0,0,24,0)[SkillMap.ToSharedRef()]
+   +SHorizontalBox::Slot().FillWidth(1).Padding(0,0,24,0)[SAssignNew(SkillScroll,SScrollBox).Orientation(Orient_Vertical).ScrollBarAlwaysVisible(true).AllowOverscroll(EAllowOverscroll::No).ScrollBarRightClickDragAllowed(false)+SScrollBox::Slot()[SkillMap.ToSharedRef()]]
    +SHorizontalBox::Slot().AutoWidth()[SNew(SBox).WidthOverride(370)
     [SNew(SOverlay)
      +SOverlay::Slot()[SNew(BloodshiftMenu::SInsetSurface).Visibility(EVisibility::HitTestInvisible)]
@@ -231,7 +271,7 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
       +SVerticalBox::Slot().FillHeight(1)[SNew(SScrollBox)+SScrollBox::Slot()[Inspector]]
       +SVerticalBox::Slot().AutoHeight().Padding(0,14,0,0)[LearnButton.ToSharedRef()]]]]]
   +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(0,12,0,0)
-  [SNew(STextBlock).Text(FText::FromString(TEXT("Scroll: zoom / Drag: pan / Arrows or D-pad: select / Enter: focus Learn"))).Font(MenuFont(13)).ColorAndOpacity(Muted)];
+  [SNew(STextBlock).Text(FText::FromString(TEXT("Scroll: up / down    Arrows: select    Enter: learn"))).Font(MenuFont(13)).ColorAndOpacity(Muted)];
 }
 
 TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
@@ -242,7 +282,7 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
  for(const auto& Stance:RunStances::All)StanceArtwork.Add(Artwork(Upgrades?Upgrades->FindUpgradeDefinition(Stance.Id):nullptr));
  if(auto* M=Progression())for(auto* Definition:M->GetSynergyUpgradeDefinitions())if(Definition){SynergyDefinitions.Add(Definition);SynergyArtwork.Add(Artwork(Definition));}
  auto Tabs=SNew(SHorizontalBox);
- for(EMetaTreePage Page:{EMetaTreePage::Stances,EMetaTreePage::Upgrades,EMetaTreePage::Abilities,EMetaTreePage::Stats})
+ for(EMetaTreePage Page:{EMetaTreePage::Stances,EMetaTreePage::Synergies,EMetaTreePage::Abilities,EMetaTreePage::Stats})
  {
   const auto Tab=SNew(SButton).ButtonStyle(&MenuActionStyle).HAlign(HAlign_Center)
    .OnClicked_Lambda([this,Page](){SelectPage(Page);return FReply::Handled();})
@@ -255,7 +295,7 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
   Tabs->AddSlot().FillWidth(1).Padding(0,0,12,0)[Tab];
  }
  SAssignNew(PageHost,SBox);RefreshPage();
- return SNew(SScaleBox).Stretch(EStretch::ScaleToFit)
+ auto Page=SNew(SScaleBox).Stretch(EStretch::ScaleToFit).IsEnabled_Lambda([this](){return PendingStance.IsNone();})
  [SNew(SBox).WidthOverride(1680).HeightOverride(1000)
   [SNew(SOverlay)
    +SOverlay::Slot()[SNew(BloodshiftMenu::SPanelSurface)]
@@ -277,26 +317,25 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()
     +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)[Tabs]
     +SVerticalBox::Slot().FillHeight(1)[PageHost.ToSharedRef()]
     +SVerticalBox::Slot().AutoHeight().Padding(0,10,0,0)
-    [SNew(SBox).MinDesiredHeight(36)[SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Ember).WrapTextAt(1560).Text_Lambda([this](){return FText::FromString(Message.IsEmpty()?TEXT("Embers: enemies, chests, objectives and survival. Sigils: elites, chests, objectives and boss victories."):Message);})]]
+    [SNew(SBox).MinDesiredHeight(36)[SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Ember).WrapTextAt(1560).Text_Lambda([this](){return FText::FromString(Message.IsEmpty()?TEXT(""):Message);})]]
     +SVerticalBox::Slot().AutoHeight().Padding(0,12,0,18)[SNew(BloodshiftMenu::SOrnamentDivider)]
     +SVerticalBox::Slot().AutoHeight()
     [SNew(SHorizontalBox)
-     +SHorizontalBox::Slot().AutoWidth()
-     [SNew(SButton).ButtonStyle(&MenuActionStyle).IsEnabled_Lambda([this](){return SkillMap.IsValid();})
-      .OnClicked_Lambda([this](){if(SkillMap)SkillMap->ResetView();return FReply::Handled();})
-      [SNew(STextBlock).Font(MenuFont(16)).Text(FText::FromString(TEXT("RESET VIEW"))).ColorAndOpacity(FSlateColor::UseForeground())]]
      +SHorizontalBox::Slot().FillWidth(1)[SNew(SBox)]
      +SHorizontalBox::Slot().AutoWidth().Padding(0,0,12,0)
      [SNew(SButton).ButtonStyle(&MenuActionStyle)
-      .OnClicked_Lambda([this](){if(!bConfirmRefund){bConfirmRefund=true;Message=TEXT("Refund all skill ranks for their full Ember cost? Permanent stance and synergy unlocks are retained. Select CONFIRM REFUND to proceed.");}else{if(auto* M=Progression())Message=M->RefundSkills()?TEXT("Skill ranks refunded. All stance and synergy unlocks are retained."):TEXT("Could not save the refund. Your skills are unchanged.");bConfirmRefund=false;if(SkillMap)SkillMap->Refresh();}return FReply::Handled();})
+      .OnClicked_Lambda([this](){if(!bConfirmRefund){bConfirmRefund=true;Message=TEXT("Refund all skill ranks? Embers are returned. Stance and synergy unlocks are kept.");}else{if(auto* M=Progression())Message=M->RefundSkills()?TEXT("Skill ranks refunded. All stance and synergy unlocks are retained."):TEXT("Could not save the refund. Your skills are unchanged.");bConfirmRefund=false;if(SkillMap)SkillMap->Refresh();}return FReply::Handled();})
       [SNew(STextBlock).Font(MenuFont(16)).ColorAndOpacity(FSlateColor::UseForeground()).Text_Lambda([this](){return FText::FromString(bConfirmRefund?TEXT("CONFIRM REFUND"):TEXT("REFUND SKILL RANKS"));})]]
      +SHorizontalBox::Slot().AutoWidth()
      [SNew(SButton).ButtonStyle(&MenuActionStyle).OnClicked_Lambda([this](){return CloseTree();})
       [SNew(STextBlock).Font(MenuFont(16)).Text(FText::FromString(TEXT("BACK"))).ColorAndOpacity(FSlateColor::UseForeground())]]]]]];
+ SAssignNew(ConfirmationHost,SBox);
+ return SNew(SOverlay)+SOverlay::Slot()[Page]
+  +SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)[ConfirmationHost.ToSharedRef()];
 }
 void UMetaSkillTreeWidget::ReleaseSlateResources(bool bReleaseChildren)
 {
- Super::ReleaseSlateResources(bReleaseChildren);PageHost.Reset();SkillMap.Reset();StancesTab.Reset();
+ Super::ReleaseSlateResources(bReleaseChildren);PageHost.Reset();SkillMap.Reset();SkillScroll.Reset();ConfirmationHost.Reset();StancesTab.Reset();PendingStance=NAME_None;
 }
 FReply UMetaSkillTreeWidget::CloseTree()
 {
@@ -312,6 +351,7 @@ FReply UMetaSkillTreeWidget::NativeOnKeyDown(const FGeometry& Geometry,const FKe
 {
  if(Event.GetKey()==EKeys::Escape||Event.GetKey()==EKeys::Gamepad_FaceButton_Right)
  {
+  if(!PendingStance.IsNone())return ConfirmStanceUnlock(false);
   if(bConfirmRefund){bConfirmRefund=false;Message.Empty();}else return CloseTree();
   return FReply::Handled();
  }

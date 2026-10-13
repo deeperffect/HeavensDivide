@@ -408,9 +408,18 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 	SpawnParameters.Instigator = OwnerCharacter;
 	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+	FVector LaunchLocation = SpawnLocation;
+    const auto* U = GetPlayerUpgradesForAutoAttackMarkedForDeath(this, OwnerCharacter);
+    if (U && U->HasUpgradeId(TEXT("BarrageStance")))
+    {
+        const FVector Forward = ProjectileDirection.GetSafeNormal2D();
+        const float Along = FVector::DotProduct(LaunchLocation - OwnerCharacter->GetActorLocation(), Forward);
+        const float Clearance = OwnerCharacter->GetCapsuleComponent()->GetScaledCapsuleRadius() + 40.f;
+        LaunchLocation += Forward * FMath::Max(0.f, Clearance - Along);
+    }
 	AAttackProjectileBase* Projectile = GetWorld()->SpawnActor<AAttackProjectileBase>(
 		ProjectileClass,
-		SpawnLocation,
+		LaunchLocation,
 		ProjectileDirection.Rotation(),
 		SpawnParameters);
 
@@ -421,6 +430,7 @@ void UAutoAttackComponent::SpawnProjectileInstance(const FVector& SpawnLocation,
 	}
 
 	Projectile->bAssistProjectile=bActiveAttackIsAssist;
+	Projectile->AssistDamageSource=AssistDamageSource;
 	Projectile->InitializeProjectile(
 		OwnerCharacter,
 		ProjectileDirection,
@@ -784,6 +794,7 @@ bool UAutoAttackComponent::TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy,
             SpawnBladeWavesForAttack(LastResolvedPrimaryAttackDamage);
             OutExpectedDuration = ActiveCrescentMontage
                 ? ActiveCrescentMontage->GetPlayLength() / FMath::Max(.01f, CalculateAttackMontagePlayRate(ActiveCrescentMontage)) : .65f;
+            OutExpectedDuration = FMath::Max(OutExpectedDuration, AssistCommittedDuration);
             bStarted = true;
         }
         if (bStarted)

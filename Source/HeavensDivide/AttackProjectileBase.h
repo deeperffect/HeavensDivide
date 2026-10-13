@@ -11,6 +11,7 @@ class UProjectileMovementComponent;
 class USphereComponent;
 class UStaticMeshComponent;
 class AEnemyBase;
+class UNiagaraComponent;
 
 UENUM(BlueprintType)
 enum class EProjectileTargetType : uint8
@@ -23,6 +24,8 @@ UCLASS(Blueprintable)
 class HEAVENSDIVIDE_API AAttackProjectileBase : public AActor
 {
 	GENERATED_BODY()
+    friend class FCombatBugRegressionTest;
+    friend class FMenuMovementRegressionTest;
 	friend class FImpactFeedbackTest;
  friend class FNinjaBuildsTest;
  friend class ANinjaBuildProjectile;
@@ -30,7 +33,10 @@ class HEAVENSDIVIDE_API AAttackProjectileBase : public AActor
 
 public:
 	AAttackProjectileBase();
+    virtual void Tick(float DeltaSeconds) override;
+    virtual void LifeSpanExpired() override;
 	bool bAssistProjectile = false;
+    FName AssistDamageSource = TEXT("TagTeam");
  bool bBarrageProjectile = false;
  float BarrageBounceRetention = 1.f;
  friend class FBarrageBuildsTest;
@@ -133,6 +139,11 @@ private:
 	bool bCanTriggerSplit = false;
 	bool bIsProjectileInitialized = false;
 	bool bImpactResolved = false;
+    float TrailTravel = 0.f;
+    float TrailFadeElapsed = 0.f;
+    float TrailFadeSeconds = 0.f;
+    FVector TrailLastLocation = FVector::ZeroVector;
+    UPROPERTY() TArray<TObjectPtr<UNiagaraComponent>> ControlledTrails;
 
 	UPROPERTY()
 	TSet<TObjectPtr<AEnemyBase>> DamagedEnemies;

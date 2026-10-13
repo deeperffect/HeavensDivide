@@ -1,7 +1,6 @@
 #include "HeavensDivideGameUserSettings.h"
 
 #include "Engine/Engine.h"
-#include "Misc/App.h"
 
 TArray<FName> UHeavensDivideGameUserSettings::GetBindableActions()
 {
@@ -83,18 +82,29 @@ void UHeavensDivideGameUserSettings::LoadSettings(bool bForceReload)
         for (FKey Candidate : {EKeys::Q, EKeys::F, EKeys::R, EKeys::T, EKeys::Y, EKeys::U, EKeys::I, EKeys::O})
             if (!IsOccupied(Candidate)) { KeybindOverrides.Add(ComboAction, Candidate); break; }
     }
-    FApp::SetVolumeMultiplier(GetMasterVolume());
+    OnAudioVolumesChanged.Broadcast();
 }
 
 void UHeavensDivideGameUserSettings::ApplyNonResolutionSettings()
 {
     Super::ApplyNonResolutionSettings();
-    FApp::SetVolumeMultiplier(GetMasterVolume());
+    OnAudioVolumesChanged.Broadcast();
 }
 
 void UHeavensDivideGameUserSettings::SetMasterVolume(float Volume)
 {
     MasterVolume = FMath::IsFinite(Volume) ? FMath::Clamp(Volume, 0.f, 1.f) : 1.f;
-    FApp::SetVolumeMultiplier(MasterVolume);
+    OnAudioVolumesChanged.Broadcast();
     SaveSettings();
+}
+
+void UHeavensDivideGameUserSettings::SetMusicVolume(float Volume)
+{
+    MusicVolume=FMath::IsFinite(Volume)?FMath::Clamp(Volume,0.f,1.f):1.f;
+    OnAudioVolumesChanged.Broadcast(); SaveSettings();
+}
+void UHeavensDivideGameUserSettings::SetSoundEffectsVolume(float Volume)
+{
+    SoundEffectsVolume=FMath::IsFinite(Volume)?FMath::Clamp(Volume,0.f,1.f):1.f;
+    OnAudioVolumesChanged.Broadcast(); SaveSettings();
 }

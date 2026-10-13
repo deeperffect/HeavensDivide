@@ -7,14 +7,16 @@
 TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::GetNormalLevelUpCandidates() const
 {
  TArray<UUpgradeDefinition*> Result;
- for (auto Category : {EUpgradeCategory::Samurai, EUpgradeCategory::Ninja, EUpgradeCategory::Global, EUpgradeCategory::Synergy})
+ for (auto Category : {EUpgradeCategory::Samurai, EUpgradeCategory::Ninja, EUpgradeCategory::Global})
   if (IsCategoryUnlocked(Category)) Result.Append(GetEligibleUpgradesForCategory(Category));
  return Result;
 }
 
 TArray<UUpgradeDefinition*> UPlayerUpgradeComponent::RollMixedChoices(const TArray<UUpgradeDefinition*>& Candidates, int32 Count) const
 {
- TArray<UUpgradeDefinition*> Remaining = Candidates, Result;
+ TArray<UUpgradeDefinition*> Remaining, Result;
+ for (auto* Candidate : Candidates)
+  if (Candidate && Candidate->Category != EUpgradeCategory::Synergy) Remaining.Add(Candidate);
  if (Count <= 0) return Result;
  const auto Preferred = GetCurrentPlayerLevel() % 2 == 0 ? EUpgradeCategory::Samurai : EUpgradeCategory::Ninja;
  auto Pick = [&](TFunctionRef<bool(const UUpgradeDefinition*)> Predicate)

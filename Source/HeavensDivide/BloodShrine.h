@@ -86,7 +86,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Challenge", meta = (ClampMin = "0.1", UIMin = "0.1"))
-	float ChallengeDuration = 25.0f;
+	float ChallengeDuration = 30.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Challenge", meta = (ClampMin = "1", UIMin = "1"))
 	int32 RequiredBlood = 30;
@@ -135,6 +135,7 @@ protected:
 
 private:
     friend class FGameplayPolishTest;
+    friend class FObjectiveIntroTest;
 	UFUNCTION()
 	void HandleEnemyKilled(AEnemyBase* Enemy);
 
@@ -145,6 +146,7 @@ private:
 	void HandlePlayerDeath();
 
 	void UpdateChallenge();
+    void BeginChallenge();
 	void SucceedChallenge();
 	void FailChallenge(bool bShowFailure);
 	void EndChallenge();
@@ -170,5 +172,6 @@ private:
 	FTimerHandle RewardTimer;
 	double ChallengeEndTime = 0.0;
 	bool bRewardRequested = false;
+    bool bIntroPending = false;
 	TArray<TWeakObjectPtr<AEnemyBase>> OwnedBloodboundEnemies;
 };

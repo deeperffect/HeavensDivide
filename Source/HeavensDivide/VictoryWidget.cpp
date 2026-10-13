@@ -19,15 +19,8 @@ void UVictoryWidget::NativeOnInitialized()
 
 void UVictoryWidget::BuildVictoryScreen()
 {
-    auto* Stack = BuildPromptPanel(TEXT("VictoryTitle"), FText::FromString(TEXT("VICTORY")), FVector2D(900, 600));
+    auto* Stack = BuildRunPanel(TEXT("VictoryTitle"), FText::FromString(TEXT("VICTORY")), true);
     if (!Stack) return;
-    if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr)
-    {
-        auto* Spoils = AddPromptText(Stack, TEXT("SoulEmberReward"), FText::FromString(FString::Printf(TEXT("RUN SPOILS\n+%d EMBERS  /  +%d SOUL SIGILS%s"),
-            Meta->GetRunEmbers(), Meta->GetRunSigils(), Meta->HasPendingSkillReward() ? TEXT("\nSaving rewards...") : TEXT(""))), false, 24);
-        Spoils->SetWrapTextAt(700.f);
-        Spoils->SetAutoWrapText(true);
-    }
     auto* Actions = WidgetTree->ConstructWidget<UHorizontalBox>();
     PromptActions->AddChildToVerticalBox(Actions);
     NewRunButton = AddPromptButton(Actions, FText::FromString(TEXT("NEW RUN")), TEXT("NewRunButton"));

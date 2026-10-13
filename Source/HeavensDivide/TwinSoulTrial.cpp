@@ -1,6 +1,7 @@
+#include "TwinSoulTrial.h"
+#include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "TwinSoulTrial.h"
 
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
@@ -219,6 +220,7 @@ void ATwinSoulTrial::ReturnPlayerToArena()
 		ActiveCharacter->SetActorTransform(ReturnTransform, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 	if (MainSpawner) MainSpawner->SetTrialSuspended(false);
+	RunReports::ObjectiveCompleted(this);
 	TrialState = ETwinSoulTrialState::Completed;
 	MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);
 	if (PlayerController) PlayerController->EndObjective(this);

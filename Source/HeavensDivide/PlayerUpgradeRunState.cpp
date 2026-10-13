@@ -1,4 +1,5 @@
 #include "PlayerUpgradeComponent.h"
+#include "InactiveCharacterAssistComponent.h"
 #include "BarrageBuild.h"
 #include "ShurikenBuild.h"
 #include "CharacterManagerComponent.h"
@@ -6,6 +7,9 @@
 #include "PlayerUpgradeRules.h"
 #include "SamuraiCharacter.h"
 #include "SurvivorPlayerController.h"
+#include "RunLoadoutSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Engine/World.h"
 
 using namespace PlayerUpgradeRules;
 
@@ -23,6 +27,8 @@ void UPlayerUpgradeComponent::CaptureRunState(FPlayerUpgradeRunState& OutState) 
 
 void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& State)
 {
+	auto* Assist = GetOwner() ? GetOwner()->FindComponentByClass<UInactiveCharacterAssistComponent>() : nullptr;
+	if (Assist) Assist->DeactivateAssistEffect(true);
 	if (auto* PC = Cast<ASurvivorPlayerController>(GetOwner()); PC && PC->GetCharacterManager())
 		if (auto* Samurai = PC->GetCharacterManager()->GetSamurai())
 			Samurai->ClearBloodRush();
@@ -101,6 +107,27 @@ void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& Stat
 			UpgradeLevels[Id] = FMath::Clamp(UpgradeLevels[Id], 0, UpgradeRankLimit(Current));
 		}
 	}
+	// A stale or future snapshot cannot exceed the normal five-slot equipment limit.
+	if (BalancePreviewMetaProfile < 0)
+	{
+		TArray<FName> SynergyIds;
+		for (const auto& Pair : UpgradeLevels)
+		{
+			const UUpgradeDefinition* Definition = FindUpgradeDefinition(Pair.Key);
+			if (!Definition) Definition = AcquiredUpgradeDefinitions.FindRef(Pair.Key);
+			if (Pair.Value > 0 && Definition && Definition->Category == EUpgradeCategory::Synergy) SynergyIds.Add(Pair.Key);
+		}
+		const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+		const auto* Loadout = GI ? GI->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+		const TArray<FName> Selected = Loadout ? Loadout->GetSelectedSynergies() : TArray<FName>{};
+		SynergyIds.Sort([&Selected](FName A,FName B)
+		{
+			const int32 AIndex = Selected.IndexOfByKey(A), BIndex = Selected.IndexOfByKey(B);
+			if ((AIndex != INDEX_NONE) != (BIndex != INDEX_NONE)) return AIndex != INDEX_NONE;
+			return AIndex != BIndex ? AIndex < BIndex : A.LexicalLess(B);
+		});
+		for (int32 I = URunLoadoutSubsystem::MaxSelectedSynergies; I < SynergyIds.Num(); ++I) Remove(SynergyIds[I]);
+	}
 	NormalizeSamuraiTradeoffUpgrades();
 	SamuraiMasteryPoints = FMath::Max(0, State.SamuraiMastery);
 	NinjaMasteryPoints = FMath::Max(0, State.NinjaMastery);
@@ -108,6 +135,9 @@ void UPlayerUpgradeComponent::RestoreRunState(const FPlayerUpgradeRunState& Stat
 	BanishesUsed = FMath::Clamp(State.BanishesUsed, 0, 2);
 	ClearCurrentOffer();
 	RebuildAllUpgradeModifiers();
+	// Snapshot restoration does not broadcast upgrade-acquired events. Rebind
+	// Tag Team explicitly, including arena arrivals that keep Samurai active.
+	if (Assist) Assist->RefreshAssistEffectState();
 }
 
 void UPlayerUpgradeComponent::ConvertSamuraiScalingUpgrades()

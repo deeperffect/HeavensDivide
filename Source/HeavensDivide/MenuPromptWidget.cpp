@@ -1,4 +1,10 @@
 #include "MenuPromptWidget.h"
+#include "BloodshiftMenuStyle.h"
+#include "RunReportView.h"
+#include "SurvivorPlayerController.h"
+#include "SynergyMetaProgressionSubsystem.h"
+#include "Engine/GameInstance.h"
+#include "Components/NativeWidgetHost.h"
 
 #include "MainMenuWidget.h"
 #include "MenuInkStyle.h"
@@ -100,6 +106,17 @@ UVerticalBox* UMenuPromptWidget::BuildPromptPanel(FName TitleName, const FText& 
 UButton* UMenuPromptWidget::AddPromptButton(UHorizontalBox* Parent, const FText& Label, FName WidgetName)
 {
 	UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), WidgetName);
+	if (bRunPanel)
+	{
+		Button->SetStyle(BloodshiftMenu::ActionStyle());
+		auto* Text = WidgetTree->ConstructWidget<UTextBlock>();
+		Text->SetText(Label); Text->SetFont(BloodshiftMenu::BodyFont(16));
+		Text->SetColorAndOpacity(FSlateColor::UseForeground()); Text->SetJustification(ETextJustify::Center);
+		Button->SetContent(Text);
+		auto* ButtonSlot = Parent->AddChildToHorizontalBox(Button);
+		ButtonSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill)); ButtonSlot->SetPadding(FMargin(6, 0));
+		return Button;
+	}
 	const UMainMenuWidget* Menu = MenuStyleClass.GetDefaultObject();
 	FSlateBrush Empty;
 	Empty.DrawAs = ESlateBrushDrawType::NoDrawType;
@@ -144,6 +161,44 @@ UButton* UMenuPromptWidget::AddPromptButton(UHorizontalBox* Parent, const FText&
 	return Button;
 }
 
+UVerticalBox* UMenuPromptWidget::BuildRunPanel(FName TitleName, const FText& Heading, bool bResults)
+{
+    if (!WidgetTree || WidgetTree->RootWidget) return nullptr;
+    bRunPanel = true;
+    auto* Root = WidgetTree->ConstructWidget<UOverlay>(); WidgetTree->RootWidget = Root;
+    auto* Fade = WidgetTree->ConstructWidget<UBorder>();
+    Fade->SetBrushColor(FLinearColor(.005f, .008f, .014f, .88f));
+    auto* FadeSlot = Root->AddChildToOverlay(Fade); FadeSlot->SetHorizontalAlignment(HAlign_Fill); FadeSlot->SetVerticalAlignment(VAlign_Fill);
+    auto* Scaler = WidgetTree->ConstructWidget<UScaleBox>(); Scaler->SetStretch(EStretch::ScaleToFit); Scaler->SetStretchDirection(EStretchDirection::DownOnly);
+    auto* ScalerSlot = Root->AddChildToOverlay(Scaler); ScalerSlot->SetHorizontalAlignment(HAlign_Fill); ScalerSlot->SetVerticalAlignment(VAlign_Fill); ScalerSlot->SetPadding(FMargin(28));
+    auto* Size = WidgetTree->ConstructWidget<USizeBox>(); Size->SetWidthOverride(1160); Scaler->SetContent(Size);
+    auto* PageStack = WidgetTree->ConstructWidget<UVerticalBox>(); Size->SetContent(PageStack);
+    auto* PanelSize = WidgetTree->ConstructWidget<USizeBox>(); PanelSize->SetHeightOverride(600);
+    auto* Layers = WidgetTree->ConstructWidget<UOverlay>(); PanelSize->SetContent(Layers); PageStack->AddChildToVerticalBox(PanelSize);
+    auto* Surface = WidgetTree->ConstructWidget<UNativeWidgetHost>(UNativeWidgetHost::StaticClass(), TEXT("RunPromptSurface"));
+    Surface->SetContent(SNew(BloodshiftMenu::SPanelSurface)); Surface->SetVisibility(ESlateVisibility::HitTestInvisible);
+    auto* SurfaceSlot = Layers->AddChildToOverlay(Surface); SurfaceSlot->SetHorizontalAlignment(HAlign_Fill); SurfaceSlot->SetVerticalAlignment(VAlign_Fill);
+    auto* Stack = WidgetTree->ConstructWidget<UVerticalBox>();
+    auto* ContentSlot = Layers->AddChildToOverlay(Stack); ContentSlot->SetHorizontalAlignment(HAlign_Fill); ContentSlot->SetVerticalAlignment(VAlign_Fill); ContentSlot->SetPadding(FMargin(38, 30));
+    auto* Title = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TitleName); Title->SetText(Heading);
+    Title->SetFont(MenuStyleClass.GetDefaultObject()->SecondaryHeadingFont); Title->SetColorAndOpacity(BloodshiftMenu::Paper);
+    Stack->AddChildToVerticalBox(Title)->SetPadding(FMargin(0, 0, 0, 20));
+    auto* Divider = WidgetTree->ConstructWidget<UNativeWidgetHost>(); Divider->SetContent(SNew(BloodshiftMenu::SOrnamentDivider));
+    auto* DividerSize = WidgetTree->ConstructWidget<USizeBox>(); DividerSize->SetHeightOverride(1); DividerSize->SetContent(Divider);
+    Stack->AddChildToVerticalBox(DividerSize)->SetPadding(FMargin(0, 0, 0, 24));
+    auto* Host = WidgetTree->ConstructWidget<UNativeWidgetHost>(UNativeWidgetHost::StaticClass(), TEXT("RunReportHost"));
+    auto* Report = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunReportSubsystem>() : nullptr;
+    Host->SetContent(SNew(SRunReportView).Report(Report).Controller(Cast<ASurvivorPlayerController>(GetOwningPlayer())).Results(bResults));
+    Stack->AddChildToVerticalBox(Host)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+    PromptActions = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("PromptActions"));
+    PageStack->AddChildToVerticalBox(PromptActions)->SetPadding(FMargin(0, 20, 0, 0));
+    if (bResults)
+        if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr)
+            AddPromptText(PromptActions, TEXT("SoulEmberReward"), FText::FromString(FString::Printf(TEXT("RUN SPOILS  +%d EMBERS  /  +%d SOUL SIGILS%s"),
+                Meta->GetRunEmbers(), Meta->GetRunSigils(), Meta->HasPendingSkillReward() ? TEXT("  ·  Saving rewards…") : TEXT(""))), false, 10);
+    return Stack;
+}
+
 UTextBlock* UMenuPromptWidget::AddPromptText(UVerticalBox* Parent, FName Name, const FText& Text, bool bEmphasis, float BottomPadding)
 {
     const auto* Style = MenuStyleClass.GetDefaultObject();
@@ -152,7 +207,8 @@ UTextBlock* UMenuPromptWidget::AddPromptText(UVerticalBox* Parent, FName Name, c
     Block->SetJustification(ETextJustify::Center);
     const FSlateFontInfo& Font = bEmphasis ? Style->SecondaryHeadingFont : Style->SecondaryBodyFont;
     if (Font.Size > 0) Block->SetFont(Font);
-    Block->SetColorAndOpacity(bEmphasis ? Style->SecondaryHeadingColor : Style->SecondaryBodyColor);
+    if (bRunPanel) Block->SetFont(BloodshiftMenu::BodyFont(14));
+    Block->SetColorAndOpacity(bRunPanel ? BloodshiftMenu::Muted : bEmphasis ? Style->SecondaryHeadingColor : Style->SecondaryBodyColor);
     Parent->AddChildToVerticalBox(Block)->SetPadding(FMargin(0, 0, 0, BottomPadding));
     return Block;
 }

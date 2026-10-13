@@ -1,3 +1,5 @@
+#include "RunReportSubsystem.h"
+#include "RunLoadoutSubsystem.h"
 #include "CharacterBase.h"
 #include "CharacterStatsComponent.h"
 #include "EnemyBase.h"
@@ -30,6 +32,8 @@ void ACharacterBase::ExecuteComboAbility_Implementation(float Radius, float Dama
         auto* Enemy = Cast<AEnemyBase>(Hit.GetActor());
         if (!IsValid(Enemy) || Enemy->IsDead() || Seen.Contains(Enemy)) continue;
         Seen.Add(Enemy);
+    const auto* Loadout = PC->GetGameInstance() ? PC->GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+        FRunDamageScope DamageScope(Loadout && !Loadout->GetSelectedComboAbility().IsNone() ? Loadout->GetSelectedComboAbility() : FName(TEXT("ComboAbility")));
         Enemy->ApplyPlayerDamage(Damage * Power, Source);
     }
 }

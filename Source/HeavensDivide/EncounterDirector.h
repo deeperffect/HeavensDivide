@@ -17,9 +17,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters") TSubclassOf<ATacticalEnemy> MarchingEnemyClass;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters") TSubclassOf<AHealingUrn> HealingUrnClass;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Magnet") TSubclassOf<AHealingUrn> MagnetUrnClass;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Magnet", meta=(ClampMin="0")) float FirstMagnetSeconds=75;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Magnet", meta=(ClampMin="10")) float MagnetIntervalMin=100;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Magnet", meta=(ClampMin="10")) float MagnetIntervalMax=140;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Magnet", meta=(ClampMin="0")) float FirstMagnetSeconds=150;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Magnet", meta=(ClampMin="10")) float MagnetIntervalMin=200;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Magnet", meta=(ClampMin="10")) float MagnetIntervalMax=280;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Healing", meta=(ClampMin="0")) float FirstUrnSeconds=36;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Healing", meta=(ClampMin="10")) float UrnIntervalMin=76;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters|Healing", meta=(ClampMin="10")) float UrnIntervalMax=110;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters") float FirstMarchSeconds=95;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters") float MarchIntervalMin=65;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Encounters") float MarchIntervalMax=95;
@@ -35,7 +38,7 @@ private:
     TArray<TWeakObjectPtr<ATacticalEnemy>> Marchers;
     TArray<TWeakObjectPtr<AHealingUrn>> Urns;
     TArray<TWeakObjectPtr<AHealingUrn>> MagnetUrns;
-    float NextMarch=0, NextUrn=18, NextMagnet=75;
+    float NextMarch=0, NextUrn=36, NextMagnet=150;
     float WallTimes[2]={150,330};
     int32 WallWindow=0;
     float NextWallAttempt=0, NextCircle=75;

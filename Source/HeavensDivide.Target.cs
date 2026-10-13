@@ -11,5 +11,6 @@ public class HeavensDivideTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V7;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		ExtraModuleNames.Add("HeavensDivide");
+		ProjectDefinitions.Add("UE_PROJECT_STEAMSHIPPINGID=5283180");
 	}
 }

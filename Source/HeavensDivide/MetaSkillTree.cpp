@@ -146,7 +146,10 @@ int32 MetaSkillTree::Rank(const UHeavensDivideMetaSaveGame& Save, FName Id)
 int32 MetaSkillTree::Cost(const UHeavensDivideMetaSaveGame& Save, FName Id)
 {
 	const FMetaSkillNode* N = Find(Id);
-	return N && Rank(Save, Id) < N->MaxRank ? N->BaseCost * (Rank(Save, Id) + 1) : 0;
+	if (!N || Rank(Save, Id) >= N->MaxRank) return 0;
+	// Every permanent purchase costs three times its original catalog price.
+	// Apply this to authored and fallback catalogs alike; recorded old spend stays exact.
+	return static_cast<int32>(FMath::Clamp<int64>(int64(N->BaseCost) * (Rank(Save, Id) + 1) * 3, 0, MAX_int32));
 }
 FString MetaSkillTree::PurchaseBlock(const UHeavensDivideMetaSaveGame& Save, FName Id)
 {

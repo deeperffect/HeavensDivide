@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "GameOverWidget.h"
+#include "RunReportSubsystem.h"
 #include "SynergyMetaProgressionSubsystem.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -22,17 +23,9 @@ void UGameOverWidget::NativeOnInitialized()
 
 void UGameOverWidget::BuildGameOverScreen()
 {
-    auto* Stack = BuildPromptPanel(TEXT("RunOverTitle"), FText::FromString(TEXT("RUN OVER")), FVector2D(900, 600));
+    auto* Stack = BuildRunPanel(TEXT("RunOverTitle"), FText::FromString(TEXT("RUN OVER")), true);
     if (!Stack) return;
-    AddPromptText(Stack, TEXT("TimeSurvivedLabel"), FText::FromString(TEXT("TIME SURVIVED")), false, 7);
-    FinalRunTimeText = AddPromptText(Stack, TEXT("FinalRunTimeText"), FText::FromString(TEXT("00:00")), true, 24);
-    if (auto* Meta = GetGameInstance() ? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr)
-    {
-        auto* Spoils = AddPromptText(Stack, TEXT("SoulEmberReward"), FText::FromString(FString::Printf(TEXT("RUN SPOILS\n+%d EMBERS  /  +%d SOUL SIGILS%s"),
-            Meta->GetRunEmbers(), Meta->GetRunSigils(), Meta->HasPendingSkillReward() ? TEXT("\nSaving rewards...") : TEXT(""))), false, 24);
-        Spoils->SetWrapTextAt(700.f);
-        Spoils->SetAutoWrapText(true);
-    }
+    FinalRunTimeText = AddPromptText(PromptActions, TEXT("FinalRunTimeText"), FText::FromString(TEXT("00:00")), false, 8);
     auto* Actions = WidgetTree->ConstructWidget<UHorizontalBox>();
     PromptActions->AddChildToVerticalBox(Actions);
     RestartRunButton = AddPromptButton(Actions, FText::FromString(TEXT("RESTART RUN")), TEXT("RestartRunButton"));
@@ -44,6 +37,8 @@ void UGameOverWidget::BuildGameOverScreen()
 void UGameOverWidget::InitializeGameOver(ASurvivorPlayerController* InPlayerController, float FinalRunTimeSeconds)
 {
 	SurvivorPlayerController = InPlayerController;
+	if (const auto* Report = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunReportSubsystem>() : nullptr)
+		if (Report->Summary().RunId.IsValid()) FinalRunTimeSeconds = static_cast<float>(Report->Summary().Seconds);
 	if (FinalRunTimeText) FinalRunTimeText->SetText(UPlayerHUDWidget::FormatRunTimeText(FinalRunTimeSeconds));
 	if (RestartRunButton) RestartRunButton->SetKeyboardFocus();
 }

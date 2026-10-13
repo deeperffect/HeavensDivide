@@ -72,6 +72,9 @@ protected:
 	TObjectPtr<USoundBase> PickupSound;
 
 private:
+	friend class UExperienceDropSubsystem;
+	friend class FXPRewardGroupingTest;
+	int32 EnemyRewardContributions = 0;
 	friend class FEliteRewardTest;
 	friend class FExperiencePickupMotionTest;
 	friend class FMagnetRewardTest;

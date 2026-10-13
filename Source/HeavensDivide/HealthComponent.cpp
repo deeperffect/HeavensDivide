@@ -1,6 +1,7 @@
+#include "HealthComponent.h"
+#include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "HealthComponent.h"
 #include "CombatAudio.h"
 #include "Engine/World.h"
 #include "SurvivorPlayerController.h"
@@ -67,6 +68,7 @@ void UHealthComponent::ApplyDamage(float DamageAmount)
 		return;
 	}
 
+	FRunDamageScope::Record(GetOwner(), ActualDamage, CurrentHealth <= 0.f);
 	LastAcceptedDamageTime = Now;
 	LogDamageDebug(TEXT("Accepted"), DamageAmount, PreviousHealth, CurrentHealth);
     if (GetOwner() && GetOwner()->IsA<ASurvivorPlayerController>())

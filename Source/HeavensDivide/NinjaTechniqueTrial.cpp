@@ -1,4 +1,5 @@
 #include "NinjaTechniqueTrial.h"
+#include "RunReportSubsystem.h"
 
 #include "AutoAttackComponent.h"
 #include "CharacterBase.h"
@@ -243,6 +244,7 @@ void ANinjaTechniqueTrial::HandleRewardCompleted()
 	if (TrialState != ENinjaTrialState::AwaitingReward) return;
 	TrialState = ENinjaTrialState::Returning;
 	RestoreGameplayState(true);
+	RunReports::ObjectiveCompleted(this);
 	TrialState = ENinjaTrialState::Completed;
 	MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);
 }

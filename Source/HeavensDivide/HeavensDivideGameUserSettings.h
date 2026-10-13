@@ -7,6 +7,7 @@
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCameraShakeIntensityChanged, float);
 DECLARE_MULTICAST_DELEGATE(FOnKeybindingsChanged);
+DECLARE_MULTICAST_DELEGATE(FOnAudioVolumesChanged);
 
 UCLASS()
 class HEAVENSDIVIDE_API UHeavensDivideGameUserSettings : public UGameUserSettings
@@ -20,6 +21,13 @@ public:
     float GetMasterVolume() const { return FMath::IsFinite(MasterVolume) ? FMath::Clamp(MasterVolume, 0.f, 1.f) : 1.f; }
     UFUNCTION(BlueprintCallable, Category="Settings|Audio")
     void SetMasterVolume(float Volume);
+    FOnAudioVolumesChanged OnAudioVolumesChanged;
+    UFUNCTION(BlueprintPure, Category="Settings|Audio")
+    float GetMusicVolume() const { return FMath::IsFinite(MusicVolume) ? FMath::Clamp(MusicVolume,0.f,1.f) : 1.f; }
+    UFUNCTION(BlueprintPure, Category="Settings|Audio")
+    float GetSoundEffectsVolume() const { return FMath::IsFinite(SoundEffectsVolume) ? FMath::Clamp(SoundEffectsVolume,0.f,1.f) : 1.f; }
+    UFUNCTION(BlueprintCallable, Category="Settings|Audio") void SetMusicVolume(float Volume);
+    UFUNCTION(BlueprintCallable, Category="Settings|Audio") void SetSoundEffectsVolume(float Volume);
 	FOnKeybindingsChanged OnKeybindingsChanged;
 	static TArray<FName> GetBindableActions();
 	static FKey GetDefaultBinding(FName Action);
@@ -42,6 +50,8 @@ public:
 
 private:
     UPROPERTY(Config) float MasterVolume = 1.f;
+    UPROPERTY(Config) float MusicVolume = 1.f;
+    UPROPERTY(Config) float SoundEffectsVolume = 1.f;
 	UPROPERTY(Config) TMap<FName,FKey> KeybindOverrides;
 	UPROPERTY(Config) float CameraShakeIntensity = 1.0f;
 	UPROPERTY(Config)

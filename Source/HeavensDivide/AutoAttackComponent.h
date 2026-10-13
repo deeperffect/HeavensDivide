@@ -44,6 +44,8 @@ USTRUCT()
 struct FAutoAttackRunState
 {
 	GENERATED_BODY()
+    friend class FCombatBugRegressionTest;
+    friend class FMenuMovementRegressionTest;
 	UPROPERTY() int32 DoubleCutCounter = 0;
 	UPROPERTY() bool bDoubleCutReady = false;
 	UPROPERTY() int32 FanOfBladesCounter = 0;
@@ -111,6 +113,8 @@ public:
 	bool IsProjectileAttack() const;
     bool UsesRangedAssistPlacement() const;
 	bool IsTargetInCurrentMeleeReach(const AEnemyBase* TargetEnemy) const;
+	FName AssistDamageSource = TEXT("TagTeam");
+    float AssistCommittedDuration = 0.f;
 	bool TryStartAssistAttack(AEnemyBase*& OutTargetEnemy, float& OutExpectedDuration);
 	bool TryStartAssistAttackAtTarget(AEnemyBase* TargetEnemy, float& OutExpectedDuration);
 

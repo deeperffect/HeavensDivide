@@ -4,6 +4,9 @@
 #include "AttackProjectileBase.h"
 #include "EngineUtils.h"
 #include "InactiveCharacterAssistComponent.h"
+#include "FinalBossBase.h"
+#include "RunTravelSubsystem.h"
+#include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
 #include "SurvivorPlayerController.h"
 #include "CharacterManagerComponent.h"
@@ -18,6 +21,9 @@
 #include "EnemyStatusEffectComponent.h"
 #include "HealthComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
+#include "Engine/GameInstance.h"
 #include "Engine/Engine.h"
 #include "Engine/World.h"
 #include "UObject/UnrealType.h"
@@ -279,6 +285,90 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
         for (TActorIterator<ANinjaBuildProjectile> It(World); It; ++It) if (!Before.Contains(*It)) It->Destroy();
         for (TActorIterator<AAttackProjectileBase> It(World); It; ++It) if (!Before.Contains(*It)) It->Destroy();
     }
+    // Reproduce the arena handoff: upgrades are restored without acquisition
+    // events, and keeping Samurai active does not perform a swap to refresh assists.
+    auto* Travel = NewObject<URunTravelSubsystem>(NewObject<UGameInstance>(GEngine));
+    auto* Floor = World->SpawnActor<AActor>();
+    auto* FloorBox = NewObject<UBoxComponent>(Floor);
+    Floor->SetRootComponent(FloorBox);
+    FloorBox->SetBoxExtent(FVector(2500, 2500, 10));
+    FloorBox->SetCollisionProfileName(TEXT("BlockAll"));
+    FloorBox->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Block);
+    FloorBox->RegisterComponent();
+    Floor->SetActorLocation(FVector(40000, 0, 170)); // The collision surface is exactly Z=180.
+    Ninja->GetCapsuleComponent()->SetCapsuleHalfHeight(110);
+    auto* Boss = World->SpawnActor<AFinalBossBase>(FVector(40800, 0, 630), FRotator::ZeroRotator, Params);
+    if (TestNotNull(TEXT("Large boss assist target"), Boss))
+    {
+        Boss->ConfigureObjectiveEnemy(10000, EPlayerAttackSource::Other, nullptr, FLinearColor::White);
+        Boss->GetCapsuleComponent()->SetCapsuleSize(320, 450);
+        Samurai->SwapPresentation->bEnabled = false;
+        Ninja->SwapPresentation->bEnabled = false;
+        for (bool bNinjaActive : {false, true})
+        {
+            Upgrades->RestoreRunState(Empty);
+            Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("BattleStance")));
+            Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("BarrageStance")));
+            Upgrades->AcquireUpgrade(Upgrades->FindUpgradeDefinition(TEXT("TagTeam")));
+            ACharacterBase* SavedActive = bNinjaActive ? static_cast<ACharacterBase*>(Ninja) : Samurai;
+            SetParty(TEXT("ActiveCharacter"), SavedActive);
+            Samurai->SetCharacterMode(bNinjaActive ? ECharacterMode::Inactive : ECharacterMode::Active);
+            Ninja->SetCharacterMode(bNinjaActive ? ECharacterMode::Active : ECharacterMode::Inactive);
+            SavedActive->SetActorLocation(FVector(40000, 0, 180 + SavedActive->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+            PC->Possess(SavedActive);
+            TestTrue(TEXT("Arena travel captures equipped Tag Team"), Travel->CaptureFromController(PC));
+            Upgrades->RestoreRunState(Empty);
+            TestFalse(TEXT("Empty snapshot disables old Tag Team bindings"), Assist->bAssistEffectActive);
+            SetParty(TEXT("ActiveCharacter"), Samurai);
+            Samurai->SetCharacterMode(ECharacterMode::Active);
+            Ninja->SetCharacterMode(ECharacterMode::Inactive);
+            Samurai->SetActorLocation(FVector(40000, 0, 180 + Samurai->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()));
+            PC->Possess(Samurai);
+            TestTrue(TEXT("Arena travel restores the run"), Travel->RestoreToController(PC));
+            TestTrue(TEXT("Restored Tag Team is enabled without a new upgrade"), Assist->bAssistEffectActive);
+            TestTrue(TEXT("Restored active character is correct"), Manager->GetActiveCharacter() == SavedActive);
+            auto* Assistant = Manager->GetInactiveCharacter();
+            auto* ActiveAttack = SavedActive->FindComponentByClass<UAutoAttackComponent>();
+            auto* AssistantAttack = Assistant->FindComponentByClass<UAutoAttackComponent>();
+            Assistant->SetActorLocation(FVector(0, 0, -6000));
+            SamuraiAttack->StopAutoAttack();
+            NinjaAttack->StopAutoAttack();
+            Boss->GetHealthComponent()->RestoreCurrentHealth(10000);
+            for (int32 I = 0; I < Assist->AttacksPerAssist; ++I)
+                ActiveAttack->OnAutoAttack.Broadcast(ActiveAttack, EAutoAttackSource::NormalAutoAttack);
+            TestTrue(TEXT("Restored counter triggers against a boss"), Assist->bAssistActive);
+            TestTrue(TEXT("Assist selects the boss"), AssistantAttack->CurrentAttackTarget == Boss);
+            // Possession can lift the player's capsule slightly off the floor.
+            // Compare against the fixture's actual surface, not that stand-off.
+            const double ExpectedZ = 180.0 + Assistant->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+            TestEqual(TEXT("Assist uses current floor height rather than stale hidden pawn height"),
+                Assistant->GetActorLocation().Z, ExpectedZ + 2.f, .01);
+            if (bNinjaActive)
+            {
+                TestTrue(TEXT("Melee assist stays outside the large boss capsule"),
+                    FVector::Dist2D(Assistant->GetActorLocation(), Boss->GetActorLocation()) >
+                    Boss->GetCapsuleComponent()->GetScaledCapsuleRadius() + Assistant->GetCapsuleComponent()->GetScaledCapsuleRadius());
+                SamuraiAttack->PerformAttackTrace();
+                TestTrue(TEXT("Melee assist actually damages the large boss"), Boss->GetHealthComponent()->GetCurrentHealth() < 10000);
+                Assist->FinishCurrentAssist();
+            }
+            else
+            {
+                Assist->DeactivateAssistEffect(false);
+                TestTrue(TEXT("Non-canceling deactivation preserves assist cleanup"), World->GetTimerManager().IsTimerActive(Assist->AssistCleanupTimerHandle));
+                // A timer created before this fixture's first timer tick is
+                // pending until that tick; advance it before measuring expiry.
+                ++GFrameCounter;
+                World->GetTimerManager().Tick(.01f);
+                const float Remaining = World->GetTimerManager().GetTimerRemaining(Assist->AssistCleanupTimerHandle);
+                ++GFrameCounter;
+                World->GetTimerManager().Tick(FMath::Max(.01f, Remaining) + .1f);
+                TestFalse(TEXT("An allowed assist finishes after deactivation"), Assist->bAssistActive);
+                TestEqual(TEXT("Completed assistant returns to inactive"), Assistant->GetCharacterMode(), ECharacterMode::Inactive);
+            }
+        }
+    }
+    Assist->DeactivateAssistEffect(true);
     World->DestroyWorld(false); GEngine->DestroyWorldContext(World);
     return !HasAnyErrors();
 }

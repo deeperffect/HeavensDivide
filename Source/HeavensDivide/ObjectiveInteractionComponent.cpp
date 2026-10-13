@@ -138,7 +138,7 @@ void UObjectiveInteractionComponent::InitializePrompt()
 	SetWidgetClass(nullptr);
 	SetHiddenInGame(true);
 	SetVisibility(false);
-	if (PlayerController)
+	if (PlayerController && PlayerController->IsLocalController() && PlayerController->GetLocalPlayer())
 	{
 		ViewportPrompt = CreateWidget<UBloodShrineWidget>(PlayerController, UBloodShrineWidget::StaticClass());
 		if (ViewportPrompt)

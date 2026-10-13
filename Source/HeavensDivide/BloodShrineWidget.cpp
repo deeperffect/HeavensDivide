@@ -8,6 +8,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Fonts/SlateFontInfo.h"
 
 TSharedRef<SWidget> UBloodShrineWidget::RebuildWidget()
 {
@@ -80,10 +81,15 @@ void UBloodShrineWidget::ConfigureForWorldSpace()
 void UBloodShrineWidget::ShowChallenge(int32 CurrentBlood, int32 RequiredBlood, float TimeRemaining)
 {
 	if (KeyText) KeyText->SetVisibility(EVisibility::Collapsed);
+	if (ProgressText)
+	{
+		ProgressText->SetFont(FSlateFontInfo(LoadObject<UObject>(nullptr,TEXT("/Game/Assets/Fonts/Cinzel-Medium_Font.Cinzel-Medium_Font")),32,TEXT("Default")));
+		ProgressText->SetColorAndOpacity(FLinearColor(1.f,.88f,.59f));
+	}
 	SetVisibility(ESlateVisibility::HitTestInvisible);
 	SetLines(
-		FText::FromString(TEXT("BLOOD SHRINE")),
-		FText::FromString(FString::Printf(TEXT("Blood: %d / %d"), CurrentBlood, RequiredBlood)),
+		FText::GetEmpty(),
+		FText::FromString(FString::Printf(TEXT("%d/%d"), CurrentBlood, RequiredBlood)),
 		FText::FromString(FString::Printf(TEXT("Time: %.1f"), FMath::Max(0.0f, TimeRemaining))));
 }
 
@@ -101,7 +107,11 @@ void UBloodShrineWidget::HideStatus()
 
 void UBloodShrineWidget::SetLines(const FText& Header, const FText& Progress, const FText& Time)
 {
-	if (HeaderText) HeaderText->SetText(Header);
+	if (HeaderText)
+	{
+		HeaderText->SetText(Header);
+		HeaderText->SetVisibility(Header.IsEmpty()?EVisibility::Collapsed:EVisibility::Visible);
+	}
 	if (ProgressText) ProgressText->SetText(Progress);
 	if (TimeText) TimeText->SetText(Time);
 }

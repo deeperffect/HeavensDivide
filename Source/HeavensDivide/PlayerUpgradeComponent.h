@@ -67,6 +67,9 @@ UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class HEAVENSDIVIDE_API UPlayerUpgradeComponent : public UActorComponent
 {
 	GENERATED_BODY()
+	friend class URunLoadoutSubsystem;
+	friend class FRunLoadoutSelectionTest;
+	bool bGrantingStartingSynergy = false;
 
 public:
 	UFUNCTION(BlueprintPure, Category="Upgrades|Draft") int32 GetRerollsRemaining() const;

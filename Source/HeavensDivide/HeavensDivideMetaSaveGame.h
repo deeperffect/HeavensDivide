@@ -17,6 +17,8 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
 	TArray<FName> UnlockedStanceIds;
+    /** Highest selectable rank per map/modifier; missing entries mean rank zero. */
+    UPROPERTY() TMap<FName,int32> UnlockedDifficultyRanks;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Meta Progression")
 	int32 SoulSigils = 0;

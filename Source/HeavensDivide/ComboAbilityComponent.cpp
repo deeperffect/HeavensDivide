@@ -18,6 +18,8 @@
 #include "SwapPresentationComponent.h"
 #include "SurvivorAbilityComponent.h"
 #include "PlayerUpgradeComponent.h"
+#include "RunLoadoutSubsystem.h"
+#include "Engine/GameInstance.h"
 
 UComboAbilityComponent::UComboAbilityComponent()
 {
@@ -44,8 +46,8 @@ void UComboAbilityComponent::EndPlay(const EEndPlayReason::Type Reason)
 }
 
 float UComboAbilityComponent::GetMaxCombo() const { return FMath::IsFinite(MaxCombo) ? FMath::Max(1.f, MaxCombo) : 100.f; }
-float UComboAbilityComponent::GetComboPercent() const { return IsComboUnlocked() ? FMath::Clamp(CurrentCombo / GetMaxCombo(), 0.f, 1.f) : 0.f; }
-bool UComboAbilityComponent::IsFull() const { return IsComboUnlocked() && CurrentCombo >= GetMaxCombo(); }
+float UComboAbilityComponent::GetComboPercent() const { return IsComboEquipped() ? FMath::Clamp(CurrentCombo / GetMaxCombo(), 0.f, 1.f) : 0.f; }
+bool UComboAbilityComponent::IsFull() const { return IsComboEquipped() && CurrentCombo >= GetMaxCombo(); }
 bool UComboAbilityComponent::IsComboUnlocked() const
 {
     const auto* PC=Cast<ASurvivorPlayerController>(GetOwner());
@@ -53,10 +55,21 @@ bool UComboAbilityComponent::IsComboUnlocked() const
     // The explicit BalanceLab full-meta profile supplies this bonus without editing the player's save.
     return Upgrades && Upgrades->GetMetaSkillBonus(TEXT("ComboUnlock"))>0.f;
 }
+bool UComboAbilityComponent::IsComboEquipped() const
+{
+    if (!IsComboUnlocked()) return false;
+    const auto* PC = Cast<ASurvivorPlayerController>(GetOwner());
+    const auto* Upgrades = PC ? PC->GetPlayerUpgrades() : nullptr;
+    // BalanceLab's full-meta preview can exercise the ability without modifying menu equipment.
+    if (Upgrades && Upgrades->BalancePreviewMetaProfile >= 0) return true;
+    const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+    const auto* Loadout = GI ? GI->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+    return Loadout && Loadout->GetSelectedComboAbility() == TEXT("SoulConvergence");
+}
 bool UComboAbilityComponent::CanRun() const
 {
     const auto* PC = Cast<ASurvivorPlayerController>(GetOwner());
-    return PC && PC->IsRunInProgress() && !PC->IsPlayerDead() && IsComboUnlocked();
+    return PC && PC->IsRunInProgress() && !PC->IsPlayerDead() && IsComboEquipped();
 }
 void UComboAbilityComponent::SetCombo(float Amount)
 {
@@ -65,7 +78,7 @@ void UComboAbilityComponent::SetCombo(float Amount)
     CurrentCombo = Value;
     OnComboChanged.Broadcast(CurrentCombo, GetMaxCombo(), GetComboPercent());
 }
-void UComboAbilityComponent::RestoreCombo(float Amount) { SetCombo(IsComboUnlocked()?Amount:0.f); }
+void UComboAbilityComponent::RestoreCombo(float Amount) { SetCombo(IsComboEquipped()?Amount:0.f); }
 void UComboAbilityComponent::AddCombo(float Amount)
 {
     if (CanRun() && FMath::IsFinite(Amount) && Amount > 0.f)
@@ -82,7 +95,7 @@ void UComboAbilityComponent::HandleSwap(ACharacterBase* OldCharacter, ACharacter
 }
 void UComboAbilityComponent::HandleAssist(ACharacterBase* Assistant, ACharacterBase* Active, AEnemyBase* Target)
 {
-    if (Assistant && Active && Target) NotifySynergyAttack();
+    if (Assistant && Active && Target) AddCombo(AssistGain);
 }
 bool UComboAbilityComponent::CanActivateAbility() const
 {

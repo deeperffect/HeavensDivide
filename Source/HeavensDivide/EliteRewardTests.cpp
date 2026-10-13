@@ -25,14 +25,21 @@ bool FEliteRewardTest::RunTest(const FString&)
  World->SetGameInstance(NewObject<UGameInstance>(GEngine));World->SetGameMode(FURL());
  World->InitializeActorsForPlay(FURL());
  auto* XP=NewObject<UExperienceComponent>(World);
- XP->RestoreRunState(20,0);
+ // Keep even a maximum jackpot below the next-level threshold in this
+ // conservation fixture; leveling itself is covered by the XP suite.
+ XP->RestoreRunState(50,0);
  auto* Chest=World->SpawnActor<AEliteRewardChest>();
  TestNotNull(TEXT("Chest skeletal mesh is packaged"),Chest->ChestMesh->GetSkinnedAsset());
  TestNotNull(TEXT("Golden loot Niagara exists"),Chest->RewardGlow->GetAsset());
+ TestNotNull(TEXT("Jackpot fanfare is packaged"),Chest->JackpotSound.Get());
+ TestTrue(TEXT("Jackpot has its own sound"),Chest->JackpotSound!=Chest->OpeningSound);
  TestTrue(TEXT("Animation runs while world is paused"),Chest->PrimaryActorTick.bTickEvenWhenPaused);
  TestTrue(TEXT("Lid hinge exists"),Chest->ChestMesh->GetBoneIndex(Chest->LidBone)!=INDEX_NONE);
  TestTrue(TEXT("Front edge of lid opens upward"),Chest->LidOpenRotation.Quaternion().RotateVector(FVector(0,-1,0)).Z>0);
  Chest->InitializeReward(123,AExperiencePickup::StaticClass(),XP,nullptr);
+ const auto Rolled=Chest->GetRolledReward();
+ Chest->InitializeReward(9999,AExperiencePickup::StaticClass(),XP,nullptr);
+ TestEqual(TEXT("Repeated initialization cannot reroll the chest"),Chest->GetRolledReward().XP,Rolled.XP);
  Chest->FinishOpening();
  int32 Count=0,Sum=0;
  TArray<AExperiencePickup*> Orbs;
@@ -43,12 +50,12 @@ bool FEliteRewardTest::RunTest(const FString&)
   TestEqual(TEXT("Airborne orb does not overlap player"),Orb->PickupCollision->GetCollisionEnabled(),ECollisionEnabled::NoCollision);
   TestFalse(TEXT("Orb does not collect before initialization"),Orb->bCollected);
  }
- TestEqual(TEXT("Shower contains forty orbs"),Count,40);
- TestEqual(TEXT("Remainder XP is conserved"),Sum,123);
+ TestEqual(TEXT("Shower contains twelve orbs"),Count,12);
+ TestEqual(TEXT("Rolled XP is conserved"),Sum,Rolled.XP);
  TestEqual(TEXT("No direct XP during opening"),XP->GetCurrentXP(),0);
  Chest->FinishOpening();
  Count=0;for(TActorIterator<AExperiencePickup> It(World);It;++It)++Count;
- TestEqual(TEXT("Repeated completion cannot duplicate reward"),Count,40);
+ TestEqual(TEXT("Repeated completion cannot duplicate reward"),Count,12);
  for(auto* Orb:Orbs)
  {
   Orb->Tick(2.f);
@@ -56,7 +63,7 @@ bool FEliteRewardTest::RunTest(const FString&)
   TestTrue(TEXT("Flight lands at traced position"),Orb->GetActorLocation().Equals(Orb->FlightLanding,.01f));
   Orb->Collect();Orb->Collect();
  }
- TestEqual(TEXT("Each orb awards XP exactly once"),XP->GetCurrentXP(),123);
+ TestEqual(TEXT("Each orb awards XP exactly once"),XP->GetCurrentXP(),Rolled.XP);
  auto* PC=World->SpawnActor<ASurvivorPlayerController>();
  auto* Local=NewObject<ULocalPlayer>(GEngine);Local->SetControllerId(0);PC->SetPlayer(Local);
  PC->PlayerState=World->SpawnActor<APlayerState>();
@@ -85,6 +92,27 @@ bool FEliteRewardTest::RunTest(const FString&)
  PC->SetPause(true);Interrupted->RestorePlayer();
  TestTrue(TEXT("Non-owner cannot release another menu's pause"),UGameplayStatics::IsGamePaused(World));
  PC->SetPause(false);
+ auto* Jackpot=World->SpawnActor<AEliteRewardChest>();
+ Jackpot->InitializeReward(123,AExperiencePickup::StaticClass(),XP,nullptr);
+ Jackpot->RolledReward={EChestRewardTier::Jackpot,800,50,8};
+ TestTrue(TEXT("Jackpot gives the reveal extra time"),FMath::IsNearlyEqual(Jackpot->GetRevealDuration(),4.8f));
+ Jackpot->Player=PC;Jackpot->bOpening=true;Jackpot->bOwnsPause=true;
+ PC->SetPause(true);
+ Jackpot->OpeningStarted=FPlatformTime::Seconds()-3.7;
+ Jackpot->LastRealTime=FPlatformTime::Seconds();Jackpot->Tick(0);
+ TestFalse(TEXT("Jackpot does not finish at the normal deadline"),Jackpot->bRewardReleased);
+ TestTrue(TEXT("Jackpot sound fires during its reveal"),Jackpot->bPlayedJackpotSound);
+ Jackpot->RequestSkipOpening();Jackpot->Tick(0);
+ TestTrue(TEXT("Skip preserves jackpot tier"),Jackpot->GetRolledReward().Tier==EChestRewardTier::Jackpot);
+ TestEqual(TEXT("Skip preserves jackpot reward"),Jackpot->GetRolledReward().XP,800);
+ Jackpot->OpeningStarted=FPlatformTime::Seconds()-5;Jackpot->Tick(0);
+ TestTrue(TEXT("Jackpot eventually pays"),Jackpot->bRewardReleased);
+ TestFalse(TEXT("Jackpot releases its pause"),UGameplayStatics::IsGamePaused(World));
+ int32 JackpotXP=0,JackpotOrbs=0;
+ for(TActorIterator<AExperiencePickup> It(World);It;++It)
+  if(It->bRewardFlight){JackpotXP+=It->XPValue;++JackpotOrbs;}
+ TestEqual(TEXT("Jackpot keeps the normal orb budget"),JackpotOrbs,12);
+ TestEqual(TEXT("Jackpot shower conserves its full reward"),JackpotXP,800);
  const auto* Gorilla=LoadClass<AEnemyBase>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/EnemyCharacters/Elites/BP_EnemyGorilla.BP_EnemyGorilla_C"));
  TestNotNull(TEXT("Gorilla blueprint"),Gorilla);
  if(Gorilla)TestEqual(TEXT("Saved Gorilla opts into shared elite reward"),Gorilla->GetDefaultObject<AEnemyBase>()->GetDropCategory(),EEnemyDropCategory::Elite);

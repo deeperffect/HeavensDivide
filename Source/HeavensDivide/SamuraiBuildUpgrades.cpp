@@ -1,3 +1,4 @@
+#include "RunReportSubsystem.h"
 #include "UpgradeBalance.h"
 #include "PlayerUpgradeComponent.h"
 #include "UpgradeProcVFX.h"
@@ -141,6 +142,7 @@ void UEnemyStatusEffectComponent::TryBloodDetonation()
 #if !UE_BUILD_SHIPPING
    if(Debug)DrawDebugLine(World,Origin,Target->GetActorLocation(),FColor::Green,false,2.f,0,2.f);
 #endif
+    FRunDamageScope DamageScope(TEXT("BloodDetonation"));
    Target->ApplyPlayerDamage(Damage,EPlayerAttackSource::Samurai);
    if(Target==OriginalVictim.Get()&&Target->IsDead())GrantBloodRush(Source);
   }

@@ -45,6 +45,12 @@ bool FGroundSlashMotionTest::RunTest(const FString&)
  Wave->InitializeBladeWave(Samurai,PC->GetPlayerUpgrades(),FVector::ForwardVector,10,300,650,1400,true);
  TestTrue(TEXT("Ground mode selected from upgrade"),Wave->bGroundSlash);
  TestTrue(TEXT("Ground trace positions visual 10cm above floor"),FMath::IsNearlyEqual(Wave->GroundAnchor.Z,10.f,.1f));
+ // Assist emission begins above the capsule, outside the old 150cm floor trace.
+ auto* HighWave=World->SpawnActor<ASamuraiBladeWave>(FVector(100,0,420),FRotator::ZeroRotator);
+ HighWave->InitializeBladeWave(Samurai,PC->GetPlayerUpgrades(),FVector::ForwardVector,10,300,650,1400,false);
+ TestTrue(TEXT("Elevated assist origin still anchors the full Niagara slash to visible ground"),FMath::IsNearlyEqual(HighWave->GroundAnchor.Z,10.f,.1f));
+ if(HighWave->AssignedVisual.IsValid()) TestTrue(TEXT("Assisted visual remains above floor"),HighWave->AssignedVisual->GetActorLocation().Z>=0);
+ HighWave->FinishWave();
  Wave->Tick(.2f);
  TestTrue(TEXT("No slowdown before delay"),FMath::IsNearlyEqual(Wave->Movement->Velocity.Size(),1400.f));
  for(int32 Step=0;Step<6;++Step) Wave->Tick(.05f);

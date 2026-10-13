@@ -12,6 +12,7 @@
 #include "CombatAudio.h"
 #include "BloodshiftBalanceData.h"
 #include "CombatGround.h"
+#include "CinderOracleBoss.h"
 
 AEncounterHazard::AEncounterHazard()
 {
@@ -42,16 +43,24 @@ AEncounterHazard::AEncounterHazard()
 }
 
 AEncounterHazard* AEncounterHazard::Spawn(AActor* Source, FVector Center, EEncounterShape Shape, float Size,
-    float Width, float Warning, float Damage, float Active, float Yaw, float Delay)
+    float Width, float Warning, float Damage, float Active, float Yaw, float Delay, bool bConstrainToArena)
 {
     if (!Source || !Source->GetWorld()) return nullptr;
     int32 Count = 0;
     for (TActorIterator<AEncounterHazard> It(Source->GetWorld()); It; ++It)
         if (!It->IsActorBeingDestroyed()) ++Count;
-    if (Count >= FMath::Clamp(UBloodshiftBalanceData::Get()->MaxActiveHazards,1,256)) return nullptr;
+    // Screen-filling boss patterns reserve capacity for their guardian casts too.
+    const ACinderOracleBoss* Boss = Cast<ACinderOracleBoss>(Source);
+    if (!Boss) Boss = Cast<ACinderOracleBoss>(Source->GetOwner());
+    const int32 Limit = Boss ? FMath::Max(UBloodshiftBalanceData::Get()->MaxActiveHazards, Boss->MaxActiveSpellHazards)
+                            : UBloodshiftBalanceData::Get()->MaxActiveHazards;
+    if (Count >= FMath::Clamp(Limit,1,256)) return nullptr;
     const float Footprint=Shape==EEncounterShape::Lane ? .5f*FMath::Sqrt(Size*Size+Width*Width) : Size;
-    Center=CombatGround::ClampInsideArena(Source->GetWorld(),Center,Footprint);
-    if (!CombatGround::IsInsideArena(Source->GetWorld(),Center,Footprint)) return nullptr;
+    if (bConstrainToArena)
+    {
+        Center=CombatGround::ClampInsideArena(Source->GetWorld(),Center,Footprint);
+        if (!CombatGround::IsInsideArena(Source->GetWorld(),Center,Footprint)) return nullptr;
+    }
     FVector Ground;
     if (CombatGround::FindSurface(Source->GetWorld(),Center,Source,Ground))
         Center.Z = Ground.Z + 4;

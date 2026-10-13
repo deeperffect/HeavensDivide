@@ -206,6 +206,7 @@ bool UNinjaBuildComponent::ReplaceVolley(FVector Direction, bool bAssist)
             if(auto* P=SpawnBlade(ENinjaProjectileKind::ReturningFang,Ninja()->GetActorLocation()+FVector(0,0,50)))
             {
                 P->bAssistProjectile=true;
+                P->AssistDamageSource=Attack()->AssistDamageSource;
                 P->AssistReturnOrigin=P->GetActorLocation();
                 P->LaunchFang();
             }
@@ -228,6 +229,7 @@ bool UNinjaBuildComponent::ReplaceVolley(FVector Direction, bool bAssist)
     if(auto* P=SpawnShuriken(Ninja()->GetActorLocation() + Direction * 65 + FVector(0, 0, 50), Direction, !bAssist))
     {
         P->bAssistProjectile=bAssist;
+        P->AssistDamageSource=A->AssistDamageSource;
         if (!bAssist && ++ShurikenThrowCount % FMath::Max(1,FMath::RoundToInt(Tune(TEXT("ShurikenTwin"),TEXT("Frequency"),4.f)-UpgradeBalance::Rank(Upgrades(), TEXT("ShurikenTwinFrequency"), 1.f))) == 0 && Has(TEXT("ShurikenTwin")))
             if (auto* Twin=SpawnShuriken(P->GetActorLocation(),Direction.RotateAngleAxis(Tune(TEXT("ShurikenTwin"),TEXT("SideAngle"),20.f),FVector::UpVector),false))
             {
@@ -308,6 +310,7 @@ void UNinjaBuildComponent::ModifyVolleyWithCounter(int32 &Count, float &Spacing,
     if (!Has(TEXT("BarrageStance")))
         return;
     ++Volley;
+    Spacing *= FMath::Max(0.f, Tune(TEXT("BarrageStance"), TEXT("SpreadMultiplier"), 1.25f));
     if (Has(TEXT("NeedleRain")) && Volley % FMath::Max(1, FMath::RoundToInt(Tune(TEXT("NeedleRain"),TEXT("Frequency"),4.f)-UpgradeBalance::Rank(Upgrades(), TEXT("BarrageRainFrequency"), 1.f))) == 0) Count = FMath::RoundToInt(Count*FMath::Max(1.f,Tune(TEXT("NeedleRain"),TEXT("ProjectileMultiplier"),2.f)));
     if (Has(TEXT("BarrageProcession"))) Spacing = 0.f;
     Count = FMath::Clamp(Count, 1, 128);

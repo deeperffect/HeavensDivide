@@ -103,6 +103,7 @@ protected:
     virtual void HandleDeath() override;
 private:
     friend class FEncounterExpansionTest;
+    friend class FBossSpellPressureTest;
     float GetEngagementRange() const;
     void BeginAbility();
     void FinishAbility();

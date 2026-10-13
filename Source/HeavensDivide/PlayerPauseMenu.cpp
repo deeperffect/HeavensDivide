@@ -1,3 +1,4 @@
+#include "RunReportSubsystem.h"
 #include "SurvivorPlayerController.h"
 #include "PauseMenuWidget.h"
 #include "CharacterBase.h"
@@ -14,6 +15,7 @@ void ASurvivorPlayerController::TogglePauseMenu()
     PauseMenu = CreateWidget<UPauseMenuWidget>(this);
     if (!PauseMenu) return;
     if (!SetPause(true)) { PauseMenu = nullptr; return; }
+    BeginMenuMovement();
     if (auto* ActivePawn = CharacterManager ? CharacterManager->GetActiveCharacter() : nullptr)
     {
         ActivePawn->ConsumeMovementInputVector();
@@ -41,11 +43,13 @@ void ASurvivorPlayerController::ResumePausedRun()
     if (!PauseMenu) return;
     ClosePauseMenu();
     ConfigureInputMode();
+    EndMenuMovement();
 }
 
 void ASurvivorPlayerController::ReturnToMenuFromPause()
 {
     if (!PauseMenu) return;
+    if (auto* Report = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunReportSubsystem>() : nullptr) Report->Abandon();
     StopRunGameplay(false);
     if (auto* Travel = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunTravelSubsystem>() : nullptr)
         Travel->ClearSnapshot();

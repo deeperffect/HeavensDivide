@@ -39,6 +39,25 @@ bool FRunChallengeTest::RunTest(const FString&)
     TestFalse(TEXT("Unknown challenge rejected"),Challenges->SetModifierRank(TEXT("Missing"),2));
     TestFalse(TEXT("Ranks above five rejected"),Challenges->SetModifierRank(TEXT("Health"),6));
     TestFalse(TEXT("Negative ranks rejected"),Challenges->SetModifierRank(TEXT("Health"),-1));
+    TMap<FName,int32> Completed;
+    for(const auto& M:RunChallenges::Modifiers())Completed.Add(M.Id,0);
+    TestFalse(TEXT("A new profile cannot skip locked difficulty"),Challenges->SetModifierRank(TEXT("Health"),1));
+    Meta->bSimulateSaveFailure=true;Meta->RecordDifficultyVictory(TEXT("FallenGrove"),Completed);
+    TestEqual(TEXT("Failed save leaves rank one locked"),Challenges->GetUnlockedRank(TEXT("Health")),0);
+    TestTrue(TEXT("Failed difficulty unlock remains pending for retry"),Meta->HasPendingSkillReward());
+    Meta->bSimulateSaveFailure=false;Meta->RetrySkillReward();
+    TestEqual(TEXT("Retried victory opens rank one"),Challenges->GetUnlockedRank(TEXT("Health")),1);
+    Meta->LoadMetaProgression();TestEqual(TEXT("Difficulty unlock survives profile reload"),Challenges->GetUnlockedRank(TEXT("Health")),1);
+    Meta->RecordDifficultyVictory(TEXT("FallenGrove"),Completed);
+    TestEqual(TEXT("Repeating rank zero cannot open rank two"),Challenges->GetUnlockedRank(TEXT("Health")),1);
+    Completed[TEXT("Health")]=1;Meta->RecordDifficultyVictory(TEXT("FallenGrove"),Completed);
+    TestEqual(TEXT("Health progresses independently"),Challenges->GetUnlockedRank(TEXT("Health")),2);
+    TestEqual(TEXT("Unused modifier stays at one"),Challenges->GetUnlockedRank(TEXT("Damage")),1);
+    TestTrue(TEXT("Another map may be inspected"),Challenges->SetMap(TEXT("CinderCitadel")));
+    TestEqual(TEXT("Other map starts at zero"),Challenges->GetUnlockedRank(TEXT("Health")),0);
+    TestTrue(TEXT("Return to the played map"),Challenges->SetMap(TEXT("FallenGrove")));
+    for(int32 Rank=1;Rank<5;++Rank)
+    {for(const auto& M:RunChallenges::Modifiers())Completed[M.Id]=Rank;Meta->RecordDifficultyVictory(TEXT("FallenGrove"),Completed);}
     for (const auto& M : RunChallenges::Modifiers())
     {
         TestEqual(TEXT("Default challenge rank is zero"),Challenges->GetModifierRank(M.Id),0);
@@ -102,7 +121,13 @@ bool FRunChallengeTest::RunTest(const FString&)
     const int32 WalletEmbers = Meta->GetSoulEmbers(), WalletSigils = Meta->GetSoulSigils();
     for (int32 I=0;I<25;++I)
     {
+        const auto Preview=Meta->PreviewCurrencyReward(1,1);
+        const auto Again=Meta->PreviewCurrencyReward(1,1);
+        TestEqual(TEXT("Preview does not consume fractions"),Again,Preview);
+        const int32 BeforeEmbers=Meta->GetRunEmbers(),BeforeSigils=Meta->GetRunSigils();
         Meta->AwardCurrencies(1,1);
+        TestEqual(TEXT("Preview matches actual Ember payout"),Meta->GetRunEmbers()-BeforeEmbers,Preview.X);
+        TestEqual(TEXT("Preview matches actual Sigil payout"),Meta->GetRunSigils()-BeforeSigils,Preview.Y);
         Meta->RetrySkillReward();
         Meta->LoadMetaProgression();
         // Emulate a new run for each tiny reward; fractional bonus must survive both.

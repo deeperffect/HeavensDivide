@@ -51,9 +51,12 @@ bool FCombatPolishVisualTest::RunTest(const FString&)
         TestTrue(TEXT("Preview saved"),FFileHelper::SaveArrayToFile(PNG,*(Directory/Name)));
     };
     auto* Screen=CreateWidget<UChestRewardWidget>(PC);FWidgetRenderer Renderer(false);
-    for(int32 Stage=0;Stage<3;++Stage)
+    for(int32 Stage=0;Stage<6;++Stage)
     {
-        Screen->Present(nullptr,123,Stage==0?.3f:Stage==1?1.5f:3.f,3.6f);
+        const bool Jackpot=Stage>=3;
+        const FChestRewardValues Rewards=Jackpot?FChestRewardValues{EChestRewardTier::Jackpot,984,60,9}:FChestRewardValues{EChestRewardTier::Common,123,5,1};
+        const float Time=Stage==0?.3f:Stage==1?1.5f:Stage==2?3.f:Stage==3?1.55f:Stage==4?3.15f:4.3f;
+        Screen->Present(nullptr,Rewards,Time,Jackpot?4.8f:3.6f);
         auto Slate=Screen->TakeWidget();auto* Target=Renderer.DrawWidget(Slate,{1280,800});
         for(int32 I=0;I<3;++I){Screen->ForceLayoutPrepass();Renderer.DrawWidget(Target,Slate,{1280,800},.016f);}
         Save(Target,FString::Printf(TEXT("ChestStage%d.png"),Stage));

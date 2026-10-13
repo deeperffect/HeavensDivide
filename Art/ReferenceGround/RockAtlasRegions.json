@@ -1,0 +1,154 @@
+{
+    "version":  1,
+    "source":  "Art/ReferenceGround/RockStamps_Atlas.png",
+    "sourceSha256":  "79347794ea481fd0c94617961231cc8496fb272283e561450a86978c86187435",
+    "atlasWidth":  1254,
+    "atlasHeight":  1254,
+    "gridColumns":  2,
+    "gridRows":  2,
+    "alphaThreshold":  128,
+    "paddingPixels":  2,
+    "boundsConvention":  "Global pixel bounds [minX, minY, maxXExclusive, maxYExclusive]; UV rectangles [minU, minV, spanU, spanV]. Padding pixels are below the alpha threshold.",
+    "variants":  [
+                     {
+                         "variant":  0,
+                         "cell":  [
+                                      0,
+                                      0
+                                  ],
+                         "cellBoundsPx":  [
+                                              0,
+                                              0,
+                                              627,
+                                              627
+                                          ],
+                         "alphaBoundsPx":  [
+                                               36,
+                                               96,
+                                               601,
+                                               597
+                                           ],
+                         "paddedBoundsPx":  [
+                                                34,
+                                                94,
+                                                603,
+                                                599
+                                            ],
+                         "normalizedUVRect":  [
+                                                  0.027113237639553429,
+                                                  0.074960127591706532,
+                                                  0.45374800637958534,
+                                                  0.40271132376395535
+                                              ],
+                         "trimmedWidth":  569,
+                         "trimmedHeight":  505,
+                         "opaquePixels":  174305,
+                         "opaqueFraction":  0.60660530024882975
+                     },
+                     {
+                         "variant":  1,
+                         "cell":  [
+                                      1,
+                                      0
+                                  ],
+                         "cellBoundsPx":  [
+                                              627,
+                                              0,
+                                              1254,
+                                              627
+                                          ],
+                         "alphaBoundsPx":  [
+                                               639,
+                                               42,
+                                               1225,
+                                               612
+                                           ],
+                         "paddedBoundsPx":  [
+                                                637,
+                                                40,
+                                                1227,
+                                                614
+                                            ],
+                         "normalizedUVRect":  [
+                                                  0.50797448165869219,
+                                                  0.031897926634768738,
+                                                  0.47049441786283891,
+                                                  0.45773524720893144
+                                              ],
+                         "trimmedWidth":  590,
+                         "trimmedHeight":  574,
+                         "opaquePixels":  140244,
+                         "opaqueFraction":  0.4141144510718715
+                     },
+                     {
+                         "variant":  2,
+                         "cell":  [
+                                      0,
+                                      1
+                                  ],
+                         "cellBoundsPx":  [
+                                              0,
+                                              627,
+                                              627,
+                                              1254
+                                          ],
+                         "alphaBoundsPx":  [
+                                               35,
+                                               679,
+                                               603,
+                                               1188
+                                           ],
+                         "paddedBoundsPx":  [
+                                                33,
+                                                677,
+                                                605,
+                                                1190
+                                            ],
+                         "normalizedUVRect":  [
+                                                  0.026315789473684209,
+                                                  0.539872408293461,
+                                                  0.45614035087719296,
+                                                  0.40909090909090912
+                                              ],
+                         "trimmedWidth":  572,
+                         "trimmedHeight":  513,
+                         "opaquePixels":  139328,
+                         "opaqueFraction":  0.47481563271036953
+                     },
+                     {
+                         "variant":  3,
+                         "cell":  [
+                                      1,
+                                      1
+                                  ],
+                         "cellBoundsPx":  [
+                                              627,
+                                              627,
+                                              1254,
+                                              1254
+                                          ],
+                         "alphaBoundsPx":  [
+                                               635,
+                                               759,
+                                               1221,
+                                               1144
+                                           ],
+                         "paddedBoundsPx":  [
+                                                633,
+                                                757,
+                                                1223,
+                                                1146
+                                            ],
+                         "normalizedUVRect":  [
+                                                  0.50478468899521534,
+                                                  0.60366826156299835,
+                                                  0.47049441786283891,
+                                                  0.310207336523126
+                                              ],
+                         "trimmedWidth":  590,
+                         "trimmedHeight":  389,
+                         "opaquePixels":  141301,
+                         "opaqueFraction":  0.61566380549867106
+                     }
+                 ]
+}

@@ -1,6 +1,7 @@
+#include "BloodShrine.h"
+#include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
-#include "BloodShrine.h"
 
 #include "BloodShrineWidget.h"
 #include "Components/StaticMeshComponent.h"
@@ -72,6 +73,8 @@ bool ABloodShrine::CanInteract_Implementation(APawn* InteractingPawn) const
 		|| (bAllowReactivation && (ShrineState == EBloodShrineState::Success || ShrineState == EBloodShrineState::Failed));
 	return bStateAllowsInteraction
 		&& InteractingPawn
+		&& !UGameplayStatics::IsGamePaused(this)
+		&& (!PlayerController || (!PlayerController->IsPlayerDead() && !PlayerController->IsSelectingUpgrade()))
 		&& (!PlayerController || !PlayerController->IsAnyObjectiveActive())
 		&& ObjectiveInteraction && ObjectiveInteraction->IsInRange(InteractingPawn);
 }
@@ -106,6 +109,18 @@ bool ABloodShrine::ActivateShrine(APawn* InteractingPawn)
 	ShrineState = EBloodShrineState::Active;
 	MinimapMarker->SetMarkerState(EMinimapMarkerState::Active);
 	if (ObjectiveInteraction) ObjectiveInteraction->HidePrompt();
+    bIntroPending = true;
+    const FText Message = FText::Format(NSLOCTEXT("Objectives", "BloodShrineIntro", "You've enraged the spirits.\nKill {0} within {1} seconds"),
+        FText::AsNumber(RequiredBlood), FText::AsNumber(FMath::RoundToInt(ChallengeDuration)));
+    if (!PlayerController->ShowObjectiveIntro(this, Message, FLinearColor(.75f, .2f, .15f),
+        FSimpleDelegate::CreateUObject(this, &ABloodShrine::BeginChallenge))) BeginChallenge();
+    return true;
+}
+
+void ABloodShrine::BeginChallenge()
+{
+    if (ShrineState != EBloodShrineState::Active || !IsValid(PlayerController) || PlayerController->IsPlayerDead() || !IsValid(EnemySpawner)) return;
+    bIntroPending = false;
 	ChallengeEndTime = GetWorld()->GetTimeSeconds() + FMath::Max(0.1f, ChallengeDuration);
 
 	EnemySpawner->SetSpawnPressureModifier(GetPressureModifierId(), SpawnPressureMultiplier);
@@ -134,7 +149,6 @@ bool ABloodShrine::ActivateShrine(APawn* InteractingPawn)
 	ReceiveShrineActivated();
 	OnProgressChanged.Broadcast(CurrentBlood, RequiredBlood);
 	ReceiveProgressChanged(CurrentBlood, RequiredBlood);
-	return true;
 }
 
 EBloodShrineState ABloodShrine::GetShrineState() const
@@ -154,6 +168,7 @@ int32 ABloodShrine::GetCurrentKills() const
 
 float ABloodShrine::GetTimeRemaining() const
 {
+    if (bIntroPending) return FMath::Max(.1f, ChallengeDuration);
 	return ShrineState == EBloodShrineState::Active && GetWorld()
 		? FMath::Max(0.0f, static_cast<float>(ChallengeEndTime - GetWorld()->GetTimeSeconds()))
 		: 0.0f;
@@ -161,12 +176,12 @@ float ABloodShrine::GetTimeRemaining() const
 
 void ABloodShrine::HandleEnemyKilled(AEnemyBase* Enemy)
 {
-	if (ShrineState != EBloodShrineState::Active || !Enemy || !Enemy->IsBloodbound())
+	if (bIntroPending || ShrineState != EBloodShrineState::Active || !Enemy || !Enemy->IsBloodbound())
 	{
 		return;
 	}
 
-	CurrentBlood = FMath::Min(CurrentBlood + Enemy->GetBloodValue(), FMath::Max(1, RequiredBlood));
+	CurrentBlood = FMath::Min(CurrentBlood + 1, FMath::Max(1, RequiredBlood));
 	OnProgressChanged.Broadcast(CurrentBlood, RequiredBlood);
 	ReceiveProgressChanged(CurrentBlood, RequiredBlood);
 	if (StatusWidget)
@@ -224,6 +239,7 @@ void ABloodShrine::SucceedChallenge()
 
 	EndChallenge();
 	ShrineState = EBloodShrineState::Success;
+	RunReports::ObjectiveCompleted(this);
 	RunChallenges::AwardCurrencies(this,10,2); // Commit earnings before delayed reward UI or a subsequent death.
     bAllowReactivation=false;
     MinimapMarker->SetMarkerState(EMinimapMarkerState::Completed);
@@ -269,6 +285,7 @@ void ABloodShrine::FailChallenge(bool bShowFailure)
 
 void ABloodShrine::EndChallenge()
 {
+    bIntroPending = false;
 	GetWorldTimerManager().ClearTimer(ChallengeUpdateTimer);
 	if (EnemySpawner)
 	{

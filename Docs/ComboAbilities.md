@@ -2,7 +2,7 @@
 
 Press **Q** when the shared combo meter is full to activate the current character's ability. Gamepad uses the left face button (X on Xbox / Square on PlayStation). Keyboard binding is editable in Settings > Keybinds > Combo Ability. Existing saves that already assign Q to another action receive an available fallback key.
 
-The meter starts empty, caps at **100**, gains **20 per successful swap** and **25 per successfully triggered Tag Team assist**, and spends its full charge on activation. Failed swaps and pending/failed assists give no charge. Tag Team grants once per assist, regardless of how many targets it hits. The meter does not decay and remains shared when changing characters. Boss-map travel preserves it; a new run starts empty.
+The meter starts empty, caps at **100**, gains **20 per successful swap** and **10 per successfully committed assist**, and spends its full charge on activation. Failed swaps and pending/failed assists give no charge. All inactive-character assists, including Tag Team and stance-triggered assists, grant once per committed assist, regardless of how many targets it hits. `AssistGain` is separate from the unchanged `SynergyGain` (25) used by explicit non-assist synergy triggers. The meter does not decay and remains shared when changing characters. Boss-map travel preserves it; a new run starts empty.
 
 | Character | Ability | Initial tuning |
 | --- | --- | --- |

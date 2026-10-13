@@ -126,6 +126,44 @@ int32 UEncounterReviewCommandlet::Main(const FString& Params)
  AEncounterDirector* Director=nullptr;
  for(TActorIterator<AEncounterDirector> It(W);It;++It){Director=*It;break;}
  if(!Director)return 2;
+ if(FParse::Param(*Params,TEXT("WallWaveReview")))
+ {
+  bool Spawned=false;
+  for(int32 Attempt=0;Attempt<8&&!Spawned;++Attempt) Spawned=Director->SpawnWallTrap();
+  ASurvivalFieldObjective* Trap=nullptr;
+  for(TActorIterator<ASurvivalFieldObjective> It(W);It;++It) if(It->IsWallTrap()) { Trap=*It;break; }
+  if(!Spawned||!Trap)return 20;
+  Trap->DispatchBeginPlay();
+  for(TActorIterator<AEncounterWall> It(W);It;++It) It->DispatchBeginPlay();
+  Trap->Tick(1.5f);
+  auto* Camera=W->SpawnActor<AActor>();auto* Capture=NewObject<USceneCaptureComponent2D>(Camera);
+  Camera->AddInstanceComponent(Capture);Capture->RegisterComponent();
+  Capture->ProjectionType=ECameraProjectionMode::Orthographic;Capture->OrthoWidth=4500;
+  Capture->CaptureSource=ESceneCaptureSource::SCS_FinalColorLDR;Capture->PostProcessBlendWeight=0;
+  Capture->bAlwaysPersistRenderingState=true;Capture->bCaptureEveryFrame=false;Capture->bCaptureOnMovement=false;
+  const FVector Focus=Trap->GetActorLocation()+FVector(0,0,80);
+  Capture->SetWorldLocation(Focus+FVector(-3000,0,4700));Capture->SetWorldRotation((Focus-Capture->GetComponentLocation()).Rotation());
+  auto* Target=NewObject<UTextureRenderTarget2D>(Camera);Target->RenderTargetFormat=RTF_RGBA8;
+  Target->InitAutoFormat(1600,1000);Target->UpdateResourceImmediate();Capture->TextureTarget=Target;
+  FAssetCompilingManager::Get().FinishAllCompilation();if(GShaderCompilingManager)GShaderCompilingManager->FinishAllCompilation();
+  IStreamingManager::Get().StreamAllResources(30.f);
+  const FString Dir=FPaths::ProjectSavedDir()/TEXT("WallWave/Previews");IFileManager::Get().MakeDirectory(*Dir,true);
+  const float Steps[]={.1f,.4f,.5f};bool OK=true;
+  for(int32 Stage=0;Stage<3;++Stage)
+  {
+   Trap->Tick(Steps[Stage]);
+   int32 Visible=0;TSet<UStaticMesh*> Variants;
+   for(TActorIterator<AEncounterWall> It(W);It;++It) { if(It->Stone->IsVisible()) ++Visible;Variants.Add(It->Stone->GetStaticMesh()); }
+   for(int32 Frame=0;Frame<12;++Frame) { ++GFrameCounter;W->SendAllEndOfFrameUpdates();Capture->CaptureScene();FlushRenderingCommands(); }
+   TArray<FColor> Pixels;OK&=Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels);
+   for(FColor& Pixel:Pixels)Pixel.A=255;
+   TArray64<uint8> PNG;FImageUtils::PNGCompressImageArray(1600,1000,Pixels,PNG);
+   OK&=FFileHelper::SaveArrayToFile(PNG,*(Dir/FString::Printf(TEXT("WallWave_%d.png"),Stage)));
+   UE_LOG(LogTemp,Display,TEXT("WALL_WAVE_REVIEW stage=%d visible=%d variants=%d"),Stage,Visible,Variants.Num());
+   OK&=Variants.Num()==6 && (Stage==2?Visible==51:Visible>0&&Visible<51);
+  }
+  return OK?0:21;
+ }
  bool March=false,Urn=false;
  // Probe realistic spawn positions along the starting play space, not an empty fixture.
  for(int32 I=0;I<8&&!March;++I)
