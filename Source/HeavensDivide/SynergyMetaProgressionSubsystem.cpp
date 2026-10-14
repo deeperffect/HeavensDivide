@@ -20,7 +20,7 @@
 namespace SynergyMetaProgression
 {
 	static const FString SaveSlotName(TEXT("HeavensDivide_MetaProgression"));
-	static constexpr int32 CurrentSaveVersion = 6;
+	static constexpr int32 CurrentSaveVersion = 7;
 	static constexpr int32 TwinSoulCompletionsPerDiscovery = 3;
 	static const FName DefaultUnlockedIds[] =
 	{
@@ -93,6 +93,29 @@ void USynergyMetaProgressionSubsystem::LoadMetaProgression()
  {
   CurrentSave->UnlockedSynergyUpgradeIds.Reset();
   CurrentSave->UnlockedStanceIds.Reset();
+ }
+ // Version 7 replaces solo choices with three shared recipes. Reuse purchases,
+ // refund duplicate/retired choices, and keep respec's recorded spend exact.
+ if (CurrentSave->SaveVersion < 7) {
+  int32 Refund=0;
+  const auto MoveChoice=[&](const TCHAR* Old,const TCHAR* New) {
+   const FName Previous(*FString::Printf(TEXT("Ability.Combo.%s"),Old));
+   const int32 Rank=CurrentSave->SkillRanks.FindRef(Previous);
+   if (Rank<=0) return;
+   CurrentSave->SkillRanks.Remove(Previous);
+   const FName Destination(*FString::Printf(TEXT("Ability.Combo.%s"),New));
+   if (!*New || CurrentSave->SkillRanks.FindRef(Destination)>0) Refund+=18;
+   else CurrentSave->SkillRanks.Add(Destination,1);
+  };
+  MoveChoice(TEXT("ReturningStorm"),TEXT("HeavensDivide"));
+  MoveChoice(TEXT("ThunderNeedles"),TEXT("HeavensDivide"));
+  MoveChoice(TEXT("Starfall"),TEXT("Moonwell"));
+  MoveChoice(TEXT("SerpentSeal"),TEXT("BloodMoon"));
+  for (const TCHAR* Retired : {TEXT("IronLotus"),TEXT("FallingHeavens"),TEXT("VoidStep")}) MoveChoice(Retired,TEXT(""));
+  if (CurrentSave->SkillRanks.FindRef(TEXT("Ability.Combo.BloodMoon"))>0) Refund+=18;
+  Refund=FMath::Min(Refund,FMath::Max(0,CurrentSave->SkillEmbersSpent));
+  CurrentSave->SkillEmbersSpent-=Refund;
+  CurrentSave->SoulEmbers=static_cast<int32>(FMath::Min<int64>(MAX_int32,int64(CurrentSave->SoulEmbers)+Refund));
  }
  CurrentSave->SoulSigils = FMath::Max(0, CurrentSave->SoulSigils);
  EmberFraction = FMath::IsFinite(CurrentSave->EmberFraction) ? FMath::Clamp(CurrentSave->EmberFraction,0.0,0.999999999) : 0.0;

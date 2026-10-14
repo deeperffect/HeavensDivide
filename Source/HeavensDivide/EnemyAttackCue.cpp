@@ -1,4 +1,5 @@
 #include "EnemyAttackCue.h"
+#include "IndicatorAttackVFX.h"
 #include "EnemyBase.h"
 #include "Components/StaticMeshComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
@@ -34,9 +35,11 @@ AEnemyAttackCue* AEnemyAttackCue::Spawn(AEnemyBase* Owner,FVector Center,float R
     Cue->Mesh->SetWorldScale3D(FVector(Cue->Size,Cue->Size,bIsProjectile?Cue->Size:1));
     Cue->SetLifeSpan(FMath::Max(2.f,Windup+1)); return Cue;
 }
-void AEnemyAttackCue::Impact()
+void AEnemyAttackCue::Impact(TOptional<FVector> ReleaseLocation)
 {
-    if(bImpact)return;
+    if(bImpact || IsActorBeingDestroyed() || !Source.IsValid() || Source->IsDead() || Source->IsGameplaySuspended())return;
+    if (bProjectile && Source.IsValid())
+        AIndicatorAttackVFX::Release(Source.Get(), ReleaseLocation.Get(Source->GetActorTransform().TransformPosition(LocalOffset)));
     bImpact=true;Age=0;SetLifeSpan(.3f);
     if(Material)Material->SetScalarParameterValue(TEXT("Impact"),1);
 }

@@ -241,6 +241,7 @@ void ASurvivorPlayerController::BuildRuntimeKeyMappings(const UHeavensDivideGame
 
 void ASurvivorPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+    CancelDeathPresentation();
     CancelObjectiveIntro();
     CancelLevelUpPresentation();
     ClosePauseMenu();
@@ -902,7 +903,7 @@ void ASurvivorPlayerController::HandlePlayerDeath()
 	bIsPlayerDead = true;
 	StopRunGameplay(true);
 	UE_LOG(LogTemp, Log, TEXT("Player Death Triggered"));
-	PresentGameOver(GetRunTimeSeconds());
+	if (!BeginDeathPresentation()) PresentGameOver(GetRunTimeSeconds());
 }
 
 void ASurvivorPlayerController::StopRunGameplay(bool bPlayDeathPresentation)
@@ -1021,6 +1022,17 @@ void ASurvivorPlayerController::PresentGameOver(float FinalRunTimeSeconds)
 	if (!GameOverWidget) return;
 	GameOverWidget->InitializeGameOver(this, FinalRunTimeSeconds);
 	GameOverWidget->AddToViewport(1000);
+	if (DeathPresentationWidget) {
+		GameOverWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+		return;
+	}
+	FocusGameOver();
+}
+
+void ASurvivorPlayerController::FocusGameOver()
+{
+	if (!GameOverWidget) return;
+	GameOverWidget->SetVisibility(ESlateVisibility::Visible);
 	bShowMouseCursor = true;
 	bEnableClickEvents = true;
 	bEnableMouseOverEvents = true;
@@ -1363,7 +1375,7 @@ void ASurvivorPlayerController::PauseForLevelUpSelection()
 	{
 		if (!bLevelUpTimeDilationApplied)
 		{
-			PreviousLevelUpGlobalTimeDilation = World->GetWorldSettings()->GetEffectiveTimeDilation();
+			PreviousLevelUpGlobalTimeDilation = World->GetWorldSettings()->TimeDilation;
 			bLevelUpTimeDilationApplied = true;
 		}
 

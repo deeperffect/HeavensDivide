@@ -1,5 +1,16 @@
 # Ground texture sources
 
+Level 1 currently uses the restored **September 27 version 2** selected from
+`Saved/StylizedGround/blend_preview_v2.png`: simple grass with small tufts and
+broad angular stones. Its sources are `Previous/Grass_BaseColor_v2.png`,
+`Previous/Dirt_BaseColor_v2.png` and `Previous/Stone_BaseColor_v2.png`.
+The dedicated `Materials/StylizedGroundV2/MI_StylizedGroundV2` instance uses the
+original `StylizedGround/M_StylizedGround` automatic blend, 1,000 cm grass/dirt
+tiles and 1,400 cm stone tiles. The top-level PNGs below remain the retained
+third-pass sources. `Tools/restore_stylized_ground_v2.py` restores the selection;
+`Tools/review_stylized_ground_v2.py` captures it in the saved Level 1 map.
+Restoration backups and validation are in `Saved/RestoreStylizedGroundV2`.
+
 Original bitmap textures generated with the built-in imagegen tool for this
 project, guided by the user's reference for a simple painted MOBA ground style.
 

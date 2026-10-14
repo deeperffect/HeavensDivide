@@ -1,4 +1,5 @@
 #include "NinjaBuildProjectile.h"
+#include "JointComboActor.h"
 #include "RunReportSubsystem.h"
 
 #include "AttackProjectileBase.h"
@@ -107,7 +108,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
 {
     Super::Tick(Delta);
     auto *B = Build.Get();
-    if (!B || !B->Ninja() || !B->IsRunning())
+    if (!B || !B->Ninja() || !B->IsRunning() || (bJointProjectile && !JointOwner.IsValid()))
     {
         Destroy();
         return;
@@ -121,7 +122,7 @@ void ANinjaBuildProjectile::Tick(float Delta)
     FVector End = Start;
     if (Kind == ENinjaProjectileKind::ReturningFang)
     {
-        if (!B->Has(TEXT("ReturningFang")))
+        if (!bJointProjectile && !B->Has(TEXT("ReturningFang")))
         {
             Destroy();
             return;
@@ -182,7 +183,9 @@ void ANinjaBuildProjectile::Tick(float Delta)
             if (bReturning) continue; // Returning is a reset, never a damaging pass.
             // A homing Fang commits to its selected target, so spectral Fangs can reach separate enemies.
             if (E != Target.Get()) continue;
-            const float Dealt = B->FangHit(this, E);
+            const FVector JointHitPosition=E->GetActorLocation();
+            const float Dealt = bJointProjectile && !bJointRouteMatched ? B->Hit(E, Damage, false, true) : B->FangHit(this, E);
+            if (Dealt>0) if (auto* Joint=Cast<AJointComboActor>(JointOwner.Get())) Joint->PlayHitImpact(E,JointHitPosition);
             LastHits.Add(E, Age);
             // Roll once per trip. Follow-up kills never extend the two-target chain.
             if (!bPursued && Dealt > 0 && E->IsDead() && B->Has(TEXT("FangKillingEdge")))
@@ -221,11 +224,13 @@ void ANinjaBuildProjectile::Tick(float Delta)
             LastHits.Add(E, Age);
             int32 &Count = HitCounts.FindOrAdd(E);
             FRunDamageScope DamageScope(bCloneProjectile ? FName(TEXT("ShadowClone")) : bAssistProjectile ? AssistDamageSource : Kind == ENinjaProjectileKind::Fragment ? FragmentDamageSource : Kind == ENinjaProjectileKind::GreatShuriken ? FName(TEXT("GreatShuriken")) : FName(TEXT("ReturningFang")));
-            B->Hit(E,
+            const FVector JointHitPosition=E->GetActorLocation();
+            const float Dealt=B->Hit(E,
                    Damage * (Kind == ENinjaProjectileKind::GreatShuriken && B->Has(TEXT("SerratedEdge"))
                                  ? 1 + FMath::Min(Count, 5) * .15f
                                  : 1),
                    Kind != ENinjaProjectileKind::Fragment,bAssistProjectile,Kind == ENinjaProjectileKind::GreatShuriken);
+            if (Dealt>0) if (auto* Joint=Cast<AJointComboActor>(JointOwner.Get())) Joint->PlayHitImpact(E,JointHitPosition);
             if (Kind == ENinjaProjectileKind::Fragment)
             {
                 Destroy();

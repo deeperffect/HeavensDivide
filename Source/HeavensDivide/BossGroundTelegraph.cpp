@@ -1,4 +1,5 @@
 #include "BossGroundTelegraph.h"
+#include "IndicatorAttackVFX.h"
 #include "CombatAudio.h"
 
 #include "CharacterBase.h"
@@ -64,11 +65,14 @@ void ABossGroundTelegraph::InitializePersistentSurfaceCircle(float InRadius,UMat
 {
 	Radius=FMath::Max(1.f,InRadius);
 	InitializePersistentRectangle(Radius*2,Radius*2,InMaterial);
+	ImpactShape = EEncounterShape::Circle; ImpactSize = Radius; ImpactWidth = 0;
 }
 
 void ABossGroundTelegraph::InitializePersistentRectangle(float InLength, float InWidth, UMaterialInterface* InMaterial)
 {
 	bInitialized = false;
+	bImpactVFXSpawned = false;
+	ImpactShape = EEncounterShape::Lane; ImpactSize = FMath::Max(1.f, InLength); ImpactWidth = FMath::Max(1.f, InWidth);
 	CircleDecalVisual->SetHiddenInGame(true);
 	CircleDecalVisual->SetVisibility(false);
 	TelegraphVisual->SetHiddenInGame(false);
@@ -101,6 +105,7 @@ void ABossGroundTelegraph::Tick(float DeltaSeconds)
 
 	bResolved = true;
 	bool bHit = false;
+	if (Damage > 0) SpawnImpactVFX();
 	if (ASurvivorPlayerController* PC = PlayerController.Get())
 	{
 		if (const ACharacterBase* Player = Cast<ACharacterBase>(PC->GetPawn()))
@@ -123,8 +128,18 @@ void ABossGroundTelegraph::CancelTelegraph()
 
 void ABossGroundTelegraph::PlayImpact()
 {
+	if (IsActorBeingDestroyed()) return;
+	SpawnImpactVFX();
 	bResolved=true;
 	SetTelegraphFillAmount(1);
 	if(DynamicMaterial)DynamicMaterial->SetScalarParameterValue(TEXT("Impact"),1);
 	SetLifeSpan(.35f);
+}
+
+void ABossGroundTelegraph::SpawnImpactVFX()
+{
+	if (bImpactVFXSpawned) return;
+	bImpactVFXSpawned = true;
+	AIndicatorAttackVFX::Spawn(this, GetActorLocation(), ImpactShape, ImpactSize, ImpactWidth,
+		GetActorRotation().Yaw, EIndicatorVFX::Impact);
 }

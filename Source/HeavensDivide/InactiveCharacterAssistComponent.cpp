@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "InactiveCharacterAssistComponent.h"
+#include "SwapPresentationComponent.h"
 
 #include "AutoAttackComponent.h"
 #include "CharacterBase.h"
@@ -333,6 +334,7 @@ bool UInactiveCharacterAssistComponent::TryTriggerAssistWithCharacters(ACharacte
 		return false;
 	}
 
+	if (AssistCharacter->SwapPresentation) AssistCharacter->SwapPresentation->SpawnCharacterSmoke();
 	CurrentAssistCharacter = AssistCharacter;
 	bAssistActive = true;
 	OnAssistStarted.Broadcast(AssistCharacter, ActiveCharacter, TargetEnemy);
@@ -391,6 +393,7 @@ void UInactiveCharacterAssistComponent::FinishCurrentAssist()
 		{
 			AssistAttack->StopAutoAttack();
 		}
+		if (AssistCharacter->SwapPresentation) AssistCharacter->SwapPresentation->SpawnCharacterSmoke();
 		AssistCharacter->SetCharacterMode(ECharacterMode::Inactive);
 	}
 
@@ -443,7 +446,8 @@ bool UInactiveCharacterAssistComponent::HasAssistUpgrade() const
 
 bool UInactiveCharacterAssistComponent::CanRunAssistEffect() const
 {
-	return SurvivorController && SurvivorController->IsRunInProgress() && !SurvivorController->IsPlayerDead();
+	return SurvivorController && SurvivorController->IsRunInProgress() && !SurvivorController->IsPlayerDead()
+        && (!SurvivorController->GetCharacterManager() || !SurvivorController->GetCharacterManager()->GetActiveCharacter() || !SurvivorController->GetCharacterManager()->GetActiveCharacter()->bComboAbilityActive);
 }
 
 FString UInactiveCharacterAssistComponent::GetCharacterLabel(const ACharacterBase* Character) const

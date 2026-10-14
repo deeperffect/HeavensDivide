@@ -1,6 +1,9 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "SwapPresentationComponent.h"
+#include "CharacterSmokeBurst.h"
+#include "NiagaraComponent.h"
+#include "EngineUtils.h"
 #include "AutoAttackComponent.h"
 #include "NinjaCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -107,10 +110,27 @@ bool FSwapFreezeTest::RunTest(const FString&)
     Feedback->FinishSwapFreeze();
     TestEqual(TEXT("Cancellation restores drop even with freeze disabled"),Ninja->GetVisualRoot()->GetRelativeLocation(),VisualBase);
     Feedback->StopEntrance();
-    auto* Samurai=World->SpawnActor<ASamuraiCharacter>(FVector(1000,0,0),FRotator::ZeroRotator,Params);
+    auto* SamClass=LoadClass<ASamuraiCharacter>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai.BP_Samurai_C"));
+    auto* Samurai=World->SpawnActor<ASamuraiCharacter>(SamClass,FVector(1000,0,0),FRotator::ZeroRotator,Params);
     const FVector SamuraiBase=Samurai->GetVisualRoot()->GetRelativeLocation();
     const FVector SamuraiActorBase=Samurai->GetActorLocation();
     auto* SamuraiFeedback=Samurai->SwapPresentation.Get();
+    SamuraiFeedback->PlayArrival();
+    ACharacterSmokeBurst* ArrivalSmoke=nullptr;
+    for(TActorIterator<ACharacterSmokeBurst> It(World);It;++It)
+        if(It->GetEffect()->GetAsset()==SamuraiFeedback->CharacterSmokeVFX)ArrivalSmoke=*It;
+    if(TestNotNull(TEXT("Samurai swap creates its red smoke"),ArrivalSmoke)) {
+        TestTrue(TEXT("Smoke follows the visible walk-in start"),FVector::Dist2D(ArrivalSmoke->GetActorLocation(),Samurai->GetVisualRoot()->GetComponentLocation())<.01);
+        TestTrue(TEXT("Smoke survives independently of character visibility"),ArrivalSmoke->GetOwner()==nullptr);
+        TestTrue(TEXT("Swap freeze owns smoke compensation"),SamuraiFeedback->FreezeEffects.Contains(ArrivalSmoke->GetEffect()));
+        ArrivalSmoke->GetEffect()->SetCustomTimeDilation(10);
+        ArrivalSmoke->Tick(.07f);
+        TestTrue(TEXT("Emission stops while existing smoke particles finish"),ArrivalSmoke->GetEffect()->GetRequestedExecutionState()!=ENiagaraExecutionState::Active);
+        ArrivalSmoke->Tick(.21f);
+        TestTrue(TEXT("Smoke lifetime remains bounded during freeze"),ArrivalSmoke->IsActorBeingDestroyed());
+    }
+    SamuraiFeedback->FinishSwapFreeze();
+
     Samurai->SetVisualFacingRotation(FRotator(0,90,0));
     SamuraiFeedback->ArrivalWalkDistance=240;
     SamuraiFeedback->ArrivalWalkDuration=.4f;

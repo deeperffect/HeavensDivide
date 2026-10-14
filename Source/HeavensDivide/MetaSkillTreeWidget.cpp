@@ -1,6 +1,7 @@
 #include "MetaSkillTreeWidget.h"
 #include "BloodshiftMenuStyle.h"
 #include "MetaSkillTree.h"
+#include "ComboAbilityDefinition.h"
 #include "SMetaSkillMap.h"
 #include "MainMenuWidget.h"
 #include "SynergyMetaProgressionSubsystem.h"
@@ -71,7 +72,14 @@ TArray<FName> UMetaSkillTreeWidget::VisibleSkills() const
   const bool bVisible=CurrentPage==EMetaTreePage::Stances ? !OpenStance.IsNone()&&Node.RequiredStance==OpenStance :
    OpenStance.IsNone()&&Node.RequiredStance.IsNone()&&
    Node.Page==(CurrentPage==EMetaTreePage::Abilities?EMetaSkillPage::Abilities:EMetaSkillPage::Stats);
-  if(bVisible)Result.Add(Node.Id);
+  if(bVisible)
+  {
+   if (CurrentPage == EMetaTreePage::Abilities)
+   {
+
+   }
+   Result.Add(Node.Id);
+  }
  }
  return Result;
 }
@@ -216,6 +224,7 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSynergyPage()
 
 TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
 {
+ auto Categories = SNew(SHorizontalBox);
  const auto Meta=[this](){return Progression();};
  const auto Node=[this](){return MetaSkillTree::Find(Selected);};
  SAssignNew(SkillMap,SMetaSkillMap).Progression(Progression()).Selected_Lambda([this](){return Selected;})
@@ -245,8 +254,8 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
   [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Muted).WrapTextAt(300).Text_Lambda([Node]()
    {
     const auto* Skill=Node();
-    if(Skill&&Skill->Effect==TEXT("ComboUnlock"))return FText::FromString(TEXT("Equip Soul Convergence in New Run."));
-    if(Skill&&Skill->Effect.ToString().StartsWith(TEXT("Combo")))return FText::FromString(TEXT("Applies while Soul Convergence is equipped. Select it in New Run."));
+    if(Skill&&(Skill->Effect==TEXT("ComboUnlock")||Skill->Effect.ToString().StartsWith(TEXT("ComboChoice."))))return FText::FromString(TEXT("Equip in Loadout."));
+    if(Skill&&Skill->Effect.ToString().StartsWith(TEXT("Combo")))return FText::FromString(TEXT("Applies to all equipped combos."));
     return FText::FromString(Skill&&!Skill->RequiredStance.IsNone()?TEXT("Active when this stance is selected, including while the hero assists."):TEXT("Applies automatically in every new run."));
    })]
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)
@@ -259,6 +268,7 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
  Header->AddSlot().FillWidth(1).VAlign(VAlign_Center)
   [SNew(STextBlock).Text(FText::FromString(CurrentPage==EMetaTreePage::Abilities?TEXT("Strengthen your combo and swaps."):CurrentPage==EMetaTreePage::Stats?TEXT("Permanent upgrades for every stance."):TEXT("Strengthen this stance with Soul Embers. Each rank is permanent."))).Font(MenuFont(17)).ColorAndOpacity(Muted).AutoWrapText(true)];
  return SNew(SVerticalBox)
+  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,CurrentPage==EMetaTreePage::Abilities?12:0)[Categories]
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)[Header]
   +SVerticalBox::Slot().FillHeight(1)
   [SNew(SHorizontalBox)

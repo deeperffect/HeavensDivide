@@ -7,6 +7,7 @@
 #include "Components/StaticMeshComponent.h"
 #include "EnemyBase.h"
 #include "FangBuild.h"
+#include "JointComboActor.h"
 #include "HealthComponent.h"
 #include "InactiveCharacterAssistComponent.h"
 #include "NinjaCharacter.h"
@@ -30,7 +31,7 @@ float UNinjaBuildComponent::FangSpeedMultiplier() const
 
 void UNinjaBuildComponent::FangLaunched(ANinjaBuildProjectile* P)
 {
-    if (!P || P->bSpectralFang || P->bCloneProjectile || P->bAssistProjectile) return;
+    if (!P || P->bSpectralFang || P->bCloneProjectile || (P->bAssistProjectile && !(P->bJointProjectile && P->bJointRouteMatched))) return;
     ++FangLaunchCount;
     const int32 Interval = FMath::Max(1, FMath::RoundToInt(Tune(TEXT("FangTwin"), TEXT("Frequency"), 4.f) - UpgradeBalance::Rank(Upgrades(), TEXT("FangTwinFrequency"), 1.f)));
     if (!Has(TEXT("FangTwin")) || FangLaunchCount % Interval != 0) return;
@@ -43,6 +44,13 @@ void UNinjaBuildComponent::FangLaunched(ANinjaBuildProjectile* P)
         auto* Extra = SpawnBlade(ENinjaProjectileKind::ReturningFang, P->GetActorLocation());
         if (!Extra) continue;
         Extra->bSpectralFang = true;
+        if (P->bJointProjectile) {
+            Extra->bJointProjectile=Extra->bJointRouteMatched=Extra->bAssistProjectile=true;
+            Extra->JointOwner=P->JointOwner;Extra->AssistReturnOrigin=P->AssistReturnOrigin;Extra->AssistDamageSource=P->AssistDamageSource;
+            if (auto* Joint=Cast<AJointComboActor>(P->JointOwner.Get())) Joint->RegisterChild(Extra);
+            if (P->KunaiPresentation.IsValid() && Extra->KunaiPresentation.IsValid())
+                Extra->KunaiPresentation->SetActorScale3D(P->KunaiPresentation->GetActorScale3D());
+        }
         Extra->Target = TargetEnemy;
         Extra->Damage = P->Damage;
         Extra->Speed = P->Speed;
@@ -104,12 +112,12 @@ float UNinjaBuildComponent::FangHit(ANinjaBuildProjectile* P, AEnemyBase* Enemy)
 void UNinjaBuildComponent::FangReturned(ANinjaBuildProjectile* P)
 {
     // Recalls caused by swaps, canceled trips, clones and assists grant no player return procs.
-    if (!P || !P->bFangHitThisTrip || P->bCloneProjectile || P->bAssistProjectile || !IsActive()) return;
+    if (!P || !P->bFangHitThisTrip || P->bCloneProjectile || ((P->bAssistProjectile || !IsActive()) && !(P->bJointProjectile && P->bJointRouteMatched))) return;
     P->bFangHitThisTrip = false;
     if (Has(TEXT("FangResonance")))
     {
-        if (auto* AutoAttack = Attack()) AutoAttack->PlayFangSlashMontage();
-        const FVector Origin = Ninja()->GetActorLocation();
+        if (!P->bJointProjectile) if (auto* AutoAttack = Attack()) AutoAttack->PlayFangSlashMontage();
+        const FVector Origin = P->bJointProjectile ? P->AssistReturnOrigin : Ninja()->GetActorLocation();
         const float Radius = Tune(TEXT("FangResonance"), TEXT("Radius"), 250.f)
             * (1.f + FangBuild::Scaling(Upgrades(), TEXT("FangResonantReach"), .15f));
         const float Damage = P->Damage * Tune(TEXT("FangResonance"), TEXT("DamageFraction"), .5f)

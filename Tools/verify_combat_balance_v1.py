@@ -20,7 +20,6 @@ for name,v in t['player'].items():
     obj=cdo('/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_'+name);a=obj.get_component_by_class(u.AutoAttackComponent)
     eq(name+' damage',a.get_editor_property('attack_damage'),v['damage'])
     eq(name+' interval',a.get_editor_property('attack_interval'),v['interval'])
-    eq(name+' combo',obj.get_editor_property('combo_ability').get_editor_property('damage_per_pulse'),v['combo_pulse'])
     if 'secondary_damage' in v:eq(name+' secondary hit',a.get_editor_property('secondary_target_damage_multiplier'),v['secondary_damage'])
 for uid,v in t['upgrades'].items():
     card=pool[uid];params={str(k):float(x) for k,x in card.get_editor_property('balance_parameters').items()}

@@ -30,6 +30,7 @@ class HEAVENSDIVIDE_API ASamuraiBladeWave : public AActor
 public:
 	ASamuraiBladeWave();
     FName DamageSource = TEXT("Crescent");
+    TWeakObjectPtr<class AJointComboActor> JointOwner;
     bool bGroundAnchorValid = false;
 	virtual void Tick(float DeltaSeconds) override;
 	void InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlayerUpgradeComponent* InUpgrades, FVector Direction,

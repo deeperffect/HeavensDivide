@@ -232,7 +232,6 @@ void ARangedEnemyBase::StartAttack()
 
 void ARangedEnemyBase::SpawnAttackProjectile()
 {
-	if (AttackCue.IsValid()) AttackCue->Impact();
 	if (IsStressTestCombatDisabled())
 	{
 		return;
@@ -268,6 +267,7 @@ void ARangedEnemyBase::SpawnAttackProjectile()
 	}
 
 	Projectile->InitializeProjectile(this, Direction, AttackDamage, ProjectileSpeed, EProjectileTargetType::ActivePlayer);
+	if (AttackCue.IsValid()) AttackCue->Impact(SpawnLocation);
     UCombatAudioLibrary::PlayEvent(this, TEXT("FireballCast"), SpawnLocation);
 }
 

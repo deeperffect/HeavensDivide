@@ -78,6 +78,7 @@ public:
 	ASurvivorPlayerController();
 
 	virtual void PlayerTick(float DeltaTime) override;
+    virtual void UpdateCameraManager(float DeltaSeconds) override;
 
 	void SetCameraFollowTarget(ACharacterBase* NewFollowTarget);
 	ACharacterBase* GetCameraFollowTarget() const;
@@ -439,6 +440,26 @@ protected:
 	void Interact();
 	void ConfigureInputMode();
     void ClosePauseMenu();
+    friend class FActionHUDTest;
+    friend class FPlayerDeathPresentationTest;
+    bool BeginDeathPresentation();
+    void UpdateDeathPresentation(float RealDelta);
+    void CancelDeathPresentation(bool bKeepResults = false);
+    void FocusGameOver();
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation") bool bShowDeathPresentation = true;
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation", meta=(ClampMin="0.1")) float DeathAnimationPlayRate = 1.f;
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation", meta=(ClampMin="0.01", Units="s")) float DeathFadeSeconds = .28f;
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation", meta=(ClampMin="0.01", Units="s")) float DeathTitleFadeSeconds = 1.2f;
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation", meta=(ClampMin="0.01", Units="s")) float DeathOutroFadeSeconds = .45f;
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation", meta=(ClampMin="0.01", Units="s")) float DeathResultsFadeSeconds = .65f;
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation", meta=(DisplayName="Samurai Silhouette Color")) FLinearColor DeathSilhouetteColor = FLinearColor(.62f,.0006f,.0015f);
+    UPROPERTY(EditDefaultsOnly, Category="Death Presentation") FLinearColor NinjaDeathSilhouetteColor = FLinearColor(.24f,.001f,.42f);
+    UPROPERTY(Transient) TObjectPtr<class APlayerDeathScene> DeathScene;
+    UPROPERTY(Transient) TObjectPtr<class UPlayerDeathWidget> DeathPresentationWidget;
+    FTSTicker::FDelegateHandle DeathPresentationTicker;
+    float DeathPresentationElapsed = 0.f;
+    bool bDeathOwnsPause = false;
+    bool bDeathRevealingResults = false;
     friend class FObjectiveIntroTest;
     void UpdateObjectiveIntro(float RealDelta);
     void CancelObjectiveIntro();

@@ -22,12 +22,13 @@ for row in rows:
  assert abs(w.get_editor_property('duration')-row['duration'])<.001
  report['metasounds'].append(a.get_path_name())
 for hero in ['Samurai','Ninja']:
- bp=u.load_asset('/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_'+hero);c=u.get_default_object(bp.generated_class());p=c.get_editor_property('combo_ability')
- sound(p,'sound',hero+'Ability');sound(p,'pulse_sound',hero+'Pulse')
+ bp=u.load_asset('/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_'+hero);c=u.get_default_object(bp.generated_class())
  if hero=='Samurai':sound(comp(bp,u.AutoAttackComponent),'impact_sound','SamuraiImpact')
  else:
   for field,event in [('kunai_throw_sound','KunaiThrow'),('shuriken_throw_sound','ShurikenThrow'),('shuriken_hit_sound','ShurikenImpact')]:sound(comp(bp,u.NinjaBuildComponent),field,event)
  for field,event in [('arrival_portal_sound','SwapArrival'),('departure_portal_sound','SwapDeparture')]:sound(comp(bp,u.SwapPresentationComponent),field,event)
+for identity,event in [('BloodMoon','SamuraiSwing'),('HeavensDivide','SamuraiAbility'),('Moonwell','ShurikenThrow')]:
+ sound(u.load_asset('/Game/HeavensDivide/Abilities/Combos/DA_Combo_'+identity),'release_sound',event)
 for path in u.EditorAssetLibrary.list_assets('/Game/HeavensDivide/Blueprints/EnemyCharacters',True,False):
  bp=u.load_asset(path)
  if not isinstance(bp,u.Blueprint):continue

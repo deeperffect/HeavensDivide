@@ -1,4 +1,5 @@
 #include "NinjaFloorTrap.h"
+#include "IndicatorAttackVFX.h"
 #include "CharacterBase.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -48,6 +49,9 @@ void ANinjaFloorTrap::BeginTelegraph()
 }
 void ANinjaFloorTrap::ResolveDamage()
 {
+	const FVector Extent = HazardArea->GetScaledBoxExtent();
+	AIndicatorAttackVFX::Spawn(this, TelegraphVisual->GetComponentLocation(), EEncounterShape::Lane,
+		Extent.X * 2, Extent.Y * 2, HazardArea->GetComponentRotation().Yaw, EIndicatorVFX::Frost);
 	TArray<AActor*> Actors; HazardArea->GetOverlappingActors(Actors,ACharacterBase::StaticClass());
 	for(AActor* Actor:Actors)if(DamageTrialPlayer(Actor))break;
 	FloorState=ENinjaFloorTrapState::Active;StateElapsed=0;OnDamageResolved.Broadcast();

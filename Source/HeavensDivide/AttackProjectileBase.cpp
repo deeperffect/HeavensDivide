@@ -1,4 +1,5 @@
 #include "AttackProjectileBase.h"
+#include "JointComboActor.h"
 #include "ShadowClone.h"
 #include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
@@ -206,7 +207,7 @@ void AAttackProjectileBase::InitializeProjectile(
 
 void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (bImpactResolved || !bIsProjectileInitialized)
+	if (bImpactResolved || !bIsProjectileInitialized || (!JointOwner.IsExplicitlyNull() && !JointOwner.IsValid()))
 	{
 		LogProjectileFilterResult(OtherActor, false);
 		return;
@@ -285,9 +286,11 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
           HitEnemy->GetStatusEffectComponent()->ApplyBarragePoison(const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades),FinalDamage);
         }
         FRunDamageScope DamageScope(GameplayOwner && GameplayOwner->IsA<AShadowClone>() ? FName(TEXT("ShadowClone")) : bAssistProjectile ? AssistDamageSource : bBarrageProjectile ? FName(TEXT("Barrage")) : AttackSource == EPlayerAttackSource::Samurai ? FName(TEXT("SamuraiAttack")) : FName(TEXT("NinjaAttack")));
+        const FVector JointHitPosition=HitEnemy->GetActorLocation();
         const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
         if (bDamageApplied && bBarrageCritical) PlayUpgradeProcVFX(PlayerUpgrades,TEXT("BarrageCritical"),FeedbackLocation);
-		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal);
+        if (bDamageApplied && JointOwner.IsValid()) JointOwner->PlayHitImpact(HitEnemy,JointHitPosition);
+		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal,!JointOwner.IsValid());
 		const bool bKilledEnemy = EnemyHealth->IsDead();
 		if (bDamageApplied && !bKilledEnemy && bHasVenomousKunai)
 		{
@@ -529,6 +532,7 @@ void AAttackProjectileBase::SpawnSplitProjectile(const FVector& SpawnLocation, c
 	AAttackProjectileBase* Child = GetWorld()->SpawnActor<AAttackProjectileBase>(GetClass(), SpawnLocation + Direction * 20.0f, Direction.Rotation(), SpawnParameters);
 	if (!Child) return;
 	Child->bAssistProjectile=bAssistProjectile;
+    Child->JointOwner=JointOwner; if (JointOwner.IsValid()) JointOwner->RegisterChild(Child);
 	Child->AssistDamageSource=AssistDamageSource;
 	Child->InitializeProjectile(GameplayOwner, Direction, ProjectileDamage * 0.5f, ProjectileSpeed, TargetType, SourceTargetingRange,
 		HitEnemy, true, AdditionalPierceCount, RemainingBounces, 0);

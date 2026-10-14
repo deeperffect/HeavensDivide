@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "UpgradeDefinition.h"
 #include "RunLoadoutSubsystem.generated.h"
 
 class UPlayerUpgradeComponent;
@@ -24,6 +25,8 @@ public:
     FName GetSelectedComboAbility() const;
     bool SetSelectedComboAbility(FName Id);
     bool IsComboAbilityUnlocked(FName Id) const;
+    FName GetComboAbilityFor(EUpgradeStatTarget Character) const;
+    bool SetComboAbilityFor(EUpgradeStatTarget Character, FName Id);
     bool CanEditSelections() const;
     void SanitizeSelections();
 private:
@@ -34,5 +37,6 @@ private:
     UPROPERTY(Transient) TArray<FName> SelectedSynergies = {FName(TEXT("TagTeam"))};
     UPROPERTY(Transient) FName SelectedComboAbility = NAME_None;
     UPROPERTY(Transient) bool bExplicitComboChoice = false;
+    UPROPERTY(Transient) TMap<EUpgradeStatTarget, FName> CharacterCombos;
     UPROPERTY(Transient) mutable TArray<TObjectPtr<UUpgradeDefinition>> CachedSynergies;
 };

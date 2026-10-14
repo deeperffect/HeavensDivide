@@ -1,4 +1,5 @@
 #include "StanceSelectionWidget.h"
+#include "ComboAbilityDefinition.h"
 #include "BloodshiftMenuStyle.h"
 #include "MainMenuWidget.h"
 #include "PlayerUpgradeComponent.h"
@@ -92,7 +93,7 @@ UStanceSelectionWidget::UStanceSelectionWidget(const FObjectInitializer& Initial
     HeadingFont = FSlateFontInfo(Heading.Object, 24, TEXT("Default"));
     ActionStyle = BloodshiftMenu::ActionStyle();
     CardStyle = ActionStyle;
-    CardStyle.SetNormal(Solid(Surface)).SetHovered(Solid(FLinearColor(.035f,.065f,.070f)))
+    CardStyle.SetNormal(Solid(BloodshiftMenu::Surface)).SetHovered(Solid(FLinearColor(.035f,.065f,.070f)))
         .SetPressed(Solid(FLinearColor(.07f,.08f,.065f)))
         .SetNormalPadding(FMargin(0)).SetPressedPadding(FMargin(0));
     RankStyle = ActionStyle;
@@ -378,8 +379,8 @@ TSharedRef<SWidget> UStanceSelectionWidget::BuildSynergyPage()
         [SNew(SBox).WidthOverride(460)
          [SNew(SVerticalBox)
           +SVerticalBox::Slot().AutoHeight()[MakeLoadoutPicker(0)]
-          +SVerticalBox::Slot().AutoHeight().Padding(0,24,0,0)[MakeLoadoutPicker(1)]
-          +SVerticalBox::Slot().AutoHeight().Padding(0,24,0,0)[MakeLoadoutPicker(2)]]];
+          +SVerticalBox::Slot().AutoHeight().Padding(0,16,0,0)[MakeLoadoutPicker(1)]
+          +SVerticalBox::Slot().AutoHeight().Padding(0,14,0,0)[MakeLoadoutPicker(2)]]];
 }
 
 TSharedRef<SWidget> UStanceSelectionWidget::MakeLoadoutPicker(int32 Kind)
@@ -389,7 +390,9 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeLoadoutPicker(int32 Kind)
     {
         if(Kind<2){const auto* Stance=RunStances::Find(Kind==0?SelectedSamurai:SelectedNinja);return FText::FromString(Stance?Stance->Name:TEXT("Choose stance"));}
         const auto* L=GetGameInstance()?GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>():nullptr;
-        return FText::FromString(L&&!L->GetSelectedComboAbility().IsNone()?TEXT("Soul Convergence"):TEXT("No combo"));
+        const FName Id = L ? L->GetSelectedComboAbility() : NAME_None;
+        if (const auto* Entry = ComboCatalog::Find(Id)) return FText::FromString(Entry->Name);
+        return FText::FromString(Id.IsNone()?TEXT("No combo"):TEXT("No combo"));
     };
     SAssignNew(LoadoutPickers[Kind],SComboButton).ComboButtonStyle(&MenuDropdown::ButtonStyle()).ContentPadding(FMargin(16,14)).HasDownArrow(false)
         .OnGetMenuContent_Lambda([this,Kind](){return MakeLoadoutChoices(Kind);})
@@ -400,7 +403,7 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeLoadoutPicker(int32 Kind)
     AddNavigation(PickerWidget->GetChildren()->GetChildAt(0),{8,float(1+Kind*2)});
     return SNew(SVerticalBox)
         +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)
-         [SNew(STextBlock).Text(FText::FromString(Kind==0?TEXT("SAMURAI STANCE"):Kind==1?TEXT("NINJA STANCE"):TEXT("COMBO ABILITY"))).Font(Font(21,true)).ColorAndOpacity(Paper)]
+         [SNew(STextBlock).Text(FText::FromString(Kind==0?TEXT("SAMURAI STANCE"):Kind==1?TEXT("NINJA STANCE"):TEXT("COMBINED ABILITY"))).Font(Font(19,true)).ColorAndOpacity(Paper)]
         +SVerticalBox::Slot().AutoHeight()[LoadoutPickers[Kind].ToSharedRef()];
 }
 
@@ -422,8 +425,8 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeLoadoutChoices(int32 Kind)
             [SNew(SBox).WidthOverride(28).HeightOverride(28)[SNew(SMenuLockVisual).Chains(false)]];
         TSharedPtr<SButton> Choice;
         Choices->AddSlot().AutoHeight()[SAssignNew(Choice,SButton).ButtonStyle(&CardStyle).ContentPadding(12).IsEnabled(bAvailable)
-            .ToolTipText(FText::FromString(bAvailable?TEXT(""):(Kind==2 && Id!=TEXT("SoulConvergence")?TEXT("Coming later."):TEXT("Unlock in the Skill Tree."))))
-            .OnClicked_Lambda([this,Kind,Id](){if(Kind<2)SelectStance(Id);else SelectComboAbility(Id);LoadoutPickers[Kind]->SetIsOpen(false);return FReply::Handled();})[Row]];
+            .ToolTipText(FText::FromString(ComboCatalog::Find(Id)?FString::Printf(TEXT("%s\nFits: %s"),ComboCatalog::Find(Id)->Description,ComboCatalog::Find(Id)->Stance):bAvailable?TEXT(""):TEXT("Unlock in the Skill Tree.")))
+            .OnClicked_Lambda([this,Kind,Id](){if(Kind<2)SelectStance(Id);else if(auto* L=GetGameInstance()?GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>():nullptr)L->SetSelectedComboAbility(Id);LoadoutPickers[Kind]->SetIsOpen(false);return FReply::Handled();})[Row]];
         if(bAvailable && !FirstAvailable)FirstAvailable=Choice;
     };
     if(Kind<2)for(int32 I=0;I<UE_ARRAY_COUNT(RunStances::All);++I)
@@ -435,13 +438,12 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeLoadoutChoices(int32 Kind)
     {
         const auto* L=GetGameInstance()?GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>():nullptr;
         AddChoice(NAME_None,TEXT("No combo"),true,-1);
-        AddChoice(TEXT("SoulConvergence"),TEXT("Soul Convergence"),L&&L->IsComboAbilityUnlocked(TEXT("SoulConvergence")),-1);
-        AddChoice(TEXT("Veilbreaker"),TEXT("Veilbreaker"),false,-1);
-        AddChoice(TEXT("CrimsonEclipse"),TEXT("Crimson Eclipse"),false,-1);
+        for (const auto& Entry : ComboCatalog::Entries())
+            AddChoice(Entry.Id,Entry.Name,L&&L->IsComboAbilityUnlocked(Entry.Id),-1);
     }
     LoadoutPickers[Kind]->SetMenuContentWidgetToFocus(FirstAvailable);
     return SNew(SBorder).BorderImage(&MenuDropdown::ButtonStyle().MenuBorderBrush).Padding(2)
-        [SNew(SBox).WidthOverride(456)[Choices]];
+        [SNew(SBox).WidthOverride(456).MaxDesiredHeight(480)[SNew(SScrollBox).ScrollBarAlwaysVisible(true)+SScrollBox::Slot()[Choices]]];
 }
 
 TSharedRef<SWidget> UStanceSelectionWidget::BuildPage()

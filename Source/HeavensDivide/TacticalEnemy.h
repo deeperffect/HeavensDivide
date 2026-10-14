@@ -102,6 +102,7 @@ protected:
     virtual void StopEnemyBehavior() override;
     virtual void HandleDeath() override;
 private:
+    TWeakObjectPtr<class AIndicatorAttackVFX> ChargeVFX;
     friend class FEncounterExpansionTest;
     friend class FBossSpellPressureTest;
     float GetEngagementRange() const;

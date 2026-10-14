@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "size": 1024,
+  "world_origin": [
+    -7600.0,
+    -7600.0
+  ],
+  "world_size": [
+    15200.0,
+    15200.0
+  ],
+  "cm_per_texel": 14.84375,
+  "grass_fringe_cm": 115,
+  "contact_shadow_cm": 32,
+  "exterior_grass_pixels": 59893,
+  "exterior_shadow_pixels": 11785,
+  "layout_sha256": "8f4f38d938c81223e74f9379c0d3041114e345a3163fcb3dabbd857269e51c02",
+  "atlas_regions_sha256": "6d66ec96cd6eeb02edfa6ba90685ffe643a0a2e44fe770388447f26aacadc073",
+  "sha256": "65d04467eec18b822c531b77b24ad488b9461c4958ff9c8d3c1215c1fa05d43d",
+  "channels": {
+    "R": "silhouette grass fringe",
+    "G": "contact shade",
+    "B": "broad world variation",
+    "A": "broken transition noise"
+  }
+}

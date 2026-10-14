@@ -38,6 +38,10 @@ class HEAVENSDIVIDE_API ANinjaBuildProjectile : public AActor
     TWeakObjectPtr<AShadowClone> Clone;
     bool bCloneProjectile = false;
     bool bAssistProjectile = false;
+    bool bJointProjectile = false;
+    bool bJointRouteMatched = false;
+    float JointLifetime = 2.f;
+    TWeakObjectPtr<AActor> JointOwner;
     FName AssistDamageSource = TEXT("TagTeam");
     FName FragmentDamageSource = TEXT("EmbeddedBlades");
     bool bSpectralFang = false;

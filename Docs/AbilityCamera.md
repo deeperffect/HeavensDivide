@@ -1,15 +1,11 @@
-# Thousand Cuts camera
+# Joint combo camera
 
-The camera automatically uses steadier framing while the active Ninja performs her combo ability, including root-motion movement. Small movements stay inside a world-space dead zone; larger movements use damped, speed-limited tracking. A maximum focus distance takes priority over smoothing on very long dashes. This is a world-space framing limit, not a guaranteed screen-space boundary at every resolution or camera angle.
+The three joint combos use camera framing for either active character. Tune **BP_PlayerCameraRig > Camera > Joint Combo**:
 
-Tune **BP_PlayerCameraRig → Camera → Thousand Cuts**:
+- **Enable Joint Camera**: enable the cinematic framing.
+- **Joint Orbit Degrees**: strength of the charge arc. The saved default of 9 produces a restrained 3.15-degree arc.
+- **Joint Zoom Amount**: charge dolly strength. The saved default of 0.16 produces an 8.8% push-in; perspective FOV stays fixed.
 
-- **Enable Thousand Cuts Camera**: toggle this behavior.
-- **Ability Dead Zone**: stationary focus radius, default 160 cm.
-- **Ability Max Focus Distance**: maximum character-to-focus distance, default 420 cm. Reduce if she gets too close to the screen edges.
-- **Ability Follow Speed**: damping response, default 3. Lower values follow more slowly.
-- **Ability Max Camera Speed**: normal tracking speed cap, default 800 cm/s. The maximum focus distance can override it.
-- **Ability Zoom Out Multiplier**: default 1.25; scales spring-arm distance for perspective and width for orthographic cameras.
-- **Ability Blend In / Out Duration**: default 0.25 / 0.65 seconds.
+A smooth easing curve settles before the helper appears in smoke. Each combo definition's Helper Arrival Fraction sets this timing (35% of charge by default). Framing holds during release and returns once over 0.48 seconds from the actual camera pose. It follows the current player position during the return, including Eclipse's real dash endpoint. Release zoom-out, reversing orbit and extra impact kicks are removed. Joint projectile impacts do not add repeated shakes. Pause stops the sequence. Target changes, cancellation and teardown restore all camera properties. Joint framing takes priority over swap framing. The retired solo-ability camera controller has been removed.
 
-Tracking and transitions use real time so ability freeze does not stall them. After the ability, focus blends back to the character's current position and restores the original zoom and spring-arm lag. Changing targets or ending play cancels framing and restores settings. Samurai and normal movement keep their existing camera behavior.
+See [Combo abilities](ComboAbilities.md) for animation/VFX/timing settings.

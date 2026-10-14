@@ -1,5 +1,8 @@
 #include "SwapPresentationComponent.h"
 #include "SwapAfterimage.h"
+#include "CharacterSmokeBurst.h"
+#include "CombatGround.h"
+#include "Components/CapsuleComponent.h"
 #include "SwapPortal.h"
 #include "AutoAttackComponent.h"
 #include "NinjaCharacter.h"
@@ -42,6 +45,25 @@ void USwapPresentationComponent::SpawnEffect(UNiagaraSystem* System)
         RegisterFreezeEffect(Effect);
         Effect->Activate();
     }
+}
+ACharacterSmokeBurst* USwapPresentationComponent::SpawnCharacterSmoke()
+{
+    auto* Character=Cast<ACharacterBase>(GetOwner());
+    if (!bEnabled || !Character || !CharacterSmokeVFX || GetNetMode()==NM_DedicatedServer) return nullptr;
+    FVector Point=Character->GetVisualRoot()->GetComponentLocation();
+    FVector Ground;
+    if (CombatGround::FindSurface(GetWorld(),Point,Character,Ground)) Point=Ground;
+    else Point.Z=Character->GetActorLocation().Z-Character->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+    Point.Z+=14.f;
+    FActorSpawnParameters Params;
+    Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+    auto* Smoke=GetWorld()->SpawnActor<ACharacterSmokeBurst>(Point,Character->GetVisualFacingRotation(),Params);
+    if (Smoke) {
+        Smoke->Initialize(CharacterSmokeVFX,CharacterSmokeScale,CharacterSmokeSeconds);
+        RegisterFreezeEffect(Smoke->GetEffect());
+        if (bSwapFreezeActive) Smoke->PrimaryActorTick.AddPrerequisite(this,PrimaryComponentTick);
+    }
+    return Smoke;
 }
 void USwapPresentationComponent::PlayDeparture()
 {
@@ -104,6 +126,7 @@ void USwapPresentationComponent::PlayArrival()
     SpawnEffect(ArrivalVFX);
     StartEntrance();
     StartArrivalMovement();
+    if (bSmokeOnSwapArrival) SpawnCharacterSmoke();
     SpawnArrivalPortal();
     if(bSwapFreezeActive)
         if(auto* Controller=Cast<APlayerController>(Character->GetController()))

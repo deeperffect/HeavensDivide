@@ -26,6 +26,7 @@ struct FEnemyDamageStatusState
 	float ActiveTickInterval = 0.0f;
 	float BleedHitBonusPerTick = 0.0f;
  bool bBarragePoison = false;
+ bool bIntrinsicBleed = false;
  bool bDirectBarragePoison = false;
  float PoisonDamagePerTick = 0.f;
  // Attribution only: the additive share seeded by pools; never changes poison gameplay.
@@ -44,7 +45,7 @@ public:
 	UEnemyStatusEffectComponent();
 
 	/** Intrinsic ability/assist statuses share all normal scaling and source restrictions, without requiring the basic-attack starter. */
-	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus = false, float ApplyingHitDamage = 0.0f);
+	bool ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus = false, float ApplyingHitDamage = 0.0f, bool bJointBlood = false);
 	/** Called once before death clears status state. Transfers the current Blood Stance stacks. */
 	void TransferBleedOnDeath();
 	void GrantBloodRushOnDeath();

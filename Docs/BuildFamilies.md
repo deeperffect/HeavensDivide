@@ -4,7 +4,7 @@ Current numeric tuning is in [Combat Balance](CombatBalance.md). The fixed-healt
 
 See [Combat architecture](CombatArchitecture.md) for source ownership, Blueprint settings, and cleanup verification.
 
-The shared [combo meter and character abilities](ComboAbilities.md) add **Tornado** for Samurai and **Thousand Cuts** for Ninja, activated with **Q** at full charge. Swaps and Tag Team fill the meter; these abilities do not require upgrade cards.
+The shared [combo meter and combined abilities](ComboAbilities.md) provide **Crimson Tempest**, **Eclipse Severance** and **Lunar Tempest**, activated with **Q** at full charge. Both heroes perform together, and matching stances contribute their native upgrades. Swaps and committed assists fill the meter.
 
 Combat now uses normal autoattacks and **Blade Wave**, which replaces Samurai's melee attacks in Crescent Stance. The saved catalog retains **156 unique pool cards**, of which **148 are currently enabled**. Normal-attack modifiers, status upgrades, Tag Team, Grand Entrance and the other shared upgrades remain available.
 
@@ -263,6 +263,8 @@ Completing a Ninja trial offers three Rare weapon-route cards that replace or mo
 ### Returning Fang
 
 Returning Fang uses **7 one-time mechanics, 5 normal scalable upgrades, 7 rare scalable branches, and 3 Shrine-only tradeoffs**. Outward hits damage the selected enemy; returning blades deal no contact damage. Staying close shortens each attack cycle, capped at **4 launches per second** per repeating Fang. Base targeting range and outward/return flight speed are half their former values; upgrades still scale those reduced bases. Additional projectile bonuses still become 25% Fang damage each.
+
+Fang kunai use a uniform presentation actor scale of `1.0` in `BP_NinjaProjectileFang`. Stance, spectral, assist and clone blades share this Blueprint; Eclipse uses the same size through its **Fang Presentation Scale** setting. The presentation actor has collision disabled; native Fang hit detection is unchanged.
 
 Before choosing a Ninja stance, **Attack Damage**, **Attack Speed**, and **Coverage** are available. Choosing Fang converts their ranks, rolled strength, and banishment into **Fang Damage**, **Flight Speed**, and **Attack Range**. Other Ninja routes retain attack-speed scaling; Coverage scales normal kunai and Great Shuriken size.
 

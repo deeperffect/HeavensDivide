@@ -15,7 +15,7 @@ class HEAVENSDIVIDE_API AEnemyAttackCue : public AActor
 public:
     AEnemyAttackCue();
     static AEnemyAttackCue* Spawn(AEnemyBase* Source,FVector Center,float Radius,float Windup,bool bProjectile=false);
-    void Impact();
+    void Impact(TOptional<FVector> ReleaseLocation = {});
     virtual void Tick(float Delta) override;
 private:
     UPROPERTY() TObjectPtr<UStaticMeshComponent> Mesh;

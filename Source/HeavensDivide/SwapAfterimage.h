@@ -19,6 +19,10 @@ public:
         FVector Direction, float Duration);
     bool InitializeDeparture(ACharacterBase* Source, UMaterialInterface* Material, FLinearColor Color,
         UAnimMontage* Montage, float PlayRate, float FadeDuration = .2f);
+    bool InitializeJointCast(ACharacterBase* Source, UAnimMontage* Montage, FVector Direction, float Duration);
+    void SetJointPose(float AnimationFraction);
+    bool SetJointMontage(UAnimMontage* Montage);
+    UAnimMontage* GetJointMontage() const;
     virtual void Tick(float DeltaSeconds) override;
     void SetPortalDestination(const FVector& Destination) { PortalStart = GetActorLocation(); PortalEnd = Destination; bPortalDash = true; }
     void EnablePortalTrail(float Duration) { TrailDuration = FMath::Clamp(Duration, .01f, .5f); }
@@ -28,6 +32,7 @@ private:
     void EndCosmeticNotifies();
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
     bool bCosmeticNiagaraNotifies = false;
+    bool bJointCast = false;
     TArray<FAnimNotifyEventReference> ActiveCosmeticStates;
     void SpawnTrailSnapshot();
     float TrailDuration = 0, LastTrailAge = 0;

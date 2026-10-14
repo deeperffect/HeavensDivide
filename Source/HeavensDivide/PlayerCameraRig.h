@@ -23,6 +23,11 @@ public:
 	void StartSwapFocus();
 	void StopSwapFocus(bool bCancelArrivalKick = true);
 	void StartArrivalKick(float Strength, float Duration);
+	void StartJointCamera(AActor* Requester, FVector Focus, FVector Direction, float Windup, float Duration);
+	void EndJointCamera(AActor* Requester, bool bImmediate = false);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Joint Combo") bool bEnableJointCamera = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Joint Combo", meta=(ClampMin="0", ClampMax="20")) float JointOrbitDegrees = 9.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Joint Combo", meta=(ClampMin="0", ClampMax="0.3")) float JointZoomAmount = .16f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Swap Focus") bool bEnableSwapFocus = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Swap Focus", meta=(ClampMin="0", ClampMax="0.5")) float SwapZoomAmount = .18f;
@@ -31,14 +36,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Swap Focus", meta=(ClampMin="0", ClampMax="1")) float SwapVignetteStrength = .12f;
 
 	void SetFollowTarget(ACharacterBase* NewFollowTarget);
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts") bool bEnableThousandCutsCamera = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts", meta=(ClampMin="0", Units="cm")) float AbilityDeadZone = 160.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts", meta=(ClampMin="0", Units="cm", ToolTip="Maximum distance between camera focus and character; overrides smoothing to keep long dashes framed.")) float AbilityMaxFocusDistance = 420.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts", meta=(ClampMin="0.1")) float AbilityFollowSpeed = 3.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts", meta=(ClampMin="1", Units="cm/s")) float AbilityMaxCameraSpeed = 800.f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts", meta=(ClampMin="1", ClampMax="2")) float AbilityZoomOutMultiplier = 1.25f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts", meta=(ClampMin="0.01", Units="s")) float AbilityBlendInDuration = .25f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Camera|Thousand Cuts", meta=(ClampMin="0.01", Units="s")) float AbilityBlendOutDuration = .65f;
 	ACharacterBase* GetFollowTarget() const;
 
 protected:
@@ -54,14 +51,19 @@ protected:
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<ACharacterBase> FollowTarget;
 private:
-	friend class FAbilityCameraTest;
-	bool UpdateAbilityCamera(float RealDelta);
-	void StopAbilityCamera();
-	bool bAbilityCameraActive = false, bAbilityCameraReturning = false;
-	bool bAbilitySavedCameraLag = false;
-	float AbilityCameraAge = 0, AbilityReturnAge = 0, AbilityZoomWeight = 0, AbilityReturnZoomWeight = 0;
-	float AbilitySavedArmLength = 900, AbilitySavedOrthoWidth = 512;
-	FVector AbilityReturnLocation = FVector::ZeroVector;
+    friend class FJointComboTest;
+    friend class AJointComboActor;
+	bool UpdateJointCamera(float Delta);
+	void RestoreJointCamera();
+	TWeakObjectPtr<AActor> JointCameraOwner;
+	bool bJointCameraActive = false;
+	float JointAge = 0, JointWindup = .65f, JointDuration = 1.8f, JointReturnAge = 0;
+	float JointSavedArm = 900, JointSavedWidth = 512, JointSavedFOV = 90, JointSavedVignette = .4f;
+    float JointReturnArm=900, JointReturnWidth=512, JointReturnVignette=.4f;
+	bool bJointSavedLag = false, bJointSavedVignetteOverride = false, bJointReturning = false;
+	FVector JointFocus, JointStartLocation, JointReturnLocation;
+	FRotator JointSavedRotation;
+    FRotator JointReturnRotation;
 	friend class FSwapCameraTest;
 	void UpdateSwapFocus(float RealDelta);
 	float ArrivalKickAge = 0, ArrivalKickDuration = 0, ArrivalKickStrength = 0;

@@ -70,7 +70,7 @@ void ACharacterBase::Tick(float DeltaSeconds)
 
 void ACharacterBase::MoveCharacter(FVector2D Input)
 {
-    if (CharacterMode != ECharacterMode::Active || (SwapPresentation && SwapPresentation->IsBlockingAttacks()))
+    if (bComboAbilityActive || CharacterMode != ECharacterMode::Active || (SwapPresentation && SwapPresentation->IsBlockingAttacks()))
 	{
 		return;
 	}

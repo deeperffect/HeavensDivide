@@ -126,8 +126,6 @@ for name in ['Ninja','Samurai']:
    assert not validate,'Pool VFX must remain at ground height'
    component.set_editor_property('poison_pool_vfx_height_scale',.005);changed=True
  if changed:u.BlueprintEditorLibrary.compile_blueprint(bp);save(bp)
- combo=cdo.get_editor_property('combo_ability')
- report.append({'blueprint':name,'existing_combo':combo.export_text()})
 # Retire the initial sparse cross-slash prototype only when no saved asset uses it.
 old=folder+'/NS_NinjaWheelBurst'
 if not validate and u.EditorAssetLibrary.does_asset_exist(old) and not u.EditorAssetLibrary.find_package_referencers_for_asset(old,True):

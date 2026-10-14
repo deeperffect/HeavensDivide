@@ -1,65 +1,55 @@
-#if WITH_DEV_AUTOMATION_TESTS
+﻿#if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "ComboAbilityComponent.h"
-#include "CharacterBase.h"
+#include "ComboAbilityDefinition.h"
+#include "JointComboActor.h"
+#include "SamuraiCharacter.h"
+#include "EnemyBase.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "Engine/Engine.h"
+#include "Engine/World.h"
+#include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FComboAbilityVFXTest, "HeavensDivide.Combat.ComboAbilityVFX",
-    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter | EAutomationTestFlags::NonNullRHI)
 bool FComboAbilityVFXTest::RunTest(const FString&)
 {
-    auto* Class = LoadClass<ACharacterBase>(nullptr, TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai.BP_Samurai_C"));
-    if (!TestNotNull(TEXT("Samurai blueprint"), Class)) return false;
-    auto* Combo = NewObject<UComboAbilityComponent>();
-    Combo->ActiveSettings = Class->GetDefaultObject<ACharacterBase>()->ComboAbility;
-    if(!TestNotNull(TEXT("Authored ability Niagara exists"),Combo->ActiveSettings.VFX.Get()))return false;
-    TestFalse(TEXT("Samurai effect stays in world space"),Combo->ActiveSettings.bAttachVFXToCharacter);
-    TestFalse(TEXT("Samurai effect plays once"),Combo->ActiveSettings.bSpawnVFXEveryPulse);
-    TestTrue(TEXT("Samurai preserves authored Niagara scale"),Combo->ActiveSettings.VFXRadiusParameter.IsNone());
-    TestTrue(TEXT("Samurai preserves authored Niagara timing"),Combo->ActiveSettings.VFXDurationParameter.IsNone());
-    // Exercise optional radius scaling independently of the Samurai's authored-look configuration.
-    Combo->ActiveSettings.VFX=LoadObject<UNiagaraSystem>(nullptr,TEXT("/Game/HeavensDivide/VFX/Upgrades/NS_SamuraiActive.NS_SamuraiActive"));
-    Combo->ActiveSettings.VFXRadiusParameter=TEXT("User._Scale");
-    Combo->ActiveSettings.bVFXRadiusParameterIsScale=true;
-    const float ReferenceRadius = Combo->ActiveSettings.VFXReferenceRadius;
-    TestTrue(TEXT("Reference radius is positive"), ReferenceRadius > 0.f);
-    auto* FX = NewObject<UNiagaraComponent>();
-    FX->SetAsset(Combo->ActiveSettings.VFX);
-    Combo->ActiveVFX = FX;
-    const FNiagaraVariable Scale(FNiagaraTypeDefinition::GetFloatDef(), Combo->ActiveSettings.VFXRadiusParameter);
-    TestTrue(TEXT("Effect exposes a float scale input"), Combo->ActiveSettings.VFX->GetExposedParameters().IndexOf(Scale) != INDEX_NONE);
-    const float AuthoredScale = Combo->ActiveSettings.VFX->GetExposedParameters().GetParameterValue<float>(Scale);
-    Combo->ActiveSettings.VFXScale = FVector(.5f);
-    for (const float Radius : {600.f, 700.f, 900.f, 1200.f, 600.f})
-    {
-        Combo->UpdateVFXRadius(Radius);
-        TestEqual(TEXT("Current radius controls scale without accumulation"), FX->GetOverrideParameters().GetParameterValue<float>(Scale), Radius / FMath::Max(.01f, ReferenceRadius) * AuthoredScale * .5f);
+    auto* W = UWorld::CreateWorld(EWorldType::Game, false);
+    GEngine->CreateNewWorldContext(EWorldType::Game).SetCurrentWorld(W);
+    W->InitializeActorsForPlay(FURL());
+    auto* Hero = W->SpawnActor<ASamuraiCharacter>();
+    auto* J = W->SpawnActor<AJointComboActor>();
+    auto* D = DuplicateObject(ComboCatalog::Definition(TEXT("BloodMoon")), GetTransientPackage());
+    J->Data = D; J->Active = Hero; J->Origin = Hero->GetActorLocation(); J->Direction = FVector::RightVector;
+    D->bTintVFX = false;
+    J->Burst(D->VFX, J->Origin, .73f, .41f, FLinearColor::Green, FRotator(0,27,0), FVector(40,20,30));
+    TestEqual(TEXT("One independent burst"), J->Effects.Num(), 1);
+    if (J->Effects.Num() == 1) {
+        auto* FX = J->Effects[0].Effect.Get();
+        TestTrue(TEXT("VFX uses requested scale"), FX->GetComponentScale().Equals(FVector(.73f), .001));
+        TestTrue(TEXT("VFX rotation follows cast yaw plus authored rotation"), FX->GetComponentRotation().Equals(FRotator(0,117,0), .001));
+        TestTrue(TEXT("Local offset is applied after ground anchoring"), FX->GetComponentLocation().Equals(J->Ground(J->Origin)+FVector(-20,40,30), .001));
+        TestEqual(TEXT("Emission uses requested visibility duration"), J->Effects[0].Stop, .41f);
+        TArray<FNiagaraVariable> Params; D->VFX->GetExposedParameters().GetParameters(Params);
+        for (const auto& P : Params) if (P.GetType() == FNiagaraTypeDefinition::GetColorDef()) {
+            const int32 Index = FX->GetOverrideParameters().IndexOf(P);
+            TestTrue(TEXT("Tint opt-out preserves authored color"), Index == INDEX_NONE || FX->GetOverrideParameters().GetParameterValue<FLinearColor>(P) == D->VFX->GetExposedParameters().GetParameterValue<FLinearColor>(P));
+        }
     }
-    Combo->ActiveSettings.bVFXRadiusParameterIsScale = false;
-    Combo->ActiveSettings.VFXRadiusParameter = TEXT("User.Radius");
-    Combo->ActiveSettings.VFXReferenceRadius = 1;
-    Combo->UpdateVFXRadius(900);
-    TestEqual(TEXT("Default preserves centimeter radius parameters"), FX->GetOverrideParameters().GetParameterValue<float>(
-        FNiagaraVariable(FNiagaraTypeDefinition::GetFloatDef(), TEXT("User.Radius"))), 900.f);
-    Combo->PendingVFX.Add({FX, nullptr, 2.f, 3.f, false});
-    Combo->FinishAbility(false);
-    TestEqual(TEXT("Normal ability end retains independent VFX lifetime"), Combo->PendingVFX.Num(), 1);
-    TestTrue(TEXT("Normal completion does not destroy VFX"), IsValid(FX));
-    TestNull(TEXT("Completed ability releases active VFX reference"), Combo->ActiveVFX.Get());
-    Combo->UpdateVFXLifetime(1.f);
-    TestFalse(TEXT("VFX continues emitting before visibility duration"), Combo->PendingVFX[0].bStopping);
-    Combo->UpdateVFXLifetime(1.5f);
-    TestTrue(TEXT("Visibility deadline begins graceful completion"), Combo->PendingVFX[0].bStopping);
-    TestEqual(TEXT("Overshoot is included in completion timeout"), Combo->PendingVFX[0].CompletionRemaining, 2.5f);
-    Combo->UpdateVFXLifetime(2.5f);
-    TestTrue(TEXT("Completion timeout destroys lingering effect"), FX->IsBeingDestroyed());
-    TestTrue(TEXT("Completion timeout removes tracking"), Combo->PendingVFX.IsEmpty());
-    auto* CancelledFX = NewObject<UNiagaraComponent>();
-    Combo->PendingVFX.Add({CancelledFX, nullptr, 10.f, 5.f, false});
-    Combo->FinishAbility(true);
-    TestTrue(TEXT("Cancellation clears effects even after ability ended"), CancelledFX->IsBeingDestroyed());
-    TestTrue(TEXT("Cancellation removes pending effects"), Combo->PendingVFX.IsEmpty());
+    for (const TCHAR* Name : {TEXT("VFX"),TEXT("VFXOffset"),TEXT("VFXScale"),TEXT("VFXRotation"),TEXT("VFXSeconds"),TEXT("bTintVFX"),TEXT("VFXCompletionSeconds"),TEXT("ChargeVFX"),TEXT("ChargeVFXScale"),TEXT("ChargeVFXOffset"),TEXT("ChargeVFXRotation"),TEXT("ChargeVFXColor"),TEXT("ChargeVFXSeconds"),TEXT("SecondaryVFX"),TEXT("SecondaryVFXScale"),TEXT("SecondaryVFXOffset"),TEXT("SecondaryVFXRotation"),TEXT("SecondaryVFXColor"),TEXT("SecondaryVFXSeconds"),TEXT("FangPresentationScale"),TEXT("NinjaAlternateMontage"),TEXT("HelperArrivalVFX"),TEXT("HelperDepartureVFX"),TEXT("HelperSmokeScale"),TEXT("HelperSmokeOffset"),TEXT("HelperSmokeRotation"),TEXT("HelperSmokeSeconds"),TEXT("HitVFX"),TEXT("HitVFXScale"),TEXT("HitVFXOffset"),TEXT("HitVFXRotation"),TEXT("HitVFXSeconds"),TEXT("HitVFXInterval"),TEXT("ReleaseStartSpeed"),TEXT("ReleaseRampSeconds"),TEXT("HelperArrivalFraction")}) {
+        const auto* Property = FindFProperty<FProperty>(UComboAbilityDefinition::StaticClass(), Name);
+        TestTrue(Name, Property && Property->HasAnyPropertyFlags(CPF_Edit));
+    }
+    // Some enemy death Blueprints remove the actor immediately, before damage
+    // returns. A captured hit location must still show a detached killing burst.
+    auto* Victim=W->SpawnActor<AEnemyBase>(FVector(310,200,120),FRotator::ZeroRotator);
+    const FVector Contact=Victim->GetActorLocation();Victim->Destroy();
+    const int32 BeforeKill=J->Effects.Num();J->PlayHitImpact(Victim,Contact);
+    TestEqual(TEXT("Immediate enemy destruction retains killing impact"),J->Effects.Num(),BeforeKill+1);
+    if(J->Effects.Num()>BeforeKill) TestTrue(TEXT("Killing impact uses position captured before death"),J->Effects.Last().Effect->GetComponentLocation().Equals(Contact+J->Direction.Rotation().RotateVector(D->HitVFXOffset),.01));
+    TestEqual(TEXT("Only three active enum choices remain"), StaticEnum<EComboTechnique>()->NumEnums()-2, 3);
+    TestNull(TEXT("Removed solo ID cannot load a definition"), ComboCatalog::Definition(TEXT("VoidStep")));
+    J->Destroy(); W->DestroyWorld(false); GEngine->DestroyWorldContext(W);
     return true;
 }
 #endif

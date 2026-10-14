@@ -1,4 +1,5 @@
 #include "SamuraiTechniqueTrial.h"
+#include "IndicatorAttackVFX.h"
 #include "RunReportSubsystem.h"
 #include "CombatAudio.h"
 
@@ -305,6 +306,16 @@ void ASamuraiTechniqueTrial::ApplyPendingStrikeDamage()
 {
 	if(MemoryState!=ESamuraiMemoryTrialState::Executing||!CurrentSequence.IsValidIndex(CurrentStep))return;
 	const ESamuraiTrialLane SafeLane=CurrentSequence[CurrentStep];
+	// Missing authored systems still get an execution burst, at the damage callback
+	// rather than the optional lead-in animation used by the memory sequence.
+	for (int32 I = 0; I < Lanes.Num(); ++I)
+	{
+		if (I == static_cast<int32>(SafeLane) || !Lanes[I]) continue;
+		if (StrikeVFXComponents.IsValidIndex(I) && StrikeVFXComponents[I] && StrikeVFXComponents[I]->GetAsset()) continue;
+		const auto* Lane = Lanes[I].Get(); const FVector Scale = Lane->GetComponentScale().GetAbs();
+		AIndicatorAttackVFX::Spawn(this, Lane->GetComponentLocation(), EEncounterShape::Lane,
+			Scale.X * 100, Scale.Y * 100, Lane->GetComponentRotation().Yaw, EIndicatorVFX::Slash);
+	}
 	DrawStrikeDamageDebugBoxes(SafeLane);
 	const bool bSafe = IsPlayerInLane(SafeLane);
 	if (!bSafe && PlayerController && !PlayerController->IsPlayerDead())

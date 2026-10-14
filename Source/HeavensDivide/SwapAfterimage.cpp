@@ -1,5 +1,6 @@
 #include "SwapAfterimage.h"
 #include "CharacterBase.h"
+#include "SwapPresentationComponent.h"
 #include "SurvivorPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/PoseableMeshComponent.h"
@@ -58,6 +59,7 @@ void ASwapAfterimage::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
     if (auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0)); PC && PC->IsSelectingUpgrade()) return;
+    if (bJointCast) return; // The synchronized performance supplies explicit poses.
     AdvanceVisual(!bGameTimeAnimation && (AnimatedMesh || bRealTimeFade) ? static_cast<float>(FApp::GetDeltaTime()) : DeltaSeconds);
 }
 
@@ -272,4 +274,45 @@ void ASwapAfterimage::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     EndCosmeticNotifies();
     Super::EndPlay(EndPlayReason);
+}
+
+bool ASwapAfterimage::InitializeJointCast(ACharacterBase* Source, UAnimMontage* Montage, FVector Direction, float Duration)
+{
+    if (!Source || !Source->SwapPresentation) return false;
+    const FVector Destination=GetActorLocation(); SetActorLocation(Source->GetActorLocation());
+    if (!InitializeDeparture(Source, Source->SwapPresentation->GhostMaterial, FLinearColor(.4f,1.f,3.f), Montage, 1.f,.2f)) { Destroy(); return false; }
+    SetActorLocation(Destination);
+    AddActorWorldRotation(FRotator(0,FMath::FindDeltaAngleDegrees(Source->GetVisualForwardVector().Rotation().Yaw,Direction.Rotation().Yaw),0));
+    bJointCast=true; bGameTimeAnimation=true; SetLifeSpan(Duration+1.f); return true;
+}
+void ASwapAfterimage::SetJointPose(float AnimationFraction)
+{
+    if (!bJointCast || !AnimatedMesh) return;
+    if (auto* Anim=AnimatedMesh->GetSingleNodeInstance()) {
+        Anim->SetPosition(FMath::Clamp(AnimationFraction,0.f,.99f)*DepartureDuration*DepartureRate,false);
+        Anim->UpdateMontageWeightForTimeSkip(.02f); AnimatedMesh->TickAnimation(0.f,false); AnimatedMesh->RefreshBoneTransforms();
+    }
+}
+bool ASwapAfterimage::SetJointMontage(UAnimMontage* Montage)
+{
+    if (!bJointCast || !AnimatedMesh || !Montage) return false;
+    auto* Anim = AnimatedMesh->GetSingleNodeInstance();
+    if (!Anim) return false;
+    EndCosmeticNotifies();
+    DepartureRate = 1.f;
+    DepartureDuration = Montage->GetPlayLength();
+    Anim->SetAnimationAsset(Montage, false, 1.f);
+    Anim->SetPlaying(false);
+    if (auto* Instance = Anim->GetActiveInstanceForMontage(Montage)) Instance->bEnableAutoBlendOut = false;
+    Anim->SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
+    // This mesh is posed manually; complete blend-in before the first sampled
+    // throw frame so rapid alternation never blends through the reference pose.
+    Anim->UpdateMontageWeightForTimeSkip(FMath::Max(.01f, Montage->BlendIn.GetBlendTime()));
+    SetJointPose(.18f);
+    return true;
+}
+UAnimMontage* ASwapAfterimage::GetJointMontage() const
+{
+    auto* Anim = AnimatedMesh ? AnimatedMesh->GetSingleNodeInstance() : nullptr;
+    return Anim ? Cast<UAnimMontage>(Anim->GetCurrentAsset()) : nullptr;
 }

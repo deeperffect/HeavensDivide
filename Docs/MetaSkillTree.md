@@ -6,6 +6,8 @@ Open **Main Menu > Skill Tree**. Select a node to inspect its effect, scope, pre
 
 The four pages are Stances, Synergies, Abilities and Stats. Stances are grouped under Samurai and Ninja. Locked stances show their Sigil price; selecting Unlock opens a Yes/No confirmation stating the exact cost. Opening the dialog or choosing No spends nothing. Yes uses the existing transactional purchase, then opens that stance's skill tree.
 
+Abilities shows shared skills and three joint recipes together. Soul Convergence includes Crimson Tempest; Eclipse Severance and Lunar Tempest require that root and cost 18 Soul Embers each. Recipe unlocks do not grant passive damage stats. Their stable IDs are `Ability.Combo.[ID]`. Existing authored balance catalogs receive the current combo nodes at runtime while retaining unrelated saved tuning. See [Combo abilities](ComboAbilities.md).
+
 Skill trees grow downward with larger circular symbols and rank pips. The map scrolls vertically with the wheel or scrollbar; zoom and drag panning are disabled. Arrows or D-pad move selection and scroll the selected node into view. Enter/controller A focuses Learn. Home scrolls to the top. Escape/controller Back closes the page or cancels a pending purchase/refund. The selected prerequisite path is gold; hovering another branch does not change it. Connections meet the node rings and route around labels using the same geometry for ordinary and highlighted paths. Labels share a fixed row offset and use measured font line spacing. Stats place Samurai on the left, shared skills in the middle and Ninja on the right, with the shared root centered. The inspector and Learn button remain alongside the scrolling tree.
 
 ## Progression and costs
@@ -78,3 +80,5 @@ The subsequent upgrade-availability pass also passes 13 selected checks (`Saved/
 The Loadout and difficulty-unlock pass builds successfully and passes all nine selected menu/progression checks. Rendered previews include locked stance dropdowns, Samurai/Ninja categories, the Yes/No purchase dialog, and the larger vertical trees. Evidence is `Saved/LoadoutMenus/ValidationSummary.json`; automation uses disposable profiles.
 
 The menu/tree polish pass also builds and passes eleven focused checks, including continuous ring endpoints, clear label routing, all page layouts, Samurai/shared/Ninja ordering, combo assist charge and Display controls. D3D12 previews were inspected; evidence is `Saved/MenuTreePolish/ValidationSummary.json`.
+
+The current Abilities page shows the shared root and three joint recipes together. Crimson Tempest is included with Soul Convergence; the other two recipes cost 18 Soul Embers each. Solo choices migrate/refund in save version 7; see [Combo abilities](ComboAbilities.md).

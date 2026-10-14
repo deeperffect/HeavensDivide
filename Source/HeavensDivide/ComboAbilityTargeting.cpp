@@ -1,4 +1,5 @@
 #include "ComboAbilityComponent.h"
+#include "ComboAbilityDefinition.h"
 #include "CharacterBase.h"
 #include "EnemyBase.h"
 #include "Engine/OverlapResult.h"
@@ -7,8 +8,8 @@
 bool UComboAbilityComponent::FaceEnemyPack(ACharacterBase* Character)
 {
     const FVector Origin = Character->GetActorLocation();
-    const float SearchRadius = FMath::Max(1.f, ActiveSettings.PackSearchRadius);
-    const float PackRadiusSquared = FMath::Square(FMath::Max(1.f, ActiveSettings.PackRadius));
+    const float SearchRadius = FMath::Max(1.f, ActiveTechnique->PackSearchRadius);
+    const float PackRadiusSquared = FMath::Square(FMath::Max(1.f, ActiveTechnique->PackRadius));
     TArray<FOverlapResult> Hits;
     FCollisionObjectQueryParams Objects;
     Objects.AddObjectTypesToQuery(ECC_Pawn);

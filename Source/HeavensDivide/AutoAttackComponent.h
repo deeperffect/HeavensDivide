@@ -76,12 +76,14 @@ class HEAVENSDIVIDE_API UAutoAttackComponent : public UActorComponent
 	friend class FNinjaBuildsTest;
     friend class FFangBuildsTest;
  friend class FBarrageBuildsTest;
+ friend class AJointComboActor;
+ friend class FJointComboTest;
  friend class FShurikenBuildsTest;
 
 public:
 	UAutoAttackComponent();
     void SpawnIaijutsuDash(FVector Origin, FVector Destination);
-    bool SpawnIaijutsuSlashes(FVector Origin, FVector Direction, float Distance, float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget = nullptr, float DamageMultiplier = 1.f, bool bAssistAttack = false);
+    bool SpawnIaijutsuSlashes(FVector Origin, FVector Direction, float Distance, float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget = nullptr, float DamageMultiplier = 1.f, bool bAssistAttack = false, bool bJointAttack = false, float JointArea = 1.f, class AJointComboActor* JointOwner = nullptr);
 
 	void CaptureRunState(FAutoAttackRunState& OutState) const;
 	void RestoreRunState(const FAutoAttackRunState& State);
@@ -371,7 +373,7 @@ private:
 	bool TryConsumeAttackNotify();
 	bool ExecuteMeleeAttackTrace();
     int32 GetDoubleCutThreshold() const;
-    void ExecuteBloodEcho(FVector Origin, FVector Direction, float Damage, float Radius, bool bCircular);
+    void ExecuteBloodEcho(FVector Origin, FVector Direction, float Damage, float Radius, bool bCircular, FName JointSource = NAME_None, class AJointComboActor* JointOwner = nullptr);
     void RollBloodAssist();
 public:
     /** Cascade anticipation/explosion effect; starts when capped Bleed is consumed. */
@@ -388,7 +390,7 @@ private:
 	void RegisterDoubleCutPrimaryAttack();
 	bool HasDoubleCutUpgrade() const;
 
-	void SpawnBladeWavesForAttack(float ResolvedPrimaryDamage);
+	void SpawnBladeWavesForAttack(float ResolvedPrimaryDamage, TOptional<FVector> JointOrigin = {}, TOptional<FVector> JointDirection = {}, FName JointSource = NAME_None, class AJointComboActor* JointOwner = nullptr, float JointArea = 1.f);
 
 	const UUpgradeDefinition* GetReadyGrandEntranceUpgrade() const;
 	float GetGrandEntranceRadius(const UUpgradeDefinition* Upgrade) const;

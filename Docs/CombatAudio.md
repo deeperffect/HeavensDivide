@@ -46,8 +46,8 @@ and alter the existing weapon/ability; they do not produce a separate sound per
 hit just because a stat modifier is equipped. The test dummy and unrelated
 footstep/draw foley retain their existing behavior.
 
-Ability activation and pulse sounds are separate editable fields on each
-character's Combo Ability. Upgrade proc sounds use the existing Presentation
+Combined ability release sounds and volumes are editable on the three
+`Abilities/Combos/DA_Combo_*` definitions. Upgrade proc sounds use the existing Presentation
 Sound field. Enemy death sounds remain editable on EnemyDeathComponent. Ogre and
 Bomb expose Windup Audio Event and Impact Audio Event. Weapon animation-notify
 timings are unchanged; Double Cut has one dedicated swing sound.

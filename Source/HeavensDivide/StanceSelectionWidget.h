@@ -43,6 +43,7 @@ protected:
     virtual FReply NativeOnPreviewKeyDown(const FGeometry&, const FKeyEvent&) override;
 private:
     friend class FRunPreparationVisualTest;
+    friend class FComboTechniquesTest;
     TSharedRef<SWidget> BuildPage();
     TSharedRef<SWidget> BuildArenaPage();
     TSharedRef<SWidget> BuildSynergyPage();
@@ -69,7 +70,7 @@ private:
     FSlateBrush SelectedBrush;
     FSlateBrush EmptyBrush;
     TArray<TSharedPtr<SWidget>> Buttons;
-    TSharedPtr<SComboButton> LoadoutPickers[3];
+    TSharedPtr<SComboButton> LoadoutPickers[4];
     TArray<FVector2D> NavigationPositions;
     TSharedPtr<SBox> PageContent;
     TSharedPtr<SScrollBox> SynergyScroll;

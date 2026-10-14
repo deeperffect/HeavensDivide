@@ -20,14 +20,14 @@ UEnemyStatusEffectComponent::UEnemyStatusEffectComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus, float ApplyingHitDamage)
+bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayerUpgradeComponent* SourceUpgrades, EPlayerAttackSource Source, bool bIntrinsicStatus, float ApplyingHitDamage, bool bJointBlood)
 {
 	AEnemyBase* Enemy = Cast<AEnemyBase>(GetOwner());
 	if (!Enemy || Enemy->IsDead() || !SourceUpgrades || !Enemy->CanReceivePlayerDamage(Source)) return false;
 	const bool bCorrectSource = (Status == EEnemyStatusEffect::Bleed && Source == EPlayerAttackSource::Samurai)
 		|| (Status == EEnemyStatusEffect::Poison && Source == EPlayerAttackSource::Ninja);
 	const FName StarterId = Status == EEnemyStatusEffect::Bleed ? FName(TEXT("BattleStance")) : StatusUpgradeIds::VenomousKunai;
-	if (!bCorrectSource || ((Status == EEnemyStatusEffect::Bleed || !bIntrinsicStatus) && !SourceUpgrades->HasUpgradeId(StarterId))) return false;
+	if (!bCorrectSource || ((Status == EEnemyStatusEffect::Bleed ? !(bJointBlood && bIntrinsicStatus) : !bIntrinsicStatus) && !SourceUpgrades->HasUpgradeId(StarterId))) return false;
 
 	FEnemyDamageStatusState& State = GetState(Status);
 	const int32 PreviousStacks = State.Stacks;
@@ -36,7 +36,8 @@ bool UEnemyStatusEffectComponent::ApplyStatus(EEnemyStatusEffect Status, UPlayer
 			FX->UpgradeAccent(StarterId,Enemy->GetActorLocation(),45.f,Status==EEnemyStatusEffect::Bleed?FLinearColor(1,.05f,.08f):FLinearColor(.2f,1,.05f));
 	State.SourceUpgrades = SourceUpgrades;
     const bool bBleed = Status == EEnemyStatusEffect::Bleed;
-    const int32 Cap = bBleed ? UpgradeBalance::BloodCap(SourceUpgrades) : MAX_int32;
+    State.bIntrinsicBleed |= bBleed && bJointBlood && bIntrinsicStatus && !SourceUpgrades->HasUpgradeId(TEXT("BattleStance"));
+    const int32 Cap = bBleed ? (State.bIntrinsicBleed ? 5 : UpgradeBalance::BloodCap(SourceUpgrades)) : MAX_int32;
     const int32 AddedStacks = bBleed && !bIntrinsicStatus ? FMath::Max(1, FMath::RoundToInt(UpgradeBalance::Value(SourceUpgrades, TEXT("BattleStance"), TEXT("BleedStacksPerHit"), 1.f) + UpgradeBalance::Rank(SourceUpgrades, TEXT("Bloodletting"), 1.f))) : 1;
     const int32 AcceptedStacks = FMath::Clamp(AddedStacks, 0, FMath::Max(0, Cap - State.Stacks));
     State.Stacks += AcceptedStacks;
@@ -107,7 +108,7 @@ float UEnemyStatusEffectComponent::CalculateStatusDamagePerTick(EEnemyStatusEffe
 	if (Status == EEnemyStatusEffect::Poison && State.bBarragePoison) return State.PoisonDamagePerTick;
 	if (Status == EEnemyStatusEffect::Bleed)
 	{
-		return Upgrades->HasUpgradeId(TEXT("BattleStance")) ? State.BleedHitBonusPerTick
+		return (Upgrades->HasUpgradeId(TEXT("BattleStance")) || State.bIntrinsicBleed) ? State.BleedHitBonusPerTick
 			* (Upgrades->HasUpgradeId(TEXT("BloodPactPower")) ? UpgradeBalance::Value(Upgrades, TEXT("BloodPactPower"), TEXT("BleedDamageMultiplier"), 1.7f) : 1.f)
 			* (1.f + Upgrades->GetMetaSkillBonus(TEXT("Bleed"))) : 0.f;
 	}
@@ -162,6 +163,7 @@ void UEnemyStatusEffectComponent::ClearStatus(EEnemyStatusEffect Status)
  State.bBarragePoison = State.bDirectBarragePoison = false; State.PoisonDamagePerTick = 0.f;
  State.PuddlePoisonDamagePerTick = 0.f;
 	State.BleedHitBonusPerTick = 0.f;
+    State.bIntrinsicBleed = false;
 	State.RemainingDuration = 0.0f;
 	State.ActiveTickInterval = 0.0f;
 	State.SourceUpgrades.Reset();

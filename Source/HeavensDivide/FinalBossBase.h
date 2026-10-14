@@ -181,6 +181,7 @@ private:
 	FVector LockedAttackOrigin = FVector::ZeroVector;
 	FVector LockedAttackDirection = FVector::ForwardVector;
 	FVector DashStart = FVector::ZeroVector;
+	TWeakObjectPtr<class AIndicatorAttackVFX> DashVFX;
 	FVector DashEnd = FVector::ZeroVector;
 	float StateElapsed = 0.0f;
 	float DashElapsed = 0.0f;

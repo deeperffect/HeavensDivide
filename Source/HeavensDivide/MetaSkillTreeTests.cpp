@@ -65,7 +65,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
 	Meta->CurrentSave->UnlockedSynergyUpgradeIds.Add(TEXT("Synergy.TestLegacy"));
 	TestFalse(TEXT("Unknown node cannot be purchased"),Meta->PurchaseSkill(TEXT("Missing")));
 	TestFalse(TEXT("Prerequisites enforced"),Meta->PurchaseSkill(TEXT("Steel.Edge")));
-	TestEqual(TEXT("45 authored skills"),MetaSkillTree::Nodes().Num(),45);
+	TestEqual(TEXT("45 existing skills plus three joint combo unlocks"),MetaSkillTree::Nodes().Num(),48);
  int32 TotalSkillCost = 0;
 	TSet<FName> Seen;
 	for (const FMetaSkillNode& N : MetaSkillTree::Nodes())
@@ -139,7 +139,7 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
  Meta->CurrentSave->SkillEmbersSpent=137;
  Meta->CurrentSave->TwinSoulCompletionsTowardDiscovery=2;
  Meta->SaveMetaProgression();Meta->LoadMetaProgression();
- TestEqual(TEXT("Migration upgrades schema"),Meta->CurrentSave->SaveVersion,6);
+ TestEqual(TEXT("Migration upgrades schema"),Meta->CurrentSave->SaveVersion,7);
  TestEqual(TEXT("Redesign returns exact historical spend"),Meta->GetSoulEmbers(),StartingEmbers+181);
  TestEqual(TEXT("Redesign clears old purchases"),Meta->CurrentSave->SkillRanks.Num(),0);
  TestEqual(TEXT("Redesign clears refunded spend"),Meta->CurrentSave->SkillEmbersSpent,0);

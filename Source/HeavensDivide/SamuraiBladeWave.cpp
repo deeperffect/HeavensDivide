@@ -1,5 +1,6 @@
 #include "SamuraiBladeWave.h"
 #include "CombatGround.h"
+#include "JointComboActor.h"
 #include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 #include "CrescentBuild.h"
@@ -114,7 +115,7 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
    else
    {
    AssignedVisual=Abilities->FamilyAccent(4,GetActorLocation(),GetActorLocation()+Direction*InTravelDistance,InWidth*0.5f,FLinearColor::White,Duration*(bReturns?2:1));
-   if(AssignedVisual.IsValid()){AssignedVisual->AttachToActor(this,FAttachmentTransformRules::KeepWorldTransform);AssignedVisual->SetActorRotation(Direction.Rotation());}
+   if(AssignedVisual.IsValid()){AssignedVisual->AttachToActor(this,FAttachmentTransformRules::KeepWorldTransform);AssignedVisual->SetActorRotation(Direction.Rotation());if(JointOwner.IsValid())JointOwner->RegisterChild(AssignedVisual.Get());}
    }
    if(!Settings->bShowFallbackWithNiagara){Visual->SetVisibility(false);for(auto E:WaveEffects)if(E.IsValid())E->DeactivateImmediate();WaveEffects.Reset();}
   }
@@ -125,7 +126,8 @@ void ASamuraiBladeWave::InitializeBladeWave(ASamuraiCharacter* InSamurai, UPlaye
 		Effect->SetCustomTimeDilation(FMath::Max(0.001f, VFXAuthoredDuration) / (Duration * (bReturns ? 2.0f : 1.0f)));
 		Effect->Activate(true);
 	}
-	if (!bGroundSlash)
+	if (JointOwner.IsValid() && !bGroundSlash) { PhaseAge=0; PhaseDistance=InTravelDistance; SetActorTickEnabled(true); }
+    else if (!bGroundSlash)
 		GetWorldTimerManager().SetTimer(PhaseTimer, this, bReturns ? &ASamuraiBladeWave::BeginReturn : &ASamuraiBladeWave::FinishWave, Duration, false);
     // Ground following may have moved the collision box since actor spawning.
     FieldTrailStart = Collision->GetComponentLocation();
@@ -159,6 +161,7 @@ void ASamuraiBladeWave::StartGroundVisual()
 {
     auto* Accent = GetWorld()->SpawnActor<AAbilityAccent>(GroundAnchor, GetActorRotation());
     if (!Accent) return;
+    if (JointOwner.IsValid()) JointOwner->RegisterChild(Accent);
     AssignedVisual = Accent;
     const float Duration = FMath::Max(.1f, GroundPresentation.MaxTravelTime);
     Accent->Initialize(GroundAnchor + PhaseDirection * PhaseDistance,
@@ -199,7 +202,15 @@ void ASamuraiBladeWave::ReleaseGroundVisual()
 void ASamuraiBladeWave::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
-    if (!bGroundSlash) return;
+    if (!bGroundSlash) {
+        if (JointOwner.IsValid()) {
+            PhaseAge+=DeltaSeconds;
+            if (PhaseAge>=FMath::Max(.01f,PhaseDistance/Speed)) {
+                if (bReturns && !bReturning) BeginReturn(); else FinishWave();
+            }
+        }
+        return;
+    }
     PhaseAge += DeltaSeconds;
     const float Travelled = FVector::DotProduct(GetActorLocation() - PhaseOrigin, PhaseDirection);
     if (Travelled >= PhaseDistance)
@@ -237,9 +248,10 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
 	Enemy->GetImpactContact(GetActorLocation(), ImpactLocation, ImpactNormal);
 	const float HealthBeforeHit = Health ? Health->GetCurrentHealth() : 0.f;
     FRunDamageScope DamageScope(DamageSource);
+    const FVector JointHitPosition=Enemy->GetActorLocation();
 	const bool bApplied = Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Samurai);
 	if (bApplied && SourceUpgrades.IsValid()) SourceUpgrades->HandleSamuraiDirectHit(Enemy, Damage, HealthBeforeHit);
-	if (bApplied && SourceSamurai->GetOwner())
+	if (bApplied && SourceUpgrades.IsValid() && SourceSamurai->GetOwner())
 		if (auto* Abilities = SourceSamurai->GetOwner()->FindComponentByClass<USurvivorAbilityComponent>())
 		{ Abilities->BladeWaveImpact(Enemy, Damage, !bSplintered); bSplintered = true; }
     if (bApplied)
@@ -251,7 +263,8 @@ void ASamuraiBladeWave::HandleOverlap(UPrimitiveComponent*, AActor* Other, UPrim
                 SpawnSplitWaves(Enemy);
         }
     }
-	if (bApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, ImpactLocation, ImpactNormal);
+    if (bApplied && JointOwner.IsValid()) JointOwner->PlayHitImpact(Enemy,JointHitPosition);
+	if (bApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, ImpactLocation, ImpactNormal,!JointOwner.IsValid());
 	UPlayerUpgradeComponent* Upgrades = SourceUpgrades.Get();
 	if (bApplied && Health && !Health->IsDead() && Upgrades && Upgrades->HasUpgradeId(TEXT("BattleStance")))
 		Enemy->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed, Upgrades, EPlayerAttackSource::Samurai, false, Damage);
@@ -286,6 +299,7 @@ void ASamuraiBladeWave::SpawnSplitWaves(AActor* FirstTarget)
             Wave->bCanSplit = false;
             Wave->HitThisPhase.Add(FirstTarget);
             Wave->DamageSource = DamageSource;
+            Wave->JointOwner=JointOwner; if (JointOwner.IsValid()) JointOwner->RegisterChild(Wave);
         Wave->InitializeBladeWave(SourceSamurai.Get(), U, Direction, Damage * DamageScale, WaveWidth * SizeScale,
                 TravelDistance * RangeScale, Speed, false, VisualAreaScale * SizeScale, FieldDamage * DamageScale, bFieldTriggered);
         }
@@ -309,6 +323,7 @@ void ASamuraiBladeWave::SpawnField()
     HalfExtent.Z += FMath::Abs(Path.Z) * .5f;
     if (auto* Field = GetWorld()->SpawnActor<ASamuraiWaveField>(Center, Rotation, Params))
     {
+        if (JointOwner.IsValid()) JointOwner->RegisterChild(Field);
         Field->Initialize(SourceSamurai.Get(), SourceUpgrades.Get(), FieldDamage, HalfExtent,
             bGroundSlash ? AssignedVisual.Get() : nullptr);
         if (bGroundSlash) AssignedVisual.Reset(); // Field now owns the deposited trail.
@@ -360,7 +375,8 @@ void ASamuraiBladeWave::BeginReturn()
 		const float Age = Controller.IsValid() ? Controller->GetAge() : VFXAuthoredDuration * 0.5f;
 		Effect->SetCustomTimeDilation(FMath::Max(0.001f, VFXAuthoredDuration - Age) / ReturnDuration);
 	}
-	GetWorldTimerManager().SetTimer(PhaseTimer, this, &ASamuraiBladeWave::FinishWave, ReturnDuration, false);
+	if (JointOwner.IsValid()) { PhaseAge=0; PhaseDistance=Distance; }
+    else GetWorldTimerManager().SetTimer(PhaseTimer, this, &ASamuraiBladeWave::FinishWave, ReturnDuration, false);
 	OnReturnStarted.Broadcast(this);
 }
 

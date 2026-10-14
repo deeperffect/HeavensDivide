@@ -1,4 +1,7 @@
 #include "SamuraiIaijutsu.h"
+#include "IndicatorAttackVFX.h"
+#include "JointComboActor.h"
+#include "SurvivorPlayerController.h"
 #include "RunReportSubsystem.h"
 #include "UpgradeBalance.h"
 #include "UpgradeProcVFX.h"
@@ -68,6 +71,7 @@ void ASamuraiIaijutsu::Initialize(ASamuraiCharacter* Source, UPlayerUpgradeCompo
     HitRadius = FMath::Max(1.f, Radius);
     TravelDuration = FMath::Max(0.f, Duration);
     Impact = Feedback;
+    if (JointOwner.IsValid()) Impact.bEnableCameraShake=false;
     DamageVFX = HitVFX;
     VisualDirection = (End - Origin).GetSafeNormal2D();
     const float Length = FVector::Distance(Origin, End);
@@ -81,7 +85,7 @@ void ASamuraiIaijutsu::Initialize(ASamuraiCharacter* Source, UPlayerUpgradeCompo
         ChargeMaterial->SetVectorParameterValue(TEXT("FillColor"), IndicatorColor);
         ChargeMaterial->SetVectorParameterValue(TEXT("BorderColor"), IndicatorColor);
     }
-    if (Source && Source->GetMesh() && Source->GetMesh()->GetSkeletalMeshAsset()
+    if (!JointOwner.IsValid() && Source && Source->GetMesh() && Source->GetMesh()->GetSkeletalMeshAsset()
         && Source->SwapPresentation && Source->SwapPresentation->GhostMaterial)
     {
         FActorSpawnParameters Params;
@@ -123,7 +127,7 @@ void ASamuraiIaijutsu::SpawnPathSlashes()
     // Own the effect asset until the last timer fires, without retaining the attack
     // actor or its source. Damage still resolves only once.
     const auto SpawnBurst = [World = TWeakObjectPtr<UWorld>(GetWorld()),
-        System = TStrongObjectPtr<UNiagaraSystem>(PathSlashVFX.Get()), Scale, bHasScaleParameter, AuthoredScale]
+        Joint=JointOwner, System = TStrongObjectPtr<UNiagaraSystem>(PathSlashVFX.Get()), Scale, bHasScaleParameter, AuthoredScale]
         (FVector Location, FRotator Rotation)
     {
         if (!World.IsValid() || World->bIsTearingDown) return;
@@ -131,6 +135,7 @@ void ASamuraiIaijutsu::SpawnPathSlashes()
             Location, Rotation, bHasScaleParameter ? FVector::OneVector : FVector(Scale), true, false);
         if (!Effect) return;
         if (bHasScaleParameter) Effect->SetVariableFloat(TEXT("User.Scale"), AuthoredScale * Scale);
+        if (auto* Combo=Cast<AJointComboActor>(Joint.Get())) Combo->RegisterEffect(Effect);
         Effect->Activate();
     };
     // A private visual stream leaves FMath's combat/proc RNG unchanged.
@@ -145,6 +150,7 @@ void ASamuraiIaijutsu::SpawnPathSlashes()
         const FRotator Rotation = (BaseRotation * Variation.Quaternion()).Rotator();
         const float Delay = Index * PathSlashDelay;
         if (Delay <= 0.f) SpawnBurst(Location, Rotation);
+        else if (auto* Combo=Cast<AJointComboActor>(JointOwner.Get())) Combo->ScheduleAttack(Delay,[SpawnBurst,Location,Rotation]{SpawnBurst(Location,Rotation);});
         else
         {
             // Capture final transforms now: later aim/movement cannot bend the trail.
@@ -169,6 +175,10 @@ void ASamuraiIaijutsu::UpdateLaneTransform()
 void ASamuraiIaijutsu::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    if (!JointDamageSource.IsNone()) {
+        const auto* PC = SourceUpgrades.IsValid() ? Cast<ASurvivorPlayerController>(SourceUpgrades->GetOwner()) : nullptr;
+        if (!JointOwner.IsValid() || !PC || PC->IsPlayerDead() || !PC->IsRunInProgress()) { Destroy(); return; }
+    }
     if (bResolved)
     {
         const float Step = FMath::Min(DeltaSeconds, PostHitRemaining);
@@ -207,6 +217,11 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
     // Instant casts need a readable, fully filled lane during the post-hit window.
     ChargeIndicator->SetVisibility(TravelDuration <= 0.f);
     SpawnPathSlashes();
+    if (!DamageVFX && (!PathSlashVFX || PathSlashCount == 0 || PathSlashScale <= 0)) {
+        auto* FX=AIndicatorAttackVFX::Spawn(this, ChargeIndicator->GetComponentLocation(), EEncounterShape::Lane,
+            FVector::Dist2D(Origin, End), HitRadius * 2, (End - Origin).Rotation().Yaw, EIndicatorVFX::Slash);
+        if (auto* Combo=Cast<AJointComboActor>(JointOwner.Get())) Combo->RegisterChild(FX);
+    }
     if (DamageVFX)
     {
         auto* Effect = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, DamageVFX,
@@ -217,6 +232,7 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
             Effect->SetVariableVec3(TEXT("User.EndPosition"), End);
             Effect->SetVariableFloat(TEXT("User.Length"), FVector::Distance(Origin, End));
             Effect->SetVariableFloat(TEXT("User.Width"), HitRadius * 2.f);
+            if (auto* Combo=Cast<AJointComboActor>(JointOwner.Get())) Combo->RegisterEffect(Effect);
             Effect->Activate();
         }
     }
@@ -234,7 +250,9 @@ void ASamuraiIaijutsu::Tick(float DeltaSeconds)
     {
         auto* Enemy = Cast<AEnemyBase>(Hit.GetActor());
         if (!Enemy || Enemy->IsDead() || HitEnemies.Contains(Enemy)
-            || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai)) continue;
+            ) continue;
+        OnJointVictim.ExecuteIfBound(Enemy);
+        if (!Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai)) continue;
         HitEnemies.Add(Enemy);
         if (!HitEnemy(Enemy)) continue;
         bHit = true;
@@ -346,6 +364,24 @@ void ASamuraiIaijutsu::ReleaseMovementHolds()
     HeldMovements.Reset();
 }
 
+TArray<AEnemyBase*> ASamuraiIaijutsu::GetChargeTargets() const
+{
+    TArray<AEnemyBase*> Result;
+    if (bResolved || !GetWorld()) return Result;
+    TArray<FOverlapResult> Hits;
+    FCollisionObjectQueryParams Objects; Objects.AddObjectTypesToQuery(ECC_Pawn); Objects.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+    GetWorld()->OverlapMultiByObjectType(Hits,(Origin+End)*.5f,(End-Origin).Rotation().Quaternion(),Objects,
+        FCollisionShape::MakeBox(FVector(FVector::Distance(Origin,End)*.5f,HitRadius,HitRadius)));
+    if (bEndpointBurst) {
+        TArray<FOverlapResult> EndpointHits;
+        GetWorld()->OverlapMultiByObjectType(EndpointHits,End,FQuat::Identity,Objects,
+            FCollisionShape::MakeSphere(FMath::Max(1.f,IaijutsuBuild::Value(SourceUpgrades.Get(),TEXT("IaijutsuAOE"),TEXT("Radius"),250.f))));
+        Hits.Append(EndpointHits);
+    }
+    for (const auto& Hit:Hits) if (auto* E=Cast<AEnemyBase>(Hit.GetActor()); E && !E->IsDead()) Result.AddUnique(E);
+    return Result;
+}
+
 void ASamuraiIaijutsu::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     ReleaseMovementHolds();
@@ -354,8 +390,10 @@ void ASamuraiIaijutsu::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 bool ASamuraiIaijutsu::HitEnemy(AEnemyBase* Enemy)
 {
-    auto* U = SourceUpgrades.Get();
-    if (!Enemy || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai)) return false;
+    auto* U = bUseRouteUpgrades ? SourceUpgrades.Get() : nullptr;
+    if (!Enemy || Enemy->IsDead()) return false;
+    OnJointVictim.ExecuteIfBound(Enemy);
+    if (!Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai)) return false;
     const float HealthBefore = Enemy->GetHealthComponent()->GetCurrentHealth();
     const float ActualDamage = HitDamage * Enemy->GetIaijutsuDamageMultiplier();
     float Bonus = IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("MarkBonus"), .5f)
@@ -363,10 +401,13 @@ bool ASamuraiIaijutsu::HitEnemy(AEnemyBase* Enemy)
     if (U && U->HasUpgradeId(TEXT("IaijutsuMarkPact"))) Bonus *= UpgradeBalance::Value(U, TEXT("IaijutsuMarkPact"), TEXT("MarkMultiplier"), 2.f);
     // Install before damage so even a lethal first hit qualifies for the dash refund.
     // Its own newly applied mark does not amplify the applying hit.
-    Enemy->ApplyIaijutsuMark(U, Bonus, IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("MarkDuration"), 3.f),
+    if (bUseRouteUpgrades) Enemy->ApplyIaijutsuMark(U, Bonus, IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("MarkDuration"), 3.f),
         U && U->HasUpgradeId(TEXT("IaijutsuDashPact")));
-    FRunDamageScope DamageScope(bAssistAttack ? AssistDamageSource : FName(TEXT("Iaijutsu")));
+    FRunDamageScope DamageScope(!JointDamageSource.IsNone() ? JointDamageSource : bAssistAttack ? AssistDamageSource : FName(TEXT("Iaijutsu")));
+    OnJointVictim.ExecuteIfBound(Enemy);
+    const FVector JointHitPosition=Enemy->GetActorLocation();
     if (!Enemy->ApplyPlayerDamage(ActualDamage / Enemy->GetIaijutsuDamageMultiplier(), EPlayerAttackSource::Samurai)) return false;
+    if (auto* Joint=Cast<AJointComboActor>(JointOwner.Get())) Joint->PlayHitImpact(Enemy,JointHitPosition);
     if (U)
     {
         U->HandleSamuraiDirectHit(Enemy, ActualDamage, HealthBefore);
@@ -386,8 +427,9 @@ void ASamuraiIaijutsu::SpawnKillFollowUp(FVector Location)
     const auto Budget = ChainBudget;
     const auto Source = SourceCharacter;
     // Defer to avoid recursive damage/spawning when an instant cast kills.
-    GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(U, [Source, Location, Budget, U, bAssist = bAssistAttack, CommittedAssistSource = AssistDamageSource]
+    GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(U, [Source, Location, Budget, U, bAssist = bAssistAttack, CommittedAssistSource = AssistDamageSource, JointActor=JointOwner, JointSource=JointDamageSource, Area=JointArea]
     {
+        if (!JointSource.IsNone() && !JointActor.IsValid()) return;
         auto* Samurai = Source.Get();
         auto* Attack = Samurai ? Samurai->FindComponentByClass<UAutoAttackComponent>() : nullptr;
         if (!Attack || !U->HasUpgradeId(TEXT("Iaijutsu"))) return;
@@ -410,6 +452,6 @@ void ASamuraiIaijutsu::SpawnKillFollowUp(FVector Location)
             ? 0.f : IaijutsuBuild::Charge(U);
         TGuardValue<FName> AssistSource(Attack->AssistDamageSource, CommittedAssistSource);
         Attack->SpawnIaijutsuSlashes(Location, Direction, Range, Charge, false, Budget,
-            1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuCascadePower"), .2f), bAssist);
+            1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuCascadePower"), .2f), bAssist, !JointSource.IsNone(), Area, Cast<AJointComboActor>(JointActor.Get()));
     }));
 }

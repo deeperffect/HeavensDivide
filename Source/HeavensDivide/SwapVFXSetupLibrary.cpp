@@ -27,6 +27,29 @@
 #include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
 #endif
 
+bool USwapVFXSetupLibrary::ConfigureJointComboBurst(UNiagaraSystem* System)
+{
+#if WITH_EDITOR
+    if (!System || !System->GetPathName().StartsWith(TEXT("/Game/HeavensDivide/VFX/Combos/Joint/"))) return false;
+    System->Modify();
+    for (auto& Handle : System->GetEmitterHandles())
+    {
+        const FString Name=Handle.GetName().ToString();
+        UE_LOG(LogTemp,Display,TEXT("JOINT_BURST %s: %s"),*System->GetName(),*Name);
+        if ((System->GetName()==TEXT("NS_CrimsonTempest") && (Name.Contains(TEXT("Flash")) || Name.StartsWith(TEXT("Smoke")) || Name.Contains(TEXT("Shockwave")))) ||
+            (System->GetName()==TEXT("NS_JointGathering") && (Name.Contains(TEXT("Dark")) || Name.StartsWith(TEXT("Sphere")))) ||
+            (System->GetName()==TEXT("NS_JointChargeLightning") && Name.Contains(TEXT("Dark"))))
+            Handle.SetIsEnabled(false,*System,false);
+    }
+    System->PostEditChange();System->RequestCompile(true);System->WaitForCompilationComplete(true,false);
+    // GPU pipeline pre-caching can still be pending after a valid script compile.
+    // Readiness is transient; asset authoring validates the compiled system here.
+    return System->IsValid();
+#else
+    return false;
+#endif
+}
+
 bool USwapVFXSetupLibrary::ConfigureFangCircleSlash(UNiagaraSystem* System)
 {
 #if WITH_EDITOR

@@ -233,13 +233,17 @@ public:
 	FPlayerHUDSwapCooldownFinished SwapCooldownFinished;
 
 protected:
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Actions") FVector2D DashBadgePosition = FVector2D(-170.f, -174.f);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Actions") FVector2D SwapBadgePosition = FVector2D(170.f, -174.f);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Actions") FVector2D ActionBadgeSize = FVector2D(108.f, 119.f);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Actions") TObjectPtr<class UTexture2D> SwapBadgeIcon;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") bool bShowComboMeter = true;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") FVector2D ComboMeterPosition = FVector2D(0.f, -150.f);
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") FVector2D ComboMeterSize = FVector2D(360.f, 102.f);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") FVector2D ComboMeterSize = FVector2D(240.f, 174.f);
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") FLinearColor ComboChargingColor = FLinearColor(.83f, .78f, .65f);
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") FLinearColor ComboReadyColor = FLinearColor(1.f, .65f, .1f);
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") TObjectPtr<class UTexture2D> ComboInkTexture;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") TObjectPtr<class UMaterialInterface> ComboGlowMaterial;
+    UPROPERTY() TObjectPtr<class UTexture2D> ComboInkTexture; // Legacy Blueprint serialization only.
+    UPROPERTY() TObjectPtr<class UMaterialInterface> ComboGlowMaterial; // Legacy Blueprint serialization only.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo") FSlateFontInfo ComboLabelFont;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo", meta=(ClampMin="0")) float ComboGlowIntensity = 1.f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Player HUD|Combo", meta=(ClampMin="0")) float ComboGlowPulseSpeed = 1.1f;
@@ -305,10 +309,12 @@ protected:
 	TObjectPtr<UTextBlock> RunTimerText;
 
 private:
+    friend void UpdatePlayerActionHUD(UPlayerHUDWidget& HUD);
     void EnsureComboPresentation();
     void UpdateComboPresentation();
-    void ConfigureComboMeterStyle();
-    UPROPERTY(Transient) TObjectPtr<class UMaterialInstanceDynamic> ComboGlowInstance;
+    UPROPERTY(Transient) TObjectPtr<class UComboRadialWidget> ComboRadialMeter;
+    UPROPERTY(Transient) TObjectPtr<class UComboAbilityDefinition> DisplayedComboDefinition;
+    FName DisplayedComboId;
     UPROPERTY(Transient) TObjectPtr<UBorder> ComboContainer;
 	void StartSwapPortraitPulse(ACharacterBase* Character);
 	void UpdateSwapPortraitPulse(float Delta);

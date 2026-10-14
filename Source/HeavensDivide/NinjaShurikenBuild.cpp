@@ -15,7 +15,7 @@
 float ANinjaBuildProjectile::SerrationBonus(AEnemyBase* Enemy) const
 {
  const auto* B=Build.Get();
- if (!B || !B->Has(TEXT("SerratedEdge"))) return 1.f;
+ if (!B || (bJointProjectile && !bJointRouteMatched) || !B->Has(TEXT("SerratedEdge"))) return 1.f;
  const int32 Rank=B->Upgrades()->GetUpgradeLevelById(TEXT("ShurikenGrooves"));
  const float PerHit=B->Tune(TEXT("SerratedEdge"),TEXT("DamagePerHit"),.15f)+Rank*B->Tune(TEXT("ShurikenGrooves"),TEXT("PerHitPerRank"),.03f);
  const float Cap=B->Tune(TEXT("SerratedEdge"),TEXT("DamageCap"),.75f)+Rank*B->Tune(TEXT("ShurikenGrooves"),TEXT("CapPerRank"),.15f);
@@ -24,12 +24,12 @@ float ANinjaBuildProjectile::SerrationBonus(AEnemyBase* Enemy) const
 
 void ANinjaBuildProjectile::UpdateShurikenGrowth()
 {
- const auto* B=Build.Get(); if (!B) return;
+ const auto* B=Build.Get(); if (!B || (bJointProjectile && !bJointRouteMatched)) return;
  if (InitialRadius<=0) InitialRadius=Radius;
  const float MaxGrowth=FMath::Max(1.f,B->Tune(TEXT("WideOrbit"),TEXT("MaxSizeMultiplier"),2.f)
      +FangBuild::Scaling(B->Upgrades(),TEXT("ShurikenGrowth"),.2f));
  float Growth=B->Has(TEXT("WideOrbit")) ? (B->Tune(TEXT("WideOrbit"),TEXT("MaxSizeMultiplier"),2.f)-1.f
-     +FangBuild::Scaling(B->Upgrades(),TEXT("ShurikenGrowth"),.2f))*FMath::Clamp(Age/B->GetShurikenLifetime(),0.f,1.f) : 0.f;
+     +FangBuild::Scaling(B->Upgrades(),TEXT("ShurikenGrowth"),.2f))*FMath::Clamp(Age/(bJointProjectile ? JointLifetime : B->GetShurikenLifetime()),0.f,1.f) : 0.f;
  if (B->Has(TEXT("ShurikenHunger"))) Growth+=ShurikenKills*B->Tune(TEXT("ShurikenHunger"),TEXT("GrowthPerKill"),.1f)
      *(1.f+FangBuild::Scaling(B->Upgrades(),TEXT("ShurikenSize"),.15f));
  Radius=InitialRadius*FMath::Clamp(1.f+Growth,1.f,MaxGrowth);
@@ -40,12 +40,13 @@ void ANinjaBuildProjectile::ShurikenHit(AEnemyBase* Enemy, bool bBurst)
 {
  auto* B=Build.Get();
  if (!B || !Enemy || Enemy->IsDead() || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Ninja)) return;
+ if (bJointProjectile && !bJointRouteMatched) { FRunDamageScope Scope(AssistDamageSource); B->Hit(Enemy,Damage,false,true,true); return; }
  float Amount=Damage*SerrationBonus(Enemy);
  if (bBurst) Amount*=B->Tune(TEXT("BreakingWheel"),TEXT("DamageFraction"),.75f)
      *(1.f+FangBuild::Scaling(B->Upgrades(),TEXT("ShurikenBurstPower"),.15f));
  else
  {
-     if (B->Has(TEXT("ShurikenOrbit"))) Amount*=B->Tune(TEXT("ShurikenOrbit"),TEXT("ContactMultiplier"),.7f);
+     if ((!bJointProjectile || bJointRouteMatched) && B->Has(TEXT("ShurikenOrbit"))) Amount*=B->Tune(TEXT("ShurikenOrbit"),TEXT("ContactMultiplier"),.7f);
      if (B->Has(TEXT("ShurikenPulse"))) Amount*=B->Tune(TEXT("ShurikenPulse"),TEXT("ContactMultiplier"),.65f);
  }
  const bool bGrind=!bBurst && !bGrindingUsed && B->Has(TEXT("GrindingHalt")) && Enemy->GetDropCategory()!=EEnemyDropCategory::Normal;
@@ -76,7 +77,7 @@ void ANinjaBuildProjectile::ShurikenHit(AEnemyBase* Enemy, bool bBurst)
 
 void ANinjaBuildProjectile::ShurikenBurst()
 {
- auto* B=Build.Get(); if (!B || !B->Has(TEXT("BreakingWheel"))) return;
+ auto* B=Build.Get(); if (!B || (bJointProjectile && !bJointRouteMatched) || !B->Has(TEXT("BreakingWheel"))) return;
  const float BurstRadius=Radius*B->Tune(TEXT("BreakingWheel"),TEXT("RadiusMultiplier"),2.f);
  for (auto* Enemy:B->Targets(GetActorLocation(),BurstRadius)) ShurikenHit(Enemy,true);
  if (B->ShurikenBurstVFX)
@@ -89,20 +90,20 @@ void ANinjaBuildProjectile::ShurikenBurst()
 void ANinjaBuildProjectile::TickShuriken(float Delta)
 {
  auto* B=Build.Get(); if (!B || bFinished) return;
- if (!B->Has(TEXT("GreatShuriken")) || (bCloneProjectile && !Clone.IsValid())) { Destroy(); return; }
+ if ((!bJointProjectile && !B->Has(TEXT("GreatShuriken"))) || (bCloneProjectile && !Clone.IsValid())) { Destroy(); return; }
  // Substeps preserve lifetime and contact cadence across frame hitches.
- if (Age>=B->GetShurikenLifetime()) { Finish(); return; }
+ if (Age>=(bJointProjectile ? JointLifetime : B->GetShurikenLifetime())) { Finish(); return; }
  float Remaining=FMath::Max(0.f,Delta);
  while (Remaining>UE_SMALL_NUMBER && !bFinished)
  {
-     const float Life=B->GetShurikenLifetime();
+     const float Life=(bJointProjectile ? JointLifetime : B->GetShurikenLifetime());
      if (Age>=Life) { Finish(); return; }
      const float Step=FMath::Min3(Remaining,.05f,Life-Age);
      Remaining-=Step; Age+=Step;
      const FVector Start=GetActorLocation();
      const float Movement=SlowRemaining>0 ? B->Tune(TEXT("GrindingHalt"),TEXT("SpeedMultiplier"),.15f):1.f;
      FVector End=Start+Direction*Speed*Step*Movement;
-     if (B->Has(TEXT("ShurikenOrbit")))
+     if ((!bJointProjectile || bJointRouteMatched) && B->Has(TEXT("ShurikenOrbit")))
      {
          // Assists orbit their arrival point. Player blades follow while Ninja is active,
          // then finish at their last center rather than following the hidden character.
@@ -117,11 +118,11 @@ void ANinjaBuildProjectile::TickShuriken(float Delta)
      for (auto* Enemy:B->Sweep(Start,End,Radius))
      {
          const float* Last=LastHits.Find(Enemy);
-         if (Last && Age-*Last+UE_KINDA_SMALL_NUMBER<ShurikenBuild::ContactInterval(B->Upgrades())) continue;
+         if (Last && Age-*Last+UE_KINDA_SMALL_NUMBER<(bJointProjectile && !bJointRouteMatched ? .25f : ShurikenBuild::ContactInterval(B->Upgrades()))) continue;
          LastHits.Add(Enemy,Age); ShurikenHit(Enemy,false);
      }
      SetActorLocation(End); AddActorLocalRotation(FRotator(0,Step*900.f,0));
-     if (B->Has(TEXT("ShurikenPulse")) && B->Has(TEXT("BreakingWheel")))
+     if ((!bJointProjectile || bJointRouteMatched) && B->Has(TEXT("ShurikenPulse")) && B->Has(TEXT("BreakingWheel")))
      {
          PulseElapsed+=Step;
          if (PulseElapsed+UE_KINDA_SMALL_NUMBER>=ShurikenBuild::PulseInterval(B->Upgrades()))

@@ -1,4 +1,5 @@
 #include "FinalBossBase.h"
+#include "IndicatorAttackVFX.h"
 #include "CombatAudio.h"
 #include "EnemyDeathComponent.h"
 #include "TesterBalanceSettings.h"
@@ -627,6 +628,7 @@ void AFinalBossBase::StartDash()
 	DashElapsed = 0.0f;
 	DashStart = GetActorLocation();
 	DashEnd = DashStart + LockedAttackDirection * DashDistance;
+	DashVFX = AIndicatorAttackVFX::BeginCharge(this, DashWidth, DashTravelDuration);
 	bDashHitPlayer = false;
 	HideAttackTelegraphs();
 
@@ -652,6 +654,7 @@ void AFinalBossBase::StartDash()
 
 void AFinalBossBase::StopDash()
 {
+	if (DashVFX.IsValid()) DashVFX->StopCharge(); DashVFX.Reset();
 	EndDashCollisionOverride();
 	if (CurrentAttack == EFinalBossAttack::LongDash && BossState == EFinalBossState::AttackActive) BossState = EFinalBossState::Windup;
 }

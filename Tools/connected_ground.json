@@ -1,0 +1,10 @@
+{
+  "TileSize": 1400.0,
+  "Brightness": 0.8,
+  "Saturation": 0.9,
+  "ColorVariation": 0.08,
+  "PatchBlendWidth": 0.06,
+  "SeamPreservation": 0.08,
+  "DetailMipBias": 0.0,
+  "GroundTint": [0.8, 0.98, 1.28, 1.0]
+}

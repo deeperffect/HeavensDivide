@@ -1,4 +1,5 @@
 #include "TacticalEnemy.h"
+#include "IndicatorAttackVFX.h"
 #include "EnemyAttackCue.h"
 #include "EnemySpawner.h"
 #include "BloodshiftBalanceData.h"
@@ -101,7 +102,7 @@ void ATacticalEnemy::Tick(float Delta)
         SetActorRotation(LockedDirection.Rotation());
         if (bMarching) { MarchRemaining-=Distance; if (Hit.bBlockingHit || MarchRemaining<=0) Destroy(); }
         else if ((ChargeRemaining-=Distance)<=0 || Hit.bBlockingHit)
-        { ChargeRemaining=0; Recovery=ChargeRecoverySeconds; if (FollowupCharges>0) { --FollowupCharges; Cooldown=FollowupCooldown; } }
+        { ChargeRemaining=0; if (ChargeVFX.IsValid()) ChargeVFX->StopCharge(); ChargeVFX.Reset(); Recovery=ChargeRecoverySeconds; if (FollowupCharges>0) { --FollowupCharges; Cooldown=FollowupCooldown; } }
         return;
     }
     if (CastRemaining>0 && (CastRemaining-=Delta)<=0) FinishAbility();
@@ -166,18 +167,24 @@ void ATacticalEnemy::BeginAbility()
 void ATacticalEnemy::FinishAbility()
 {
     CastRemaining=0; Recovery=CastRecoverySeconds;
+    if ((TacticalRole == ETacticalEnemyRole::HornLancer || TacticalRole == ETacticalEnemyRole::FangStalker)
+        && (!ChargeWarning.IsValid() || !ChargeWarning->HasVisibleWarning())) return;
     if(CastCue.IsValid())CastCue->Impact();
     UpdateAnimationBudgetSignificance();
     if (TacticalRole==ETacticalEnemyRole::HornLancer || TacticalRole==ETacticalEnemyRole::FangStalker)
     {
         if (!ChargeWarning.IsValid() || !ChargeWarning->HasVisibleWarning()) return;
         ChargeRemaining=FMath::Max(1.f,ChargeDistance); bChargeHit=false;
+        ChargeVFX = AIndicatorAttackVFX::BeginCharge(this, GetCapsuleComponent()->GetScaledCapsuleRadius() * 2,
+            ChargeRemaining / FMath::Max(1.f, ChargeSpeed));
         if (TacticalRole==ETacticalEnemyRole::FangStalker)
         { if (!bSecondDash) FollowupCharges=1; bSecondDash=!bSecondDash; }
         // The locked lane remains visible throughout the dash.
     }
     if (TacticalRole==ETacticalEnemyRole::GraveCantor || TacticalRole==ETacticalEnemyRole::WarDrummer)
     {
+        AIndicatorAttackVFX::Spawn(this, GetActorLocation(), EEncounterShape::Circle, SupportRadius, 0, 0,
+            TacticalRole == ETacticalEnemyRole::GraveCantor ? EIndicatorVFX::Poison : EIndicatorVFX::Impact);
         int32 Count=0;
         for (TActorIterator<AEnemyBase> It(GetWorld()); It && Count<FMath::Clamp(SupportTargets,1,64); ++It)
             if (*It!=this && !It->IsDead() && FVector::DistSquared2D(It->GetActorLocation(),GetActorLocation())<FMath::Square(SupportRadius))
@@ -194,6 +201,7 @@ void ATacticalEnemy::FinishAbility()
 void ATacticalEnemy::StopEnemyBehavior()
 {
     CastRemaining=0; ChargeRemaining=0; Recovery=0; StopEnemyMovement();
+    if (ChargeVFX.IsValid()) ChargeVFX->StopCharge(); ChargeVFX.Reset();
     if(CastCue.IsValid())CastCue->Destroy();
     if (RoleRing && !bMarching) RoleRing->SetWorldScale3D(FVector(1.4f,1.4f,1));
     if (GetMesh() && GetMesh()->GetAnimInstance()) GetMesh()->GetAnimInstance()->Montage_Stop(.1f);

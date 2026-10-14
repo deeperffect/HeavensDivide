@@ -1,4 +1,5 @@
 #include "RunReportSubsystem.h"
+#include "ComboAbilityDefinition.h"
 #include "SteamLeaderboardSubsystem.h"
 #include "RunChallengeSubsystem.h"
 #include "SynergyMetaProgressionSubsystem.h"
@@ -43,6 +44,7 @@ const FRunMapInfo* RunReports::FindMap(FName Id)
 }
 FString RunReports::DamageName(FName Id)
 {
+    if (const auto* Entry = ComboCatalog::Find(Id)) return Entry->Name;
     static const TMap<FName, FString> Names = {
         {TEXT("SamuraiAttack"), TEXT("Samurai · sword strikes")}, {TEXT("NinjaAttack"), TEXT("Ninja · kunai")},
         {TEXT("Barrage"), TEXT("Barrage · kunai volleys")}, {TEXT("Iaijutsu"), TEXT("Iaijutsu · dash slash")},

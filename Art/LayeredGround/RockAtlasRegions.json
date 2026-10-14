@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "atlases": [
+    {
+      "source": "Art/LayeredGround/RockStamps_BaseDark.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "fb41ba61341f997d592afa97dc85d1920cef62563dcdefc6cd0e0a8ebbe9d81a"
+    },
+    {
+      "source": "Art/LayeredGround/RockStamps_Additional.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "ab51c0796fc5d120a7b6d4dfd85fe31ecba5ab06ddbd0141cb5b88dcecfeb3ff"
+    }
+  ],
+  "variants": [
+    {
+      "variant": 0,
+      "atlas": 0,
+      "paddedBoundsPx": [
+        40,
+        113,
+        612,
+        616
+      ],
+      "trimmedWidth": 572,
+      "trimmedHeight": 503,
+      "normalizedUVRect": [
+        0.03189792663476874,
+        0.09011164274322168,
+        0.45614035087719296,
+        0.4011164274322169
+      ],
+      "opaqueFraction": 0.6016453725201241
+    },
+    {
+      "variant": 1,
+      "atlas": 0,
+      "paddedBoundsPx": [
+        649,
+        72,
+        1223,
+        626
+      ],
+      "trimmedWidth": 574,
+      "trimmedHeight": 554,
+      "normalizedUVRect": [
+        0.5175438596491229,
+        0.05741626794258373,
+        0.45773524720893144,
+        0.44178628389154706
+      ],
+      "opaqueFraction": 0.4320274468861244
+    },
+    {
+      "variant": 2,
+      "atlas": 0,
+      "paddedBoundsPx": [
+        52,
+        665,
+        608,
+        1187
+      ],
+      "trimmedWidth": 556,
+      "trimmedHeight": 522,
+      "normalizedUVRect": [
+        0.04146730462519936,
+        0.5303030303030303,
+        0.4433811802232855,
+        0.41626794258373206
+      ],
+      "opaqueFraction": 0.47771093470051545
+    },
+    {
+      "variant": 3,
+      "atlas": 0,
+      "paddedBoundsPx": [
+        637,
+        751,
+        1214,
+        1161
+      ],
+      "trimmedWidth": 577,
+      "trimmedHeight": 410,
+      "normalizedUVRect": [
+        0.5079744816586922,
+        0.5988835725677831,
+        0.46012759170653905,
+        0.3269537480063796
+      ],
+      "opaqueFraction": 0.6023079849516
+    },
+    {
+      "variant": 4,
+      "atlas": 1,
+      "paddedBoundsPx": [
+        38,
+        116,
+        642,
+        607
+      ],
+      "trimmedWidth": 604,
+      "trimmedHeight": 491,
+      "normalizedUVRect": [
+        0.030303030303030304,
+        0.09250398724082935,
+        0.48165869218500795,
+        0.3915470494417863
+      ],
+      "opaqueFraction": 0.6847021216331045
+    },
+    {
+      "variant": 5,
+      "atlas": 1,
+      "paddedBoundsPx": [
+        662,
+        69,
+        1219,
+        600
+      ],
+      "trimmedWidth": 557,
+      "trimmedHeight": 531,
+      "normalizedUVRect": [
+        0.5279106858054227,
+        0.05502392344497608,
+        0.44417862838915473,
+        0.423444976076555
+      ],
+      "opaqueFraction": 0.3884611873535587
+    },
+    {
+      "variant": 6,
+      "atlas": 1,
+      "paddedBoundsPx": [
+        36,
+        674,
+        609,
+        1195
+      ],
+      "trimmedWidth": 573,
+      "trimmedHeight": 521,
+      "normalizedUVRect": [
+        0.028708133971291867,
+        0.5374800637958532,
+        0.4569377990430622,
+        0.4154704944178628
+      ],
+      "opaqueFraction": 0.6726124080084949
+    },
+    {
+      "variant": 7,
+      "atlas": 1,
+      "paddedBoundsPx": [
+        659,
+        681,
+        1222,
+        1191
+      ],
+      "trimmedWidth": 563,
+      "trimmedHeight": 510,
+      "normalizedUVRect": [
+        0.5255183413078149,
+        0.5430622009569378,
+        0.44896331738437,
+        0.40669856459330145
+      ],
+      "opaqueFraction": 0.47555462682408667
+    }
+  ]
+}

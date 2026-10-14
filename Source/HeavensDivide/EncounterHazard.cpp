@@ -1,4 +1,5 @@
 #include "EncounterHazard.h"
+#include "IndicatorAttackVFX.h"
 #include "EnemyBase.h"
 #include "CharacterBase.h"
 #include "SurvivorPlayerController.h"
@@ -137,7 +138,9 @@ void AEncounterHazard::Tick(float Delta)
         bImpacted = true;
         if (Material) Material->SetScalarParameterValue(TEXT("Impact"),1);
         // A solid cylinder would incorrectly cover a ring attack's safe center.
-        ImpactColumn->SetVisibility(Damage>0 && ImpactMaterial && Footprint!=EEncounterShape::Ring);
+        auto* FX = Damage > 0 ? AIndicatorAttackVFX::Spawn(DamageSource.Get(), GetActorLocation(), Footprint,
+            Size, Width, GetActorRotation().Yaw, AIndicatorAttackVFX::StyleFor(DamageSource.Get())) : nullptr;
+        ImpactColumn->SetVisibility(!FX && Damage>0 && ImpactMaterial && Footprint!=EEncounterShape::Ring);
         if (Damage>0) UCombatAudioLibrary::PlayEvent(this,TEXT("BossGroundHit"),GetActorLocation(),false,.45f);
     }
     // One strike for bursts; persistent fields tick slowly and never catch up missed damage after a hitch.

@@ -21,7 +21,6 @@ for enemy,field in [('Elites/BP_EnemyGorilla','contact_aura_material'),('Mobs/BP
     bp=u.load_asset('/Game/HeavensDivide/Blueprints/EnemyCharacters/'+enemy)
     assert u.get_default_object(bp.generated_class()).get_editor_property(field).get_name()=='M_AttackIndicatorCircle'
 bp=u.load_asset('/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai')
-assert u.get_default_object(bp.generated_class()).get_editor_property('combo_ability').get_editor_property('vfx_radius_parameter_is_scale')
 for name in ['M_AttackIndicatorRectangle','M_AttackIndicatorCircle']:
     material=u.load_asset('/Game/HeavensDivide/Materials/'+name)
     # In-memory test clock only; never save this test expression to the material.

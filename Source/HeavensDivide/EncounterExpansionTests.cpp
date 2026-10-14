@@ -3,6 +3,7 @@
 #include "TacticalEnemy.h"
 #include "CinderOracleBoss.h"
 #include "EncounterHazard.h"
+#include "IndicatorAttackVFX.h"
 #include "HealingUrn.h"
 #include "HealingPickup.h"
 #include "CharacterBase.h"
@@ -59,7 +60,10 @@ bool FEncounterExpansionTest::RunTest(const FString&)
     Player->SetActorLocation(FVector(500,0,0));Caster->BeginAbility();H=*TActorIterator<AEncounterHazard>(W);
     H->Tick(1.1f);TestEqual(TEXT("Circle damages on impact"),HP->GetCurrentHealth(),86.f);
     TestTrue(TEXT("Warning uses a visible surface independent of decals"),H->HasVisibleWarning() && H->GroundSurface->IsVisible());
-    TestTrue(TEXT("Damage frame has a visible impact volume"),H->ImpactColumn->IsVisible());
+    bool bHasExecutionVFX = false;
+    for (TActorIterator<AIndicatorAttackVFX> It(W); It; ++It)
+        if (It->GetOwner() == Caster && !It->IsActorBeingDestroyed()) bHasExecutionVFX = true;
+    TestTrue(TEXT("Damage frame has execution VFX or its fallback volume"),bHasExecutionVFX || H->ImpactColumn->IsVisible());
     H->Tick(.03f);TestEqual(TEXT("Burst does not hit again next frame"),HP->GetCurrentHealth(),86.f);
     Caster->GetHealthComponent()->ApplyDamage(10000);
     TestEqual(TEXT("Killing caster removes pending and active hazards"),CountHazards(),0);
@@ -185,13 +189,14 @@ bool FEncounterExpansionTest::RunTest(const FString&)
     auto* UrnClass=LoadClass<AHealingUrn>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/Encounters/BP_HealingUrn.BP_HealingUrn_C"));
     auto* Urn=W->SpawnActor<AHealingUrn>(UrnClass,FVector::ZeroVector,FRotator::ZeroRotator,Params);Setup(Urn);
     Urn->GetHealthComponent()->SetMaxHealthPreservePercent(1000000);
+    int32 HealsBeforeUrn = 0; for (TActorIterator<AHealingPickup> It(W); It; ++It) ++HealsBeforeUrn;
     TestFalse(TEXT("Non-damaging contact does not break urn"),Urn->ApplyPlayerDamage(0,EPlayerAttackSource::Ninja));
     TestTrue(TEXT("Tiny Ninja hit breaks urn regardless of health scaling"),Urn->ApplyPlayerDamage(.001f,EPlayerAttackSource::Ninja));
     int32 Heals=0;for(TActorIterator<AHealingPickup> It(W);It;++It)++Heals;
-    TestTrue(TEXT("Weapons can break urn"),Urn->IsDead());TestEqual(TEXT("Breaking urn creates one heal"),Heals,1);
+    TestTrue(TEXT("Weapons can break urn"),Urn->IsDead());TestEqual(TEXT("Breaking urn creates one heal"),Heals-HealsBeforeUrn,1);
     Urn->ApplyPlayerDamage(1000,EPlayerAttackSource::Samurai);
     Heals=0;for(TActorIterator<AHealingPickup> It(W);It;++It)++Heals;
-    TestEqual(TEXT("Repeated damage cannot duplicate healing drop"),Heals,1);
+    TestEqual(TEXT("Repeated damage cannot duplicate healing drop"),Heals-HealsBeforeUrn,1);
     // This fixture has no local viewport. Exercise victory state without creating its screen widget.
     FindFProperty<FObjectPropertyBase>(ASurvivorPlayerController::StaticClass(),TEXT("VictoryWidgetClass"))->SetObjectPropertyValue_InContainer(PC,nullptr);
     Boss->bOracleActive=true;Boss->CastAbility(0);Boss->GetHealthComponent()->ApplyDamage(100000);

@@ -38,10 +38,19 @@ public:
     TSharedPtr<bool> ChainTriggered;
     bool bEndpointBurst = false;
     bool bAssistAttack = false;
+    bool bUseRouteUpgrades = true;
+    TWeakObjectPtr<AActor> JointOwner;
+    FName JointDamageSource;
+    float JointArea = 1.f;
+    DECLARE_DELEGATE_OneParam(FJointVictim, class AEnemyBase*);
+    FJointVictim OnJointVictim;
+    /** Living targets in this lane's actual upgraded shape, without applying damage. */
+    TArray<class AEnemyBase*> GetChargeTargets() const;
     FName AssistDamageSource = TEXT("TagTeam");
     UPROPERTY() TObjectPtr<UAnimMontage> EndpointMontage;
 private:
     friend class FIaijutsuTest;
+    friend class FJointComboTest;
     TWeakObjectPtr<UPlayerUpgradeComponent> SourceUpgrades;
     TWeakObjectPtr<ASwapAfterimage> Visual;
     TSet<TWeakObjectPtr<AActor>> HitEnemies;

@@ -19,6 +19,7 @@ class HEAVENSDIVIDE_API USwapPresentationComponent : public UActorComponent
 public:
     USwapPresentationComponent();
     void PlayDeparture();
+    class ACharacterSmokeBurst* SpawnCharacterSmoke();
     void PrepareArrival() { StopEntrance(); ResetArrivalMovement(); bArrivalPending = true; }
     void PlayArrival();
     void FinishSwapFreeze(bool bCancelEntrance = true);
@@ -55,6 +56,12 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Afterimage") TObjectPtr<UMaterialInterface> GhostMaterial;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") TObjectPtr<UNiagaraSystem> DepartureVFX;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|VFX") TObjectPtr<UNiagaraSystem> ArrivalVFX;
+    /** Shared by assists and combo helpers; use a character-colored smoke system. */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Character Smoke") TObjectPtr<UNiagaraSystem> CharacterSmokeVFX;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Character Smoke", meta=(ClampMin="0.01")) float CharacterSmokeScale = .125f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Character Smoke", meta=(ClampMin="0.05", Units="s")) float CharacterSmokeSeconds = .65f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Character Smoke") bool bSmokeOnSwapArrival = false;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<UNiagaraSystem> ArrivalPortal;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<UNiagaraSystem> DeparturePortal;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Portals") TObjectPtr<USoundBase> ArrivalPortalSound;

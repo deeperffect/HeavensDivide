@@ -1,8 +1,121 @@
-# Gameplay polish — October 2026
+# Gameplay polish â€” October 2026
 
 ## Ground
 
-The current reference pass places complete olive/khaki painted slabs over the
+Level 1 uses the user-selected September 27 **version 2** ground: simple grass
+with sparse tufts, muted dirt and broad angular grey stones. The floor uses
+`Materials/StylizedGroundV2/MI_StylizedGroundV2`, with the original
+`StylizedGround/M_StylizedGround` blend and retained `Art/StylizedGround/Previous/*_v2.png`
+sources. Grass/dirt tiles cover 1,000 cm; stone tiles cover 1,400 cm, matching
+the selected historical material preview. Stone is blended into the surface.
+The later `GroundRockStamps` and arena rim remain hidden. Current gameplay
+geometry, collision, props, objectives and lighting are retained.
+`Tools/restore_stylized_ground_v2.py` restores this selection; backups and
+verification are under `Saved/RestoreStylizedGroundV2`.
+
+The rejected [Layered ground](../Art/LayeredGround/README.md) and
+[Connected ground](../Art/ConnectedGround/README.md) passes remain available as
+inactive assets. Their technical checks do not establish that they matched the
+requested reference. Earlier restoration reports under `Saved/RestoreOriginalGround`,
+`Saved/RestoreArenaGround` and `Saved/RestorePreDecalGround` describe historical
+states, not the current selection.
+
+### Retained arena variations
+
+Ten optional painted ground and matching rim presets remain under
+`Materials/ArenaVariations`; their original default was `MI_01_VerdantOchre`.
+Directions include ochre meadow, frost, violet sandstone, moss slate, rose
+paving, amethyst rock, overgrown ruins, ember basalt, moonlit slate and
+celestial stone. [Source art, exact prompts and selection guide](../Art/ArenaVariations/README.md)
+and [Riot research](../Art/ArenaVariations/Research.md) describe the references
+and the applied gameplay-clarity principles.
+
+The 1,254-square native artwork now covers 1,400 cm per tile instead of
+11,000 cm, providing 7.86 times the native source texel density. Unreal builds
+2,048-square platform textures with mipmaps; this conversion does not add
+new source detail. Three randomly offset and rotated samples blend between
+patches, with explicit derivatives and separate broad color variation.
+The five grassy textures were simplified to remove fine stippling. Matte
+lighting, restrained contrast and no surface normal noise keep them quiet.
+
+These presets hide the original `GroundRockStamps` components. Their stone perimeter uses 276
+smaller rocks through the existing three static instanced components; these
+have no collision or navigation influence. Existing fence collision, combat
+space, actor transforms, shrine opening, lighting and boss map are retained.
+
+`Tools/select_arena_variation.py` switches the floor and rim together and
+backs up the Level 1 map before saving. `Tools/apply_arena_variations.py`
+rebuilds the owned assets. `TileSize`, `DetailMipBias`, `Brightness`,
+`Contrast`, `Saturation`, `GroundTint`, `ColorVariation` and `RimColor` are
+editable on the instances. Review images use the gameplay camera and a
+transient Samurai for scale; see `Saved/ArenaVariations/Gallery.html`.
+
+The fresh Editor reload, saved-asset checks and all 21 reviewed previews pass
+with normal texture streaming. Evidence is in
+`Saved/ArenaVariations/ValidationSummary.json`; packaged playtesting remains
+pending. This pass changes art/materials and does not require a C++ rebuild.
+
+### Earlier terracotta pass
+
+The earlier pass used the user's terracotta-and-purple stone reference in place of
+the grass-and-dirt surface. Broad painted ground facets, sparse slate chips,
+separate purple slabs and a chunky stone perimeter create the new appearance.
+The original combat space, shrine approach, lighting and boss arena are retained.
+No characters, symbols or counters from the reference are added.
+
+The project-owned assets are in `Materials/TerracottaArena`. Tune
+`MI_TerracottaGround` for ground brightness, tint, artwork scale, broad color
+variation and the transition into the purple perimeter. `MI_TerracottaSlab_0`
+through `_3` control the four placed slab variants; `MI_TerracottaRim` controls
+the perimeter. The center slabs use 76% of their original width and height.
+The 155 perimeter rocks use three instanced mesh components with no collision,
+navigation influence or ticking. The former fence is hidden visually while its
+existing collision remains in place.
+
+[Artwork, generation prompt and tools](../Art/TerracottaArena/README.md) describe
+the source and rebuild workflow. `Tools/apply_terracotta_arena.py` backs up and
+saves the owned assets and Level 1 map. `Tools/review_terracotta_arena.py` captures
+the saved level; its scene checks verify slab alignment, materials, collision
+and instance counts. The fresh Editor load and all five reviewed captures pass;
+evidence is in `Saved/TerracottaArena/ValidationSummary.json`. Packaged
+playtesting remains pending.
+
+### Grass-and-dirt material
+
+The active restored version 2 material blends `GrassTexture`, `DirtTexture`
+and `StoneTexture` using the original automatic world-space coverage, white
+layer tints and September 27 scale settings. Its dedicated textures preserve
+shared assets used by other maps. Later layout-mask, decal and connected-surface
+implementations remain inactive.
+
+### Retained color and blending pass
+
+The later color and blending pass used a softer, cooler green and muted ochre earth.
+The grass keeps subdued painted shading with fewer fine blades and flower
+flecks. Irregular grass patches sit beneath the existing stone edges; broader
+color variation and broken, softened grass/soil transitions connect the layers.
+
+Reapplying `Tools/apply_arena_grass.py` restores the following later controls
+on `MI_Lvl1_Ground` in `Materials/EnvironmentPolish`: `Grass Appearance`
+contains `GrassColor`, `GrassDetailStrength` (0.65), `GrassDetailMipBias` (3)
+and `GrassScatter` (0.28). `Earth and Blending` contains `DirtColor`,
+`DirtDetailStrength` (0.85), `BlendEdgeVariation` (0.55), `BlendWidth` (0.12),
+`RockEdgeGrass` (0.94), `RockGrassShade` (0.18) and `GroundColorVariation` (0.28).
+Colors are independent of the original texture hues; fine detail is softened
+in the material without changing the source artwork.
+
+`Tools/generate_arena_ground_variation.py` bakes a 1024-square numerical mask
+from `RockScatterLayout.json`: red controls grass around the rotated rock
+footprints, green broad variation, and blue irregular blend edges. Regenerate
+it after changing the rock layout. `Tools/apply_arena_grass.py` backs up and
+updates only the Level 1 floor material, its instance and the new
+`T_Lvl1_GroundVariation` mask. Run it after rebuilding the older ground pass.
+`Tools/review_arena_ground.py` captures the saved camera views with the stone
+stamps visible. The maps, lighting, collision, original artwork and stone
+materials remain unchanged. Render and saved-asset checks are recorded in
+`Saved/ArenaGrass/ValidationSummary.json`; packaged playtesting is pending.
+
+The earlier rock reference pass placed complete olive/khaki painted slabs over the
 Level 1 dirt and grass floor, avoiding the earlier surface mask cutting through
 slab silhouettes. Artwork was created with built-in imagegen from the user's
 screenshot reference. Sources and prompts are documented in
@@ -98,7 +211,7 @@ matching level progression, floor placement, character swaps and collecting
 each reward only once. `Saved/PickupReduction/ValidationSummary.json` records
 the results; this is native/editor validation rather than a packaged playtest.
 
-- Marching grunts move at **2.5 × min(330, 235 + 8 × minutes) cm/s**, previously 235–330 cm/s. The 1.4-second warning is retained.
+- Marching grunts move at **2.5 Ã— min(330, 235 + 8 Ã— minutes) cm/s**, previously 235â€“330 cm/s. The 1.4-second warning is retained.
 - Marches choose a random approach angle and retry up to 24 whole formations. Each member must pass the normal ground, navigation, collision and arena checks. Members are never compressed or clamped onto the boundary. Marchers disappear when their next movement step would leave the arena.
 - Maintained enemies choose among eight directions, weighted toward less crowded sectors. Sector counts are cached for one second, with each selected spawn direction reserved in the cache; this avoids scanning the whole crowd for every spawn. Normal spawn distance, placement rules, population caps and threat schedules still apply. Distant eligible grunts can be recycled six per evaluation; nearby enemies are not teleported.
 - Two thirds of pursuers can aim up to 0.65 seconds ahead of player movement when farther than 350 cm away. Prediction uses ordinary swept movement and the existing obstacle fallback, without an additional route collision query. Close attacks and committed charges retain their existing aiming rules.
@@ -106,7 +219,7 @@ the results; this is native/editor validation rather than a packaged playtest.
 
 ## Breakable wall trap
 
-One attempt window is 2–3 minutes, the other 5–6 minutes. The initial random trigger is in the first 45 seconds of each window, leaving time for placement retries. Failed placement and other active objectives defer the event, including beyond the window, rather than discarding it. Ground checks retry past transient characters so enemies cannot hide the floor.
+One attempt window is 2â€“3 minutes, the other 5â€“6 minutes. The initial random trigger is in the first 45 seconds of each window, leaving time for placement retries. Failed placement and other active objectives defer the event, including beyond the window, rather than discarding it. Ground checks retry past transient characters so enemies cannot hide the floor.
 
 Fifty-one segments form a ring 1,600 cm from the player (previously 800 cm). Spawning the ring shows the paused smoke intro "Survive or break out.. if you can..". After it clears, a 1.5-second warning precedes a clockwise rock-rise wave: six Japanese Shrine pond/ground rock meshes alternate around the ring with varied height and yaw. The wave travels around the ring in 0.75 seconds; each rock rises over 0.22 seconds (0.97 seconds total). Rocks retain their authored materials and embed their bases in the floor. Each segment becomes blocking when its rise starts; occupied segments wait rather than rising through the player. The orange ring is hidden. `WallWaveSeconds` and `WallRiseSeconds` tune the reveal on `SurvivalFieldObjective`; `RockMeshes` lives on `EncounterWall`. The wall will not rise through the player. Each segment has **60 HP**, accepts both characters' attack damage, and gives no XP or kill reward. Destroying a segment immediately removes its collision. All remaining segments disappear after **20 seconds** of eligible gameplay, measured after the intro and including the warning. Player death or level travel cleans up the event. Menus and other objectives suspend it. The old floating wall instructions are hidden.
 
@@ -128,7 +241,7 @@ Objective spawns also show a three-second popup and a directional arrow beside t
 
 ## Swap and simulation
 
-Saved Ninja/Samurai settings: entrance montage rate 1.35×, departure rate 1.5×, freeze 0.62 seconds with 0.08 seconds of ease-in. Gameplay still waits for the complete accelerated entrance, including weapon draw timing.
+Saved Ninja/Samurai settings: entrance montage rate 1.35Ã—, departure rate 1.5Ã—, freeze 0.62 seconds with 0.08 seconds of ease-in. Gameplay still waits for the complete accelerated entrance, including weapon draw timing.
 
 Departures add character-specific bursts and a short cosmetic dash with up to four fading pose trails. The copy does not move or collide with the actual gameplay character. Its cloth simulation is disabled because the pose is evaluated manually.
 
@@ -139,7 +252,7 @@ Upgrade menus suspend the gameplay meshes and cloth, preserving their previous s
 ## Quick editor checks
 
 1. Play Level 1. Eject with F8 and select its Encounter Director in the Outliner.
-2. Under **Encounters → Testing**, use **Spawn Wall Trap (PIE)** or **Spawn Ember Circle (PIE)**. Return to the player with F8. Unsafe placement or an existing conflicting event prevents spawning.
+2. Under **Encounters â†’ Testing**, use **Spawn Wall Trap (PIE)** or **Spawn Ember Circle (PIE)**. Return to the player with F8. Unsafe placement or an existing conflicting event prevents spawning.
 3. Break walls with each stance; verify the gap is passable. Interact with the circle's mesh, watch the paused intro, then leave and re-enter the circle; verify progress/yellow fill drains outside, grows inside, and pays a single reward.
 4. Open several upgrade choices immediately after swapping Ninja, including while her ribbons are moving.
 5. Circle a crowd and watch enemies approach through less populated sectors and cut across the route. Tune after a real run; the new behavior intentionally makes stationary damage output more valuable.
@@ -180,7 +293,7 @@ Validation: Development Editor build and all seven selected gameplay/UI checks p
 
 Earlier wall/pressure validation: the Development Editor build and all four selected wall/spawn/fixed-health tests passed. The real Level 1 probe spawned 51 visible, sealed walls at the larger radius, then removed every segment after the previous 10-second lifetime. Fresh-process reload verified all 21 enemy HP values and all 12 phases on both the spawner Blueprint and placed Level 1 spawner. Damage and XP rewards were preserved. Evidence: Saved/WallPressureFollowup/Verification.json. The later loadout revision extends the lifetime to 20 seconds; `HeavensDivide.Encounters.FieldObjectives` verifies survival beyond 10 seconds and complete segment removal after 20 (`Saved/LoadoutRevision/Automation/index.json`).
 
-## Scorpion boss: Veshra — The Pale Stinger
+## Scorpion boss: Veshra â€” The Pale Stinger
 
 The supplied scorpion replaces the arena boss's humanoid mesh and animations.
 Its 38-bone rig articulates all six legs, both claws/pincer fingers, body/head and

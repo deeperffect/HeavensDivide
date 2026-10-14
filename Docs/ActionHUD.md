@@ -1,13 +1,13 @@
 # Dash and swap HUD
 
-The bottom-center action row groups dash charges to the left of the combo meter and swap to its right. Captions use the menu's Cinzel typeface and reflect the keyboard bindings in Settings.
+Smaller circular badges flank the combo meter during a run. Both use the combo's ivory/gold palette, Cinzel key badges and clockwise progress rings.
 
-- **Dash:** each available charge is an ivory brush stroke. A recharging stroke fills horizontally in gold; spent slots retain a muted ink silhouette. Additional charges extend the row leftward.
-- **Swap:** ivory brush arrows form a circular exchange symbol, gold when ready and muted while cooling down. The existing numeric cooldown remains in the center.
-- Both indicators dim during the combo ability, when these actions are blocked.
+- **Dash:** chevrons identify the action. The count and small gold pips show available charges; the ring fills as the next charge returns. A remaining charge stays available while another recharges.
+- **Swap:** the existing arrow icon sits inside the ring, with seconds remaining during cooldown. The ring fills toward readiness and turns gold when swapping is available.
+- Both show LOCKED and dim during a combo. Action readiness uses a steady glow; the full combo retains its subtle pulse.
 
-The existing Blueprint events still drive charge counts, refill progress, and cooldown text. The style and layout are saved in `WBP_DashCharge`, `WBP_SwapCooldown`, and `WBP_PlayerHUD`. `PlayerActionHUD.cpp` updates state colors, dash caption placement, and rebound key labels.
+Keys follow Settings rebinding. Edit **WBP_PlayerHUD > Player HUD > Actions** for badge positions, size and the swap icon. Colors and font share **Player HUD > Combo**. The native badges use live controller state in `PlayerActionHUD.cpp` and share the drawing code in `ComboRadialWidget.cpp`. Legacy Blueprint widgets remain hidden so old event bindings continue to resolve.
 
-Reapply the asset styling with `Tools/style_action_hud.py` through Unreal Python. Source artwork and the generation prompt are in [Art/ActionHUD](../Art/ActionHUD/README.md).
+`HeavensDivide.UI.ActionHUD` checks multiple dash charges, partial recharge, swap cooldown and combo locks, and exports 720p/1080p previews into `Saved/CombatPresentation/Previews`.
 
-Run `HeavensDivide.UI.ActionHUD` with `-ActionHUDScreenshots` and a rendering backend to verify the shipped widget assets and export full HUD previews to `Saved/ActionHUD`.
+Editor build and focused validation passed; see `Saved/CombatPresentation/ValidationSummary.json` for results and reviewed previews.

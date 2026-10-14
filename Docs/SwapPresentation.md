@@ -37,6 +37,14 @@ The existing `VFX Scale` scales the burst. **BP_Ninja → SwapPresentation → A
 
 Validation: editor build and Niagara compilation passed. A fresh editor process verified both Blueprint assignments, one-shot loop settings, burst counts, particle lifetimes/sizes, fade-to-zero curves, color bindings and owner scaling. The effects still need an in-game visual playtest. For headless regeneration, set `-ShaderWorkingDir` to a writable project directory such as `Intermediate/SwapShaders`.
 
+## Shared character smoke and size
+
+`BP_Samurai` and `BP_Ninja` expose **SwapPresentation > Character Smoke**: VFX, scale (0.125), emission time (0.65 seconds) and Smoke On Swap Arrival. The project-owned systems are `VFX/Swap/NS_SamuraiSmoke` (red) and `NS_NinjaSmoke` (purple). Edit each Niagara system's `User.User_SmokeGradient` for its color. The same assignments supply combo helpers whenever their optional arrival/departure overrides are empty.
+
+Every committed Tag Team or stance-triggered assist gets smoke at arrival and normal departure. Bursts stay at the actual ground position after the assistant hides; cancelled or failed assists do not spawn departure bursts. Samurai also gets red smoke at the beginning of his swap walk-in, alongside his existing arrival presentation. Swap smoke follows the compensated freeze clock and pauses with gameplay.
+
+Samurai's **VisualRoot** scale is 1.22, bringing his authored mesh height up to roughly Ninja's. Its Z offset is 19.8 cm to keep the mesh root planted. Mesh, clothing, weapons and cosmetic copies inherit the change; capsule dimensions and configured gameplay ranges remain unchanged. `Tools/refine_joint_combos.py` saves these settings with backups.
+
 ## Character settings and asset assignments
 
 Open **BP_Samurai** or **BP_Ninja** under `Content/HeavensDivide/Blueprints/PlayerCharacters`. Select the inherited **SwapPresentation** component in the Components panel. Each Blueprint can have different assets and tuning.

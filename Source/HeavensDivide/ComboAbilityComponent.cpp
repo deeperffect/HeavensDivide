@@ -1,22 +1,17 @@
 #include "ComboAbilityComponent.h"
+#include "ComboAbilityDefinition.h"
+#include "JointComboActor.h"
+#include "NinjaCharacter.h"
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimMontage.h"
 #include "AutoAttackComponent.h"
 #include "CharacterBase.h"
 #include "CharacterManagerComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Components/AudioComponent.h"
 #include "Engine/World.h"
 #include "InactiveCharacterAssistComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
-#include "NiagaraSystem.h"
-#include "Sound/SoundBase.h"
-#include "Misc/App.h"
 #include "SurvivorPlayerController.h"
 #include "SwapPresentationComponent.h"
-#include "SurvivorAbilityComponent.h"
 #include "PlayerUpgradeComponent.h"
 #include "RunLoadoutSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -64,7 +59,21 @@ bool UComboAbilityComponent::IsComboEquipped() const
     if (Upgrades && Upgrades->BalancePreviewMetaProfile >= 0) return true;
     const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
     const auto* Loadout = GI ? GI->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
-    return Loadout && Loadout->GetSelectedComboAbility() == TEXT("SoulConvergence");
+    return Loadout && (!Loadout->GetComboAbilityFor(EUpgradeStatTarget::Samurai).IsNone() || !Loadout->GetComboAbilityFor(EUpgradeStatTarget::Ninja).IsNone());
+}
+FName UComboAbilityComponent::GetActiveAbilityId() const
+{
+    const auto* PC = Cast<ASurvivorPlayerController>(GetOwner());
+    const auto* Hero = PC && PC->GetCharacterManager() ? PC->GetCharacterManager()->GetActiveCharacter() : nullptr;
+    const auto* GI = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
+    const auto* Loadout = GI ? GI->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
+    if (PC && PC->GetPlayerUpgrades() && PC->GetPlayerUpgrades()->BalancePreviewMetaProfile >= 0) return TEXT("BloodMoon");
+    return Hero && Loadout ? Loadout->GetComboAbilityFor(Hero->IsA<ANinjaCharacter>() ? EUpgradeStatTarget::Ninja : EUpgradeStatTarget::Samurai) : NAME_None;
+}
+FText UComboAbilityComponent::GetActiveAbilityName() const
+{
+    if (const auto* Entry = ComboCatalog::Find(GetActiveAbilityId())) return FText::FromString(Entry->Name);
+    return FText::FromString(TEXT("No combo"));
 }
 bool UComboAbilityComponent::CanRun() const
 {
@@ -103,7 +112,8 @@ bool UComboAbilityComponent::CanActivateAbility() const
     const auto* Party = PC ? PC->GetCharacterManager() : nullptr;
     const auto* Character = Party ? Party->GetActiveCharacter() : nullptr;
     return CanRun() && IsFull() && !IsAbilityActive() && GetWorld() && !UGameplayStatics::IsGamePaused(this)
-        && !PC->IsSelectingUpgrade() && IsValid(Character) && Character->ComboAbility.bEnabled
+        && !PC->IsSelectingUpgrade() && IsValid(Character) && !GetActiveAbilityId().IsNone()
+        && (ComboCatalog::Definition(GetActiveAbilityId()) && ComboCatalog::Definition(GetActiveAbilityId())->IsJoint())
         && Character->GetCharacterMode() == ECharacterMode::Active && !Character->IsDashing()
         && (!Character->SwapPresentation || !Character->SwapPresentation->IsBlockingAttacks());
 }
@@ -112,187 +122,44 @@ bool UComboAbilityComponent::TryActivateAbility()
     if (!CanActivateAbility()) return false;
     auto* PC = CastChecked<ASurvivorPlayerController>(GetOwner());
     auto* Character = PC->GetCharacterManager()->GetActiveCharacter();
-    ActiveSettings = Character->ComboAbility;
-    // Snapshot the bonus once, leaving the character's authored settings and subsequent pulses unchanged.
-    if(const auto* Upgrades=PC->GetPlayerUpgrades())
-        ActiveSettings.DamagePerPulse*=1.f+FMath::Max(0.f,Upgrades->GetMetaSkillBonus(TEXT("ComboPower")));
-    ActiveSettings.EffectDelay = FMath::Max(0.f, ActiveSettings.EffectDelay);
-    ActiveSettings.EffectDuration = FMath::Max(.01f, ActiveSettings.EffectDuration);
-    ActiveSettings.PulseInterval = FMath::Max(.02f, ActiveSettings.PulseInterval);
+    ActiveTechnique = ComboCatalog::Definition(GetActiveAbilityId());
     AbilityCharacter = Character;
     Character->bComboAbilityActive = true;
-    AbilityElapsed = 0.f;
-    bEffectExecuted = false;
-    NextPulseTime = ActiveSettings.EffectDelay;
-    AbilityDuration = FMath::Max(ActiveSettings.RecoveryDuration, ActiveSettings.EffectDelay + ActiveSettings.EffectDuration);
     if (auto* Attack = Character->FindComponentByClass<UAutoAttackComponent>()) Attack->StopAutoAttack();
-    bOwnsFacingOverride = ActiveSettings.bFaceEnemyPack && FaceEnemyPack(Character);
-    if (auto* Anim = Character->GetMesh()->GetAnimInstance())
-    {
-        Anim->Montage_Stop(.1f);
-        if (ActiveSettings.Montage)
-            AbilityDuration = FMath::Max(AbilityDuration, Anim->Montage_Play(ActiveSettings.Montage, FMath::Max(.01f, ActiveSettings.MontagePlayRate), EMontagePlayReturnType::Duration));
-    }
-    bOwnsActivationFreeze = ActiveSettings.bFreezeOnActivation && Character->SwapPresentation
-        && Character->SwapPresentation->StartAbilityFreeze(ActiveSettings.FreezeDuration, ActiveSettings.FreezeEaseInDuration);
-    if (bOwnsActivationFreeze) AbilityDuration = FMath::Max(AbilityDuration, ActiveSettings.FreezeDuration);
-    // The same frame must update ability effects before their Niagara simulation.
-    if (Character->SwapPresentation) AddTickPrerequisiteComponent(Character->SwapPresentation);
+    bOwnsFacingOverride = FaceEnemyPack(Character);
+    if (auto* Anim = Character->GetMesh()->GetAnimInstance()) Anim->Montage_Stop(.1f);
+    const float Power = 1.f + FMath::Max(0.f, PC->GetPlayerUpgrades()->GetMetaSkillBonus(TEXT("ComboPower")));
+    ExecutingJoint = AJointComboActor::Spawn(Character, ActiveTechnique, Power);
+    if (!ExecutingJoint.IsValid()) { FinishAbility(false); return false; }
+    AbilityDuration = ExecutingJoint->GetControlDuration();
     SetCombo(0.f);
     OnAbilityActivated.Broadcast(Character);
-    if (ActiveSettings.EffectDelay <= 0.f) { ExecuteEffect(); NextPulseTime += ActiveSettings.PulseInterval; }
     return true;
-}
-void UComboAbilityComponent::ExecuteEffect()
-{
-    auto* Character = AbilityCharacter.Get();
-    if (!Character || !CanRun()) return;
-    if (!bEffectExecuted && ActiveSettings.Sound)
-        ActiveAudio = UGameplayStatics::SpawnSoundAttached(ActiveSettings.Sound, Character->GetRootComponent(), NAME_None,
-            FVector::ZeroVector, EAttachLocation::KeepRelativeOffset, true, FMath::Max(0.f, ActiveSettings.SoundVolume));
-    const bool bSpawnVFX = ActiveSettings.bEnableCodeVFX && ActiveSettings.VFX && (!bEffectExecuted || ActiveSettings.bSpawnVFXEveryPulse);
-    if (bSpawnVFX)
-    {
-        if (ActiveSettings.bAttachVFXToCharacter)
-            ActiveVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(ActiveSettings.VFX, Character->GetVisualRoot(), NAME_None,
-                ActiveSettings.VFXOffset, ActiveSettings.VFXRotation, EAttachLocation::KeepRelativeOffset, false, false);
-        else
-        {
-            const auto Transform = Character->GetVisualRoot()->GetComponentTransform();
-            ActiveVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), ActiveSettings.VFX,
-                Transform.TransformPositionNoScale(ActiveSettings.VFXOffset),
-                (Transform.GetRotation() * ActiveSettings.VFXRotation.Quaternion()).Rotator(),
-                FVector::OneVector, false, false, ENCPoolMethod::None, false);
-        }
-        if (ActiveVFX)
-        {
-            const float Visibility = ActiveSettings.VFXVisibilityDuration > 0.f
-                ? ActiveSettings.VFXVisibilityDuration
-                : (ActiveSettings.bSpawnVFXEveryPulse ? ActiveSettings.PulseInterval : ActiveSettings.EffectDuration);
-            PendingVFX.Add({ActiveVFX, Character, Visibility, FMath::Max(0.f, ActiveSettings.VFXCompletionTimeout), false});
-            ActiveVFX->SetAutoDestroy(true);
-            if (Character->SwapPresentation) Character->SwapPresentation->RegisterFreezeEffect(ActiveVFX);
-            ActiveVFX->SetRelativeScale3D(ActiveSettings.bVFXRadiusParameterIsScale?FVector::OneVector:ActiveSettings.VFXScale);
-            if (!ActiveSettings.VFXDurationParameter.IsNone()) ActiveVFX->SetVariableFloat(ActiveSettings.VFXDurationParameter, Visibility);
-        }
-    }
-    const float Alpha = FMath::Clamp((NextPulseTime - ActiveSettings.EffectDelay) / ActiveSettings.EffectDuration, 0.f, 1.f);
-    const float Radius = FMath::Max(1.f, FMath::Lerp(ActiveSettings.InitialRadius, ActiveSettings.FinalRadius, Alpha));
-    if (ActiveVFX)
-    {
-        UpdateVFXRadius(Radius);
-        if (bSpawnVFX) ActiveVFX->Activate();
-    }
-    if (ActiveSettings.PulseSound)
-        UGameplayStatics::PlaySoundAtLocation(this, ActiveSettings.PulseSound, Character->GetActorLocation(), ActiveSettings.PulseSoundVolume);
-    bEffectExecuted = true;
-    if (ActiveSettings.bEnableCodeVFX && !ActiveSettings.VFX)
-    {
-        if (auto* Accent = GetWorld()->SpawnActor<AAbilityAccent>(Character->GetActorLocation(), FRotator::ZeroRotator))
-            Accent->Initialize(Character->GetActorLocation(), Radius, ActiveSettings.FallbackColor, .2f, false);
-    }
-    Character->ExecuteComboAbility(Radius, FMath::Max(0.f, ActiveSettings.DamagePerPulse));
 }
 void UComboAbilityComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-    if (!CanRun()) { FinishAbility(true); SetCombo(0.f); return; }
-    UpdateVFXLifetime(DeltaTime);
     if (!IsAbilityActive()) return;
-    if (AbilityCharacter->GetCharacterMode() != ECharacterMode::Active) { FinishAbility(true); return; }
-    const bool bRealTimeAbility = bOwnsActivationFreeze && AbilityCharacter->SwapPresentation
-        && AbilityCharacter->SwapPresentation->IsSwapFreezeActive();
-    AbilityElapsed += bRealTimeAbility ? static_cast<float>(FApp::GetDeltaTime()) : DeltaTime;
-    while (IsAbilityActive() && CanRun() && NextPulseTime <= AbilityElapsed && NextPulseTime <= ActiveSettings.EffectDelay + ActiveSettings.EffectDuration + KINDA_SMALL_NUMBER)
-    {
-        ExecuteEffect();
-        NextPulseTime += ActiveSettings.PulseInterval;
-    }
-    // Interpolate presentation between damage pulses, including during the real-time freeze.
-    if (IsAbilityActive() && ActiveVFX && !ActiveSettings.bSpawnVFXEveryPulse)
-    {
-        const float Alpha = FMath::Clamp((AbilityElapsed - ActiveSettings.EffectDelay) / ActiveSettings.EffectDuration, 0.f, 1.f);
-        UpdateVFXRadius(FMath::Max(1.f, FMath::Lerp(ActiveSettings.InitialRadius, ActiveSettings.FinalRadius, Alpha)));
-    }
-    if (AbilityElapsed >= AbilityDuration) FinishAbility(false);
-}
-void UComboAbilityComponent::UpdateVFXRadius(float Radius)
-{
-    if (!IsValid(ActiveVFX) || ActiveSettings.VFXRadiusParameter.IsNone()) return;
-    const float Reference = FMath::IsFinite(ActiveSettings.VFXReferenceRadius)
-        ? FMath::Max(.01f, ActiveSettings.VFXReferenceRadius) : 1.f;
-    float Scale=Radius/Reference;
-    if(ActiveSettings.bVFXRadiusParameterIsScale)
-    {
-        const auto* System=ActiveVFX->GetAsset();
-        const FNiagaraVariable Parameter(FNiagaraTypeDefinition::GetFloatDef(),ActiveSettings.VFXRadiusParameter);
-        const float Authored=System&&System->GetExposedParameters().IndexOf(Parameter)!=INDEX_NONE
-            ? System->GetExposedParameters().GetParameterValue<float>(Parameter):1.f;
-        Scale*=Authored*ActiveSettings.VFXScale.X;
-    }
-    ActiveVFX->SetVariableFloat(ActiveSettings.VFXRadiusParameter, Scale);
+    if (!CanRun() || !ExecutingJoint.IsValid()) { FinishAbility(true); return; }
+    if (UGameplayStatics::IsGamePaused(this)) return;
+    if (ExecutingJoint->GetAge() >= AbilityDuration) FinishAbility(false);
 }
 void UComboAbilityComponent::FinishAbility(bool bCancelled)
 {
-    if (bCancelled)
-    {
-        for (auto& Pending : PendingVFX)
-            if (Pending.Effect.IsValid()) Pending.Effect->DestroyComponent();
-        PendingVFX.Reset();
+    auto Joint = ExecutingJoint;
+    ExecutingJoint.Reset();
+    if (Joint.IsValid()) {
+        if (bCancelled) Joint->Destroy();
+        else Joint->ReleasePerformers();
     }
-    else
-    {
-        // Leave every pulse's finishing effect at the attack location when control returns.
-        for (auto& Pending : PendingVFX)
-            if (Pending.Character == AbilityCharacter && Pending.Effect.IsValid())
-                Pending.Effect->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-    }
-    ActiveVFX = nullptr;
-    if (ActiveAudio) { ActiveAudio->Stop(); ActiveAudio = nullptr; }
     auto* Character = AbilityCharacter.Get();
     AbilityCharacter.Reset();
+    ActiveTechnique = nullptr;
     if (!Character) return;
-    if (Character->SwapPresentation)
-    {
-        RemoveTickPrerequisiteComponent(Character->SwapPresentation);
-        if (bOwnsActivationFreeze) Character->SwapPresentation->FinishSwapFreeze(false);
-    }
-    bOwnsActivationFreeze = false;
     Character->bComboAbilityActive = false;
+    if (auto* Assist = GetOwner()->FindComponentByClass<UInactiveCharacterAssistComponent>()) Assist->RefreshAssistEffectState();
     if (bOwnsFacingOverride) Character->ClearFacingOverride();
     bOwnsFacingOverride = false;
-    if (bCancelled && ActiveSettings.Montage)
-        if (auto* Anim = Character->GetMesh()->GetAnimInstance()) Anim->Montage_Stop(.1f, ActiveSettings.Montage);
     if (!bCancelled && CanRun() && Character->GetCharacterMode() == ECharacterMode::Active)
         if (auto* Attack = Character->FindComponentByClass<UAutoAttackComponent>()) Attack->StartAutoAttack();
-}
-
-void UComboAbilityComponent::UpdateVFXLifetime(float DeltaTime)
-{
-    if (!IsValid(ActiveVFX)) ActiveVFX = nullptr;
-    for (int32 Index = PendingVFX.Num() - 1; Index >= 0; --Index)
-    {
-        auto& Pending = PendingVFX[Index];
-        auto* Effect = Pending.Effect.Get();
-        if (!IsValid(Effect)) { PendingVFX.RemoveAtSwap(Index); continue; }
-        const auto* Character = Pending.Character.Get();
-        const bool bRealTime = Character && Character->SwapPresentation && Character->SwapPresentation->IsSwapFreezeActive();
-        float Delta = FMath::Max(0.f, bRealTime ? static_cast<float>(FApp::GetDeltaTime()) : DeltaTime);
-        if (!Pending.bStopping)
-        {
-            Pending.Remaining -= Delta;
-            if (Pending.Remaining > 0.f) continue;
-            Delta = -Pending.Remaining;
-            Pending.bStopping = true;
-            // Graceful Niagara deactivation lets existing particles age out.
-            Effect->Deactivate();
-        }
-        Pending.CompletionRemaining -= Delta;
-        if (Pending.CompletionRemaining <= 0.f)
-        {
-            Effect->DestroyComponent();
-            if (ActiveVFX == Effect) ActiveVFX = nullptr;
-            PendingVFX.RemoveAtSwap(Index);
-        }
-    }
 }

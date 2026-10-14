@@ -13,6 +13,9 @@ class USwapVFXSetupLibrary : public UBlueprintFunctionLibrary
 {
     GENERATED_BODY()
 public:
+    /** Remove camera-filling flash/dark-mask emitters from project-owned joint combo copies. */
+    UFUNCTION(BlueprintCallable, Category="Editor|Joint Combo")
+    static bool ConfigureJointComboBurst(UNiagaraSystem* System);
     /** Evaluate a transient editor preview for automated model/animation renders. */
     UFUNCTION(BlueprintCallable, Category="Editor|Asset Validation")
     static bool RefreshPreviewAnimation(USkeletalMeshComponent* Mesh, float DeltaSeconds = 0.f);

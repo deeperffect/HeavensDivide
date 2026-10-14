@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "default": "01_VerdantOchre",
+  "variants": [
+    {
+      "id": "01_VerdantOchre",
+      "title": "Verdant ochre",
+      "source": "01_VerdantOchre_v2.png",
+      "prompt": "01_VerdantOchre_v2_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.21,
+        0.25,
+        0.16,
+        1.0
+      ]
+    },
+    {
+      "id": "02_FrostMeadow",
+      "title": "Frost meadow",
+      "source": "02_FrostMeadow_v2.png",
+      "prompt": "02_FrostMeadow_v2_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.22,
+        0.32,
+        0.32,
+        1.0
+      ]
+    },
+    {
+      "id": "03_VioletSandstone",
+      "title": "Violet sandstone",
+      "source": "03_VioletSandstone.png",
+      "prompt": "03_VioletSandstone_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.24,
+        0.13,
+        0.3,
+        1.0
+      ]
+    },
+    {
+      "id": "04_MossSlate",
+      "title": "Moss slate",
+      "source": "04_MossSlate_v2.png",
+      "prompt": "04_MossSlate_v2_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.14,
+        0.21,
+        0.24,
+        1.0
+      ]
+    },
+    {
+      "id": "05_RoseCourtyard",
+      "title": "Rose courtyard",
+      "source": "05_RoseCourtyard.png",
+      "prompt": "05_RoseCourtyard_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.3,
+        0.24,
+        0.29,
+        1.0
+      ]
+    },
+    {
+      "id": "06_AmethystFracture",
+      "title": "Amethyst fracture",
+      "source": "06_AmethystFracture.png",
+      "prompt": "06_AmethystFracture_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.17,
+        0.1,
+        0.27,
+        1.0
+      ]
+    },
+    {
+      "id": "07_OvergrownRuins",
+      "title": "Overgrown ruins",
+      "source": "07_OvergrownRuins_v2.png",
+      "prompt": "07_OvergrownRuins_v2_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.17,
+        0.22,
+        0.23,
+        1.0
+      ]
+    },
+    {
+      "id": "08_EmberBasalt",
+      "title": "Ember basalt",
+      "source": "08_EmberBasalt.png",
+      "prompt": "08_EmberBasalt_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.24,
+        0.13,
+        0.14,
+        1.0
+      ]
+    },
+    {
+      "id": "09_MoonlitSlate",
+      "title": "Moonlit slate",
+      "source": "09_MoonlitSlate_v2.png",
+      "prompt": "09_MoonlitSlate_v2_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.12,
+        0.2,
+        0.28,
+        1.0
+      ]
+    },
+    {
+      "id": "10_CelestialStone",
+      "title": "Celestial stone",
+      "source": "10_CelestialStone.png",
+      "prompt": "10_CelestialStone_Prompt.md",
+      "tile_cm": 1400,
+      "rim_color": [
+        0.16,
+        0.17,
+        0.29,
+        1.0
+      ]
+    }
+  ]
+}

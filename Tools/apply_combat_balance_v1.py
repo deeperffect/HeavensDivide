@@ -28,7 +28,6 @@ for name,values in tuning['player'].items():
     attack=cdo.get_component_by_class(u.AutoAttackComponent)
     setp(attack,attack_damage=values['damage'],attack_interval=values['interval'])
     if 'secondary_damage' in values: attack.set_editor_property('secondary_target_damage_multiplier',values['secondary_damage'])
-    combo=cdo.get_editor_property('combo_ability'); combo.set_editor_property('damage_per_pulse',values['combo_pulse']); cdo.set_editor_property('combo_ability',combo)
     save(bp)
 bp,pc=load_bp('/Game/HeavensDivide/Blueprints/BP_SurvivorPlayerController')
 setp(pc,swap_cooldown=3.)

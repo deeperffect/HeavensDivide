@@ -107,16 +107,7 @@ for name,e in BASE['enemies'].items():
 
 for character in ['Samurai','Ninja']:
     path='/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_'+character
-    bp=load(path);cdo=u.get_default_object(bp.generated_class());ability=get(cdo,'combo_ability')
-    if not get(ability,'vfx') and not VERIFY_ONLY:
-        backup(path)
-        setv(ability,vfx=smoke_variant('SamuraiActive',SMOKE+'NS_StylizedSmoke_Impact_v01',(1,.4,.04)),
-             vfx_radius_parameter='User._Scale',vfx_reference_radius=200.,vfx_scale=u.Vector(1,1,1),
-             vfx_duration_parameter='None',spawn_vfx_every_pulse=True,vfx_visibility_duration=.65,
-             vfx_offset=u.Vector(0,0,-80))
-        setv(cdo,combo_ability=ability);u.BlueprintEditorLibrary.compile_blueprint(bp);save(bp)
-    assert get(get(u.get_default_object(bp.generated_class()),'combo_ability'),'vfx'),character+' ability VFX'
-    REPORT['characters'][character+' active ability']=str(get(ability,'vfx'))
+    bp=load(path);cdo=u.get_default_object(bp.generated_class())
     if character=='Ninja':
         attack=cdo.get_component_by_class(u.AutoAttackComponent)
         projectile=get(attack,'projectile_class')

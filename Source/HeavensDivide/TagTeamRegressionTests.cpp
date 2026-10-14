@@ -7,6 +7,8 @@
 #include "FinalBossBase.h"
 #include "RunTravelSubsystem.h"
 #include "SwapPresentationComponent.h"
+#include "CharacterSmokeBurst.h"
+#include "NiagaraComponent.h"
 #include "SurvivorAbilityComponent.h"
 #include "SurvivorPlayerController.h"
 #include "CharacterManagerComponent.h"
@@ -75,6 +77,14 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
     auto* Enemy = SpawnEnemy(FVector(10200,0,0));
     auto* Neighbor = SpawnEnemy(FVector(10300,0,0));
     auto* OldLocationEnemy = SpawnEnemy(FVector(200,0,0));
+    const auto SmokeCount=[&](ACharacterBase* Hero) {
+        int32 Count=0;for(TActorIterator<ACharacterSmokeBurst> It(World);It;++It)
+            if(It->GetEffect()->GetAsset()==Hero->SwapPresentation->CharacterSmokeVFX)++Count;
+        return Count;
+    };
+    TestNotNull(TEXT("Samurai smoke assigned"),Samurai->SwapPresentation->CharacterSmokeVFX.Get());
+    TestNotNull(TEXT("Ninja smoke assigned"),Ninja->SwapPresentation->CharacterSmokeVFX.Get());
+    TestTrue(TEXT("Heroes have distinct red and purple smoke"),Samurai->SwapPresentation->CharacterSmokeVFX!=Ninja->SwapPresentation->CharacterSmokeVFX);
     FPlayerUpgradeRunState Empty; Upgrades->CaptureRunState(Empty);
     for (const TCHAR* Stance : {TEXT("BladeWave"), TEXT("Iaijutsu"), TEXT("BattleStance")})
     {
@@ -88,9 +98,11 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
         Assist->RefreshAssistEffectState();
         SamuraiAttack->OnAutoAttack.Broadcast(SamuraiAttack, EAutoAttackSource::Assist);
         TestEqual(TEXT("Assist attacks cannot recursively count"), Assist->CurrentAttackCount, 0);
+        const int32 BeforeSmoke=SmokeCount(Ninja);
         for (int32 Index=0; Index<Assist->AttacksPerAssist; ++Index)
             SamuraiAttack->OnAutoAttack.Broadcast(SamuraiAttack, EAutoAttackSource::NormalAutoAttack);
         TestTrue(TEXT("Stance attacks call Ninja from her old distant location"), Assist->bAssistActive);
+        TestEqual(TEXT("Each committed Ninja assist arrives in purple smoke"),SmokeCount(Ninja),BeforeSmoke+1);
         TestTrue(TEXT("Ninja targets an enemy near her new arrival location"),
             NinjaAttack->CurrentAttackTarget == Enemy || NinjaAttack->CurrentAttackTarget == Neighbor);
         TestTrue(TEXT("Old location does not choose the target"), NinjaAttack->CurrentAttackTarget != OldLocationEnemy);
@@ -113,6 +125,7 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
         TestTrue(TEXT("Retargeted assist actually launches projectiles"), NewProjectiles > 0);
         OldLocationEnemy->GetHealthComponent()->RestoreCurrentHealth(10000);
         Assist->FinishCurrentAssist();
+        TestEqual(TEXT("Ninja assist departs in independent smoke"),SmokeCount(Ninja),BeforeSmoke+2);
     }
     Assist->DeactivateAssistEffect(true);
     Upgrades->RestoreRunState(Empty);
@@ -334,9 +347,14 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
             SamuraiAttack->StopAutoAttack();
             NinjaAttack->StopAutoAttack();
             Boss->GetHealthComponent()->RestoreCurrentHealth(10000);
+            // Travel intentionally suppressed swap presentation; enable the
+            // assisting hero before checking its shared smoke presentation.
+            Assistant->SwapPresentation->bEnabled=true;
+            const int32 BeforeSmoke=SmokeCount(Assistant);
             for (int32 I = 0; I < Assist->AttacksPerAssist; ++I)
                 ActiveAttack->OnAutoAttack.Broadcast(ActiveAttack, EAutoAttackSource::NormalAutoAttack);
             TestTrue(TEXT("Restored counter triggers against a boss"), Assist->bAssistActive);
+            TestEqual(TEXT("Both heroes use their smoke on successful assist"),SmokeCount(Assistant),BeforeSmoke+1);
             TestTrue(TEXT("Assist selects the boss"), AssistantAttack->CurrentAttackTarget == Boss);
             // Possession can lift the player's capsule slightly off the floor.
             // Compare against the fixture's actual surface, not that stand-off.
@@ -366,6 +384,7 @@ bool FTagTeamRegressionTest::RunTest(const FString&)
                 TestFalse(TEXT("An allowed assist finishes after deactivation"), Assist->bAssistActive);
                 TestEqual(TEXT("Completed assistant returns to inactive"), Assistant->GetCharacterMode(), ECharacterMode::Inactive);
             }
+            Assistant->SwapPresentation->bEnabled=false;
         }
     }
     Assist->DeactivateAssistEffect(true);

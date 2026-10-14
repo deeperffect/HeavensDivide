@@ -38,8 +38,10 @@ public:
 	bool bAssistProjectile = false;
     FName AssistDamageSource = TEXT("TagTeam");
  bool bBarrageProjectile = false;
+ TWeakObjectPtr<class AJointComboActor> JointOwner;
  float BarrageBounceRetention = 1.f;
  friend class FBarrageBuildsTest;
+ friend class FJointComboTest;
 
 	UFUNCTION(BlueprintCallable, Category = "Projectile")
 	void InitializeProjectile(

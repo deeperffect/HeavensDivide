@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "EncounterHazard.h"
 #include "BossGroundTelegraph.generated.h"
 
 class ASurvivorPlayerController;
@@ -41,6 +42,11 @@ protected:
 	FLinearColor TelegraphColor = FLinearColor::Red;
 
 private:
+    friend class FIndicatorAttackVFXTest;
+    void SpawnImpactVFX();
+    EEncounterShape ImpactShape = EEncounterShape::Circle;
+    float ImpactSize = 180, ImpactWidth = 0;
+    bool bImpactVFXSpawned = false;
 	TWeakObjectPtr<ASurvivorPlayerController> PlayerController;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> DynamicMaterial;
 	float Radius = 180.0f;

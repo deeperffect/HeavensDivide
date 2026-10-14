@@ -39,10 +39,10 @@ void APlayerCameraRig::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if(UpdateAbilityCamera(static_cast<float>(FApp::GetDeltaTime())))
-	{
-		// Ability framing owns tracking until its return blend completes.
-	}
+	if(UpdateJointCamera(DeltaSeconds))
+    {
+        // Joint choreography owns framing, with a complete return to the gameplay rig.
+    }
 	else if(bSwapFocusActive)
 	{
 		UpdateSwapFocus(static_cast<float>(FApp::GetDeltaTime()));
@@ -85,7 +85,7 @@ void APlayerCameraRig::StopArrivalKick()
 
 void APlayerCameraRig::SetFollowTarget(ACharacterBase* NewFollowTarget)
 {
-	if(FollowTarget!=NewFollowTarget) { StopAbilityCamera(); StopSwapFocus(); }
+	if(FollowTarget!=NewFollowTarget) { RestoreJointCamera(); StopSwapFocus(); }
 	if(IsValid(FollowTarget) && FollowTarget->SwapPresentation)
 		RemoveTickPrerequisiteComponent(FollowTarget->SwapPresentation);
 	FollowTarget = NewFollowTarget;
@@ -105,7 +105,7 @@ ACharacterBase* APlayerCameraRig::GetFollowTarget() const
 
 void APlayerCameraRig::StartSwapFocus()
 {
-	StopAbilityCamera();
+    RestoreJointCamera();
 	StopSwapFocus();
 	if(!bEnableSwapFocus || !IsValid(FollowTarget) || !Camera || !CameraBoom) return;
 	OriginalFOV=Camera->FieldOfView;
@@ -157,7 +157,7 @@ void APlayerCameraRig::StopSwapFocus(bool bCancelArrivalKick)
 
 void APlayerCameraRig::EndPlay(const EEndPlayReason::Type Reason)
 {
-	StopAbilityCamera();
+    RestoreJointCamera();
 	StopSwapFocus();
 	Super::EndPlay(Reason);
 }

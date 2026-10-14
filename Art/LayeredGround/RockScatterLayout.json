@@ -1,0 +1,1097 @@
+{
+  "version": 4,
+  "seed": 2026101408,
+  "map": "/Game/Maps/Lvl_B1_Lvl1",
+  "units": "centimeters",
+  "extent_scale": 1.0,
+  "effective_config": {
+    "version": 4,
+    "seed": 2026101408,
+    "target_count": 76,
+    "count_range": [
+      50,
+      90
+    ],
+    "cluster_count": 16,
+    "quad_coverage_range": [
+      0.25,
+      0.42
+    ],
+    "world_min": [
+      -4939.61,
+      -4939.61
+    ],
+    "world_max": [
+      4939.61,
+      4939.61
+    ],
+    "boundary_margin": 75,
+    "z": 1.3,
+    "quad_gap": 15,
+    "hero_length": [
+      1000,
+      1500
+    ],
+    "companion_length": [
+      420,
+      700
+    ],
+    "hero_variants": [
+      0,
+      3,
+      4,
+      6,
+      7
+    ],
+    "aspect_jitter": [
+      0.9,
+      1.1
+    ],
+    "atlas_regions": "Art/LayeredGround/RockAtlasRegions.json",
+    "cluster_min_separation": 1150,
+    "cluster_radius": [
+      1250,
+      1750
+    ],
+    "cluster_yaw_variation": 30,
+    "cluster_max_count": 5,
+    "cluster_max_companions": 3,
+    "start": {
+      "center": [
+        1413.402649,
+        0.0
+      ],
+      "radius": 200
+    },
+    "objectives": {
+      "radius": 200,
+      "centers": [
+        [
+          4500.0,
+          0.0
+        ],
+        [
+          3500.0,
+          2000.0
+        ],
+        [
+          1500.0,
+          3000.0
+        ],
+        [
+          -500.0,
+          1500.0
+        ],
+        [
+          -1500.0,
+          0.0
+        ],
+        [
+          -500.0,
+          -2000.0
+        ],
+        [
+          1500.0,
+          -3000.0
+        ],
+        [
+          3500.0,
+          -2000.0
+        ]
+      ]
+    },
+    "western_props": [
+      {
+        "world_min": [
+          -4939.61,
+          -800.0
+        ],
+        "world_max": [
+          -2460.0,
+          800.0
+        ]
+      },
+      {
+        "world_min": [
+          -2750.0,
+          -440.0
+        ],
+        "world_max": [
+          -950.0,
+          470.0
+        ]
+      }
+    ],
+    "route_clearance": {
+      "Shrine approach": 110,
+      "North meadow circuit": 80,
+      "South footpath": 80
+    },
+    "preferred_start_clusters": [
+      [
+        1800.0,
+        850.0
+      ],
+      [
+        2200.0,
+        -900.0
+      ],
+      [
+        2650.0,
+        850.0
+      ],
+      [
+        600.0,
+        -1000.0
+      ]
+    ],
+    "grass_center_limit": 0.55,
+    "grass_core_limit": 0.8,
+    "mask": "Art/EnvironmentPolish/Lvl1_GroundWeights.png",
+    "routes": "Tools/level1_ground_layout.json",
+    "output": "Art\\LayeredGround\\RockScatterLayout.json",
+    "reference_area_cm2": 97598987.8084,
+    "mask_world_texel_cm": 14.84375,
+    "grass_fringe_cm": 115,
+    "contact_shadow_cm": 32
+  },
+  "terrain_world_min": [
+    -7600.0,
+    -7600.0
+  ],
+  "terrain_world_size": [
+    15200.0,
+    15200.0
+  ],
+  "atlas_variants": 8,
+  "floor_z": 1.0,
+  "stamp_z": 1.3,
+  "mask_sha256": "5a96274247599a1941c4256327d4599823bd0941294b5d3bfd547b020ab7d047",
+  "atlas_regions_sha256": "6d66ec96cd6eeb02edfa6ba90685ffe643a0a2e44fe770388447f26aacadc073",
+  "config_sha256": "ca6b692a5eff7fbc52f2cd8149cdf528507603775c11e9c50aad3c3830aee476",
+  "counts": {
+    "total": 62,
+    "clusters": 16,
+    "kinds": {
+      "hero": 21,
+      "companion": 41
+    },
+    "variants": {
+      "4": 11,
+      "3": 13,
+      "6": 7,
+      "7": 6,
+      "0": 10,
+      "2": 8,
+      "5": 4,
+      "1": 3
+    }
+  },
+  "coverage": {
+    "quad_area_cm2": 33370345.16,
+    "arena_area_cm2": 97598987.81,
+    "quad_fraction": 0.34191282013201296,
+    "estimated_opaque_fraction": 0.2044514736025279,
+    "target_range": [
+      0.25,
+      0.42
+    ],
+    "note": "Conservative non-overlapping quad coverage; actual atlas rock coverage is lower."
+  },
+  "validation": {
+    "passed": true,
+    "full_rotated_bounds": true,
+    "boundary_margin_cm": 75,
+    "player_and_objectives_clear": true,
+    "western_props_clear": true,
+    "route_centers_clear": true,
+    "grass_cores_avoided": true,
+    "rectangle_sat_non_overlap": true,
+    "minimum_quad_gap_cm": 15
+  },
+  "rejected_candidates": {
+    "start_or_objective": 6710,
+    "route_center": 1247,
+    "grass_core": 189,
+    "arena_boundary": 10639,
+    "western_props": 5453,
+    "other_rock": 34158,
+    "grass_center": 2767
+  },
+  "clusters": [
+    {
+      "id": 0,
+      "x": 1845.35,
+      "y": 918.93,
+      "yaw": 64.5464939902196,
+      "radius": 1633.3098498798058,
+      "count": 5
+    },
+    {
+      "id": 1,
+      "x": 3814.71,
+      "y": 3828.36,
+      "yaw": 331.0094388146918,
+      "radius": 1639.0862062523354,
+      "count": 4
+    },
+    {
+      "id": 2,
+      "x": -4111.07,
+      "y": 1351.77,
+      "yaw": 189.57376001915947,
+      "radius": 1495.455632028072,
+      "count": 2
+    },
+    {
+      "id": 3,
+      "x": 796.84,
+      "y": -918.42,
+      "yaw": 176.81521558478826,
+      "radius": 1264.7610149430159,
+      "count": 5
+    },
+    {
+      "id": 4,
+      "x": -1840.06,
+      "y": 1216.51,
+      "yaw": 70.59250455871472,
+      "radius": 1532.7364056306205,
+      "count": 3
+    },
+    {
+      "id": 5,
+      "x": 2605.57,
+      "y": -3802.22,
+      "yaw": 185.99880194201404,
+      "radius": 1493.5669562812957,
+      "count": 4
+    },
+    {
+      "id": 6,
+      "x": 3998.23,
+      "y": -3681.79,
+      "yaw": 28.73776009834344,
+      "radius": 1687.0351371645143,
+      "count": 4
+    },
+    {
+      "id": 7,
+      "x": -1260.7,
+      "y": -2842.98,
+      "yaw": 227.29131877640322,
+      "radius": 1371.0423016883772,
+      "count": 5
+    },
+    {
+      "id": 8,
+      "x": -3077.13,
+      "y": 2507.18,
+      "yaw": 284.2155155083933,
+      "radius": 1749.0938880081053,
+      "count": 4
+    },
+    {
+      "id": 9,
+      "x": 1334.51,
+      "y": 2152.67,
+      "yaw": 197.47968979191086,
+      "radius": 1443.5905710246423,
+      "count": 4
+    },
+    {
+      "id": 10,
+      "x": 1370.31,
+      "y": 4206.54,
+      "yaw": 14.037643023296841,
+      "radius": 1660.785993275219,
+      "count": 4
+    },
+    {
+      "id": 11,
+      "x": 797.45,
+      "y": -3491.25,
+      "yaw": 135.72880145713395,
+      "radius": 1514.85173880872,
+      "count": 4
+    },
+    {
+      "id": 12,
+      "x": 4064.63,
+      "y": -904.64,
+      "yaw": 109.43537542165247,
+      "radius": 1678.6618585917977,
+      "count": 3
+    },
+    {
+      "id": 13,
+      "x": -189.83,
+      "y": 3679.24,
+      "yaw": 234.39452033956562,
+      "radius": 1463.586116255997,
+      "count": 3
+    },
+    {
+      "id": 14,
+      "x": 2168.33,
+      "y": -1874.2,
+      "yaw": 1.3331172588045659,
+      "radius": 1578.3075811784772,
+      "count": 4
+    },
+    {
+      "id": 15,
+      "x": 4238.43,
+      "y": 1363.5,
+      "yaw": 359.7598590954001,
+      "radius": 1456.501607677343,
+      "count": 4
+    }
+  ],
+  "placements": [
+    {
+      "id": 0,
+      "cluster": 0,
+      "kind": "hero",
+      "variant": 4,
+      "x": 1845.35,
+      "y": 918.93,
+      "z": 1.3,
+      "yaw": 59.43,
+      "width": 1034.09,
+      "height": 809.47
+    },
+    {
+      "id": 1,
+      "cluster": 1,
+      "kind": "hero",
+      "variant": 3,
+      "x": 3814.71,
+      "y": 3828.36,
+      "z": 1.3,
+      "yaw": 358.47,
+      "width": 1350.28,
+      "height": 1010.32
+    },
+    {
+      "id": 2,
+      "cluster": 2,
+      "kind": "hero",
+      "variant": 6,
+      "x": -4111.07,
+      "y": 1351.77,
+      "z": 1.3,
+      "yaw": 190.79,
+      "width": 1070.73,
+      "height": 908.57
+    },
+    {
+      "id": 3,
+      "cluster": 3,
+      "kind": "hero",
+      "variant": 7,
+      "x": 796.84,
+      "y": -918.42,
+      "z": 1.3,
+      "yaw": 182.96,
+      "width": 1144.22,
+      "height": 1008.93
+    },
+    {
+      "id": 4,
+      "cluster": 4,
+      "kind": "hero",
+      "variant": 4,
+      "x": -1840.06,
+      "y": 1216.51,
+      "z": 1.3,
+      "yaw": 89.38,
+      "width": 1205.93,
+      "height": 1036.86
+    },
+    {
+      "id": 5,
+      "cluster": 5,
+      "kind": "hero",
+      "variant": 6,
+      "x": 2605.57,
+      "y": -3802.22,
+      "z": 1.3,
+      "yaw": 169.24,
+      "width": 1046.54,
+      "height": 955.66
+    },
+    {
+      "id": 6,
+      "cluster": 6,
+      "kind": "hero",
+      "variant": 0,
+      "x": 3998.23,
+      "y": -3681.79,
+      "z": 1.3,
+      "yaw": 359.69,
+      "width": 1292.05,
+      "height": 1210.79
+    },
+    {
+      "id": 7,
+      "cluster": 7,
+      "kind": "hero",
+      "variant": 3,
+      "x": -1260.7,
+      "y": -2842.98,
+      "z": 1.3,
+      "yaw": 202.05,
+      "width": 1199.66,
+      "height": 862.43
+    },
+    {
+      "id": 8,
+      "cluster": 8,
+      "kind": "hero",
+      "variant": 0,
+      "x": -3077.13,
+      "y": 2507.18,
+      "z": 1.3,
+      "yaw": 285.4,
+      "width": 1393.47,
+      "height": 1294.36
+    },
+    {
+      "id": 9,
+      "cluster": 9,
+      "kind": "hero",
+      "variant": 6,
+      "x": 1334.51,
+      "y": 2152.67,
+      "z": 1.3,
+      "yaw": 185.26,
+      "width": 1291.9,
+      "height": 1184.27
+    },
+    {
+      "id": 10,
+      "cluster": 10,
+      "kind": "hero",
+      "variant": 4,
+      "x": 1370.31,
+      "y": 4206.54,
+      "z": 1.3,
+      "yaw": 356.65,
+      "width": 1388.14,
+      "height": 1027.85
+    },
+    {
+      "id": 11,
+      "cluster": 11,
+      "kind": "hero",
+      "variant": 4,
+      "x": 797.45,
+      "y": -3491.25,
+      "z": 1.3,
+      "yaw": 158.29,
+      "width": 1093.64,
+      "height": 816.91
+    },
+    {
+      "id": 12,
+      "cluster": 12,
+      "kind": "hero",
+      "variant": 7,
+      "x": 4064.63,
+      "y": -904.64,
+      "z": 1.3,
+      "yaw": 86.08,
+      "width": 1271.33,
+      "height": 1059.7
+    },
+    {
+      "id": 13,
+      "cluster": 13,
+      "kind": "hero",
+      "variant": 3,
+      "x": -189.83,
+      "y": 3679.24,
+      "z": 1.3,
+      "yaw": 230.98,
+      "width": 1193.59,
+      "height": 859.19
+    },
+    {
+      "id": 14,
+      "cluster": 14,
+      "kind": "hero",
+      "variant": 3,
+      "x": 2168.33,
+      "y": -1874.2,
+      "z": 1.3,
+      "yaw": 337.27,
+      "width": 1138.21,
+      "height": 862.79
+    },
+    {
+      "id": 15,
+      "cluster": 15,
+      "kind": "hero",
+      "variant": 3,
+      "x": 4238.43,
+      "y": 1363.5,
+      "z": 1.3,
+      "yaw": 1.49,
+      "width": 1159.44,
+      "height": 816.28
+    },
+    {
+      "id": 16,
+      "cluster": 3,
+      "kind": "hero",
+      "variant": 4,
+      "x": 757.4,
+      "y": -2014.01,
+      "z": 1.3,
+      "yaw": 175.32,
+      "width": 1008.87,
+      "height": 747.26
+    },
+    {
+      "id": 17,
+      "cluster": 8,
+      "kind": "hero",
+      "variant": 3,
+      "x": -1588.55,
+      "y": 2526.01,
+      "z": 1.3,
+      "yaw": 293.56,
+      "width": 1079.92,
+      "height": 773.51
+    },
+    {
+      "id": 18,
+      "cluster": 12,
+      "kind": "hero",
+      "variant": 3,
+      "x": 4324.06,
+      "y": -2216.38,
+      "z": 1.3,
+      "yaw": 82.38,
+      "width": 1156.05,
+      "height": 881.84
+    },
+    {
+      "id": 19,
+      "cluster": 0,
+      "kind": "hero",
+      "variant": 3,
+      "x": 531.86,
+      "y": 651.88,
+      "z": 1.3,
+      "yaw": 85.89,
+      "width": 1071.42,
+      "height": 769.83
+    },
+    {
+      "id": 20,
+      "cluster": 7,
+      "kind": "hero",
+      "variant": 0,
+      "x": -2152.79,
+      "y": -1802.87,
+      "z": 1.3,
+      "yaw": 231.71,
+      "width": 1426.95,
+      "height": 1201.94
+    },
+    {
+      "id": 21,
+      "cluster": 7,
+      "kind": "companion",
+      "variant": 2,
+      "x": -647.84,
+      "y": -3557.59,
+      "z": 1.3,
+      "yaw": 255.02,
+      "width": 591.3,
+      "height": 514.64
+    },
+    {
+      "id": 22,
+      "cluster": 9,
+      "kind": "companion",
+      "variant": 7,
+      "x": 635.43,
+      "y": 3272.01,
+      "z": 1.3,
+      "yaw": 202.54,
+      "width": 534.01,
+      "height": 466.86
+    },
+    {
+      "id": 23,
+      "cluster": 6,
+      "kind": "companion",
+      "variant": 4,
+      "x": 3003.4,
+      "y": -2957.5,
+      "z": 1.3,
+      "yaw": 19.26,
+      "width": 457.07,
+      "height": 335.52
+    },
+    {
+      "id": 24,
+      "cluster": 2,
+      "kind": "companion",
+      "variant": 5,
+      "x": -4141.15,
+      "y": 2466.01,
+      "z": 1.3,
+      "yaw": 213.95,
+      "width": 550.87,
+      "height": 497.15
+    },
+    {
+      "id": 25,
+      "cluster": 3,
+      "kind": "companion",
+      "variant": 6,
+      "x": -310.93,
+      "y": -971.93,
+      "z": 1.3,
+      "yaw": 186.94,
+      "width": 518.03,
+      "height": 512.24
+    },
+    {
+      "id": 26,
+      "cluster": 15,
+      "kind": "companion",
+      "variant": 0,
+      "x": 4278.39,
+      "y": 631.1,
+      "z": 1.3,
+      "yaw": 358.74,
+      "width": 572.53,
+      "height": 518.46
+    },
+    {
+      "id": 27,
+      "cluster": 13,
+      "kind": "companion",
+      "variant": 5,
+      "x": -582.43,
+      "y": 2494.84,
+      "z": 1.3,
+      "yaw": 247.02,
+      "width": 468.2,
+      "height": 476.54
+    },
+    {
+      "id": 28,
+      "cluster": 5,
+      "kind": "companion",
+      "variant": 0,
+      "x": 1951.99,
+      "y": -4549.49,
+      "z": 1.3,
+      "yaw": 212.81,
+      "width": 452.34,
+      "height": 430.7
+    },
+    {
+      "id": 29,
+      "cluster": 14,
+      "kind": "companion",
+      "variant": 0,
+      "x": 1820.0,
+      "y": -810.05,
+      "z": 1.3,
+      "yaw": 11.83,
+      "width": 558.35,
+      "height": 515.39
+    },
+    {
+      "id": 30,
+      "cluster": 11,
+      "kind": "companion",
+      "variant": 7,
+      "x": -55.26,
+      "y": -3144.25,
+      "z": 1.3,
+      "yaw": 134.98,
+      "width": 515.34,
+      "height": 422.99
+    },
+    {
+      "id": 31,
+      "cluster": 10,
+      "kind": "companion",
+      "variant": 0,
+      "x": 2404.89,
+      "y": 3770.44,
+      "z": 1.3,
+      "yaw": 2.98,
+      "width": 426.3,
+      "height": 364.0
+    },
+    {
+      "id": 32,
+      "cluster": 8,
+      "kind": "companion",
+      "variant": 2,
+      "x": -3033.01,
+      "y": 1215.72,
+      "z": 1.3,
+      "yaw": 295.97,
+      "width": 458.14,
+      "height": 417.92
+    },
+    {
+      "id": 33,
+      "cluster": 1,
+      "kind": "companion",
+      "variant": 2,
+      "x": 4234.29,
+      "y": 2887.45,
+      "z": 1.3,
+      "yaw": 318.15,
+      "width": 532.21,
+      "height": 488.19
+    },
+    {
+      "id": 34,
+      "cluster": 0,
+      "kind": "companion",
+      "variant": 3,
+      "x": 2791.55,
+      "y": 1819.26,
+      "z": 1.3,
+      "yaw": 75.34,
+      "width": 574.88,
+      "height": 440.31
+    },
+    {
+      "id": 35,
+      "cluster": 12,
+      "kind": "companion",
+      "variant": 2,
+      "x": 2913.97,
+      "y": -654.11,
+      "z": 1.3,
+      "yaw": 105.25,
+      "width": 535.33,
+      "height": 469.09
+    },
+    {
+      "id": 36,
+      "cluster": 4,
+      "kind": "companion",
+      "variant": 2,
+      "x": -939.48,
+      "y": 1769.53,
+      "z": 1.3,
+      "yaw": 66.07,
+      "width": 523.9,
+      "height": 485.38
+    },
+    {
+      "id": 37,
+      "cluster": 5,
+      "kind": "companion",
+      "variant": 1,
+      "x": 1751.42,
+      "y": -3554.25,
+      "z": 1.3,
+      "yaw": 174.06,
+      "width": 550.08,
+      "height": 524.67
+    },
+    {
+      "id": 38,
+      "cluster": 9,
+      "kind": "companion",
+      "variant": 0,
+      "x": 325.54,
+      "y": 1824.67,
+      "z": 1.3,
+      "yaw": 171.37,
+      "width": 526.07,
+      "height": 423.52
+    },
+    {
+      "id": 39,
+      "cluster": 11,
+      "kind": "companion",
+      "variant": 3,
+      "x": 1059.46,
+      "y": -4442.49,
+      "z": 1.3,
+      "yaw": 110.95,
+      "width": 571.95,
+      "height": 390.54
+    },
+    {
+      "id": 40,
+      "cluster": 14,
+      "kind": "companion",
+      "variant": 5,
+      "x": 1581.98,
+      "y": -2535.02,
+      "z": 1.3,
+      "yaw": 339.83,
+      "width": 491.68,
+      "height": 507.26
+    },
+    {
+      "id": 41,
+      "cluster": 8,
+      "kind": "companion",
+      "variant": 1,
+      "x": -2650.91,
+      "y": 1540.82,
+      "z": 1.3,
+      "yaw": 284.97,
+      "width": 459.98,
+      "height": 423.33
+    },
+    {
+      "id": 42,
+      "cluster": 6,
+      "kind": "companion",
+      "variant": 3,
+      "x": 3196.68,
+      "y": -4567.31,
+      "z": 1.3,
+      "yaw": 21.25,
+      "width": 496.16,
+      "height": 356.64
+    },
+    {
+      "id": 43,
+      "cluster": 3,
+      "kind": "companion",
+      "variant": 0,
+      "x": -109.29,
+      "y": -1785.61,
+      "z": 1.3,
+      "yaw": 203.92,
+      "width": 445.27,
+      "height": 375.26
+    },
+    {
+      "id": 44,
+      "cluster": 0,
+      "kind": "companion",
+      "variant": 5,
+      "x": 2370.56,
+      "y": 2248.06,
+      "z": 1.3,
+      "yaw": 61.4,
+      "width": 476.78,
+      "height": 421.6
+    },
+    {
+      "id": 45,
+      "cluster": 10,
+      "kind": "companion",
+      "variant": 2,
+      "x": 1958.82,
+      "y": 3349.54,
+      "z": 1.3,
+      "yaw": 356.12,
+      "width": 440.68,
+      "height": 429.14
+    },
+    {
+      "id": 46,
+      "cluster": 1,
+      "kind": "companion",
+      "variant": 7,
+      "x": 2791.75,
+      "y": 3125.56,
+      "z": 1.3,
+      "yaw": 340.99,
+      "width": 451.77,
+      "height": 404.54
+    },
+    {
+      "id": 47,
+      "cluster": 15,
+      "kind": "companion",
+      "variant": 6,
+      "x": 4530.58,
+      "y": 2091.21,
+      "z": 1.3,
+      "yaw": 0.25,
+      "width": 558.01,
+      "height": 475.74
+    },
+    {
+      "id": 48,
+      "cluster": 10,
+      "kind": "companion",
+      "variant": 2,
+      "x": 2807.47,
+      "y": 4285.13,
+      "z": 1.3,
+      "yaw": 355.38,
+      "width": 518.41,
+      "height": 480.35
+    },
+    {
+      "id": 49,
+      "cluster": 9,
+      "kind": "companion",
+      "variant": 4,
+      "x": 1328.71,
+      "y": 3448.99,
+      "z": 1.3,
+      "yaw": 178.37,
+      "width": 491.73,
+      "height": 362.89
+    },
+    {
+      "id": 50,
+      "cluster": 5,
+      "kind": "companion",
+      "variant": 7,
+      "x": 1624.25,
+      "y": -4086.68,
+      "z": 1.3,
+      "yaw": 176.88,
+      "width": 483.47,
+      "height": 439.55
+    },
+    {
+      "id": 51,
+      "cluster": 15,
+      "kind": "companion",
+      "variant": 3,
+      "x": 3877.21,
+      "y": 2359.81,
+      "z": 1.3,
+      "yaw": 346.99,
+      "width": 465.1,
+      "height": 301.39
+    },
+    {
+      "id": 52,
+      "cluster": 11,
+      "kind": "companion",
+      "variant": 6,
+      "x": 336.75,
+      "y": -4078.13,
+      "z": 1.3,
+      "yaw": 154.88,
+      "width": 527.2,
+      "height": 436.84
+    },
+    {
+      "id": 53,
+      "cluster": 1,
+      "kind": "companion",
+      "variant": 0,
+      "x": 3506.63,
+      "y": 2863.0,
+      "z": 1.3,
+      "yaw": 328.46,
+      "width": 564.16,
+      "height": 474.17
+    },
+    {
+      "id": 54,
+      "cluster": 0,
+      "kind": "companion",
+      "variant": 1,
+      "x": 2689.4,
+      "y": 969.49,
+      "z": 1.3,
+      "yaw": 63.1,
+      "width": 473.74,
+      "height": 441.2
+    },
+    {
+      "id": 55,
+      "cluster": 6,
+      "kind": "companion",
+      "variant": 4,
+      "x": 3855.02,
+      "y": -4536.02,
+      "z": 1.3,
+      "yaw": 1.86,
+      "width": 500.81,
+      "height": 447.3
+    },
+    {
+      "id": 56,
+      "cluster": 4,
+      "kind": "companion",
+      "variant": 6,
+      "x": -541.6,
+      "y": 715.2,
+      "z": 1.3,
+      "yaw": 63.27,
+      "width": 560.28,
+      "height": 464.19
+    },
+    {
+      "id": 57,
+      "cluster": 13,
+      "kind": "companion",
+      "variant": 4,
+      "x": -23.73,
+      "y": 2795.64,
+      "z": 1.3,
+      "yaw": 218.04,
+      "width": 559.65,
+      "height": 419.12
+    },
+    {
+      "id": 58,
+      "cluster": 3,
+      "kind": "companion",
+      "variant": 3,
+      "x": -163.45,
+      "y": -485.85,
+      "z": 1.3,
+      "yaw": 179.95,
+      "width": 481.5,
+      "height": 370.12
+    },
+    {
+      "id": 59,
+      "cluster": 7,
+      "kind": "companion",
+      "variant": 4,
+      "x": -1198.17,
+      "y": -1953.7,
+      "z": 1.3,
+      "yaw": 234.08,
+      "width": 514.42,
+      "height": 401.19
+    },
+    {
+      "id": 60,
+      "cluster": 14,
+      "kind": "companion",
+      "variant": 4,
+      "x": 2128.64,
+      "y": -2568.18,
+      "z": 1.3,
+      "yaw": 347.7,
+      "width": 428.42,
+      "height": 345.74
+    },
+    {
+      "id": 61,
+      "cluster": 7,
+      "kind": "companion",
+      "variant": 2,
+      "x": -383.66,
+      "y": -2667.79,
+      "z": 1.3,
+      "yaw": 209.97,
+      "width": 425.5,
+      "height": 369.65
+    }
+  ]
+}

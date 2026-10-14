@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "Engine/Blueprint.h"
 #include "CharacterBase.h"
+#include "ComboAbilityDefinition.h"
 #include "AnimNotify_AbilityNiagara.h"
 #include "Animation/AnimMontage.h"
 #include "PlayerUpgradeComponent.h"
@@ -42,25 +43,15 @@ bool FContentPresentationTest::RunTest(const FString&)
    TestEqual(FString(Id)+TEXT(" radius is applied once through vendor scale"),FX->GetOverrideParameters().GetParameterValue<float>(Scale),float(Presentation.Scale.X)*(Presentation.bScaleSystemToRadius?2.f:1.f)*(Presentation.bMultiplyAuthoredSystemScale?System->GetExposedParameters().GetParameterValue<float>(Scale):1.f));
   Accent->Destroy();
  }
- for(const TCHAR* Name:{TEXT("Samurai"),TEXT("Ninja")})
+ for(const auto& Entry:ComboCatalog::Entries())
  {
-  auto* CharacterClass=LoadClass<ACharacterBase>(nullptr,*FString::Printf(TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_%s.BP_%s_C"),Name,Name));
-  if(TestNotNull(TEXT("Character Blueprint"),CharacterClass))
+  const auto* Definition=ComboCatalog::Definition(Entry.Id);
+  if(!TestNotNull(TEXT("Current combined ability"),Definition))continue;
+  for(auto* System:{Definition->VFX.Get(),Definition->ChargeVFX.Get(),Definition->SecondaryVFX.Get()})
   {
-   const auto& Settings=CharacterClass->GetDefaultObject<ACharacterBase>()->ComboAbility;
-   if(Settings.bEnableCodeVFX)
-    TestNotNull(FString(Name)+TEXT(" active ability has code-owned VFX"),Settings.VFX.Get());
-   else if(TestNotNull(FString(Name)+TEXT(" montage owns ability VFX"),Settings.Montage.Get()))
-   {
-    int32 Effects=0;
-    for(const auto& Event:Settings.Montage->Notifies)
-     if(const auto* Notify=Cast<UAnimNotify_AbilityNiagara>(Event.Notify))
-     {
-      ++Effects;
-      TestNotNull(FString(Name)+TEXT(" montage VFX has an assigned effect"),Notify->Template.Get());
-     }
-    TestTrue(FString(Name)+TEXT(" has authored montage effects"),Effects>0);
-   }
+   if(!TestNotNull(TEXT("Combined ability presentation is assigned"),System))continue;
+   System->WaitForCompilationComplete(true,false);
+   TestTrue(TEXT("Combined ability Niagara compiles"),System->IsValid());
   }
  }
  World->DestroyWorld(false);GEngine->DestroyWorldContext(World);return true;

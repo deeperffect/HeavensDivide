@@ -1,6 +1,12 @@
 # Level 1 reference ground
 
-The current pass places complete painted slabs over the authored dirt and grass
+This pass is inactive. Level 1 uses the user-selected September 27 version 2
+[stylized ground](../StylizedGround/README.md). Its stone is blended into the
+floor material; the later `GroundRockStamps` components are hidden.
+Restoration evidence is in `Saved/RestoreStylizedGroundV2`. The October 11
+pre-decal restoration under `Saved/RestorePreDecalGround` is historical.
+
+The retained decal pass described below places complete painted slabs over the authored dirt and grass
 floor. The artwork was created with the built-in imagegen tool using the user's
 `Untitled.png` as the style and colour reference: broad olive/khaki stone, ochre
 soil and clustered green grass.
@@ -18,7 +24,7 @@ soil and clustered green grass.
 The atlas imports to
 `/Game/HeavensDivide/Materials/ReferenceGround/T_RockStamps_Atlas`.
 `M_RockStamp` and `MI_RockStamp_0` through `MI_RockStamp_3` live in the same folder.
-The Level 1 floor still uses
+This pass used
 `/Game/HeavensDivide/Materials/EnvironmentPolish/MI_Lvl1_Ground`, with parent
 `M_Lvl1_Ground` and the authored RGB mask in
 `Art/EnvironmentPolish/Lvl1_GroundWeights.png`.

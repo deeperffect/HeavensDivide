@@ -45,7 +45,7 @@ for path in lib.list_assets('/Game/HeavensDivide/Blueprints',True,False):
  if not isinstance(bp,u.Blueprint):continue
  c=u.get_default_object(bp.generated_class());comps=components(bp);before=len(changes)
  if name in ('BP_Samurai','BP_Ninja'):
-  hero=name.removeprefix('BP_');protect(bp);p=c.get_editor_property('combo_ability');p.set_editor_property('sound',sounds[hero+'Ability']);p.set_editor_property('pulse_sound',sounds[hero+'Pulse']);c.set_editor_property('combo_ability',p);changes.append({'asset':path,'field':'combo_ability.sound + pulse_sound','event':hero+'Ability / '+hero+'Pulse'})
+  hero=name.removeprefix('BP_')
   for o in comps:
    if isinstance(o,u.AutoAttackComponent) and hero=='Samurai':assign(bp,o,'impact_sound','SamuraiImpact')
    if isinstance(o,u.NinjaBuildComponent):

@@ -43,18 +43,18 @@ bool FRunLoadoutSelectionTest::RunTest(const FString&)
     TestTrue(TEXT("An intentionally empty loadout is supported"), Loadout->SetSelectedSynergies({}));
     Loadout->SanitizeSelections();
     TestTrue(TEXT("Sanitizing preserves empty equipment"), Loadout->GetSelectedSynergies().IsEmpty());
-    TestFalse(TEXT("Locked combo cannot be equipped"), Loadout->SetSelectedComboAbility(TEXT("SoulConvergence")));
+    TestFalse(TEXT("Locked combo cannot be equipped"), Loadout->SetSelectedComboAbility(TEXT("BloodMoon")));
     Meta->AwardCurrencies(50000, 50000); Meta->RetrySkillReward();
     for (auto* Definition : Catalog)
         if (!Meta->IsUpgradeMetaEligible(Definition))
             TestTrue(TEXT("Purchase real synergy unlock for selection coverage"), Meta->PurchaseSynergy(Definition->MetaUnlockId.IsNone() ? Definition->UpgradeId : Definition->MetaUnlockId));
     TestTrue(TEXT("Purchase current combo"), Meta->PurchaseSkill(TEXT("Ability.ComboUnlock")));
-    TestEqual(TEXT("Existing owners default to the current combo"), Loadout->GetSelectedComboAbility(), FName(TEXT("SoulConvergence")));
+    TestEqual(TEXT("Existing owners default to the current combo"), Loadout->GetSelectedComboAbility(), FName(TEXT("BloodMoon")));
     TestTrue(TEXT("Combo may be deliberately unequipped"), Loadout->SetSelectedComboAbility(NAME_None));
     Loadout->SanitizeSelections();
     TestTrue(TEXT("Explicit None survives reopening and sanitizing"), Loadout->GetSelectedComboAbility().IsNone());
     TestFalse(TEXT("Future placeholder cannot be equipped"), Loadout->SetSelectedComboAbility(TEXT("FutureCombo")));
-    TestTrue(TEXT("Current combo can be re-equipped"), Loadout->SetSelectedComboAbility(TEXT("SoulConvergence")));
+    TestTrue(TEXT("Current combo can be re-equipped"), Loadout->SetSelectedComboAbility(TEXT("BloodMoon")));
 
     // Six owned synthetic definitions cover the hard slot bound before the shipped catalog grows.
     // They reuse the owned Tag Team entitlement but keep distinct runtime IDs and no gameplay effects.
@@ -106,7 +106,7 @@ bool FRunLoadoutSelectionTest::RunTest(const FString&)
     for (auto* Definition : Future) Restored->UpgradePool.Add(Definition);
     Restored->RestoreRunState(Snapshot);
     for (FName Id : Selected) TestEqual(TEXT("Boss-travel snapshot retains selected mechanics"), Restored->GetUpgradeLevelById(Id), 1);
-    TestEqual(TEXT("Travel retains combo equipment in the game instance"), Loadout->GetSelectedComboAbility(), FName(TEXT("SoulConvergence")));
+    TestEqual(TEXT("Travel retains combo equipment in the game instance"), Loadout->GetSelectedComboAbility(), FName(TEXT("BloodMoon")));
     // Incomplete older snapshots resolve their definitions before enforcing the hard limit.
     Snapshot.Levels.Add(Future[5]->UpgradeId, 1); Snapshot.Definitions.Reset();
     Restored->RestoreRunState(Snapshot);
@@ -151,7 +151,7 @@ bool FRunLoadoutSelectionTest::RunTest(const FString&)
     EmptyPC->Destroy();
 
     TestTrue(TEXT("Equip paid synergy before reset"), Loadout->SetSelectedSynergies({TEXT("TagTeam"), TEXT("Handoff")}));
-    TestTrue(TEXT("Equip current combo before reset"), Loadout->SetSelectedComboAbility(TEXT("SoulConvergence")));
+    TestTrue(TEXT("Equip current combo before reset"), Loadout->SetSelectedComboAbility(TEXT("BloodMoon")));
     TestTrue(TEXT("Reset uses only the isolated test profile"), Meta->ResetMetaProgression());
     Loadout->SanitizeSelections();
     TestEqual(TEXT("Reset removes a stale paid synergy choice"), Loadout->GetSelectedSynergies().Num(), 1);

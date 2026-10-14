@@ -13,10 +13,6 @@ for sub in ['Samurai/DA_Upgrade_SamuraiOverkillBurst','Samurai/DA_Upgrade_Samura
  if str(p.get_editor_property('system_scale_parameter'))=='User._Scale':
   p.set_editor_property('multiply_authored_system_scale',True)
   card.set_editor_property('presentation',p);save(card)
-path='/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai';protect(path)
-bp=u.load_asset(path);c=u.get_default_object(bp.generated_class());p=c.get_editor_property('combo_ability')
-p.set_editor_property('vfx_radius_parameter_is_scale',True)
-c.set_editor_property('combo_ability',p);u.BlueprintEditorLibrary.compile_blueprint(bp);save(bp)
 circle=u.load_asset('/Game/HeavensDivide/Materials/M_AttackIndicatorCircle')
 protect('/Game/HeavensDivide/Materials/M_AttackIndicatorCircle')
 custom=next(e for e in u.MaterialEditingLibrary.get_material_expressions(circle) if isinstance(e,u.MaterialExpressionCustom))

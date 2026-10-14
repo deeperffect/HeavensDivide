@@ -49,6 +49,10 @@ Blueprint settings are grouped under `Enemy`: Movement, Attack, UI, Components, 
 
 ## Runtime cleanup
 
+Charged attacks play Niagara effects when their damage window opens. `IndicatorAttackVFX` uses project-owned copies from HitsImpactsV2 and MagicProjectilesVol1; `Tools/create_indicator_attack_vfx.py` recreates those copies without editing the vendor assets. Ground effects follow the attack's locked footprint and yaw. Ring bursts leave the safe centre clear. Large annuli render a bounded set of bursts near the player. Charging enemies emit along their actual movement and stop emitting when the charge ends. Ranged releases use the actual projectile socket after a successful spawn. Cancelled warnings and entirely skipped damage windows do not create execution effects. The effects own their particle tails independently of the indicator actor.
+
+Coverage includes tank slams, bomb detonation, the swordsman's cleave/circle/dash/pursuit, all seven Veshra spells, tactical enemy spells and charges, and support casts. Existing authored Iaijutsu and trial effects remain; unassigned player/trial execution effects use the same fallback. Ordinary melee swings and continuous contact auras do not have charging indicators.
+
 - Removed 42 unconnected default events across all 14 enemy Blueprints and two native overrides that only forwarded to their parent.
 - Removed unused private spawner helpers for legacy spawn budget, batch size and default health scaling. Serialized legacy settings remain for asset compatibility and retain their existing deprecation metadata.
 - Removed an unused animation-profiling getter/cache; the live profiling switch remains.

@@ -19,6 +19,5 @@ for n in ['OverkillBurst','SamuraiActive']:
  s=u.load_asset('/Game/HeavensDivide/VFX/Upgrades/NS_'+n)
  t=u.AssetExportTask();t.object=s;t.exporter=u.ObjectExporterT3D();t.filename=str(out/(n+'.copy'));t.automated=True;t.prompt=False;t.replace_identical=True
  assert u.Exporter.run_asset_export_task(t)
-bp=u.load_asset('/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai');report['ability']=str(u.get_default_object(bp.generated_class()).get_editor_property('combo_ability'))
 (out/'audit.json').write_text(json.dumps(report,indent=2))
 u.log('SCALE_INDICATOR_INSPECTION_READY')

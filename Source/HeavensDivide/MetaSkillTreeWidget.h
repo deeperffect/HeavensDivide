@@ -29,6 +29,8 @@ protected:
 private:
 #if WITH_DEV_AUTOMATION_TESTS
 	friend class FMetaSkillTreeTest;
+	friend class FComboTechniquesTest;
+    friend class FJointComboTest;
 #endif
 	FSlateFontInfo MenuFont(int32 Size, bool bHeading = false) const;
 	UPROPERTY() FSlateFontInfo HeadingFont;
@@ -56,6 +58,7 @@ private:
     FName PendingStance;
 	TSharedPtr<SButton> StancesTab;
 	EMetaTreePage CurrentPage = EMetaTreePage::Stats;
+    int32 AbilityCategory = 0;
 	FName OpenStance;
 	FReply CloseTree();
 	FName Selected = TEXT("Root.Vitality");

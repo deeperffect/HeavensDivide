@@ -1,0 +1,19 @@
+{
+  "size": 1024,
+  "world_origin": [
+    -7600.0,
+    -7600.0
+  ],
+  "world_size": [
+    15200.0,
+    15200.0
+  ],
+  "placements": 65,
+  "channels": {
+    "R": "rock-edge grass",
+    "G": "broad variation",
+    "B": "blend-edge variation"
+  },
+  "layout_sha256": "4f3f010258c1095265a3effce60915c59543645a1458bdcdfaef933438d15652",
+  "texture_sha256": "dbf1b43c8ceaf1483e8cf8a29bd6b0801c1456e5eb4af7b75aee1e9f5e9febb6"
+}

@@ -1,6 +1,7 @@
 #include "MetaSkillTree.h"
 #include "HeavensDivideMetaSaveGame.h"
 #include "BloodshiftBalanceData.h"
+#include "ComboAbilityDefinition.h"
 
 const TArray<FMetaSkillNode>& MetaSkillTree::DefaultNodes()
 {
@@ -69,6 +70,13 @@ const TArray<FMetaSkillNode>& MetaSkillTree::DefaultNodes()
   Add(TEXT("Ability.ComboUnlock"),TEXT("Soul Convergence"),TEXT("Unlock the combo burst. Build the shared meter through combat, then unleash your active hero's combo ability."),3,0,{450,350},TEXT(""),TEXT("ComboUnlock"),1,1);
   Add(TEXT("Ability.ComboCharge"),TEXT("Gathering Resonance"),TEXT("+{Percent}% combo meter gained per rank."),3,1,{500,255},TEXT("Ability.ComboUnlock"),TEXT("ComboCharge"),.05f);
   Add(TEXT("Ability.ComboPower"),TEXT("Resonant Release"),TEXT("+{Percent}% combo ability damage per rank."),3,2,{555,165},TEXT("Ability.ComboCharge"),TEXT("ComboPower"),.05f);
+  for (const auto& Combo : ComboCatalog::Entries())
+  {
+   const FString Id = ComboCatalog::UnlockId(Combo.Id).ToString();
+   const FString Effect = TEXT("ComboChoice.") + Combo.Id.ToString();
+   Add(*Id,Combo.Name,Combo.Description,3,1,{0,0},TEXT("Ability.ComboUnlock"),*Effect,1,1);
+   Result.Last().BaseCost = 6;
+  }
   for (FMetaSkillNode& N:Result)
   {
    if (!N.RequiredStance.IsNone())
@@ -83,7 +91,8 @@ const TArray<FMetaSkillNode>& MetaSkillTree::DefaultNodes()
     if (N.Id==TEXT("Root.Dash") || N.Id==TEXT("Bond.Flow") || N.Id==TEXT("Bond.Reroll")) N.Prerequisites.Reset();
    }
    if (N.Id==TEXT("Bond.Unity")) N.Prerequisites={FName(TEXT("Root.Strength"))};
-   if (N.Id==TEXT("Ability.ComboUnlock")) N.BaseCost=10;
+   if (N.Id==TEXT("Ability.ComboUnlock")) { N.BaseCost=10; N.Description=TEXT("Unlock joint combo attacks. Both heroes cast together, regardless of stance."); }
+   if (N.Id==TEXT("Ability.Combo.BloodMoon")) { N.BaseCost=0; N.Description+=TEXT(" Included with Soul Convergence."); }
    if (N.Effect==TEXT("Attack") || N.Effect==TEXT("SteelAttack") || N.Effect==TEXT("ShadowAttack"))
     N.Description=TEXT("+{Percent}% attack cadence per rank: attack rate, Iaijutsu charge speed, Fang flight speed, or Shuriken hit frequency.");
    if(N.Effect==TEXT("Health"))N.SharedStat=ESharedPlayerStatType::MaxHealthMultiplier;
@@ -109,7 +118,36 @@ const TArray<FMetaSkillNode>& MetaSkillTree::DefaultNodes()
 const TArray<FMetaSkillNode>& MetaSkillTree::Nodes()
 {
 	const auto* Balance=UBloodshiftBalanceData::Get();
-	return Balance->Skills.IsEmpty()?DefaultNodes():Balance->Skills;
+    if (Balance->Skills.IsEmpty()) return DefaultNodes();
+    // Saved balance catalogs retain every authored value; append newly introduced
+    // techniques by stable ID so existing assets need no destructive migration.
+    static TArray<FMetaSkillNode> Combined;
+    static const UBloodshiftBalanceData* CachedBalance = nullptr;
+    static uint32 CachedHash = 0;
+    uint32 Hash = GetTypeHash(Balance->Skills.Num());
+    for (const auto& Node : Balance->Skills)
+    {
+        Hash = HashCombine(Hash,GetTypeHash(Node.Id)); Hash = HashCombine(Hash,GetTypeHash(Node.Name));
+        Hash = HashCombine(Hash,GetTypeHash(Node.Description)); Hash = HashCombine(Hash,GetTypeHash(Node.BaseCost));
+        Hash = HashCombine(Hash,GetTypeHash(Node.MaxRank)); Hash = HashCombine(Hash,GetTypeHash(Node.PerRank));
+        Hash = HashCombine(Hash,GetTypeHash(Node.Effect)); Hash = HashCombine(Hash,GetTypeHash(Node.RequiredStance));
+        Hash = HashCombine(Hash,GetTypeHash(Node.Branch)); Hash = HashCombine(Hash,GetTypeHash(Node.Tier));
+        Hash = HashCombine(Hash,GetTypeHash(static_cast<uint8>(Node.Page)));
+        Hash = HashCombine(Hash,GetTypeHash(static_cast<uint8>(Node.Target)));
+        Hash = HashCombine(Hash,GetTypeHash(Node.Lane)); Hash = HashCombine(Hash,GetTypeHash(Node.MapPosition));
+        Hash = HashCombine(Hash,GetTypeHash(Node.bPassiveEffect));
+        Hash = HashCombine(Hash,GetTypeHash(static_cast<uint8>(Node.SharedStat)));
+        Hash = HashCombine(Hash,GetTypeHash(static_cast<uint8>(Node.CharacterStat)));
+        for (FName Parent : Node.Prerequisites) Hash = HashCombine(Hash,GetTypeHash(Parent));
+    }
+    if (CachedBalance == Balance && CachedHash == Hash) return Combined;
+    CachedBalance = Balance; CachedHash = Hash;
+    Combined = Balance->Skills;
+    Combined.RemoveAll([](const FMetaSkillNode& N){return N.Effect.ToString().StartsWith(TEXT("ComboChoice."));});
+    for (const auto& Node : DefaultNodes())
+        if (Node.Effect.ToString().StartsWith(TEXT("ComboChoice.")) && !Combined.ContainsByPredicate([&Node](const FMetaSkillNode& Existing){return Existing.Id == Node.Id;})) Combined.Add(Node);
+    for (auto& N : Combined) if (N.Id==TEXT("Ability.ComboUnlock")) N.Description=TEXT("Both heroes cast together. Includes Crimson Tempest; equip one shared recipe in Loadout.");
+    return Combined;
 }
 FString MetaSkillTree::Description(const FMetaSkillNode& Node)
 {

@@ -1,6 +1,7 @@
 #include "PlayerHUDWidget.h"
 #include "Blueprint/WidgetTree.h"
-#include "CharacterBase.h"
+#include "ComboRadialWidget.h"
+#include "ComboAbilityDefinition.h"
 #include "ComboAbilityComponent.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
@@ -14,50 +15,15 @@
 #include "Engine/Font.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
-#include "Materials/MaterialInstanceDynamic.h"
+
 #include "UObject/ConstructorHelpers.h"
 
 UPlayerHUDWidget::UPlayerHUDWidget(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-    static ConstructorHelpers::FObjectFinder<UTexture2D> Ink(TEXT("/Game/HeavensDivide/Blueprints/UI/Combo/T_ComboInkSlash"));
-    static ConstructorHelpers::FObjectFinder<UMaterialInterface> Glow(TEXT("/Game/HeavensDivide/Blueprints/UI/Combo/M_ComboInkGlow"));
     static ConstructorHelpers::FObjectFinder<UFont> Font(TEXT("/Game/Assets/Fonts/Cinzel-Medium_Font"));
-    ComboInkTexture = Ink.Object;
-    ComboGlowMaterial = Glow.Object;
-    ComboLabelFont = FSlateFontInfo(Font.Object, 14);
-}
-
-void UPlayerHUDWidget::ConfigureComboMeterStyle()
-{
-    if (!ComboMeterBar) return;
-    FProgressBarStyle Style = ComboMeterBar->GetWidgetStyle();
-    Style.EnableFillAnimation = false;
-    if (ComboInkTexture)
-    {
-        Style.BackgroundImage.SetResourceObject(ComboInkTexture);
-        Style.BackgroundImage.DrawAs = ESlateBrushDrawType::Image;
-        Style.BackgroundImage.TintColor = FSlateColor(FLinearColor(.15f, .13f, .10f, .95f));
-        Style.BackgroundImage.ImageSize = FVector2D(360, 80);
-        Style.FillImage = Style.BackgroundImage;
-        Style.FillImage.TintColor = FSlateColor(FLinearColor::White);
-        if (ComboGlowMaterial)
-        {
-            ComboGlowInstance = UMaterialInstanceDynamic::Create(ComboGlowMaterial, this);
-            ComboGlowInstance->SetTextureParameterValue(TEXT("InkTexture"), ComboInkTexture);
-            ComboGlowInstance->SetScalarParameterValue(TEXT("GlowStrength"), 0.f);
-            Style.FillImage.SetResourceObject(ComboGlowInstance);
-        }
-        ComboMeterBar->SetWidgetStyle(Style);
-        ComboMeterBar->SetBarFillStyle(EProgressBarFillStyle::Mask);
-        ComboMeterBar->SetBarFillType(EProgressBarFillType::LeftToRight);
-        ComboMeterBar->SetBorderPadding(FVector2D::ZeroVector);
-    }
-    if (ComboAbilityText)
-    {
-        ComboAbilityText->SetFont(ComboLabelFont);
-        ComboAbilityText->SetShadowColorAndOpacity(FLinearColor::Black);
-        ComboAbilityText->SetShadowOffset(FVector2D(1, 2));
-    }
+    static ConstructorHelpers::FObjectFinder<UTexture2D> SwapIcon(TEXT("/Game/HeavensDivide/Blueprints/UI/Swap/T_SwapInkArrows"));
+    SwapBadgeIcon = SwapIcon.Object;
+    ComboLabelFont = FSlateFontInfo(Font.Object, 11);
 }
 
 float UPlayerHUDWidget::GetComboPercent() const
@@ -68,12 +34,14 @@ float UPlayerHUDWidget::GetComboPercent() const
 bool UPlayerHUDWidget::IsComboReady() const
 {
     auto* Combo = SurvivorPlayerController ? SurvivorPlayerController->FindComponentByClass<UComboAbilityComponent>() : nullptr;
-    return Combo && Combo->IsFull();
+    return Combo && Combo->IsFull() && !Combo->GetActiveAbilityId().IsNone();
 }
 void UPlayerHUDWidget::EnsureComboPresentation()
 {
     if (!bShowComboMeter || !WidgetTree || !WidgetTree->RootWidget) return;
-    if (ComboMeterBar) { ConfigureComboMeterStyle(); return; }
+    if (ComboContainer) return;
+    // Old Blueprint bindings may still reference the bar. Keep it as a hidden data sink.
+    if (ComboMeterBar) ComboMeterBar->SetVisibility(ESlateVisibility::Collapsed);
     UWidget* ExistingRoot = WidgetTree->RootWidget;
     auto* Canvas = Cast<UCanvasPanel>(ExistingRoot);
     if (!Canvas)
@@ -90,15 +58,17 @@ void UPlayerHUDWidget::EnsureComboPresentation()
     ComboContainer->SetPadding(FMargin(0.f));
     auto* Stack = WidgetTree->ConstructWidget<UVerticalBox>();
     ComboContainer->SetContent(Stack);
+    ComboRadialMeter = WidgetTree->ConstructWidget<UComboRadialWidget>(UComboRadialWidget::StaticClass(), TEXT("ComboRadialMeter"));
+    Stack->AddChildToVerticalBox(ComboRadialMeter)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
     if (!ComboAbilityText)
-    {
         ComboAbilityText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("ComboAbilityText"));
-        ComboAbilityText->SetJustification(ETextJustify::Center);
-        Stack->AddChildToVerticalBox(ComboAbilityText)->SetPadding(FMargin(0, 0, 0, -16));
-    }
-    ComboMeterBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("ComboMeterBar"));
-    Stack->AddChildToVerticalBox(ComboMeterBar)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-    ConfigureComboMeterStyle();
+    else
+        ComboAbilityText->RemoveFromParent();
+    ComboAbilityText->SetJustification(ETextJustify::Center);
+    ComboAbilityText->SetFont(ComboLabelFont);
+    ComboAbilityText->SetShadowColorAndOpacity(FLinearColor::Black);
+    ComboAbilityText->SetShadowOffset(FVector2D(1, 1));
+    Stack->AddChildToVerticalBox(ComboAbilityText)->SetPadding(FMargin(0, 3, 0, 0));
     auto* ComboSlot = Canvas->AddChildToCanvas(ComboContainer);
     ComboSlot->SetAnchors(FAnchors(.5f, 1.f));
     ComboSlot->SetAlignment(FVector2D(.5f, 1.f));
@@ -114,35 +84,28 @@ void UPlayerHUDWidget::UpdateComboPresentation()
     const bool bUnlocked=Combo&&Combo->IsComboUnlocked();
     const bool bEquipped=Combo&&Combo->IsComboEquipped();
     const bool bReady = IsComboReady();
-    const float RealTime = GetWorld() ? GetWorld()->GetRealTimeSeconds() : 0.f;
-    const float Glow = bReady ? ComboGlowIntensity * (.7f + .25f * FMath::Sin(RealTime * ComboGlowPulseSpeed * 2.f * PI)) : 0.f;
-    if (ComboGlowInstance) ComboGlowInstance->SetScalarParameterValue(TEXT("GlowStrength"), Glow);
-    if (ComboMeterBar)
+    if (ComboMeterBar) ComboMeterBar->SetPercent(GetComboPercent());
+    const FName AbilityId = Combo ? Combo->GetActiveAbilityId() : NAME_None;
+    if (AbilityId != DisplayedComboId)
     {
-        ComboMeterBar->SetPercent(GetComboPercent());
-        ComboMeterBar->SetFillColorAndOpacity(bReady ? ComboReadyColor : ComboChargingColor);
-        ComboMeterBar->SetRenderOpacity(bEquipped?1.f:.35f);
+        DisplayedComboId = AbilityId;
+        DisplayedComboDefinition = ComboCatalog::Definition(AbilityId);
     }
+    const auto* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
+    const FKey Key = Settings ? Settings->GetKeyBinding(TEXT("ComboAbility")) : EKeys::Q;
+    FText KeyLabel = Key.GetDisplayName();
+    if (Key == EKeys::SpaceBar) KeyLabel = NSLOCTEXT("Combo", "Space", "Space");
+    else if (Key == EKeys::RightMouseButton) KeyLabel = NSLOCTEXT("Combo", "RMB", "RMB");
+    else if (Key == EKeys::LeftMouseButton) KeyLabel = NSLOCTEXT("Combo", "LMB", "LMB");
+    else if (Key == EKeys::MiddleMouseButton) KeyLabel = NSLOCTEXT("Combo", "MMB", "MMB");
+    if (ComboRadialMeter)
+        ComboRadialMeter->SetPresentation(DisplayedComboDefinition ? DisplayedComboDefinition->Icon.Get() : nullptr,
+            GetComboPercent(), bReady, bEquipped, KeyLabel, ComboLabelFont, ComboChargingColor, ComboReadyColor,
+            ComboGlowIntensity, ComboGlowPulseSpeed);
     if (ComboAbilityText)
     {
-        if(!bUnlocked)
-        {
-            ComboAbilityText->SetColorAndOpacity(FSlateColor(FLinearColor(.48f,.60f,.61f)));
-            ComboAbilityText->SetText(NSLOCTEXT("Combo","LockedHUD","COMBO LOCKED\nUnlock in Skill Tree / Abilities"));
-            return;
-        }
-        if (!bEquipped)
-        {
-            ComboAbilityText->SetColorAndOpacity(FSlateColor(FLinearColor(.48f,.60f,.61f)));
-            ComboAbilityText->SetText(NSLOCTEXT("Combo","UnequippedHUD","NO COMBO EQUIPPED\nSelect in New Run"));
-            return;
-        }
-        ComboAbilityText->SetColorAndOpacity(FSlateColor(bReady ? ComboReadyColor : FLinearColor(.9f, .87f, .8f)));
-        const auto* Character = GetActiveCharacter();
-        const auto* Settings = UHeavensDivideGameUserSettings::GetHeavensDivideGameUserSettings();
-        const FKey Key = Settings ? Settings->GetKeyBinding(TEXT("ComboAbility")) : EKeys::Q;
-        const FText Name = Character ? Character->ComboAbility.DisplayName : FText::FromString(TEXT("Combo"));
-        ComboAbilityText->SetText(FText::Format(NSLOCTEXT("Combo", "HUD", "{0} [{1}]  {2}"), Name,
-            Key.GetDisplayName(), IsComboReady() ? NSLOCTEXT("Combo", "Ready", "READY") : FText::AsPercent(GetComboPercent(), &FNumberFormattingOptions::DefaultNoGrouping())));
+        ComboAbilityText->SetColorAndOpacity(FSlateColor(bEquipped ? (bReady ? ComboReadyColor : ComboChargingColor) : FLinearColor(.48f,.60f,.61f)));
+        ComboAbilityText->SetText(!bUnlocked ? NSLOCTEXT("Combo", "LockedRadialHUD", "COMBO LOCKED")
+            : !bEquipped ? NSLOCTEXT("Combo", "UnequippedRadialHUD", "NO COMBO EQUIPPED") : Combo->GetActiveAbilityName());
     }
 }

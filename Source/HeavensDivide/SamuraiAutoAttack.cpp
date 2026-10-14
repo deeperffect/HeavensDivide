@@ -31,6 +31,7 @@
 #include "SamuraiBladeWave.h"
 #include "CrescentBuild.h"
 #include "SamuraiIaijutsu.h"
+#include "JointComboActor.h"
 #include "IaijutsuBuild.h"
 #include "SamuraiCharacter.h"
 #include "SharedPlayerStatsComponent.h"
@@ -155,12 +156,12 @@ void UAutoAttackComponent::SpawnIaijutsuDash(FVector Origin, FVector Destination
 }
 
 bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Direction, float Distance,
-    float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget, float DamageMultiplier, bool bAssistAttack)
+    float ChargeDuration, bool bNormalAttack, TSharedPtr<int32> ChainBudget, float DamageMultiplier, bool bAssistAttack, bool bJointAttack, float JointArea, AJointComboActor* JointOwner)
 {
     auto* U = ResolveSamuraiUpgrades(this, OwnerCharacter);
     auto* Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
     if (!Samurai || !U || !GetIaijutsuUpgrade()
-        || !(bAssistAttack ? CanExecuteAttackInCurrentMode() : CanAutoAttack())) return false;
+        || (!bJointAttack && !(bAssistAttack ? CanExecuteAttackInCurrentMode() : CanAutoAttack()))) return false;
     // One kill follow-up per originating attack, shared by both Double Cut lanes.
     // The cascaded attack inherits the exhausted budget and cannot cascade again.
     const bool bKillFollowUp = ChainBudget.IsValid();
@@ -173,10 +174,10 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
     Area *= 1.f + IaijutsuBuild::Scaling(U, TEXT("IaijutsuWidth"), .25f);
     if (U->HasUpgradeId(TEXT("IaijutsuPowerPact"))) Damage *= UpgradeBalance::Value(U, TEXT("IaijutsuPowerPact"), TEXT("DamageMultiplier"), 1.5f);
     if (U->HasUpgradeId(TEXT("IaijutsuMarkPact"))) Area *= UpgradeBalance::Value(U, TEXT("IaijutsuMarkPact"), TEXT("WidthMultiplier"), .8f);
-    const float Radius = IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("SlashRadius"), 100.f) * Area;
+    const float Radius = IaijutsuBuild::Value(U, TEXT("Iaijutsu"), TEXT("SlashRadius"), 100.f) * Area * JointArea;
     bool bCross = false;
     // Death Cascade must not advance or consume the originating attack's cadence.
-    if (!bAssistAttack && !bKillFollowUp && U->HasUpgradeId(TEXT("IaijutsuDoubleCut")))
+    if ((!bAssistAttack || bJointAttack) && !bKillFollowUp && U->HasUpgradeId(TEXT("IaijutsuDoubleCut")))
     {
         const int32 Threshold = FMath::Max(1, FMath::RoundToInt(UpgradeBalance::Value(U, TEXT("IaijutsuDoubleCut"), TEXT("Frequency"), 4.f) - UpgradeBalance::Rank(U, TEXT("IaijutsuDoubleCutFrequency"), 1.f)));
         bCross = ++IaijutsuAttackCounter >= Threshold;
@@ -205,6 +206,11 @@ bool UAutoAttackComponent::SpawnIaijutsuSlashes(FVector Origin, FVector Directio
         auto* Slash = GetWorld()->SpawnActor<ASamuraiIaijutsu>(SlashOrigin, SlashDirection.Rotation(), Params);
         if (!Slash) continue;
         Slash->bAssistAttack = bAssistAttack;
+        if (JointOwner) {
+            Slash->JointOwner=JointOwner; Slash->JointDamageSource=AssistDamageSource; Slash->JointArea=JointArea;
+            Slash->OnJointVictim=ASamuraiIaijutsu::FJointVictim::CreateWeakLambda(JointOwner,[JointOwner](AEnemyBase* E){JointOwner->RecordVictim(E);});
+            JointOwner->RegisterChild(Slash);
+        }
         Slash->ChainBudget = ChainBudget;
         Slash->ChainTriggered = ChainTriggered;
         Slash->bEndpointBurst = bEndpoint && Index == 0;
@@ -490,7 +496,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
     return true;
 }
 
-void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
+void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage, TOptional<FVector> JointOrigin, TOptional<FVector> JointDirection, FName JointSource, AJointComboActor* JointOwner, float JointArea)
 {
     ASamuraiCharacter *Samurai = Cast<ASamuraiCharacter>(OwnerCharacter);
     UPlayerUpgradeComponent *Upgrades = ResolveSamuraiUpgrades(this, Samurai);
@@ -514,10 +520,11 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
     Forward.Z = 0.0f;
     if (!Forward.Normalize())
         return;
+    if (JointDirection.IsSet()) Forward = JointDirection.GetValue();
     const float WideArc = FMath::Max(0.0f, Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("WideArc")));
     const float AreaMultiplier = AttackRadius > KINDA_SMALL_NUMBER ? GetEffectiveAttackRadius() / AttackRadius : 1.0f;
     const float WaveWidth =
-        Tune(TEXT("WaveWidth"), BladeWaveBaseWidth) * FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc);
+        Tune(TEXT("WaveWidth"), BladeWaveBaseWidth) * JointArea * FMath::Max(0.0f, AreaMultiplier) * (1.0f + WideArc);
     const float FieldDamage = FMath::Max(0.0f, ResolvedPrimaryDamage) *
                              Tune(TEXT("WaveDamageMultiplier"), BladeWaveDamageMultiplier) * (1.0f + WideArc) *
                              (1.0f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWavePower"))) *
@@ -552,7 +559,7 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
     const float Speed = Tune(TEXT("WaveSpeed"), BladeWaveSpeed) * (1.f + Upgrades->GetAccumulatedUpgradeMagnitude(TEXT("BladeWaveHaste")))
         * (1.f + CrescentBuild::Scaling(Upgrades, TEXT("CrescentSpeed"), .2f))
         * (Upgrades->HasUpgradeId(TEXT("CrescentPowerPact")) ? UpgradeBalance::Value(Upgrades, TEXT("CrescentPowerPact"), TEXT("SpeedMultiplier"), .5f) : 1.f);
-    const float VisualArea = FMath::Max(0.f, AreaMultiplier) * (1.f + WideArc);
+    const float VisualArea = JointArea * FMath::Max(0.f, AreaMultiplier) * (1.f + WideArc);
     PendingBladeWaveTimers.RemoveAll([this](const FTimerHandle& Timer) { return !GetWorld()->GetTimerManager().TimerExists(Timer); });
     TArray<float> Angles;
     if (bPlus || bArc)
@@ -569,27 +576,29 @@ void UAutoAttackComponent::SpawnBladeWavesForAttack(float ResolvedPrimaryDamage)
     {
         const float Angle = Angles[Index];
         const FVector Direction = Forward.RotateAngleAxis(Angle, FVector::UpVector);
-        const FVector SpawnLocation = Samurai->GetActorLocation() + Direction * Tune(TEXT("SpawnForwardOffset"), 80) +
+        const FVector SpawnLocation = JointOrigin.Get(Samurai->GetActorLocation()) + Direction * Tune(TEXT("SpawnForwardOffset"), 80) +
                                       FVector(0.0f, 0.0f, Tune(TEXT("SpawnHeightOffset"), 60));
         // Capture the committed swing's origin, aim and stats; later movement or
         // upgrade changes must not redirect or rescale the rest of this salvo.
-        auto SpawnWave = [this, Source = TWeakObjectPtr<ASamuraiCharacter>(Samurai),
+        auto SpawnWave = [this, JointActor=TWeakObjectPtr<AJointComboActor>(JointOwner), bJoint=JointOwner!=nullptr, Source = TWeakObjectPtr<ASamuraiCharacter>(Samurai),
             SourceUpgrades = TWeakObjectPtr<UPlayerUpgradeComponent>(Upgrades), WaveClass = BladeWaveClass,
             SpawnLocation, Direction, WaveDamage, WaveWidth, TravelDistance, Speed, bReturns, VisualArea, FieldDamage,
-            CommittedSource = bActiveAttackIsAssist ? AssistDamageSource : FName(TEXT("Crescent"))]()
+            CommittedSource = !JointSource.IsNone() ? JointSource : bActiveAttackIsAssist ? AssistDamageSource : FName(TEXT("Crescent"))]()
         {
-            if (!Source.IsValid() || !SourceUpgrades.IsValid() || !GetWorld()) return;
+            if (!Source.IsValid() || !SourceUpgrades.IsValid() || !GetWorld() || (bJoint && !JointActor.IsValid())) return;
             FActorSpawnParameters Params;
             Params.Owner = Source.Get(); Params.Instigator = Source.Get();
             Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
             if (auto* Wave = GetWorld()->SpawnActor<ASamuraiBladeWave>(WaveClass, SpawnLocation, Direction.Rotation(), Params))
             {
                 Wave->DamageSource = CommittedSource;
+                Wave->JointOwner=JointActor; if (JointActor.IsValid()) JointActor->RegisterChild(Wave);
                 Wave->InitializeBladeWave(Source.Get(), SourceUpgrades.Get(), Direction, WaveDamage, WaveWidth,
                     TravelDistance, Speed, bReturns, VisualArea, FieldDamage);
             }
         };
         if (Index == 0 || WaveDelay <= 0.f) SpawnWave();
+        else if (JointOwner) JointOwner->ScheduleAttack(Index*WaveDelay,MoveTemp(SpawnWave));
         else
         {
             FTimerHandle Timer;
@@ -860,10 +869,10 @@ void UAutoAttackComponent::RollBloodAssist()
   if(auto* Assist = U->GetOwner()->FindComponentByClass<UInactiveCharacterAssistComponent>()) Assist->TryBloodAssist();
 }
 
-void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,float Damage,float Radius,bool bCircular)
+void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,float Damage,float Radius,bool bCircular,FName JointSource,AJointComboActor* JointOwner)
 {
  auto* U = ResolveSamuraiUpgrades(this,OwnerCharacter);
- if (!U || !U->HasUpgradeId(TEXT("BattleStance")) || !CanExecuteAttackInCurrentMode() || OwnerCharacter->GetCharacterMode()!=ECharacterMode::Active) return;
+ if (!U || !U->HasUpgradeId(TEXT("BattleStance")) || (JointSource.IsNone() && (!CanExecuteAttackInCurrentMode() || OwnerCharacter->GetCharacterMode()!=ECharacterMode::Active))) return;
  // Echoes can crit independently, but cannot recursively generate more echoes.
  if(U->HasUpgradeId(TEXT("BloodCritical")) && FMath::FRand() < FMath::Clamp(UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("Chance"), .15f) + UpgradeBalance::Rank(U, TEXT("BloodCriticalChance"), .1f), 0.f, 1.f)) Damage*=UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("DamageMultiplier"), 2.f);
  if(HasDoubleCutUpgrade())
@@ -872,7 +881,7 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
   DoubleCutPrimaryAttackCounter = WillNextSamuraiAttackTriggerDoubleCut() ? 0 : DoubleCutPrimaryAttackCounter+1;
  }
  const FVector Center = bCircular ? Origin : Origin + Direction*AttackForwardOffset;
- if(BloodEchoVFX)
+ if(BloodEchoVFX && !JointOwner)
  {
   FVector VFXOrigin=Origin, VFXScale(Radius/FMath::Max(1.f,AttackRadius));
   FQuat VFXRotation=Direction.ToOrientationQuat();
@@ -895,34 +904,38 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
   for(int32 i=0;i<(bCircular?4:1);++i)
    UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,BloodEchoVFX,VFXOrigin,(FRotator(0,i*90.f,0).Quaternion()*VFXRotation).Rotator(),VFXScale);
  }
- TArray<FOverlapResult> Hits;
- FCollisionObjectQueryParams Objects;Objects.AddObjectTypesToQuery(ECC_Pawn);Objects.AddObjectTypesToQuery(ECC_GameTraceChannel1);
- GetWorld()->OverlapMultiByObjectType(Hits,Center,FQuat::Identity,Objects,FCollisionShape::MakeSphere(Radius));
+ TArray<AEnemyBase*> Targets;
+ if (JointOwner) Targets = JointOwner->GetBloodSlashTargets();
+ else {
+  TArray<FOverlapResult> Hits;
+  FCollisionObjectQueryParams Objects;Objects.AddObjectTypesToQuery(ECC_Pawn);Objects.AddObjectTypesToQuery(ECC_GameTraceChannel1);
+  GetWorld()->OverlapMultiByObjectType(Hits,Center,FQuat::Identity,Objects,FCollisionShape::MakeSphere(Radius));
+  for (const auto& Hit : Hits) if (auto* Enemy=Cast<AEnemyBase>(Hit.GetActor())) Targets.AddUnique(Enemy);
+ }
  AEnemyBase* Primary = nullptr;
  float BestAlignment = -FLT_MAX;
- for (const auto& Hit : Hits)
+ for (auto* Enemy : Targets)
  {
-  auto* Enemy = Cast<AEnemyBase>(Hit.GetActor());
   if (!Enemy || Enemy->IsDead() || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai)) continue;
   const float Alignment = FVector::DotProduct(Direction,(Enemy->GetActorLocation()-Origin).GetSafeNormal2D());
   if (!Primary || Alignment > BestAlignment) { Primary=Enemy; BestAlignment=Alignment; }
  }
  TSet<AEnemyBase*> Seen;
- for(const auto& Hit:Hits)
+ for(auto* Enemy:Targets)
  {
-  auto* Enemy=Cast<AEnemyBase>(Hit.GetActor());
   if(!Enemy||Seen.Contains(Enemy)||Enemy->IsDead()||!Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Samurai))continue;
   Seen.Add(Enemy);
   const float HitDamage = Damage * (bCircular || Enemy==Primary ? 1.f : FMath::Clamp(SecondaryTargetDamageMultiplier,0.f,1.f));
   const float Before=Enemy->GetHealthComponent()->GetCurrentHealth();
-  FRunDamageScope DamageScope(TEXT("BloodEcho"));
+  FRunDamageScope DamageScope(JointSource.IsNone() ? FName(TEXT("BloodEcho")) : JointSource);
+  const FVector JointHitPosition=Enemy->GetActorLocation();
   if(Enemy->ApplyPlayerDamage(HitDamage,EPlayerAttackSource::Samurai))
   {
+   if (JointOwner) JointOwner->PlayHitImpact(Enemy,JointHitPosition);
    U->HandleSamuraiDirectHit(Enemy,HitDamage,Before);
    if(!Enemy->IsDead()) Enemy->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed,U,EPlayerAttackSource::Samurai,false,HitDamage);
    if(U->HasUpgradeId(TEXT("MarkedBlade"))) Enemy->ApplyMark();
   }
  }
- RollBloodAssist();
- OnAutoAttack.Broadcast(this,EAutoAttackSource::NormalAutoAttack);
+ if (JointSource.IsNone()) { RollBloodAssist(); OnAutoAttack.Broadcast(this,EAutoAttackSource::NormalAutoAttack); }
 }

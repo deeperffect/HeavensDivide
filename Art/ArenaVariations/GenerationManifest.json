@@ -1,0 +1,112 @@
+[
+  {
+    "id": "01_VerdantOchre",
+    "file": "Art\\ArenaVariations\\01_VerdantOchre_v2.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "01_VerdantOchre_v2_Prompt.md",
+    "earlier_pass_retained": "01_VerdantOchre.png"
+  },
+  {
+    "id": "02_FrostMeadow",
+    "file": "Art\\ArenaVariations\\02_FrostMeadow_v2.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "02_FrostMeadow_v2_Prompt.md",
+    "earlier_pass_retained": "02_FrostMeadow.png"
+  },
+  {
+    "id": "03_VioletSandstone",
+    "file": "Art\\ArenaVariations\\03_VioletSandstone.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "03_VioletSandstone_Prompt.md",
+    "earlier_pass_retained": null
+  },
+  {
+    "id": "04_MossSlate",
+    "file": "Art\\ArenaVariations\\04_MossSlate_v2.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "04_MossSlate_v2_Prompt.md",
+    "earlier_pass_retained": "04_MossSlate.png"
+  },
+  {
+    "id": "05_RoseCourtyard",
+    "file": "Art\\ArenaVariations\\05_RoseCourtyard.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "05_RoseCourtyard_Prompt.md",
+    "earlier_pass_retained": null
+  },
+  {
+    "id": "06_AmethystFracture",
+    "file": "Art\\ArenaVariations\\06_AmethystFracture.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "06_AmethystFracture_Prompt.md",
+    "earlier_pass_retained": null
+  },
+  {
+    "id": "07_OvergrownRuins",
+    "file": "Art\\ArenaVariations\\07_OvergrownRuins_v2.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "07_OvergrownRuins_v2_Prompt.md",
+    "earlier_pass_retained": "07_OvergrownRuins.png"
+  },
+  {
+    "id": "08_EmberBasalt",
+    "file": "Art\\ArenaVariations\\08_EmberBasalt.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "08_EmberBasalt_Prompt.md",
+    "earlier_pass_retained": null
+  },
+  {
+    "id": "09_MoonlitSlate",
+    "file": "Art\\ArenaVariations\\09_MoonlitSlate_v2.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "09_MoonlitSlate_v2_Prompt.md",
+    "earlier_pass_retained": "09_MoonlitSlate.png"
+  },
+  {
+    "id": "10_CelestialStone",
+    "file": "Art\\ArenaVariations\\10_CelestialStone.png",
+    "native_pixels": [
+      1254,
+      1254
+    ],
+    "mode": "built-in image_gen",
+    "prompt": "10_CelestialStone_Prompt.md",
+    "earlier_pass_retained": null
+  }
+]

@@ -4,6 +4,8 @@ Pause, defeat and victory now use the same procedural gold frame, ink surfaces, 
 
 Run Build lists acquired cards under Samurai, Ninja and Shared & Synergies, with saved artwork, ranks, maximum-rank markers, stance/weapon labels and evolution markers from the asset's actual taxonomy. Hovering shows the asset's resolved balance description. Mastery, rerolls and banishes are included. Results keep a frozen copy of the final build.
 
+Defeat results follow the death montage and final hold: the silhouette and YOU DIED fade to black over 0.45 seconds, then the report is revealed over 0.65 seconds. The transition uses real time while gameplay is paused; cursor and menu input become active once the report is fully visible. The controller's `Death Presentation` settings expose these durations and the slower 1.2-second title fade.
+
 ## Research and design choices
 
 - Vampire Survivors uses weapon/evolution identity and per-weapon results to encourage build comparison. Player reports also illustrate why damage/DPS requires a clear definition: [overkill discussion](https://www.reddit.com/r/VampireSurvivors/comments/snhd1a), [different weapons compete for the same enemies](https://www.reddit.com/r/VampireSurvivors/comments/1dqwjo1). Our display measures actual health removed and labels the DPS denominator.

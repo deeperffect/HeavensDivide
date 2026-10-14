@@ -1,4 +1,5 @@
 #include "RunLoadoutSubsystem.h"
+#include "ComboAbilityDefinition.h"
 #include "RunStanceCatalog.h"
 #include "PlayerUpgradeComponent.h"
 #include "SynergyMetaProgressionSubsystem.h"
@@ -82,28 +83,39 @@ bool URunLoadoutSubsystem::SetSynergySelected(FName Id, bool bSelected)
 
 bool URunLoadoutSubsystem::IsComboAbilityUnlocked(FName Id) const
 {
-    if (Id != TEXT("SoulConvergence")) return false;
     const auto* GI = GetGameInstance();
     const auto* Meta = GI ? GI->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-    return Meta && Meta->GetSkillBonus(TEXT("ComboUnlock")) > 0.f;
+    if (!Meta || Meta->GetSkillBonus(TEXT("ComboUnlock")) <= 0.f) return false;
+    return Id == TEXT("SoulConvergence") || (ComboCatalog::Find(Id) && (Meta->GetSkillRank(ComboCatalog::UnlockId(Id)) > 0 || Id == TEXT("BloodMoon")));
 }
 
+FName URunLoadoutSubsystem::GetComboAbilityFor(EUpgradeStatTarget Character) const
+{
+    if (Character != EUpgradeStatTarget::Samurai && Character != EUpgradeStatTarget::Ninja) return NAME_None;
+    return GetSelectedComboAbility();
+}
+bool URunLoadoutSubsystem::SetComboAbilityFor(EUpgradeStatTarget Character, FName Id)
+{
+    return (Character == EUpgradeStatTarget::Samurai || Character == EUpgradeStatTarget::Ninja) && SetSelectedComboAbility(Id);
+}
 FName URunLoadoutSubsystem::GetSelectedComboAbility() const
 {
-    const FName Id = bExplicitComboChoice ? SelectedComboAbility : FName(TEXT("SoulConvergence"));
-    return IsComboAbilityUnlocked(Id) ? Id : NAME_None;
+    if (!bExplicitComboChoice)
+        for (EUpgradeStatTarget Hero : {EUpgradeStatTarget::Samurai,EUpgradeStatTarget::Ninja})
+            if (const FName* Id=CharacterCombos.Find(Hero); Id && ComboCatalog::Find(*Id) && IsComboAbilityUnlocked(*Id)) return *Id;
+    const FName Id = bExplicitComboChoice ? SelectedComboAbility : FName(TEXT("BloodMoon"));
+    return ComboCatalog::Find(Id) && IsComboAbilityUnlocked(Id) ? Id : NAME_None;
 }
-
 bool URunLoadoutSubsystem::SetSelectedComboAbility(FName Id)
 {
-    if (!CanEditSelections() || (!Id.IsNone() && !IsComboAbilityUnlocked(Id))) return false;
-    SelectedComboAbility = Id;
-    bExplicitComboChoice = true;
-    return true;
+    if (!CanEditSelections() || (!Id.IsNone() && (!ComboCatalog::Find(Id) || !IsComboAbilityUnlocked(Id)))) return false;
+    SelectedComboAbility = Id; bExplicitComboChoice = true; CharacterCombos.Reset(); return true;
 }
 
 void URunLoadoutSubsystem::SanitizeSelections()
 {
+    for (auto It = CharacterCombos.CreateIterator(); It; ++It)
+        if (!It.Value().IsNone() && !IsComboAbilityUnlocked(It.Value())) It.RemoveCurrent();
     if (!IsLoadoutStanceUnlocked(GetGameInstance(), SamuraiStance)) SamuraiStance = TEXT("BattleStance");
     if (!IsLoadoutStanceUnlocked(GetGameInstance(), NinjaStance)) NinjaStance = TEXT("BarrageStance");
     SelectedSynergies = GetSelectedSynergies();

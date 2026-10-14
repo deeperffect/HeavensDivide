@@ -40,7 +40,6 @@ void UGameOverWidget::InitializeGameOver(ASurvivorPlayerController* InPlayerCont
 	if (const auto* Report = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunReportSubsystem>() : nullptr)
 		if (Report->Summary().RunId.IsValid()) FinalRunTimeSeconds = static_cast<float>(Report->Summary().Seconds);
 	if (FinalRunTimeText) FinalRunTimeText->SetText(UPlayerHUDWidget::FormatRunTimeText(FinalRunTimeSeconds));
-	if (RestartRunButton) RestartRunButton->SetKeyboardFocus();
 }
 
 void UGameOverWidget::NormalizeTimeForTravel()
