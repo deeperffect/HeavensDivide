@@ -1,16 +1,21 @@
 #include "EnemyBase.h"
 #include "CombatGround.h"
+#include "EncounterWall.h"
+#include "Components/BoxComponent.h"
 
 #include "CharacterBase.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "EnemyLightweightMovementComponent.h"
+#include "EnemyNavigationSubsystem.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "NavigationPath.h"
 #include "NavigationSystem.h"
+#include "NavigationData.h"
+#include "Misc/ScopeExit.h"
 #include "Stats/Stats.h"
 #include "TimerManager.h"
 
@@ -33,36 +38,11 @@ static TAutoConsoleVariable<int32> CVarDebugEnemyGroundSnap(
 static bool IsBlockingWorldGeometryHit(const FHitResult& HitResult)
 {
 	AActor* HitActor = HitResult.GetActor();
+	const auto* Wall = Cast<AEncounterWall>(HitActor);
 	return HitResult.bBlockingHit
 		&& HitActor
-		&& !Cast<AEnemyBase>(HitActor)
+		&& (!Cast<AEnemyBase>(HitActor) || (Wall && HitResult.GetComponent()==Wall->Barrier))
 		&& !Cast<ACharacterBase>(HitActor);
-}
-
-static bool IsEnemyPathFallbackRequestAllowed(UWorld* World)
-{
-	if (!World)
-	{
-		return false;
-	}
-
-	constexpr uint64 MaxRequestsPerFrame = 10;
-	static uint64 LastFrameNumber = 0;
-	static uint64 RequestsThisFrame = 0;
-
-	if (LastFrameNumber != GFrameCounter)
-	{
-		LastFrameNumber = GFrameCounter;
-		RequestsThisFrame = 0;
-	}
-
-	if (RequestsThisFrame >= MaxRequestsPerFrame)
-	{
-		return false;
-	}
-
-	++RequestsThisFrame;
-	return true;
 }
 
 void AEnemyBase::StartBehaviorUpdates()
@@ -151,6 +131,8 @@ void AEnemyBase::ApplyDesiredMovementInput(float DeltaSeconds)
 
 void AEnemyBase::StopDesiredMovement()
 {
+	NextPathProgressCheckTime = 0.0f;
+	bPathProgressStalled = false;
 	DesiredMovementDirection = FVector::ZeroVector;
 	DesiredDirectMovementDirection = FVector::ZeroVector;
 	bHasDesiredMovementDirection = false;
@@ -182,6 +164,7 @@ void AEnemyBase::ConfigureEnemyCapsuleCollisionDefaults()
 {
 	if (UCapsuleComponent* EnemyCapsule = GetCapsuleComponent())
 	{
+		EnemyCapsule->SetCanEverAffectNavigation(false);
 		EnemyCapsule->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		EnemyCapsule->SetGenerateOverlapEvents(true);
 		EnemyCapsule->SetCollisionObjectType(ECC_GameTraceChannel1);
@@ -246,19 +229,29 @@ void AEnemyBase::UpdateObstaclePathFallback()
 	const bool bBlockedByWorldGeometry = LightweightMovementComponent->WasLastMoveBlockedByWorldGeometry();
 	const float DistanceToTarget = FVector::Dist2D(GetActorLocation(), CurrentTarget->GetActorLocation());
 
-	if (!bBlockedByWorldGeometry)
-	{
-		BlockedByWorldGeometryStartTime = -1.0f;
-		return;
-	}
-
-	if (DistanceToTarget < FMath::Max(StopDistance, MinPathFallbackTargetDistance))
+	// The player can be close on the other side of a fence. A minimum chase
+	// distance of 400 prevented those enemies from ever routing around it.
+	if (DistanceToTarget <= GetChaseStopDistance() && HasClearChaseRoute())
 	{
 		ClearObstaclePath();
 		return;
 	}
 
-	if (BlockedByWorldGeometryStartTime < 0.0f)
+	if (NextPathProgressCheckTime <= 0.0f)
+	{
+		PathProgressLocation = GetActorLocation();
+		NextPathProgressCheckTime = CurrentTime + 0.5f;
+	}
+	else if (CurrentTime >= NextPathProgressCheckTime)
+	{
+		bPathProgressStalled = FVector::DistSquared2D(PathProgressLocation, GetActorLocation())
+			< FMath::Square(FMath::Max(2.0f, MoveSpeed * GetCrescentMovementMultiplier() * 0.075f));
+		PathProgressLocation = GetActorLocation();
+		NextPathProgressCheckTime = CurrentTime + 0.5f;
+	}
+	if (!bBlockedByWorldGeometry && !bPathProgressStalled)
+		BlockedByWorldGeometryStartTime = -1.0f;
+	else if (BlockedByWorldGeometryStartTime < 0.0f)
 	{
 		BlockedByWorldGeometryStartTime = CurrentTime;
 	}
@@ -267,9 +260,11 @@ void AEnemyBase::UpdateObstaclePathFallback()
 	const bool bTargetMovedEnoughForRepath = bHasPath
 		&& PathTargetRepathDistance > 0.0f
 		&& FVector::DistSquared2D(LastPathTargetLocation, CurrentTarget->GetActorLocation()) >= FMath::Square(PathTargetRepathDistance);
-	const bool bBlockedLongEnough = CurrentTime - BlockedByWorldGeometryStartTime >= PathFallbackBlockedTime + PathFallbackRequestJitter;
+	const bool bBlockedLongEnough = BlockedByWorldGeometryStartTime >= 0.0f
+		&& CurrentTime - BlockedByWorldGeometryStartTime >= PathFallbackBlockedTime + PathFallbackRequestJitter;
 
-	if (bBlockedLongEnough && (!bHasPath || bTargetMovedEnoughForRepath) && CurrentTime >= NextPathFallbackRequestTime)
+	if ((bTargetMovedEnoughForRepath || (bBlockedLongEnough && (!bHasPath || bPathProgressStalled)))
+		&& CurrentTime >= NextPathFallbackRequestTime)
 	{
 		if (!TryBuildObstaclePath() && CVarDebugEnemyPathFallback.GetValueOnGameThread() != 0)
 		{
@@ -293,18 +288,22 @@ bool AEnemyBase::TryBuildObstaclePath()
 		return false;
 	}
 
-	NextPathFallbackRequestTime = World->GetTimeSeconds() + FMath::Max(0.1f, PathFallbackRepathInterval) + PathFallbackRequestJitter;
-
-	if (!IsEnemyPathFallbackRequestAllowed(World))
+	auto* Budget = World->GetSubsystem<UEnemyNavigationSubsystem>();
+	if (!Budget || !Budget->TryAcquirePathRequest())
 	{
+		// Retry soon after a crowd budget deferral, retaining any usable path.
+		NextPathFallbackRequestTime = World->GetTimeSeconds() + 0.1f + PathFallbackRequestJitter;
 		if (CVarDebugEnemyPathFallback.GetValueOnGameThread() != 0)
 		{
 			DrawDebugSphere(World, GetActorLocation() + FVector(0.0f, 0.0f, 95.0f), 45.0f, 12, FColor::Orange, false, BehaviorUpdateInterval, 0, 2.0f);
 		}
 		return false;
 	}
+	NextPathFallbackRequestTime = World->GetTimeSeconds() + FMath::Max(0.75f, PathFallbackRepathInterval) + PathFallbackRequestJitter;
+	const double RequestStart = FPlatformTime::Seconds();
+	ON_SCOPE_EXIT { Budget->RecordPathRequest((FPlatformTime::Seconds() - RequestStart) * 1000.0); };
 
-	const UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+	UNavigationSystemV1* NavigationSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
 	if (!NavigationSystem)
 	{
 		ClearObstaclePath();
@@ -319,8 +318,12 @@ bool AEnemyBase::TryBuildObstaclePath()
 		return false;
 	}
 
-	UNavigationPath* NavigationPath = UNavigationSystemV1::FindPathToLocationSynchronously(this, ProjectedStart, ProjectedEnd, this);
-	if (!NavigationPath || !NavigationPath->IsValid() || NavigationPath->PathPoints.Num() < 2)
+	const ANavigationData* NavData = NavigationSystem->GetDefaultNavDataInstance();
+	if (!NavData) return false;
+	FPathFindingQuery Query(this, *NavData, ProjectedStart, ProjectedEnd);
+	Query.SetAllowPartialPaths(false);
+	const FPathFindingResult Result = NavigationSystem->FindPathSync(Query);
+	if (!Result.IsSuccessful() || !Result.Path.IsValid() || Result.Path->GetPathPoints().Num() < 2)
 	{
 		ClearObstaclePath();
 		if (CVarDebugEnemyPathFallback.GetValueOnGameThread() != 0)
@@ -331,8 +334,10 @@ bool AEnemyBase::TryBuildObstaclePath()
 		return false;
 	}
 
-	ObstaclePathPoints = NavigationPath->PathPoints;
+	ObstaclePathPoints.Reset(Result.Path->GetPathPoints().Num());
+	for (const FNavPathPoint& Point : Result.Path->GetPathPoints()) ObstaclePathPoints.Add(Point.Location);
 	CurrentObstaclePathIndex = ObstaclePathPoints.Num() > 1 ? 1 : INDEX_NONE;
+	CachedPathSteeringIndex = CurrentObstaclePathIndex;
 	LastPathTargetLocation = CurrentTarget->GetActorLocation();
 	NextDirectPathCheckTime = 0.0f;
 
@@ -357,9 +362,10 @@ bool AEnemyBase::TryGetPathFallbackSteeringDirection(FVector& OutSteeringDirecti
 	}
 
 	const float CurrentTime = World->GetTimeSeconds();
-	if (CurrentTime >= NextDirectPathCheckTime)
+	const bool bRefreshRouteChecks = CurrentTime >= NextDirectPathCheckTime;
+	if (bRefreshRouteChecks)
 	{
-		NextDirectPathCheckTime = CurrentTime + FMath::Max(0.05f, DirectPathCheckInterval);
+		NextDirectPathCheckTime = CurrentTime + FMath::Max(0.3f, DirectPathCheckInterval) + PathFallbackRequestJitter;
 		if (IsDirectPathToTargetClear())
 		{
 			ClearObstaclePath();
@@ -369,7 +375,7 @@ bool AEnemyBase::TryGetPathFallbackSteeringDirection(FVector& OutSteeringDirecti
 
 	const FVector CurrentLocation = GetActorLocation();
 	while (ObstaclePathPoints.IsValidIndex(CurrentObstaclePathIndex)
-		&& FVector::DistSquared2D(CurrentLocation, ObstaclePathPoints[CurrentObstaclePathIndex]) <= FMath::Square(PathWaypointAcceptanceRadius))
+		&& FVector::DistSquared2D(CurrentLocation, ObstaclePathPoints[CurrentObstaclePathIndex]) <= FMath::Square(FMath::Min(35.0f, PathWaypointAcceptanceRadius)))
 	{
 		++CurrentObstaclePathIndex;
 	}
@@ -380,16 +386,22 @@ bool AEnemyBase::TryGetPathFallbackSteeringDirection(FVector& OutSteeringDirecti
 		return false;
 	}
 
-	int32 SteeringIndex = CurrentObstaclePathIndex;
+	int32 SteeringIndex = FMath::Max(CurrentObstaclePathIndex, CachedPathSteeringIndex);
 	const int32 FurthestLookAheadIndex = FMath::Min(CurrentObstaclePathIndex + 3, ObstaclePathPoints.Num() - 1);
-	for (int32 CandidateIndex = FurthestLookAheadIndex; CandidateIndex > CurrentObstaclePathIndex; --CandidateIndex)
+	if (bRefreshRouteChecks)
 	{
-		if (IsPathFallbackRouteClearToLocation(ObstaclePathPoints[CandidateIndex]))
+		SteeringIndex = CurrentObstaclePathIndex;
+		for (int32 CandidateIndex = FurthestLookAheadIndex; CandidateIndex > CurrentObstaclePathIndex; --CandidateIndex)
 		{
-			SteeringIndex = CandidateIndex;
-			break;
+			if (IsPathFallbackRouteClearToLocation(ObstaclePathPoints[CandidateIndex]))
+			{
+				SteeringIndex = CandidateIndex;
+				break;
+			}
 		}
+		CachedPathSteeringIndex = SteeringIndex;
 	}
+	CurrentObstaclePathIndex = SteeringIndex;
 
 	FVector ToWaypoint = ObstaclePathPoints[SteeringIndex] - CurrentLocation;
 	ToWaypoint.Z = 0.0f;
@@ -413,6 +425,19 @@ bool AEnemyBase::TryGetPathFallbackSteeringDirection(FVector& OutSteeringDirecti
 bool AEnemyBase::IsDirectPathToTargetClear() const
 {
 	return CurrentTarget && IsPathFallbackRouteClearToLocation(CurrentTarget->GetActorLocation());
+}
+
+bool AEnemyBase::HasClearChaseRoute() const
+{
+	const UWorld* World = GetWorld();
+	if (!World || !CurrentTarget) return false;
+	if (World->GetTimeSeconds() >= NextChaseRouteCheckTime || CachedChaseRouteTarget.Get() != CurrentTarget)
+	{
+		bCachedChaseRouteClear = IsDirectPathToTargetClear();
+		CachedChaseRouteTarget = CurrentTarget;
+		NextChaseRouteCheckTime = World->GetTimeSeconds() + 0.3f + PathFallbackRequestJitter;
+	}
+	return bCachedChaseRouteClear;
 }
 
 bool AEnemyBase::IsPathFallbackRouteClearToLocation(const FVector& Location) const
@@ -439,7 +464,11 @@ bool AEnemyBase::IsPathFallbackRouteClearToLocation(const FVector& Location) con
 		QueryParams.AddIgnoredActor(CurrentTarget);
 	}
 
-	const FVector StartLocation = GetActorLocation();
+	// Lift the probe's bottom off the walkable floor to avoid treating floor
+	// contact as an obstacle. Width remains the full enemy capsule width.
+	const float Clearance = FMath::Min(6.0f, CapsuleHalfHeight - CapsuleRadius);
+	CapsuleHalfHeight -= Clearance;
+	const FVector StartLocation = GetActorLocation() + FVector(0, 0, Clearance);
 	FVector EndLocation = Location;
 	EndLocation.Z = StartLocation.Z;
 	const bool bHasHits = World->SweepMultiByChannel(
@@ -490,6 +519,7 @@ void AEnemyBase::ClearObstaclePath()
 {
 	ObstaclePathPoints.Reset();
 	CurrentObstaclePathIndex = INDEX_NONE;
+	CachedPathSteeringIndex = INDEX_NONE;
 	LastPathTargetLocation = FVector::ZeroVector;
 	NextDirectPathCheckTime = 0.0f;
 	BlockedByWorldGeometryStartTime = -1.0f;
@@ -681,7 +711,7 @@ void AEnemyBase::MoveTowardCurrentTarget()
 
 	FVector ToTarget = CurrentTarget->GetActorLocation() - GetActorLocation();
 	ToTarget.Z = 0.0f;
-	if (ToTarget.SizeSquared2D() <= FMath::Square(GetChaseStopDistance()))
+	if (ToTarget.SizeSquared2D() <= FMath::Square(GetChaseStopDistance()) && HasClearChaseRoute())
 	{
 		StopEnemyMovement();
 		return;

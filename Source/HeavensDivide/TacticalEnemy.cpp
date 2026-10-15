@@ -123,7 +123,7 @@ void ATacticalEnemy::UpdateEnemyBehavior(float Delta)
     if (!EnsureTargetFromCharacterManager() || ShouldSkipMovement()) { StopEnemyMovement(); return; }
     LightweightMovementComponent->SetMoveSpeed(MoveSpeed*(GetWorld()->GetTimeSeconds()<HasteUntil ? HasteMultiplier : 1.f));
     const float Distance = FVector::Dist2D(CurrentTarget->GetActorLocation(),GetActorLocation());
-    if (Distance>GetEngagementRange()) { MoveTowardCurrentTarget(); return; }
+    if (Distance>GetEngagementRange() || !HasClearChaseRoute()) { MoveTowardCurrentTarget(); return; }
     StopEnemyMovement(); FaceTarget();
     if (Cooldown<=0) BeginAbility();
     // Hold attack range during cooldown. Resume chasing only when the target

@@ -1,0 +1,342 @@
+{
+  "source": "C:\\Users\\deepe\\OneDrive\\Desktop\\NewLevel",
+  "units": "centimeters",
+  "assets": [
+    {
+      "name": "CourtyardMedallion",
+      "category": "Landmarks",
+      "zip": "circular+stone+paving+3d+model.zip",
+      "zip_sha256": "a030a11fa7357b78f7c1a04411a90f4d4e1d0909b074abc09b1bdce5907d99e0",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\CourtyardMedallion\\tripo_convert_3321063a-f530-485b-b92e-e101a2ec5c78.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\CourtyardMedallion\\tripo_convert_3321063a-f530-485b-b92e-e101a2ec5c78.fbm\\tripo_image_3321063a-f530-485b-b92e-e101a2ec5c78_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\CourtyardMedallion\\tripo_convert_3321063a-f530-485b-b92e-e101a2ec5c78.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Landmarks\\CourtyardMedallion\\Textures\\T_OV_CourtyardMedallion_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Landmarks\\CourtyardMedallion\\SM_OV_CourtyardMedallion.fbx",
+      "target_cm": 500,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "TiledRoof",
+      "category": "Architecture",
+      "zip": "curved+tile+roof+3d+model.zip",
+      "zip_sha256": "5295c365d36f4d0dade125dc22bba35500ea4baf3e78776aed0ddb6cb987615c",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\TiledRoof\\tripo_convert_a1c4d937-92f3-4905-8c11-3e3badf74eea.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\TiledRoof\\tripo_convert_a1c4d937-92f3-4905-8c11-3e3badf74eea.fbm\\tripo_image_a1c4d937-92f3-4905-8c11-3e3badf74eea_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\TiledRoof\\tripo_convert_a1c4d937-92f3-4905-8c11-3e3badf74eea.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Architecture\\TiledRoof\\Textures\\T_OV_TiledRoof_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Architecture\\TiledRoof\\SM_OV_TiledRoof.fbx",
+      "target_cm": 600,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "SacredStone",
+      "category": "Landmarks",
+      "zip": "sacred+rock+3d+model.zip",
+      "zip_sha256": "8e71fb4854d17a685de9adb634650cbf98025c1e0c660d3116ccaaaab4d30293",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\SacredStone\\tripo_convert_c43eb098-7616-4ad5-8ced-08958c608780.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\SacredStone\\tripo_convert_c43eb098-7616-4ad5-8ced-08958c608780.fbm\\tripo_image_c43eb098-7616-4ad5-8ced-08958c608780_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\SacredStone\\tripo_convert_c43eb098-7616-4ad5-8ced-08958c608780.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Landmarks\\SacredStone\\Textures\\T_OV_SacredStone_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Landmarks\\SacredStone\\SM_OV_SacredStone.fbx",
+      "target_cm": 280,
+      "scale_axis": "height",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "SmallShrine",
+      "category": "Buildings",
+      "zip": "shrine+3d+model (1).zip",
+      "zip_sha256": "195b690c6c892da7a714ca5c6f81e7686cd50c261d9644302c393f0aba973bed",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\SmallShrine\\tripo_convert_fe2dcbbf-40d5-4896-bae7-fb6dd2946985.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\SmallShrine\\tripo_convert_fe2dcbbf-40d5-4896-bae7-fb6dd2946985.fbm\\tripo_image_fe2dcbbf-40d5-4896-bae7-fb6dd2946985_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\SmallShrine\\tripo_convert_fe2dcbbf-40d5-4896-bae7-fb6dd2946985.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Buildings\\SmallShrine\\Textures\\T_OV_SmallShrine_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Buildings\\SmallShrine\\SM_OV_SmallShrine.fbx",
+      "target_cm": 600,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "MainShrine",
+      "category": "Buildings",
+      "zip": "shrine+3d+model.zip",
+      "zip_sha256": "34b4517859b547010ece02e0f0ad7fcce584024833cfab98500f5323979ae3f2",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\MainShrine\\tripo_convert_bdc192a5-256d-4f59-8021-25f55003b0a8.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\MainShrine\\tripo_convert_bdc192a5-256d-4f59-8021-25f55003b0a8.fbm\\tripo_image_bdc192a5-256d-4f59-8021-25f55003b0a8_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\MainShrine\\tripo_convert_bdc192a5-256d-4f59-8021-25f55003b0a8.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Buildings\\MainShrine\\Textures\\T_OV_MainShrine_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Buildings\\MainShrine\\SM_OV_MainShrine.fbx",
+      "target_cm": 2000,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "AltarPlatform",
+      "category": "Landmarks",
+      "zip": "stone+circular+platform+3d+model.zip",
+      "zip_sha256": "02f35c27e31506cc60e728b355193f5f9a77c4483e2c104aa9223eb89515af45",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\AltarPlatform\\tripo_convert_236c1f1d-f8a3-4d72-abd3-9e91ccc9a39e.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\AltarPlatform\\tripo_convert_236c1f1d-f8a3-4d72-abd3-9e91ccc9a39e.fbm\\tripo_image_236c1f1d-f8a3-4d72-abd3-9e91ccc9a39e_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\AltarPlatform\\tripo_convert_236c1f1d-f8a3-4d72-abd3-9e91ccc9a39e.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Landmarks\\AltarPlatform\\Textures\\T_OV_AltarPlatform_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Landmarks\\AltarPlatform\\SM_OV_AltarPlatform.fbx",
+      "target_cm": 550,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "GuardianStatue",
+      "category": "Landmarks",
+      "zip": "stone+guardian+statue+3d+model.zip",
+      "zip_sha256": "80e6d0dacca8b038675b0eb606d8ddbf3e8e46ef7304a0d31935d756e9eb296a",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\GuardianStatue\\tripo_convert_8d40f1ce-61c6-499c-8609-a0b8d3ea72ed.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\GuardianStatue\\tripo_convert_8d40f1ce-61c6-499c-8609-a0b8d3ea72ed.fbm\\tripo_image_8d40f1ce-61c6-499c-8609-a0b8d3ea72ed_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\GuardianStatue\\tripo_convert_8d40f1ce-61c6-499c-8609-a0b8d3ea72ed.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Landmarks\\GuardianStatue\\Textures\\T_OV_GuardianStatue_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Landmarks\\GuardianStatue\\SM_OV_GuardianStatue.fbx",
+      "target_cm": 180,
+      "scale_axis": "height",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "RetainingWallStraight",
+      "category": "Boundaries",
+      "zip": "stone+railing+3d+model.zip",
+      "zip_sha256": "a642402d4d83db0de60bbc7d18615c3a7fa0088e7181a0c24cbf772fd85f9b37",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\RetainingWallStraight\\tripo_convert_306f4116-0e93-4e2d-9c42-482450d84b7b.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\RetainingWallStraight\\tripo_convert_306f4116-0e93-4e2d-9c42-482450d84b7b.fbm\\tripo_image_306f4116-0e93-4e2d-9c42-482450d84b7b_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\RetainingWallStraight\\tripo_convert_306f4116-0e93-4e2d-9c42-482450d84b7b.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Boundaries\\RetainingWallStraight\\Textures\\T_OV_RetainingWallStraight_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Boundaries\\RetainingWallStraight\\SM_OV_RetainingWallStraight.fbx",
+      "target_cm": 400,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "RetainingWallCorner",
+      "category": "Boundaries",
+      "zip": "stone+wall+3d+model.zip",
+      "zip_sha256": "dbbc73b95490826e79f3ebfa24020588a64b93d05c3c1d44adc5e0fc647affba",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\RetainingWallCorner\\tripo_convert_86a8bb03-aa78-4dcb-8b08-1ab623638045.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\RetainingWallCorner\\tripo_convert_86a8bb03-aa78-4dcb-8b08-1ab623638045.fbm\\tripo_image_86a8bb03-aa78-4dcb-8b08-1ab623638045_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\RetainingWallCorner\\tripo_convert_86a8bb03-aa78-4dcb-8b08-1ab623638045.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Boundaries\\RetainingWallCorner\\Textures\\T_OV_RetainingWallCorner_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Boundaries\\RetainingWallCorner\\SM_OV_RetainingWallCorner.fbx",
+      "target_cm": 400,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "RoofedBoundaryWall",
+      "category": "Boundaries",
+      "zip": "stylized+architectural+gate+3d+model.zip",
+      "zip_sha256": "7e7155f9ad3e2e313eeed0fcce1f9a92d89a52b4c32530a23c5036c8013021e3",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\RoofedBoundaryWall\\tripo_convert_cde8df1e-a530-4b1d-bdec-e1591758cc4e.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\RoofedBoundaryWall\\tripo_convert_cde8df1e-a530-4b1d-bdec-e1591758cc4e.fbm\\tripo_image_cde8df1e-a530-4b1d-bdec-e1591758cc4e_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\RoofedBoundaryWall\\tripo_convert_cde8df1e-a530-4b1d-bdec-e1591758cc4e.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Boundaries\\RoofedBoundaryWall\\Textures\\T_OV_RoofedBoundaryWall_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Boundaries\\RoofedBoundaryWall\\SM_OV_RoofedBoundaryWall.fbx",
+      "target_cm": 500,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "RaisedStorehouse",
+      "category": "Buildings",
+      "zip": "stylized+shrine+3d+model.zip",
+      "zip_sha256": "336b31b43f90d23833b0c649e013fd25eb211cc46f1a2ed5a6775e323b3fdd23",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\RaisedStorehouse\\tripo_convert_45ec853f-1f44-4717-9d5b-a3efe8de683f.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\RaisedStorehouse\\tripo_convert_45ec853f-1f44-4717-9d5b-a3efe8de683f.fbm\\tripo_image_45ec853f-1f44-4717-9d5b-a3efe8de683f_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\RaisedStorehouse\\tripo_convert_45ec853f-1f44-4717-9d5b-a3efe8de683f.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Buildings\\RaisedStorehouse\\Textures\\T_OV_RaisedStorehouse_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Buildings\\RaisedStorehouse\\SM_OV_RaisedStorehouse.fbx",
+      "target_cm": 700,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "SlidingDoor",
+      "category": "Architecture",
+      "zip": "stylized+wooden+gate+3d+model.zip",
+      "zip_sha256": "1927e90e39498eb2671a02d66d0068b9201125b0f6b85a8a2c9eae815720e43b",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\SlidingDoor\\tripo_convert_e8bddcd0-0b55-4b1b-80ef-61132840b0ef.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\SlidingDoor\\tripo_convert_e8bddcd0-0b55-4b1b-80ef-61132840b0ef.fbm\\tripo_image_e8bddcd0-0b55-4b1b-80ef-61132840b0ef_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\SlidingDoor\\tripo_convert_e8bddcd0-0b55-4b1b-80ef-61132840b0ef.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Architecture\\SlidingDoor\\Textures\\T_OV_SlidingDoor_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Architecture\\SlidingDoor\\SM_OV_SlidingDoor.fbx",
+      "target_cm": 250,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "ThatchedCottage",
+      "category": "Buildings",
+      "zip": "thatched+cottage+3d+model.zip",
+      "zip_sha256": "62ad01790dd7e1ffb1d160c530622dbbbd4729be377c16532d104ef5a135ebbb",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\ThatchedCottage\\tripo_convert_2d026c23-2cd7-49f2-a313-e94e6b4eb70f.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\ThatchedCottage\\tripo_convert_2d026c23-2cd7-49f2-a313-e94e6b4eb70f.fbm\\tripo_image_2d026c23-2cd7-49f2-a313-e94e6b4eb70f_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\ThatchedCottage\\tripo_convert_2d026c23-2cd7-49f2-a313-e94e6b4eb70f.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Buildings\\ThatchedCottage\\Textures\\T_OV_ThatchedCottage_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Buildings\\ThatchedCottage\\SM_OV_ThatchedCottage.fbx",
+      "target_cm": 900,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "ThatchedRoof",
+      "category": "Architecture",
+      "zip": "thatched+hut+3d+model.zip",
+      "zip_sha256": "a70766e6316854419e35fdfd7ccf6e6e19c226d16fd70ff701516bc57e023a66",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\ThatchedRoof\\tripo_convert_b5ab6046-ae56-4726-8742-5b6c883f4c43.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\ThatchedRoof\\tripo_convert_b5ab6046-ae56-4726-8742-5b6c883f4c43.fbm\\tripo_image_b5ab6046-ae56-4726-8742-5b6c883f4c43_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\ThatchedRoof\\tripo_convert_b5ab6046-ae56-4726-8742-5b6c883f4c43.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Architecture\\ThatchedRoof\\Textures\\T_OV_ThatchedRoof_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Architecture\\ThatchedRoof\\SM_OV_ThatchedRoof.fbx",
+      "target_cm": 650,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "ThatchedShelter",
+      "category": "Buildings",
+      "zip": "thatched+shelter+3d+model.zip",
+      "zip_sha256": "a231c89a103b2005a47974e7d0cdc92ec0f414536125dc07f92e9eb6a3bf2991",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\ThatchedShelter\\tripo_convert_3b862f80-5089-4cf2-9639-838fc2912883.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\ThatchedShelter\\tripo_convert_3b862f80-5089-4cf2-9639-838fc2912883.fbm\\tripo_image_3b862f80-5089-4cf2-9639-838fc2912883_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\ThatchedShelter\\tripo_convert_3b862f80-5089-4cf2-9639-838fc2912883.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Buildings\\ThatchedShelter\\Textures\\T_OV_ThatchedShelter_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Buildings\\ThatchedShelter\\SM_OV_ThatchedShelter.fbx",
+      "target_cm": 650,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "ShrineGatehouse",
+      "category": "Buildings",
+      "zip": "torii+gate+3d+model.zip",
+      "zip_sha256": "43fd565084a269c70254578e2754801fba44a90d39cd70bb975206c70a2b9f4f",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\ShrineGatehouse\\tripo_convert_794188b5-bf5c-49d1-83e7-4b4858e9f916.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\ShrineGatehouse\\tripo_convert_794188b5-bf5c-49d1-83e7-4b4858e9f916.fbm\\tripo_image_794188b5-bf5c-49d1-83e7-4b4858e9f916_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\ShrineGatehouse\\tripo_convert_794188b5-bf5c-49d1-83e7-4b4858e9f916.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Buildings\\ShrineGatehouse\\Textures\\T_OV_ShrineGatehouse_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Buildings\\ShrineGatehouse\\SM_OV_ShrineGatehouse.fbx",
+      "target_cm": 1000,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "OpenWorkshop",
+      "category": "Buildings",
+      "zip": "traditional+house+3d+model.zip",
+      "zip_sha256": "36fbe5df90bbd09c5bf3e32e461a9bc5bc92ec2926843478549648960c01bfb8",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\OpenWorkshop\\tripo_convert_8f382f44-8a49-4f61-bfaf-6aab8d81e243.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\OpenWorkshop\\tripo_convert_8f382f44-8a49-4f61-bfaf-6aab8d81e243.fbm\\tripo_image_8f382f44-8a49-4f61-bfaf-6aab8d81e243_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\OpenWorkshop\\tripo_convert_8f382f44-8a49-4f61-bfaf-6aab8d81e243.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Buildings\\OpenWorkshop\\Textures\\T_OV_OpenWorkshop_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Buildings\\OpenWorkshop\\SM_OV_OpenWorkshop.fbx",
+      "target_cm": 850,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "WaterfrontWalkway",
+      "category": "Boundaries",
+      "zip": "wooden+bridge+3d+model.zip",
+      "zip_sha256": "16c8a002675de125265809a03c2c9eb25386016108a13c60b04efbf1815f6007",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\WaterfrontWalkway\\tripo_convert_f3d6cea0-583c-4369-b5c2-cf9c8a51d55f.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\WaterfrontWalkway\\tripo_convert_f3d6cea0-583c-4369-b5c2-cf9c8a51d55f.fbm\\tripo_image_f3d6cea0-583c-4369-b5c2-cf9c8a51d55f_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\WaterfrontWalkway\\tripo_convert_f3d6cea0-583c-4369-b5c2-cf9c8a51d55f.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Boundaries\\WaterfrontWalkway\\Textures\\T_OV_WaterfrontWalkway_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Boundaries\\WaterfrontWalkway\\SM_OV_WaterfrontWalkway.fbx",
+      "target_cm": 450,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "OfferingBox",
+      "category": "Props",
+      "zip": "wooden+crate+3d+model.zip",
+      "zip_sha256": "c09a85fee2e23ec5ff2ec0adacc4a52b51206f2b4be2945b0ef2fc690a948a0c",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\OfferingBox\\tripo_convert_2d9d9d11-17c4-43b3-9156-449d83273869.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\OfferingBox\\tripo_convert_2d9d9d11-17c4-43b3-9156-449d83273869.fbm\\tripo_image_2d9d9d11-17c4-43b3-9156-449d83273869_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\OfferingBox\\tripo_convert_2d9d9d11-17c4-43b3-9156-449d83273869.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Props\\OfferingBox\\Textures\\T_OV_OfferingBox_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Props\\OfferingBox\\SM_OV_OfferingBox.fbx",
+      "target_cm": 130,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "WallPanel",
+      "category": "Architecture",
+      "zip": "wooden+frame+3d+model.zip",
+      "zip_sha256": "148c0a1bd881bf14ab5efc132d41fe165782cb53f4196d1b8ee3c55896855bf9",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\WallPanel\\tripo_convert_c4ca1d50-0595-48cb-935e-14b8f0cab602.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\WallPanel\\tripo_convert_c4ca1d50-0595-48cb-935e-14b8f0cab602.fbm\\tripo_image_c4ca1d50-0595-48cb-935e-14b8f0cab602_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\WallPanel\\tripo_convert_c4ca1d50-0595-48cb-935e-14b8f0cab602.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Architecture\\WallPanel\\Textures\\T_OV_WallPanel_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Architecture\\WallPanel\\SM_OV_WallPanel.fbx",
+      "target_cm": 250,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    },
+    {
+      "name": "ShutterWindow",
+      "category": "Architecture",
+      "zip": "wooden+gate+3d+model.zip",
+      "zip_sha256": "558d958bce6bb18e03ed7149bbda144a989863aa146a69a4c45b7710e0420e3f",
+      "original_files": [
+        "Art\\Environment\\OldVillage\\_Original\\ShutterWindow\\tripo_convert_7e86d911-69a9-4052-95ae-5aab675959cd.fbx",
+        "Art\\Environment\\OldVillage\\_Original\\ShutterWindow\\tripo_convert_7e86d911-69a9-4052-95ae-5aab675959cd.fbm\\tripo_image_7e86d911-69a9-4052-95ae-5aab675959cd_0_0.jpg"
+      ],
+      "original_fbx": "Art\\Environment\\OldVillage\\_Original\\ShutterWindow\\tripo_convert_7e86d911-69a9-4052-95ae-5aab675959cd.fbx",
+      "texture": "Art\\Environment\\OldVillage\\Architecture\\ShutterWindow\\Textures\\T_OV_ShutterWindow_BaseColor.jpg",
+      "prepared_fbx": "Art\\Environment\\OldVillage\\Architecture\\ShutterWindow\\SM_OV_ShutterWindow.fbx",
+      "target_cm": 150,
+      "scale_axis": "width",
+      "yaw_degrees": 0
+    }
+  ]
+}

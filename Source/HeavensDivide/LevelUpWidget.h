@@ -14,6 +14,7 @@ class UHorizontalBox;
 class UMaterialInterface;
 class UTextBlock;
 class UTexture2D;
+class UMaterialInstanceDynamic;
 class UPlayerUpgradeComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLevelUpWidgetSelectionCompleted);
@@ -72,6 +73,8 @@ public:
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeTick(const FGeometry& Geometry, float DeltaTime) override;
+	virtual void NativeDestruct() override;
 	virtual FReply NativeOnPreviewKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent) override;
 	virtual FReply NativeOnAnalogValueChanged(const FGeometry& InGeometry, const FAnalogInputEvent& InAnalogInputEvent) override;
@@ -131,6 +134,18 @@ protected:
 	TObjectPtr<UTexture2D> GlobalCategoryBorder;
 
 private:
+	friend class FLevelUpPresentationTest;
+	void BeginChoiceExit(int32 SelectedIndex);
+	void UpdateChoiceExit(float RealDeltaTime);
+	void ResetChoiceExit();
+	static constexpr float UnselectedFadeSeconds = .16f;
+	static constexpr float SelectedHoldSeconds = .22f;
+	static constexpr float SelectedDissolveSeconds = .32f;
+	bool bChoiceExitActive = false;
+	float ChoiceExitElapsed = 0.f;
+	int32 ChoiceExitSelectedIndex = INDEX_NONE;
+	UPROPERTY(Transient) TArray<TObjectPtr<class UWidget>> ChoiceExitVisuals;
+	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ChoiceExitMaterial;
 	void RefreshDraftTools();
 	void RefreshDraftCards();
 	UFUNCTION() void HandleReroll();

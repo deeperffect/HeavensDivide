@@ -12,6 +12,7 @@ class HEAVENSDIVIDE_API UObjectiveGuidanceSubsystem : public UTickableWorldSubsy
 {
     GENERATED_BODY()
 public:
+    static constexpr float ArrowDuration=10.f;
     void Announce(AActor* Objective);
     virtual void Tick(float DeltaTime) override;
     virtual void Deinitialize() override;
@@ -20,7 +21,12 @@ public:
     int32 GetTrackedCount() const { return Objectives.Num(); }
     static bool FindGuidanceTarget(AActor* Objective,const FVector& Player,FVector& Target);
 private:
+    friend class FObjectiveIntroTest;
+    void AdvanceLifetimes(float DeltaTime);
     void ClearPresentation();
+    // Retain expired weak entries until the objective disappears so a repeat
+    // announcement cannot restart its arrow.
+    TMap<TWeakObjectPtr<AActor>,float> ArrowSecondsRemaining;
     TArray<TWeakObjectPtr<AActor>> Objectives, PendingPopups;
     TWeakObjectPtr<AActor> PopupOwner;
     float PopupAge=3.f;

@@ -63,7 +63,7 @@ for p in ['/Game/Maps/Lvl_B1_Lvl1','/Game/Maps/Lvl_B1_Arena','/Game/Maps/Lvl_Bal
     for a in all_actors:
         if isinstance(a,u.EnemySpawner):spawner(a)
         if isinstance(a,u.RunObjectiveDirector):eq('placed Twin Soul timing',a.get_editor_property('twin_soul_trial_spawn_time'),360)
-        if isinstance(a,u.BossToriiGate):eq('placed gate timing',a.get_editor_property('unlock_run_time_seconds'),480)
+        if isinstance(a,u.BossToriiGate):eq('placed gate timing',a.get_editor_property('unlock_run_time_seconds'),t['run']['gate_seconds'])
         if isinstance(a,u.FinalBossBase):eq('placed boss HP',a.get_editor_property('boss_max_health'),6000)
     if p.endswith('BalanceLab'):
         assert len([a for a in all_actors if isinstance(a,u.BalanceLabDirector)])==1

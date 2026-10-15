@@ -426,7 +426,7 @@
   },
   "run": {
     "twin_soul_seconds": 360,
-    "gate_seconds": 480,
+    "gate_seconds": 600,
     "timed_threat_chance": 0.18,
     "max_timed_threats": 6,
     "bloodbound_hp": 1.5,

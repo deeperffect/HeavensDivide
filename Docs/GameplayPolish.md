@@ -2,16 +2,20 @@
 
 ## Ground
 
-Level 1 uses the user-selected September 27 **version 2** ground: simple grass
-with sparse tufts, muted dirt and broad angular grey stones. The floor uses
-`Materials/StylizedGroundV2/MI_StylizedGroundV2`, with the original
-`StylizedGround/M_StylizedGround` blend and retained `Art/StylizedGround/Previous/*_v2.png`
-sources. Grass/dirt tiles cover 1,000 cm; stone tiles cover 1,400 cm, matching
-the selected historical material preview. Stone is blended into the surface.
-The later `GroundRockStamps` and arena rim remain hidden. Current gameplay
-geometry, collision, props, objectives and lighting are retained.
-`Tools/restore_stylized_ground_v2.py` restores this selection; backups and
-verification are under `Saved/RestoreStylizedGroundV2`.
+Level 1 uses the user's `Materials/StylizedGround/M_StylizedGround_Inst` and
+existing `T_StylizedGround_*` textures. The grass/blending pass increases grass
+tiles from 350 to 1,050 cm, varies grass/dirt sampling to reduce mirrored repeats,
+and softens transitions with `BlendSoftness=0.14` and `BlendBreakup=0.08`.
+Dirt and stone remain at 1,000 and 1,400 cm respectively. The dedicated
+`M_StylizedGround_SoftBlend` parent preserves the shared original parent.
+Current texture/color settings, coverage, geometry and lighting are retained;
+maps and textures are not resaved. [Ground controls](StylizedGround.md) describe
+the settings and tools; before/after captures and backups are in
+`Saved/GroundBlending`.
+
+The earlier September 27 V2 restoration remains available through
+`Tools/restore_stylized_ground_v2.py`, with its evidence under
+`Saved/RestoreStylizedGroundV2`; it is no longer the active material.
 
 The rejected [Layered ground](../Art/LayeredGround/README.md) and
 [Connected ground](../Art/ConnectedGround/README.md) passes remain available as
@@ -221,7 +225,7 @@ the results; this is native/editor validation rather than a packaged playtest.
 
 One attempt window is 2â€“3 minutes, the other 5â€“6 minutes. The initial random trigger is in the first 45 seconds of each window, leaving time for placement retries. Failed placement and other active objectives defer the event, including beyond the window, rather than discarding it. Ground checks retry past transient characters so enemies cannot hide the floor.
 
-Fifty-one segments form a ring 1,600 cm from the player (previously 800 cm). Spawning the ring shows the paused smoke intro "Survive or break out.. if you can..". After it clears, a 1.5-second warning precedes a clockwise rock-rise wave: six Japanese Shrine pond/ground rock meshes alternate around the ring with varied height and yaw. The wave travels around the ring in 0.75 seconds; each rock rises over 0.22 seconds (0.97 seconds total). Rocks retain their authored materials and embed their bases in the floor. Each segment becomes blocking when its rise starts; occupied segments wait rather than rising through the player. The orange ring is hidden. `WallWaveSeconds` and `WallRiseSeconds` tune the reveal on `SurvivalFieldObjective`; `RockMeshes` lives on `EncounterWall`. The wall will not rise through the player. Each segment has **60 HP**, accepts both characters' attack damage, and gives no XP or kill reward. Destroying a segment immediately removes its collision. All remaining segments disappear after **20 seconds** of eligible gameplay, measured after the intro and including the warning. Player death or level travel cleans up the event. Menus and other objectives suspend it. The old floating wall instructions are hidden.
+Fifty-one segments form a ring 1,600 cm from the player (previously 800 cm). Spawning the ring first plays a clockwise rock-rise wave: six Japanese Shrine pond/ground rock meshes alternate around the ring with varied height and yaw. The wave travels around the ring in 0.75 seconds; each rock rises over 0.22 seconds (0.97 seconds total). Once all surviving segments are raised, the paused smoke intro "Survive or break out.. if you can.." appears over the visible, solid ring. Rocks retain their authored materials and embed their bases in the floor. Each segment blocks both player and enemy movement when its rise starts; occupied segments wait rather than rising through the player. The orange ring is hidden. `WallWaveSeconds` and `WallRiseSeconds` tune the reveal on `SurvivalFieldObjective`; `RockMeshes` lives on `EncounterWall`. The wall will not rise through the player. Each segment has **60 HP**, accepts both characters' attack damage, and gives no XP or kill reward. Destroying a segment immediately removes its collision. All remaining segments disappear after **20 seconds** of eligible gameplay, measured after the intro. Player death or level travel cleans up the event. Menus and other objectives suspend it. The old floating wall instructions are hidden.
 
 Rock-wall follow-up: the Development Editor build and four focused regression checks pass (`FieldObjectives`, `ObjectiveIntro`, `Mechanics`, `RunChallenges`). The actual Level 1 rendered probe shows 7, 34 and then all 51 rocks as the wave progresses, using all six meshes. Indicator visibility, player overlap protection, immediate break-through and the full 20-second lifetime are covered by the fixtures. Evidence: `Saved/WallWave/ValidationSummary.json` and `Saved/WallWave/Previews/`.
 
@@ -237,7 +241,7 @@ The central mesh and minimap marker identify the unactivated objective. Its blue
 
 The circle and Blood Shrine share a paused UI intro: smoky left-to-right text reveal, a two-second reading hold, then a left-to-right dissolve. The circle says "Survive inside for 20 seconds". Blood Shrine says "You've enraged the spirits. Kill 30 within 30 seconds"; only Bloodbound kills count, one per enemy. Its live `number/30` counter stays at the top center of the UI with the countdown below. Both challenges begin after the text disappears, preserving their full duration. See [Combat architecture](CombatArchitecture.md) for implementation and saved Blueprint setup.
 
-Objective spawns also show a three-second popup and a directional arrow beside the player, using the existing `MarkersPointersV1` arrow art. These notices never pause gameplay. Arrows hide at nearby interactables and clear with completed/removed objectives. Active circles point you back when you leave; wall events point toward the ring while you are enclosed. Notices wait until any paused intro finishes before appearing.
+Objective spawns also show a three-second popup and a directional arrow beside the player, using the existing `MarkersPointersV1` arrow art. These notices never pause gameplay. Arrows expire after ten seconds of active gameplay, hide at nearby interactables, and clear with completed/removed objectives. Repeated announcements do not reset their lifetime. Active circles can point you back during that initial window; wall events have no directional arrow or spawn popup. Notices wait until any paused intro finishes before appearing.
 
 ## Swap and simulation
 
@@ -287,7 +291,7 @@ Successful blood shrines immediately hide and disable collision. Their existing 
 
 EnemySpawnArea is the shared placement boundary; MinimapBounds is the fallback in maps without one. Level 1 minimap bounds now match its combat spawn area. The boss arena now has spawn and minimap bounds inset 100 cm from its floor edges. Urns use normal encounter ground, navigation and collision validation. Shrines, circles and wall rings must fit inside the area. Scattered XP, healing drops and chest rewards clamp inside the edge; boss summons and spell footprints also respect bounds. Bounds work runs when spawning or dropping rather than in enemy movement ticks.
 
-The wall trap now uses 51 segments to preserve a closed ring at a 1,600 cm radius. Segments keep 60 HP and the 1.5-second warning; the full event expires after 20 seconds. Apply saved map bounds with Tools/configure_encounter_object_bounds.py; map backups, reload checks and verification reports are under Saved/EncounterObjects.
+The wall trap now uses 51 segments to preserve a closed ring at a 1,600 cm radius. Segments keep 60 HP; the reveal completes before the paused introduction, followed by twenty seconds of gameplay. Apply saved map bounds with Tools/configure_encounter_object_bounds.py; map backups, reload checks and verification reports are under Saved/EncounterObjects.
 
 Validation: Development Editor build and all seven selected gameplay/UI checks pass. The saved Level 1 probe produced 26 visible, sealed walls, eight valid urns across four arena corners, and no march ground warning. The boss arena retained 24 grounded warnings, two grounded guardians and seven ground-relative loot drops. Both pickup Blueprints expose visible markers, and rendered green/blue minimap markers were inspected. Evidence: Saved/EncounterObjects/Verification.json.
 
@@ -339,3 +343,15 @@ Blueprint/map reload, a fresh Editor build, ScorpionBoss, Encounters.Mechanics
 and TagTeamRegression tests, and three rendered arena poses. Current evidence is
 under `Saved/ScorpionBoss/SizeCorrection`; see [the ability audit](BossAbilityAudit.md)
 for the saved spell values, guardian behavior and timing findings.
+
+## Upgrade card selection exit
+
+Accepting a level-up or direct reward applies the selected upgrade once, then keeps gameplay frozen during a 0.54-second UI exit. Unselected cards fade to zero over 0.16 seconds. The chosen card holds for 0.22 seconds with a small emphasis scale, then dissolves upward with an irregular gold edge over 0.32 seconds and floats up slightly. The selection-completed delegate fires at the end, so queued levels/rewards do not replace the cards early and the world resumes only when the batch is resolved.
+
+`ULevelUpWidget` advances this presentation using UMG/Slate time, which continues while gameplay time is frozen. Repeated confirmations, navigation, rerolls and banish controls are blocked after acceptance. Banish replacement itself keeps its existing behavior. Reinitialization restores opacity, transforms and input visibility for every card; removing the widget cancels the exit without firing a completion callback.
+
+The chosen card alone uses a retainer during its exit. Other cards and all idle menus render normally without offscreen captures. The effect material is `/Game/HeavensDivide/Materials/UI/M_UpgradeCardSelectionDissolve`; `Tools/setup_upgrade_selection_effect.py` creates it. If the material cannot load, the chosen card uses an opacity fade and the selection still completes.
+
+Run `Tools/Run-OldVillage.ps1 -Script test_upgrade_selection_exit.py -Render` for the live frozen-world check and the presentation/layout/draft regression suites. Results and captured hold/dissolve frames are saved in `Saved/UpgradeSelection`.
+
+Verification passed: the live PIE exit completed while gameplay dilation was 0.0001 and restored normal speed afterward. The LevelUpPresentation, UpgradeCardLayout and DraftUnlocks suites all passed. Hold and gold-dissolve frames were inspected. Long descriptions now scale down within their existing card region, with a small margin for font layout rounding. The test waits for the run clock to advance before triggering XP so shader warm-up does not contaminate real-time measurements.

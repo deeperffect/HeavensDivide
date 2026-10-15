@@ -40,4 +40,20 @@ for gameplay. Lighting will affect the lit material's appearance in your level.
 `Tools/create_stylized_ground.py` creates missing assets and preserves existing
 ones. No existing level or material assignment is replaced.
 
-Level 1 now uses the dedicated lit `MI_Lvl1_Ground` in `/Game/HeavensDivide/Materials/EnvironmentPolish`, with an authored route mask. The generic materials above remain available for other levels. See [EnvironmentPolish.md](EnvironmentPolish.md) for the layout, lighting controls and backup workflow. The unlit preview material is only for texture diagnostics; it should not be assigned to a gameplay floor.
+Level 1 currently uses the user's `M_StylizedGround_Inst` in the StylizedGround
+folder, with the existing `T_StylizedGround_Grass`, `Dirt` and `Stone` textures.
+Its dedicated parent is `M_StylizedGround_SoftBlend`. Grass tiles now cover
+1,050 cm (previously 350); dirt remains 1,000 cm and stone remains 1,400 cm.
+Three smoothly joined, independently rotated/offset samples vary grass and dirt
+without resizing the stones. Explicit UV derivatives preserve mip selection at
+sample boundaries. `TextureVariation` controls this variation (1 enabled,
+0 regular sampling). The material uses seven texture samples instead of three.
+
+`BlendSoftness` is 0.14 (previously 0.075); `BlendBreakup` is 0.08 and introduces
+small irregularities along transitions. Coverage, patch layout, color controls,
+texture asset adjustments and surface response retain the user's current values.
+`Tools/tune_ground_blending.py` applies this tuning from the captured baseline;
+`Tools/review_ground_blending.py` records settings and four views. Backups and
+before/after evidence are under `Saved/GroundBlending`. No maps or textures are
+saved by this pass. The shared original parent and historical V2 instance remain
+available. The unlit preview material is only for texture diagnostics.

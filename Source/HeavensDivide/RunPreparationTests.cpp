@@ -196,7 +196,7 @@ bool FRunPreparationVisualTest::RunTest(const FString&)
     TestTrue(TEXT("Default pair is ready to play"),Screen->CanStartRun());
     TestEqual(TEXT("All six stances remain visible, including locked choices"),Screen->GetVisibleStanceCount(),6);
     TestFalse(TEXT("Locked stance is not selectable"),Screen->SelectStance(TEXT("Iaijutsu")));
-    TestFalse(TEXT("Placeholder cannot become selected"),Screen->SelectMap(TEXT("CinderCitadel")));
+    TestFalse(TEXT("Unknown map cannot become selected"),Screen->SelectMap(TEXT("MissingMap")));
     TestEqual(TEXT("Playable map remains selected"),Screen->GetSelectedMap(),FName(TEXT("FallenGrove")));
     const FString Dir=FPaths::ProjectSavedDir()/TEXT("RunPreparation/Previews");
     IFileManager::Get().MakeDirectory(*Dir,true);
@@ -226,7 +226,7 @@ bool FRunPreparationVisualTest::RunTest(const FString&)
     TestEqual(TEXT("Only owned default synergy appears"),Screen->GetVisibleSynergyCount(),1);
     TestTrue(TEXT("Default Tag Team is visibly selected"),Screen->IsSynergySelected(TEXT("TagTeam")));
     TestFalse(TEXT("Locked synergy cannot be selected through the UI"),Screen->SetSynergySelected(TEXT("Handoff"),true));
-    TestFalse(TEXT("Locked combo cannot be selected"),Screen->SelectComboAbility(TEXT("SoulConvergence")));
+    TestFalse(TEXT("Locked combo cannot be selected"),Screen->SelectComboAbility(TEXT("BloodMoon")));
     TestFalse(TEXT("Future combo cannot be selected"),Screen->SelectComboAbility(TEXT("Veilbreaker")));
     TestTrue(TEXT("Begin run remains available on powers page"),Screen->CanStartRun());
     Render(Screen,{1600,900},TEXT("NewRunPowersDefault1600.png"));
@@ -278,18 +278,36 @@ bool FRunPreparationVisualTest::RunTest(const FString&)
     }
     TestEqual(TEXT("All available slots can be filled"),Loadout->GetSelectedSynergies().Num(),FMath::Min(URunLoadoutSubsystem::MaxSelectedSynergies,Loadout->GetAvailableSynergies().Num()));
     TestTrue(TEXT("Explicit None survives buying the combo unlock"),Loadout->GetSelectedComboAbility().IsNone());
-    TestTrue(TEXT("Owned combo can be selected"),Screen->SelectComboAbility(TEXT("SoulConvergence")));
+    TestTrue(TEXT("Owned combo can be selected"),Screen->SelectComboAbility(TEXT("BloodMoon")));
     TestTrue(TEXT("Owned combo can be unequipped"),Screen->SelectComboAbility(NAME_None));
     Screen->SelectSetupPage(ERunSetupPage::ArenaAndStances);
     Screen->SelectSetupPage(ERunSetupPage::SynergiesAndCombo);
     TestTrue(TEXT("Page switches preserve unequipped combo"),Loadout->GetSelectedComboAbility().IsNone());
-    TestTrue(TEXT("Owned combo can be reselected"),Screen->SelectComboAbility(TEXT("SoulConvergence")));
+    TestTrue(TEXT("Owned combo can be reselected"),Screen->SelectComboAbility(TEXT("BloodMoon")));
     TestFalse(TEXT("Future combo remains unavailable after purchases"),Screen->SelectComboAbility(TEXT("CrimsonEclipse")));
-    TestEqual(TEXT("Rejected future combo preserves current selection"),Loadout->GetSelectedComboAbility(),FName(TEXT("SoulConvergence")));
+    TestEqual(TEXT("Rejected future combo preserves current selection"),Loadout->GetSelectedComboAbility(),FName(TEXT("BloodMoon")));
     TestEqual(TEXT("Samurai choice survives setup page switches"),Screen->GetSelectedSamurai(),FName(TEXT("Iaijutsu")));
     TestEqual(TEXT("Ninja choice survives setup page switches"),Screen->GetSelectedNinja(),FName(TEXT("GreatShuriken")));
     Render(Screen,{1600,900},TEXT("NewRunPowersUnlocked1600.png"));
     Render(Screen,{1280,720},TEXT("NewRunPowersUnlocked1280.png"));
+    // Exercise the actual Begin Run handler before ticking travel, preserving the
+    // isolated test world while checking the destination and selected loadout.
+    Screen->ConfirmRun();
+    TestEqual(TEXT("Begin Run travels to Old Village"),GEngine->GetWorldContextFromWorldChecked(W).TravelURL,FString(TEXT("/Game/Maps/Lvl_OldVillage")));
+    TestEqual(TEXT("Begin Run applies chosen Samurai stance"),Loadout->GetSamuraiStance(),FName(TEXT("Iaijutsu")));
+    TestEqual(TEXT("Begin Run applies chosen Ninja stance"),Loadout->GetNinjaStance(),FName(TEXT("GreatShuriken")));
+    GEngine->GetWorldContextFromWorldChecked(W).TravelURL.Empty();
+    for (const auto& Entry : TArray<TPair<FName,FString>>{
+        {TEXT("MoonlitForest"), TEXT("/Game/Maps/Lvl_MoonlitForest")},
+        {TEXT("HollowMarsh"), TEXT("/Game/Maps/Lvl_SunkenSanctuary")},
+        {TEXT("CinderCitadel"), TEXT("/Game/Maps/Lvl_EmberQuarry")}})
+    {
+        Screen->bStarting = false;
+        TestTrue(TEXT("New destination can be selected"),Screen->SelectMap(Entry.Key));
+        Screen->ConfirmRun();
+        TestEqual(TEXT("Begin Run uses selected destination"),GEngine->GetWorldContextFromWorldChecked(W).TravelURL,Entry.Value);
+        GEngine->GetWorldContextFromWorldChecked(W).TravelURL.Empty();
+    }
     auto* PC=W->SpawnActor<ASurvivorPlayerController>(PreparationControllerClass());
     PC->SetPlayer(NewObject<ULocalPlayer>(GEngine));
     auto* Bounds=W->SpawnActor<AMinimapBounds>();

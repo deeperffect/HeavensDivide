@@ -8,6 +8,7 @@
 #include "SurvivorPlayerController.h"
 #include "ExperienceComponent.h"
 #include "HealthComponent.h"
+#include "EnemyLightweightMovementComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -49,6 +50,12 @@ bool FGameplayPolishTest::RunTest(const FString&)
   auto* Wall=W->SpawnActor<AEncounterWall>(FVector(1000,0,120),FRotator::ZeroRotator,P);
   Wall->DispatchBeginPlay();Wall->SetSealed(true);
   TestEqual(TEXT("Closed wall blocks player movement"),Wall->Barrier->GetCollisionResponseToChannel(ECC_Pawn),ECR_Block);
+  TestEqual(TEXT("Closed wall blocks the enemy collision channel"),Wall->Barrier->GetCollisionResponseToChannel(ECC_GameTraceChannel1),ECR_Block);
+  auto* Walker=W->SpawnActor<AEnemyBase>(FVector(650,0,100),FRotator::ZeroRotator,P);
+  auto* Movement=Walker->FindComponentByClass<UEnemyLightweightMovementComponent>();
+  FHitResult WallHit;
+  TestTrue(TEXT("Enemy swept movement detects a sealed wall"),Movement->MoveOwnerToNoSlide(FVector(1300,0,100),WallHit));
+  TestTrue(TEXT("Enemy cannot travel through the wall"),Walker->GetActorLocation().X<945);
   TestTrue(TEXT("Every character damage source can chip wall"),Wall->ApplyPlayerDamage(20,Source));
   TestEqual(TEXT("Wall HP remains fixed"),Wall->GetHealthComponent()->GetCurrentHealth(),40.f);
   Wall->ApplyPlayerDamage(40,Source);
@@ -56,6 +63,9 @@ bool FGameplayPolishTest::RunTest(const FString&)
   Wall->SetRevealProgress(1.f);
   TestFalse(TEXT("The reveal cannot restore a broken wall's collision"),Wall->GetActorEnableCollision());
   TestFalse(TEXT("Broken wall cannot pay out or take repeated damage"),Wall->ApplyPlayerDamage(40,Source));
+  Movement->MoveOwnerToNoSlide(FVector(1300,0,100),WallHit);
+  TestTrue(TEXT("Broken segments open a gap for enemies too"),Walker->GetActorLocation().X>1200);
+  Walker->Destroy();
   Wall->Destroy();
  }
  auto* Zone=W->SpawnActor<ASurvivalFieldObjective>();Zone->InitializeHoldZone();
@@ -108,8 +118,8 @@ bool FGameplayPolishTest::RunTest(const FString&)
  Trap->DispatchBeginPlay();
  for(TActorIterator<AEncounterWall> It(W);It;++It) if(*It!=Blocker) It->DispatchBeginPlay();
  auto VisibleRocks=[&]() { int32 N=0;for(TActorIterator<AEncounterWall> It(W);It;++It) if(*It!=Blocker && It->Stone->IsVisible()) ++N;return N; };
- Trap->Tick(1.5f);
- TestEqual(TEXT("Rocks stay buried through the initial warning"),VisibleRocks(),0);
+ Trap->Tick(.01f);
+ TestEqual(TEXT("Wave starts with the first segment still below ground"),VisibleRocks(),0);
  Trap->Tick(.1f);
  const int32 Early=VisibleRocks();
  TestTrue(TEXT("First rocks rise before the rest of the ring"),Early>0 && Early<51);
@@ -135,7 +145,7 @@ bool FGameplayPolishTest::RunTest(const FString&)
  TestEqual(TEXT("Ring uses all six authored rock meshes"),Variants.Num(),6);
  Trap->Tick(7.5f);
  TestFalse(TEXT("Wall trap survives the former ten-second expiry"),Trap->IsActorBeingDestroyed());
- Trap->Tick(9.99f);
+ Trap->Tick(12.49f);
  TestFalse(TEXT("Wall trap lasts until twenty gameplay seconds"),Trap->IsActorBeingDestroyed());
  Trap->Tick(.02f);
  TestTrue(TEXT("Wall trap expires after twenty gameplay seconds"),Trap->IsActorBeingDestroyed());

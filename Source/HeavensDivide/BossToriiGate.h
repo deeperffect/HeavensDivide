@@ -25,6 +25,8 @@ class HEAVENSDIVIDE_API ABossToriiGate : public AActor, public IInteractable
 	GENERATED_BODY()
 public:
 	ABossToriiGate();
+	/** Align the portal with the opening, accounting for the mesh pivot/scale. */
+	UFUNCTION(BlueprintCallable, CallInEditor, Category="Boss Gate") void AlignPortalToGate();
 	virtual bool CanInteract_Implementation(APawn* InteractingPawn) const override;
 	virtual void Interact_Implementation(APawn* InteractingPawn) override;
 	UFUNCTION(BlueprintPure, Category="Boss Gate") EBossToriiGateState GetGateState() const { return GateState; }
@@ -40,7 +42,7 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<UNiagaraComponent> UnlockVFX;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss Gate|Components") TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss Gate", meta=(ClampMin="0.0")) float UnlockRunTimeSeconds = 480.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss Gate", meta=(ClampMin="0.0")) float UnlockRunTimeSeconds = 600.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss Gate") TSoftObjectPtr<UWorld> BossArenaLevel;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss Gate|References") TObjectPtr<AEnemySpawner> EnemySpawner;
 

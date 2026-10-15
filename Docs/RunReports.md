@@ -44,7 +44,7 @@ Example: 125.7 seconds, 100 common kills, two elites, one boss, three objectives
 
 ## Leaderboards and Steam handoff
 
-The main-menu top-right panel shows the ten highest local runs, with Grove/Citadel/Marsh tabs and the selected map's personal best underneath. Unused ranks are empty. Only Fallen Grove is currently playable; the other two maps retain their existing coming-soon status. No global players or scores are fabricated.
+The main-menu top-right panel shows the ten highest local runs, with Village/Forest/Ruins/Quarry tabs and the selected map's personal best underneath. Unused ranks are empty. All four destinations are playable. No global players or scores are fabricated.
 
 Local data uses its own `HeavensDivide_Leaderboards_v1` save, separate from permanent progression. Each map keeps ten entries. Scores are sorted descending, with stable tie ordering. Duplicate run IDs and inconsistent totals are rejected. Failed saves retry, and an unreadable/newer save is preserved. `-LeaderboardSaveSlot=...` isolates tests; `-RunReportPreview` disables writes.
 
@@ -52,9 +52,10 @@ Local data uses its own `HeavensDivide_Leaderboards_v1` save, separate from perm
 
 | Map | Steam board name |
 | --- | --- |
-| Fallen Grove | `bloodshift_fallen_grove_score_v1` |
-| Cinder Citadel | `bloodshift_cinder_citadel_score_v1` |
-| Hollow Marsh | `bloodshift_hollow_marsh_score_v1` |
+| Old Village (legacy board key) | `bloodshift_fallen_grove_score_v1` |
+| Moonlit Forest | `bloodshift_moonlit_forest_score_v1` |
+| Sunken Sanctuary (legacy placeholder key) | `bloodshift_hollow_marsh_score_v1` |
+| Ember Quarry (legacy placeholder key) | `bloodshift_cinder_citadel_score_v1` |
 
 Configure each Steam board as descending, numeric, with unrestricted reads and client writes (not Trusted). The game finds the existing boards asynchronously, caches handles, uploads with KeepBest and downloads ranks 1–10 plus the current user's best/rank. Steam's global top ten contains **players**; the fallback local panel contains **runs**. The source label is omitted from the player-facing panel. Names truncate visually with full-name tooltips. Uploaded details are score version, completed duration, normal/elite/boss kills, objectives, total modifier ranks and victory. Start new versioned boards if the score formula changes materially.
 

@@ -1,0 +1,37 @@
+{
+  "source_triangles": 2064,
+  "trials": [
+    {
+      "ratio": 0.2,
+      "triangles": 412,
+      "rays": 2315,
+      "misses": [
+        [
+          "StaticMeshActor_270",
+          11,
+          170.0
+        ]
+      ],
+      "p95_cm": 8.500160064197122,
+      "max_cm": 172.26394869611758,
+      "surface_gap_p95_cm": 5.814711029244,
+      "surface_gap_max_cm": 16.928455258193452
+    }
+  ],
+  "selected": {
+    "ratio": 0.2,
+    "triangles": 412,
+    "rays": 2315,
+    "misses": [
+      [
+        "StaticMeshActor_270",
+        11,
+        170.0
+      ]
+    ],
+    "p95_cm": 8.500160064197122,
+    "max_cm": 172.26394869611758,
+    "surface_gap_p95_cm": 5.814711029244,
+    "surface_gap_max_cm": 16.928455258193452
+  }
+}

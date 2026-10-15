@@ -1,4 +1,5 @@
 #include "SurvivorPlayerController.h"
+#include "PlayerDashMovement.h"
 #include "RunReportSubsystem.h"
 // Copyright Epic Games, Inc. All Rights Reserved.
 
@@ -1822,14 +1823,10 @@ void ASurvivorPlayerController::HandleDashStep(float DeltaTime)
 	}
 
 	const float DashSpeed = ActiveDashDistance / DashDuration;
-	const FVector StartLocation = ActiveCharacter->GetActorLocation();
-	const FVector DesiredLocation = StartLocation + ActiveDashDirection * DashSpeed * StepTime;
-
-	FHitResult HitResult;
-	ActiveCharacter->SetActorLocation(DesiredLocation, true, &HitResult);
+	const bool bBlocked = PlayerDashMovement::Move(ActiveCharacter, ActiveDashDirection * DashSpeed * StepTime);
 	DashElapsedTime += StepTime;
 
-	if (HitResult.bBlockingHit || DashElapsedTime >= DashDuration - KINDA_SMALL_NUMBER)
+	if (bBlocked || DashElapsedTime >= DashDuration - KINDA_SMALL_NUMBER)
 	{
 		FinishDash();
 	}

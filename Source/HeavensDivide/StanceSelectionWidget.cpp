@@ -23,6 +23,7 @@
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SScaleBox.h"
 #include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/Layout/SUniformGridPanel.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SNullWidget.h"
@@ -32,9 +33,11 @@ namespace
 {
 struct FRunMapEntry { const TCHAR* Id; const TCHAR* Name; const TCHAR* Description; bool bAvailable; };
 const FRunMapEntry RunMaps[] = {
-    { TEXT("FallenGrove"), TEXT("THE FALLEN GROVE"), TEXT("Stone paths. Restless spirits."), true },
-    { TEXT("CinderCitadel"), TEXT("CINDER CITADEL"), TEXT("Beyond the burning gates."), false },
-    { TEXT("HollowMarsh"), TEXT("HOLLOW MARSH"), TEXT("Where the mist remembers."), false }
+    // Keep the saved progression ID stable when changing the playable environment.
+    { TEXT("FallenGrove"), TEXT("OLD VILLAGE"), TEXT("Thatched homes. Restless spirits."), true },
+    { TEXT("MoonlitForest"), TEXT("MOONLIT FOREST"), TEXT("Blue moon. Whispering pines."), true },
+    { TEXT("HollowMarsh"), TEXT("SUNKEN SANCTUARY"), TEXT("Broken columns. Still waters."), true },
+    { TEXT("CinderCitadel"), TEXT("EMBER QUARRY"), TEXT("Red cliffs. Forgotten workings."), true }
 };
 
 // Ink illustrations keep the destination cards in the same engraved style as the menus.
@@ -52,11 +55,22 @@ public:
         using namespace BloodshiftMenu;
         const auto Size = G.GetLocalSize();
         const FOrnamentPainter P{Out, G, Layer, Style.GetColorAndOpacityTint().A};
-        const auto Accent = MapIndex == 0 ? Gold : Muted.CopyWithNewOpacity(.55f);
+        const auto Accent = Gold;
         auto At = [&](float X, float Y) { return FVector2D(X * Size.X, Y * Size.Y); };
         P.Arc(At(.64f,.32f), Size.Y * .21f, 0, 2 * PI, Accent.CopyWithNewOpacity(.5f));
         P.Line({At(.05f,.9f), At(.23f,.66f), At(.41f,.8f), At(.58f,.55f), At(.81f,.76f), At(.97f,.66f)}, Rule, 1.5f);
-        if (MapIndex == 1)
+        if (MapIndex == 0)
+        {
+            // Thatched homes and a village lane beneath the moon.
+            for (float X : {.27f, .73f})
+            {
+                P.Line({At(X-.18f,.57f), At(X,.25f), At(X+.18f,.57f), At(X-.18f,.57f)}, Accent, 1.5f);
+                P.Line({At(X-.13f,.58f), At(X-.13f,.84f), At(X+.13f,.84f), At(X+.13f,.58f)}, Accent);
+                P.Line({At(X-.035f,.84f), At(X-.035f,.66f), At(X+.035f,.66f), At(X+.035f,.84f)}, Accent);
+            }
+            P.Line({At(.40f,.98f), At(.52f,.80f), At(.49f,.62f)}, Gold.CopyWithNewOpacity(.75f), 2);
+        }
+        else if (MapIndex == 2)
         {
             for (float Level : {.38f, .59f, .8f})
             {
@@ -64,7 +78,7 @@ public:
                 P.Line({At(.33f,Level+.02f), At(.33f,Level+.13f), At(.67f,Level+.13f), At(.67f,Level+.02f)}, Accent);
             }
         }
-        else
+        else if (MapIndex == 1)
         {
             for (float X : {.16f,.34f,.78f,.90f})
             {
@@ -73,8 +87,15 @@ public:
                 P.Line({At(X-.065f,Top+.23f), At(X,Top+.08f), At(X+.06f,Top+.23f)}, Accent);
                 P.Line({At(X-.085f,Top+.39f), At(X,Top+.18f), At(X+.085f,Top+.39f)}, Accent);
             }
-            if (MapIndex == 0) P.Line({At(.40f,.95f),At(.56f,.75f),At(.50f,.61f)}, Gold.CopyWithNewOpacity(.75f), 2);
-            else for(float Y : {.76f,.86f,.96f}) P.Line({At(.15f,Y),At(.82f,Y-.015f)}, Muted.CopyWithNewOpacity(.35f));
+            for(float Y : {.76f,.86f,.96f}) P.Line({At(.15f,Y),At(.82f,Y-.015f)}, Muted.CopyWithNewOpacity(.35f));
+        }
+        else
+        {
+            P.Line({At(.08f,.85f),At(.2f,.35f),At(.35f,.49f),At(.4f,.8f)},Accent,2);
+            P.Line({At(.6f,.8f),At(.68f,.28f),At(.85f,.4f),At(.95f,.87f)},Accent,2);
+            for(float Y : {.62f,.77f,.92f}) P.Line({At(.40f,Y),At(.60f,Y)},Accent);
+            P.Line({At(.42f,.52f),At(.42f,.98f)},Accent);
+            P.Line({At(.58f,.52f),At(.58f,.98f)},Accent);
         }
         return Layer;
     }
@@ -113,6 +134,8 @@ FSlateFontInfo UStanceSelectionWidget::Font(int32 Size, bool bHeading) const
 void UStanceSelectionWidget::Open()
 {
     bStarting = false;
+    if (auto* Challenges = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunChallengeSubsystem>() : nullptr)
+        SelectedMap = Challenges->GetMapId();
     SetupPage = ERunSetupPage::ArenaAndStances;
     if (auto* Loadout = GetGameInstance() ? GetGameInstance()->GetSubsystem<URunLoadoutSubsystem>() : nullptr)
     {
@@ -187,7 +210,9 @@ bool UStanceSelectionWidget::CanStartRun() const
 {
     const auto* Steel = RunStances::Find(SelectedSamurai);
     const auto* Shadow = RunStances::Find(SelectedNinja);
-    return !bStarting && SelectedMap == TEXT("FallenGrove") && Steel && Steel->bSamurai && Shadow && !Shadow->bSamurai &&
+    bool bMapAvailable = false;
+    for (const auto& Map : RunMaps) if (SelectedMap == Map.Id && Map.bAvailable) bMapAvailable = true;
+    return !bStarting && bMapAvailable && Steel && Steel->bSamurai && Shadow && !Shadow->bSamurai &&
         IsStanceAvailable(SelectedSamurai) && IsStanceAvailable(SelectedNinja);
 }
 
@@ -224,9 +249,9 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeMapCard(int32 Index)
             [SNew(SScaleBox).Stretch(EStretch::ScaleToFit).StretchDirection(EStretchDirection::DownOnly)
              [SNew(STextBlock).Text(FText::FromString(Map.Description)).Font(Font(11)).ColorAndOpacity(Muted).Justification(ETextJustify::Center)]]]
            +SVerticalBox::Slot().AutoHeight().Padding(0,6,0,0)
-           [SNew(STextBlock).Text(FText::FromString(Map.bAvailable ? TEXT("SELECTED") : TEXT("COMING LATER")))
+           [SNew(STextBlock).Text_Lambda([this,Index]() { return FText::FromString(SelectedMap == RunMaps[Index].Id ? TEXT("SELECTED") : TEXT("SELECT")); })
             .Font(Font(11)).ColorAndOpacity(Map.bAvailable ? BloodshiftMenu::Gold : Muted).Justification(ETextJustify::Center)]]]];
-    if (Map.bAvailable) AddNavigation(Button,{float(Index)*2,0});
+    if (Map.bAvailable) AddNavigation(Button,{float(Index%2)*2,float(Index/2)*2});
     return SNew(SBox).WidthOverride(206).HeightOverride(157)[Button];
 }
 
@@ -294,9 +319,9 @@ TSharedRef<SWidget> UStanceSelectionWidget::MakeSetupTab(ERunSetupPage Page)
 TSharedRef<SWidget> UStanceSelectionWidget::BuildArenaPage()
 {
     using namespace BloodshiftMenu;
-    auto Maps=SNew(SHorizontalBox);
+    auto Maps=SNew(SUniformGridPanel).SlotPadding(FMargin(0,0,11,11));
     for(int32 I=0;I<UE_ARRAY_COUNT(RunMaps);++I)
-        Maps->AddSlot().AutoWidth().Padding(I?11:0,0,0,0)[MakeMapCard(I)];
+        Maps->AddSlot(I%2,I/2)[MakeMapCard(I)];
     auto Modifiers=SNew(SVerticalBox);
     for(int32 I=0;I<RunChallenges::Modifiers().Num();++I)
         Modifiers->AddSlot().AutoHeight()[MakeModifierRow(I)];
@@ -524,7 +549,7 @@ FReply UStanceSelectionWidget::ConfirmRun()
     if (!Loadout || !Loadout->SetStances(SelectedSamurai, SelectedNinja)) return FReply::Handled();
     if (auto* Travel = GI->GetSubsystem<URunTravelSubsystem>()) Travel->ClearSnapshot();
     bStarting = true;
-    UGameplayStatics::OpenLevel(this, TEXT("/Game/Maps/Lvl_B1_Lvl1"));
+    UGameplayStatics::OpenLevel(this, URunTravelSubsystem::GetStartingLevel(this));
     return FReply::Handled();
 }
 

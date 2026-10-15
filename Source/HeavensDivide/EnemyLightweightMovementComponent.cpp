@@ -5,6 +5,8 @@
 #include "CharacterBase.h"
 #include "Components/CapsuleComponent.h"
 #include "EnemyBase.h"
+#include "EncounterWall.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/Character.h"
 #include "Stats/Stats.h"
 
@@ -22,7 +24,8 @@ static bool FindBlockingWorldGeometryHit(const TArray<FHitResult>& HitResults, F
 			continue;
 		}
 
-		if (Cast<AEnemyBase>(HitActor) || Cast<ACharacterBase>(HitActor))
+		const auto* Wall = Cast<AEncounterWall>(HitActor);
+		if ((Cast<AEnemyBase>(HitActor) && !(Wall && HitResult.GetComponent()==Wall->Barrier)) || Cast<ACharacterBase>(HitActor))
 		{
 			continue;
 		}

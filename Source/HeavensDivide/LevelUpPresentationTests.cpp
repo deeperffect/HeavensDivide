@@ -5,6 +5,8 @@
 #include "CharacterBase.h"
 #include "SwapPresentationComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Components/RetainerBox.h"
 #include "CombatAudio.h"
 #include "LevelUpWidget.h"
 #include "Blueprint/WidgetTree.h"
@@ -22,6 +24,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
+#include "RenderingThread.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLevelUpPresentationTest, "HeavensDivide.UI.LevelUpPresentation",
 	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -111,6 +114,10 @@ bool FLevelUpPresentationTest::RunTest(const FString&)
 		if (!FApp::CanEverRender()) return;
 		FWidgetRenderer Renderer(false);
 		auto* Target = Renderer.DrawWidget(LevelUpSlate, FVector2D(1920, 1080));
+		FlushRenderingCommands();
+		// A retainer captures into its own target before the parent composites it.
+		Renderer.DrawWidget(Target,LevelUpSlate,FVector2D(1920,1080),0.f);
+		FlushRenderingCommands();
 		TArray<FColor> Pixels;
 		FReadSurfaceDataFlags Flags;
 		Flags.SetLinearToGamma(false);
@@ -140,13 +147,33 @@ bool FLevelUpPresentationTest::RunTest(const FString&)
 	TestTrue(TEXT("Category screen hides after selecting a category"), CategoryPanel && !CategoryPanel->IsVisible());
 	RenderChoices(TEXT("RestoredCategoryUpgrades.png"));
 	TestTrue(TEXT("Choosing an upgrade completes one level"), PC->LevelUpWidget->SelectUpgradeChoice(0));
+	TestTrue(TEXT("Chosen card exit starts before completing selection"), PC->LevelUpWidget->bChoiceExitActive);
+	TestFalse(TEXT("Extra confirm cannot spend the same choice twice"), PC->LevelUpWidget->SelectUpgradeChoice(1));
+	TestEqual(TEXT("Queued level waits until the exit finishes"), PC->PendingLevelUpChoices, 2);
+	TestTrue(TEXT("Gameplay stays frozen during the card exit"), World->GetWorldSettings()->TimeDilation <= .001f);
+	PC->LevelUpWidget->UpdateChoiceExit(.17f);
+	auto* SelectedCard=PC->LevelUpWidget->WidgetTree->FindWidget(TEXT("UpgradeCardSize_0"));
+	auto* OtherCard=PC->LevelUpWidget->WidgetTree->FindWidget(TEXT("UpgradeCardSize_1"));
+	TestEqual(TEXT("Other cards fade quickly"),OtherCard->GetRenderOpacity(),0.f);
+	TestEqual(TEXT("Chosen card remains visible during hold"),SelectedCard->GetRenderOpacity(),1.f);
+	RenderChoices(TEXT("UpgradeSelectionHold.png"));
+	PC->LevelUpWidget->UpdateChoiceExit(.20f);
+	TestNotNull(TEXT("Selected card has its dissolve effect"),PC->LevelUpWidget->ChoiceExitMaterial.Get());
+	if(PC->LevelUpWidget->ChoiceExitMaterial)
+		TestTrue(TEXT("Selected card dissolves after holding"),PC->LevelUpWidget->ChoiceExitMaterial->K2_GetScalarParameterValue(TEXT("Progress"))>.4f);
+	RenderChoices(TEXT("UpgradeSelectionDissolve.png"));
+	PC->LevelUpWidget->UpdateChoiceExit(.20f);
 	TestEqual(TEXT("First choice consumes only one queued level"), PC->PendingLevelUpChoices, 1);
 	TestEqual(TEXT("Shrine reward waits for all queued levels"), PC->PendingBloodShrineRewards, 1);
 	TestFalse(TEXT("Consecutive choices do not replay presentation"), PC->bLevelUpPresentationActive);
 	TestTrue(TEXT("Next queued level returns to categories"), CategoryPanel && CategoryPanel->IsVisible());
 	TestTrue(TEXT("Next queued level has no preselected upgrades"), Upgrades->GetCurrentUpgradeChoices().IsEmpty());
+	TestFalse(TEXT("New offer resets the exit state"),PC->LevelUpWidget->bChoiceExitActive);
+	TestEqual(TEXT("New offer restores all card opacity"),OtherCard->GetRenderOpacity(),1.f);
 	TestTrue(TEXT("Second queued category remains selectable"), PC->LevelUpWidget->SelectCategoryChoice(1));
 	TestTrue(TEXT("Second queued upgrade remains selectable"), PC->LevelUpWidget->SelectUpgradeChoice(0));
+	TestTrue(TEXT("Second exit still reserves input"),PC->IsSelectingUpgrade());
+	PC->LevelUpWidget->UpdateChoiceExit(.6f);
 	TestEqual(TEXT("Both level-up choices finish"), PC->PendingLevelUpChoices, 0);
 	// The saved pool may have no eligible Blood Pacts, in which case the existing
 	// reward flow skips it automatically instead of leaving the player frozen.

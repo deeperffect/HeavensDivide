@@ -1,0 +1,317 @@
+OLD VILLAGE - MODEL REFERENCE CHECKLIST
+
+Suggested sizes are modeling starting points, not measured dimensions.
+
+BUILDINGS
+
+[x] B01 Main Shrine Hall
+    Image: 01_Buildings/B01_Main_Shrine_Hall.png
+    Suggested size: 12 x 9 x 8 m
+    Use: Northern landmark; one instance.
+
+[x] B02 Roofed Gatehouse
+    Image: 01_Buildings/B02_Roofed_Gatehouse.png
+    Suggested size: 5 x 3 x 4.5 m
+    Use: Perimeter entrances; reuse and rotate.
+
+[x] B03 Wayside Shrine
+    Image: 01_Buildings/B03_Wayside_Shrine.png
+    Suggested size: 3 x 3 x 4 m
+    Use: Garden and boundary shrine.
+
+[x] B04 Tiled Timber House
+    Image: 01_Buildings/B04_Tiled_Timber_House.png
+    Suggested size: 6 x 5 x 4.5 m
+    Use: Eastern houses and western perimeter; vary scale slightly.
+
+[x] B05 Thatched Cottage
+    Image: 01_Buildings/B05_Thatched_Cottage.png
+    Suggested size: 5 x 4 x 4.5 m
+    Use: Eastern village housing.
+
+[x] B06 Raised Storehouse
+    Image: 01_Buildings/B06_Raised_Storehouse.png
+    Suggested size: 4 x 4 x 4.5 m
+    Use: Eastern storage cluster.
+
+[x] B07 Open Blacksmith Workshop
+    Image: 01_Buildings/B07_Open_Blacksmith_Workshop.png
+    Suggested size: 5 x 4 x 4 m
+    Use: Combine with hearth, woodpile and storage props.
+
+[x] B08 Thatched LeanTo
+    Image: 01_Buildings/B08_Thatched_LeanTo.png
+    Suggested size: 3 x 2 x 2.8 m
+    Use: Storage shelter or porch addition.
+
+BUILDING MODULES
+
+[x] M01 Timber Plaster Wall
+    Image: 02_Building_Modules/M01_Timber_Plaster_Wall.png
+    Suggested size: 2 x 0.2 x 2.5 m
+    Use: Optional modular building walls.
+
+[x] M02 Sliding Wood Door
+    Image: 02_Building_Modules/M02_Sliding_Wood_Door.png
+    Suggested size: 1.8 x 0.2 x 2.2 m
+    Use: Door insert for modular wall openings.
+
+[x] M03 Wooden Shutter Window
+    Image: 02_Building_Modules/M03_Wooden_Shutter_Window.png
+    Suggested size: 1.2 x 0.2 x 1.1 m
+    Use: Window insert.
+
+[x] M04 Tiled Gable Roof
+    Image: 02_Building_Modules/M04_Tiled_Gable_Roof.png
+    Suggested size: 6 x 5 x 2 m
+    Use: Roof for modular variants; use B04 proportions.
+
+[ ] M05 Thatched Gable Roof
+    Image: 02_Building_Modules/M05_Thatched_Gable_Roof.png
+    Suggested size: 5 x 4 x 2.2 m
+    Use: Roof for modular cottage variants.
+
+SHRINE AND LANDMARKS
+
+[ ] S01 Torii Gate
+    Image: 03_Shrine_And_Landmarks/S01_Torii_Gate.png
+    Suggested size: 5 x 1 x 4 m
+    Use: Main shrine approach and landmark gateways.
+
+[ ] S02 Sacred Standing Stone
+    Image: 03_Shrine_And_Landmarks/S02_Sacred_Standing_Stone.png
+    Suggested size: 1.2 x 1 x 2.5 m
+    Use: Central landmark; place on S03.
+
+[ ] S03 Circular Altar Base
+    Image: 03_Shrine_And_Landmarks/S03_Circular_Altar_Base.png
+    Suggested size: 4 m diameter x 0.4 m
+    Use: Base for S02; walkable low edges.
+
+[ ] S04 Ceremonial Stone Medallion
+    Image: 03_Shrine_And_Landmarks/S04_Ceremonial_Stone_Medallion.png
+    Suggested size: 3 m diameter x 0.06 m
+    Use: Northern court floor landmark.
+
+[ ] S05 Stone Guardian
+    Image: 03_Shrine_And_Landmarks/S05_Stone_Guardian.png
+    Suggested size: 0.8 x 1 x 1.6 m
+    Use: Pair at main steps by reuse or mirror where appropriate.
+
+[ ] S06 Offering Box
+    Image: 03_Shrine_And_Landmarks/S06_Offering_Box.png
+    Suggested size: 1.2 x 0.7 x 0.9 m
+    Use: Main hall and small shrine.
+
+[ ] S07 Sacred Rope Swag
+    Image: 03_Shrine_And_Landmarks/S07_Sacred_Rope_Swag.png
+    Suggested size: 3 x 0.15 x 0.6 m
+    Use: Attach under shrine lintels; separate dressing mesh.
+
+[ ] S08 Shrine Stone Steps
+    Image: 03_Shrine_And_Landmarks/S08_Shrine_Stone_Steps.png
+    Suggested size: 3 x 2 x 0.9 m
+    Use: Modular shrine approaches.
+
+WALLS AND BOUNDARIES
+
+[ ] W01 Fieldstone Retaining Wall
+    Image: 04_Walls_And_Boundaries/W01_Fieldstone_Retaining_Wall.png
+    Suggested size: 4 x 0.8 x 1.8 m
+    Use: Waterfront and outer boundary.
+
+[ ] W02 Fieldstone Wall Corner
+    Image: 04_Walls_And_Boundaries/W02_Fieldstone_Wall_Corner.png
+    Suggested size: 2 x 2 x 1.8 m
+    Use: Retaining wall corners.
+
+[ ] W03 Timber Fence Panel
+    Image: 04_Walls_And_Boundaries/W03_Timber_Fence_Panel.png
+    Suggested size: 3 x 0.18 x 1.1 m
+    Use: Garden, court and waterfront rails; rotate to make corners.
+
+[ ] W04 Timber Fence Post
+    Image: 04_Walls_And_Boundaries/W04_Timber_Fence_Post.png
+    Suggested size: 0.25 x 0.25 x 1.3 m
+    Use: Fence ends and junctions.
+
+[ ] W05 Rustic Wooden Gate
+    Image: 04_Walls_And_Boundaries/W05_Rustic_Wooden_Gate.png
+    Suggested size: 2 x 0.3 x 1.4 m
+    Use: Garden and training court entrances.
+
+[x] W06 Roofed Plaster Wall
+    Image: 04_Walls_And_Boundaries/W06_Roofed_Plaster_Wall.png
+    Suggested size: 3 x 0.5 x 2.4 m
+    Use: Northern shrine perimeter.
+
+[ ] W07 Low Garden Stone Border
+    Image: 04_Walls_And_Boundaries/W07_Low_Garden_Stone_Border.png
+    Suggested size: 2 x 0.35 x 0.3 m
+    Use: Gardens, pond approaches and small islands.
+
+[ ] W08 Timber Waterfront Walkway
+    Image: 04_Walls_And_Boundaries/W08_Timber_Waterfront_Walkway.png
+    Suggested size: 4 x 1.5 x 0.8 m
+    Use: Waterfront dressing; keep main route wide.
+
+PROPS
+
+[ ] P01 Tall Stone Lantern
+    Image: 05_Props/P01_Tall_Stone_Lantern.png
+    Suggested size: 0.6 x 0.6 x 1.8 m
+    Use: Shrine paths and gardens.
+
+[ ] P02 Low Garden Lantern
+    Image: 05_Props/P02_Low_Garden_Lantern.png
+    Suggested size: 0.7 x 0.7 x 0.7 m
+    Use: Pond and garden dressing.
+
+[ ] P03 Paper Lantern
+    Image: 05_Props/P03_Paper_Lantern.png
+    Suggested size: 0.35 x 0.35 x 0.55 m
+    Use: Hang under building eaves.
+
+[ ] P04 Wooden Lantern Post
+    Image: 05_Props/P04_Wooden_Lantern_Post.png
+    Suggested size: 0.6 x 0.4 x 2 m
+    Use: Village and waterfront lighting.
+
+[ ] P05 Wooden Barrel
+    Image: 05_Props/P05_Wooden_Barrel.png
+    Suggested size: 0.6 x 0.6 x 0.85 m
+    Use: Storage and workshops.
+
+[ ] P06 Wooden Crate
+    Image: 05_Props/P06_Wooden_Crate.png
+    Suggested size: 0.8 x 0.6 x 0.6 m
+    Use: Storage scatter.
+
+[ ] P07 Wooden Handcart
+    Image: 05_Props/P07_Wooden_Handcart.png
+    Suggested size: 2.3 x 1.2 x 1 m
+    Use: Village and workshop dressing.
+
+[ ] P08 Stacked Firewood
+    Image: 05_Props/P08_Stacked_Firewood.png
+    Suggested size: 1.5 x 0.7 x 0.7 m
+    Use: Workshop and cottage walls.
+
+[ ] P09 Rustic Bench
+    Image: 05_Props/P09_Rustic_Bench.png
+    Suggested size: 1.5 x 0.4 x 0.5 m
+    Use: Garden and temple rest points.
+
+[ ] P10 Training Dummy
+    Image: 05_Props/P10_Training_Dummy.png
+    Suggested size: 0.9 x 0.6 x 1.7 m
+    Use: Training court.
+
+[ ] P11 Training Weapon Rack
+    Image: 05_Props/P11_Training_Weapon_Rack.png
+    Suggested size: 1.3 x 0.5 x 1.4 m
+    Use: Training court dressing.
+
+[ ] P12 Small Stone Hearth
+    Image: 05_Props/P12_Small_Stone_Hearth.png
+    Suggested size: 1.4 x 1 x 0.7 m
+    Use: Insert in open workshop.
+
+[ ] P13 Ceramic Storage Jar
+    Image: 05_Props/P13_Ceramic_Storage_Jar.png
+    Suggested size: 0.65 x 0.65 x 0.8 m
+    Use: Porches and storage areas.
+
+[ ] P14 Bamboo Water Spout
+    Image: 05_Props/P14_Bamboo_Water_Spout.png
+    Suggested size: 0.9 x 0.6 x 1 m
+    Use: Pond-edge dressing.
+
+VEGETATION
+
+[ ] V01 Tall Pine Tree
+    Image: 06_Vegetation/V01_Tall_Pine_Tree.png
+    Suggested size: 7 m tall
+    Use: Perimeter canopy; keep main combat spaces clear.
+
+[ ] V02 Small Sculpted Pine
+    Image: 06_Vegetation/V02_Small_Sculpted_Pine.png
+    Suggested size: 3 m tall
+    Use: Garden accents and small islands.
+
+[ ] V03 Red Maple Tree
+    Image: 06_Vegetation/V03_Red_Maple_Tree.png
+    Suggested size: 5 m tall
+    Use: Color landmarks at perimeter.
+
+[ ] V04 Bamboo Clump
+    Image: 06_Vegetation/V04_Bamboo_Clump.png
+    Suggested size: 4 m tall
+    Use: Garden screens and border vegetation.
+
+[ ] V05 Broadleaf Garden Tree
+    Image: 06_Vegetation/V05_Broadleaf_Garden_Tree.png
+    Suggested size: 3.5 m tall
+    Use: Courtyard and village planting.
+
+[ ] V06 Low Shrub
+    Image: 06_Vegetation/V06_Low_Shrub.png
+    Suggested size: 0.9 m wide x 0.6 m tall
+    Use: Small vegetation clusters at building bases.
+
+[ ] V07 Grass Tuft
+    Image: 06_Vegetation/V07_Grass_Tuft.png
+    Suggested size: 0.35 m wide x 0.3 m tall
+    Use: Scatter mesh; combine with painted ground.
+
+[ ] V08 Fern Clump
+    Image: 06_Vegetation/V08_Fern_Clump.png
+    Suggested size: 0.6 m wide x 0.45 m tall
+    Use: Shaded garden and stone edges.
+
+[ ] V09 Water Lily Cluster
+    Image: 06_Vegetation/V09_Water_Lily_Cluster.png
+    Suggested size: 0.8 m wide
+    Use: Float on pond water plane.
+
+ROCKS AND GROUND
+
+[ ] G01 Tall Garden Boulder
+    Image: 07_Rocks_And_Ground/G01_Tall_Garden_Boulder.png
+    Suggested size: 1.3 x 1 x 2.2 m
+    Use: Garden landmarks; reuse with rotation.
+
+[ ] G02 Low Rounded Boulder
+    Image: 07_Rocks_And_Ground/G02_Low_Rounded_Boulder.png
+    Suggested size: 1.5 x 1.1 x 0.8 m
+    Use: Perimeter and planting islands.
+
+[ ] G03 Pebble Cluster
+    Image: 07_Rocks_And_Ground/G03_Pebble_Cluster.png
+    Suggested size: 0.7 x 0.5 x 0.12 m
+    Use: Ground-edge scatter.
+
+[ ] G04 Worn Stepping Stone
+    Image: 07_Rocks_And_Ground/G04_Worn_Stepping_Stone.png
+    Suggested size: 0.8 x 0.6 x 0.09 m
+    Use: Repeat with rotation for paths.
+
+[ ] G05 Irregular Paving Patch
+    Image: 07_Rocks_And_Ground/G05_Irregular_Paving_Patch.png
+    Suggested size: 2 x 1.5 x 0.08 m
+    Use: Scatter across dirt routes; several rotations.
+
+[ ] G06 Stone Pond Basin
+    Image: 07_Rocks_And_Ground/G06_Stone_Pond_Basin.png
+    Suggested size: 4 x 3 x 0.5 m
+    Use: Add water plane, lilies and bamboo spout separately.
+
+[ ] G07 Shoreline Rock Cluster
+    Image: 07_Rocks_And_Ground/G07_Shoreline_Rock_Cluster.png
+    Suggested size: 3 x 2 x 1.2 m
+    Use: Base of waterfront retaining walls.
+
+[ ] G08 Broken Stone Rubble
+    Image: 07_Rocks_And_Ground/G08_Broken_Stone_Rubble.png
+    Suggested size: 1.2 x 0.8 x 0.4 m
+    Use: Sparse aged ruin dressing at edges.

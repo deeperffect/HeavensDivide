@@ -508,6 +508,7 @@ protected:
 	bool TryBuildObstaclePath();
 	bool TryGetPathFallbackSteeringDirection(FVector& OutSteeringDirection);
 	bool IsDirectPathToTargetClear() const;
+	bool HasClearChaseRoute() const;
 	bool IsPathFallbackRouteClearToLocation(const FVector& Location) const;
 	bool ProjectPathFallbackLocation(const FVector& Location, FVector& OutProjectedLocation) const;
 	void ClearObstaclePath();
@@ -567,6 +568,13 @@ protected:
 	float BlockedByWorldGeometryStartTime = -1.0f;
 	float NextPathFallbackRequestTime = 0.0f;
 	float NextDirectPathCheckTime = 0.0f;
+	FVector PathProgressLocation = FVector::ZeroVector;
+	float NextPathProgressCheckTime = 0.0f;
+	bool bPathProgressStalled = false;
+	int32 CachedPathSteeringIndex = INDEX_NONE;
+	mutable float NextChaseRouteCheckTime = 0.0f;
+	mutable bool bCachedChaseRouteClear = true;
+	mutable TWeakObjectPtr<AActor> CachedChaseRouteTarget;
 	int32 CurrentObstaclePathIndex = INDEX_NONE;
 	float PathFallbackRequestJitter = 0.0f;
 	bool bHasDesiredMovementDirection = false;

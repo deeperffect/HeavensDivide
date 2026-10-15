@@ -2,6 +2,7 @@
 
 #include "GameOverWidget.h"
 #include "RunReportSubsystem.h"
+#include "RunTravelSubsystem.h"
 #include "SynergyMetaProgressionSubsystem.h"
 
 #include "Blueprint/WidgetTree.h"
@@ -56,7 +57,7 @@ void UGameOverWidget::HandleRestartRun()
 	if (bTravelRequested) return;
 	bTravelRequested = true;
 	NormalizeTimeForTravel();
-	UGameplayStatics::OpenLevel(this, TEXT("/Game/Maps/Lvl_B1_Lvl1"));
+	UGameplayStatics::OpenLevel(this, URunTravelSubsystem::GetStartingLevel(this));
 }
 
 void UGameOverWidget::HandleMainMenu()

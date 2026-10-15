@@ -1,0 +1,117 @@
+# Old Village environment
+
+Open **`/Game/Maps/Lvl_OldVillage`** for the dressed village, or **`/Game/Maps/Lvl_OldVillage_Blockout`** for the matching layout blockout. Begin Run, Restart Run, and New Run now use the dressed village. The menu destination is **OLD VILLAGE**, described as **Thatched homes. Restless spirits.**, with a thatched-house illustration. The blockout remains an editor-only alternative.
+
+The layout follows `Art/MapConcepts/CrimsonShrineDistrict_v2_OldVillage.png` and the original Swarm reference: a central circular landmark, western gardens and pond, northern shrine court, eastern workshop quarter, southern training enclosure, and a diagonal southwest waterfront. The footprint is approximately 184 by 184 metres with the southwest corner cut away, doubling the original playable surface area. Main roads are roughly 10-13 metres wide and link into a loop around the southern quarter.
+
+All 21 supplied models are used. The tiled and thatched roof modules, wall panels, sliding door, and shutter form two additional modular houses. Trees, bamboo, stone lanterns, pond rocks, benches, carts, pots, weapon racks, and foliage come from the existing JapaneseShrine and Stylized_Village packs. Shared vendor assets and existing ground materials are not edited.
+
+## Organization
+
+- Source models: `Art/Environment/OldVillage/`; labeled previews: `AssetCatalog.png`.
+- Unreal content: `/Game/HeavensDivide/Environment/OldVillage/{Meshes,Textures,Materials}`.
+- Actor folders divide ground, shrine, gardens, village, training, waterfront, boundary, collision, gameplay, and lighting.
+- Editable layout: `Tools/old_village_layout.json`. Coordinates are east/north in centimetres; Unreal X is north and Y is east.
+- Reviewed screenshots: `Art/Environment/OldVillage/LevelPreviews/`; machine-readable validation: `Saved/OldVillage/Review/Validation.json`.
+
+Both maps use the existing Survivor game mode, a PlayerStart at the central crossroads, and `BP_EnemySpawner` with its authored enemy roster and population phases. The spawner also owns the run clock read by the player controller and HUD. The original environment pass omitted that actor, which prevented both enemies and the timer from starting. Both maps now include the existing objective and encounter directors, eight navigation-projected objective clearings, and a boss gate linked to `Lvl_B1_Arena`. The omitted directors/gate/points prevented gameplay events from spawning. Blood shrines keep their existing 180/300-second schedule; healing urns, magnet urns, marches, Ember Circles, and wall traps use the existing encounter rules. The application still starts in the main menu; its run entry now travels to Old Village. Packaging cooks Old Village in place of the old first map. Ranked runs and difficulty progression recognize Old Village; the legacy `FallenGrove` save/leaderboard key is retained so existing progress is preserved. Direct movement remains lightweight; routing around obstacles uses the village's baked static navigation mesh.
+
+Meshes use static triangle collision to preserve the supplied gateway and shelter openings. Hidden collision closes the perimeter and the pond and provides compact tree trunks. `OldVillageSolid` and `OldVillageGround`, defined in `Config/DefaultEngine.ini`, block the project's Enemy channel; only the ground profile blocks EnemyGround. These named profiles replace the initial Custom settings, which were found to ignore EnemyGround after a saved-map reload and prevented enemy placement. Tiny pottery and low plants are nonblocking. Larger carts, benches, barrels, stone lanterns, sacks, rocks, houses, fences, and wells are solid; foliage uses compact trunk/hedge proxies instead of colliding leaf cards. Decorations are grouped into household/workshop compounds; new houses retain the original mesh scale. Grounded props use world-space mesh bounds to seat their lowest point on the ground, and the central sacred stone is seated on its altar. Small nonblocking decorations have a 60-metre draw distance; planted beds and bamboo do not cast dynamic shadows.
+
+## Movement and expanded layout
+
+`Tools/old_village_layout.json` uses `layout_scale = sqrt(2)` for district positions, ground, roads, perimeter, minimap, and navigation bounds. Mesh scales and compound-local offsets stay unchanged. The expanded dressed map has 800 actors (780 static-mesh actors); the matching blockout has 54 actors. Six additional prefab buildings and the expanded household compounds add 353 scenery meshes over the original pass.
+
+Player dashes now use swept character movement and native step-up handling instead of ending on every blocking hit. Walkable ramps preserve horizontal travel; step-up checks the character's existing maximum step height, overhead clearance, and walkable landing. Solid walls still stop the dash. These additional checks only run when a dash encounters geometry. `HeavensDivide.Movement.DashGround` tests 5, 20, and 40 cm steps at 30/60/120 FPS, solid walls, and low ceilings; it and the existing Iaijutsu integration test pass.
+
+### Music
+
+Both village maps contain one `Music - Mitko Igra` actor in `80_Gameplay/Audio`. It automatically plays the supplied 12:48 stereo track as a non-spatial loop at a base volume multiplier of 0.5, through the existing `SC_Music` bus. Master and Music sliders control it independently of effects. It continues during pause, stays active while silent, and stops with its level-owned actor. Streaming uses Prime On Load rather than forcing the full track into memory.
+
+The original MP3 is retained at `SourceAudio/Music/Mitko_Igra.mp3`; the imported audio is `/Game/HeavensDivide/Audio/Music/W_MitkoIgra`. The derived `Mitko_Igra_Loop.wav` has a 10 ms entrance and 30 ms exit ramp to prevent a click at the loop boundary. `Tools/import_old_village_music.py` imports the track and updates both maps with backups. Full village rebuilds retain the music assignment through `old_village_music.py`. Verify playback with `Tools/Run-OldVillage.ps1 -Script test_old_village_music.py -Render -Audio`; results are in `Saved/OldVillage/MusicValidation.json`.
+
+Audio-enabled PIE validation passed in both saved maps: exactly one music actor auto-started, used the Music class with no spatialization, kept playing after seeking across the track's end, remained active at zero gain, and stopped when its owner was destroyed. The derived WAV's first and last stereo frames are zero, and the retained MP3's SHA-256 matches the desktop original. This verifies playback state and configuration; subjective music/effects balance remains adjustable with the Music slider.
+
+### Enemy routes and camera visibility
+
+`Tools/setup_old_village_navigation_camera.py` prepares both saved maps without rebuilding their scenery. It backs up the maps, creates isolated material copies under `OldVillage/CameraFade`, marks eligible scenery for occlusion detection, and bakes static navigation. Run it again after moving fences, houses, or other solid obstacles. Full environment builds call the same setup automatically.
+
+Enemies retain their swept lightweight movement and direct pursuit in open areas. Blocked or stalled enemies request a cached navigation route, with a shared per-world budget of two requests per frame and 30 requests per simulated second (two initial burst tokens). A 0.5 ms admission gate stops further searches after expensive work that frame; it cannot interrupt an individual synchronous search. Queries are retried after budget deferral, moving targets trigger bounded replanning, and direct/waypoint shortcut checks are cached for at least 0.3 seconds. Runtime navigation generation is disabled.
+
+The camera rig's `OcclusionFade` component checks the camera-to-character corridor at 10 Hz. Prepared scenery overlaps the dedicated `CameraOcclusion` channel so one object cannot hide another from detection. Up to 32 affected components fade smoothly using custom primitive data slot 31 and a masked temporal dither; the original painted appearance and foliage cutouts are retained. No runtime material-instance allocation is needed. Detection includes non-blocking tree canopies while excluding ground, characters, and hidden collision helpers. Collision and navigation remain active while scenery is dissolved. Disabling `OcclusionFade.Enabled` restores all tracked objects.
+
+`Tools/test_old_village_navigation_camera.py -Render` (through `Run-OldVillage.ps1`) exercises detours, a 128-enemy crowd, shared query counters, and fade restoration in PIE. These are startup and representative obstacle tests, not a guarantee that arbitrary later map edits remain navigable.
+
+`Tools/Run-OldVillageAutomation.ps1` runs the navigation-budget and related combat/camera regression tests. `Tools/test_old_village_camera.py -Render` runs just the camera checks followed by spawning/timer checks in both maps. Camera results are in `Saved/OldVillage/Review/CameraOnly.json`.
+
+Rebuilding replaces the authored actors in the two new maps. Existing copies of these maps are backed up under `Saved/OldVillage/Backups` first. Save manual map edits separately before rebuilding.
+
+## Rebuilding
+
+1. Run `Tools/prepare_old_village_sources.py` using Python to extract and record the Desktop archives.
+2. Run Blender in background mode with `Tools/inspect_old_village_blender.py` to normalize and export the models.
+3. Run Blender in background mode with `Tools/generate_old_village_ground.py` after changing the route layout.
+4. Run `Tools/Run-OldVillage.ps1 -Script import_old_village.py` for Unreal import.
+5. Run `Tools/Run-OldVillage.ps1 -Script build_old_village.py` to build both maps.
+6. Run `Tools/Run-OldVillage.ps1 -Script review_old_village.py -Render` to render views and smoke-test play mode.
+7. Run `Tools/Run-OldVillage.ps1 -Script test_old_village_spawning.py -Render` to check natural enemy spawning, the advancing visible HUD timer, scheduled shrines and urns, and field-event placement in both maps. The test temporarily shortens event schedules on unsaved editor instances; saved balance timings are preserved. Results are written to `Saved/OldVillage/Review/Spawning.json`.
+
+`Tools/old_village_gameplay.py` supplies the run actor during builds. To repair an existing village map without rebuilding its environment, run `Tools/Run-OldVillage.ps1 -Script fix_old_village_spawning.py`. It backs up both maps, adds the spawner only if missing, and checks that existing actors retain their transforms.
+
+The PowerShell runner targets the installed Unreal Engine 5.8 and uses a project-local derived-data cache. Use `-Render` for screenshots or `-Play` for full-editor PIE checks without GPU rendering; omit both for editor commandlets. If local script execution is disabled, invoke it with `powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Run-OldVillage.ps1 ...`; this applies only to that process.
+
+AI-generated meshes retain their supplied topology and painted textures. They are suitable for an initial environment pass, but production optimization, a combat encounter pass, and further collision refinement should follow gameplay testing.
+
+## Original validation - 14 October 2026
+
+The initial environment validation counted 432 actors in the dressed map, including 427 static-mesh actors, and 33 actors in the blockout. The run spawner, navigation bounds, baked navigation, and music actor bring those totals to 436 and 37. Every supplied model appears in the dressed map with a material assigned; all building and ground transforms were checked for unintended tilt.
+
+Six Unreal views were rendered and reviewed. In normal Play in Editor, BP_Samurai and BP_Ninja both spawned successfully; the controlled Samurai moved 6.19 metres and remained grounded. All nine ground probes and seven connecting-route capsule sweeps passed. The four outer sides, diagonal waterfront, and pond blocked the boundary probes as intended.
+
+After the spawning repair, a fresh editor loaded the saved maps and ran normal PIE in each. The dressed village had 16 living enemies at `00:01` and 36 at `00:06`; the blockout had 29 at `00:02` and 36 at `00:06`. The spawner, controller, and HUD agreed on elapsed time, and the visible timer text advanced. All nine ground probes, seven route sweeps, and six boundary probes passed again. This verifies run startup, not a full-length encounter/balance playthrough.
+
+Navigation validation in PIE passed complete detours around the pond, training fence, and cottage, with one route request per obstacle. The training enclosure required a roughly 63-metre walk around its fence. A subsequent 128-enemy crowd stayed within two requests per frame; across the detours and crowd, 131 requests took 8.83 ms total, with a maximum individual request of 0.217 ms on this machine. These timings cover navigation queries, not total frame time. The NavigationBudget, BasicMelee, SamuraiPushback, and SwapCamera automation tests all passed.
+
+Camera validation detected the obstructing main shrine and restored zero active fades after moving into the open. Rendered on/off screenshots were inspected: the opaque roof obscures the player with fading disabled, while the dithered roof reveals the player when enabled. See `Art/Environment/OldVillage/LevelPreviews/Camera_Dissolve_On.png` and `Camera_Dissolve_Off.png`. The original dressed map had 180 prepared scenery components; the blockout uses the same setup. The full detour/crowd run completed before an unsupported Python material-data inspection interrupted its camera stage; the corrected camera-only run subsequently passed, including disable/restore behavior.
+
+After saving navigation and fade setup, spawning/timer checks passed again in both maps: each reached 36 living enemies at `00:06`, with the HUD and controller clocks matching the spawner. All ground, connecting-route, and boundary collision probes passed again.
+
+The editor also reports a missing texture in the existing `M_UI_UpgradeRarityGlow` UI material. That shared UI asset was not changed by this environment pass.
+
+## Expanded-map validation
+
+`Tools/Run-OldVillage.ps1 -Script test_old_village_expansion.py -Render` chains the six-view review, grounding and collision audit, navigation detours/crowd budget, camera fade, and both-map startup/event checks. Reports are in `Saved/OldVillage/Review/{Validation,NavigationCamera,Spawning}.json`.
+
+The expanded-map audit passed all 21 supplied-asset checks, all 489 grounded-prop checks, the grounded gate check, nine ground probes, seven clear main-route sweeps, and six boundary probes. Saved shrine times remain 180 and 300 seconds. All three enemy detours passed; the longer training-fence route took about 51 seconds at the test enemy speed. The 128-enemy crowd stayed within two navigation requests per frame. Across this run, 114 path requests used 8.05 ms total, with a 0.120 ms maximum individual query; these are query timings, not whole-frame performance measurements. Camera detection, disabling, and restoration passed again. Six updated overview/district/blockout renders and the on/off camera pair are saved in `Art/Environment/OldVillage/LevelPreviews`.
+
+The blockout medallion is visual-only, matching the dressed paving. `Tools/fix_old_village_blockout_paving.py` repairs just that placeholder and rebakes the blockout navigation, with a map backup.
+
+Final startup/event checks passed in both saved maps: two scheduled Blood Shrines, healing and magnet urns, a marching formation, an Ember Circle, and a wall trap. Each map reached 8 seconds with the spawner, controller, and HUD clock data agreeing and natural enemies present. Tests temporarily use 2/4-second schedules, disable player auto-attacks/damage, and record urns as they spawn so combat cannot invalidate a final count. Field events are tested in the clear court. The final run used `-Play`/NullRHI and checks HUD clock data only; visible timer text was verified in the preceding rendered runs. This is a startup/placement check, not a full run or encounter-balance playthrough.
+
+## Objective and scenery repairs
+
+`Tools/polish_old_village.py` backs up and repairs the saved maps in place, preserving existing scenery, gate, and PlayerStart transforms. Large props use isolated mesh copies with simple collision; the torii frame uses its triangle geometry so its archway stays open. Original shared vendor meshes are preserved. Bamboo uses a stable two-sided leaf-mask material without wind displacement. Existing planted beds gain paired shrubs and rose bushes from the Stylized Village pack, with compact solid planting proxies and distance culling. The usual static navigation and camera-fade setup is reapplied afterward. The full builder uses the same repair function.
+
+`BossToriiGate::AlignPortalToGate` positions the existing portal VFX from the visible gate bounds, at the center of its walk-through opening below the roof, while preserving the effect asset, rotation and scale. It runs before component BeginPlay lowers the gate for its emergence animation, then attaches the effect to the visual with its world transform preserved. This keeps the portal centered throughout the rise. Alignment is also applied to saved village instances.
+
+Objective arrows expire after ten active gameplay seconds; wall events never announce an arrow. Wall segments rise first, then the UI intro pauses on the visible ring. Their barrier blocks Enemy as well as Pawn, and enemy swept movement recognizes breakable wall barriers as geometry. Breaking a segment releases collision immediately. Static navigation remains baked; temporary seals do not trigger runtime navigation rebuilds.
+
+This pass repairs 54 bamboo plants and adds 38 shrubs/rose bushes. The saved-map actor-transform preservation check passed. `HeavensDivide.Encounters.ObjectiveIntro`, `FieldObjectives`, `Enemies.NavigationBudget`, and `Movement.DashGround` all passed after the Development Editor build. The field tests exercise actual enemy swept movement against intact and broken segments; the intro test verifies that every surviving wall is visible and solid before text pauses the world. `Tools/review_old_village_polish.py -Render` captures planting, the active portal, and the wall introduction, and checks representative large-prop traces, tiny pottery collision, and main-route clearance.
+
+Final rendered PIE review passed: four representative large-prop traces, nonblocking storage pottery, nine ground probes, seven clear connecting routes, and six solid boundaries. The active portal center is Z=306.94 cm with the gate grounded at Z=0; the emergence regression test also passed. All 51 wall segments were visible and blocked Enemy when the intro paused the world, after an initially unpaused reveal. Planting and portal images were visually inspected. World screenshots omit UMG; UI sequencing is covered by the native intro test and PIE pause-state checks. Reports are in Saved/OldVillage/PolishReview and previews in Art/Environment/OldVillage/LevelPreviews/Polish_*.png. Existing authored transforms were preserved.
+
+## Bamboo detail levels and surrounding world
+
+The remaining leaf-only bamboo bug was geometry loss in the supplied LOD chain: SM_TreeBamboo01a has trunk and leaf sections at LOD0/1, but LOD2 through LOD7 contain only the leaf material section. The original material comparison and section audit are recorded in Saved/OldVillage/BambooReview. Tools/fix_old_village_bamboo.py creates isolated copies of both bamboo variants with their two intact detail levels. All 54 saved plants alternate between the variants, preserve placement and collision proxies, retain camera fading, and cull beyond 65 metres. The lowest retained levels have 5,023 and 3,612 vertices; the full-detail counts are 7,465 and 5,898. Shared vendor assets are unchanged.
+
+Tools/add_old_village_backdrop.py repairs the bamboo and adds decorative countryside to both village maps, backing them up first and checking existing actor transforms. The backdrop has a 20,000-triangle terrain mesh, painted grass and sky materials, an extended water horizon, 200 trees in two hierarchical instance groups, a hilltop sanctuary, two farmhouses on stone terraces, and three coastal sea stacks. Height fog is non-volumetric and starts beyond 120 metres. Backdrop components have no collision, navigation influence, dynamic shadows, or ticking. Existing arena boundaries and playable dimensions remain intact. The builder and scenery preparation scripts preserve these distinctions.
+
+Tools/generate_old_village_backdrop.py generates the terrain FBX through Blender; Tools/old_village_backdrop_shape.py shares its placement coordinates. Tools/review_old_village_backdrop.py checks both bamboo material sections at every retained LOD, explicitly renders the lowest LOD, captures the real gameplay camera, checks backdrop collision/navigation exclusions, and runs the existing ground, main-route, and boundary probes. Reports and images are saved in Saved/OldVillage/BackdropReview.
+
+Final saved-map review passed: all 54 bamboo plants use the two repaired variants, both retained LODs have trunk and leaf sections, and trunks were visually confirmed in the lowest-detail render and actual gameplay camera. Backdrop components are nonblocking and excluded from navigation. All nine ground probes, seven main-route sweeps, and six boundary checks passed. The final edge, coastal, overview, and bamboo screenshots are copied to Art/Environment/OldVillage/LevelPreviews/Backdrop_*.png. Distant tree material instances disable wind, retain the vertex positioning required by billboard LODs, and use muted foliage colors; vendor materials remain unchanged. These checks do not constitute a whole-frame performance benchmark.
+
+## Run entry verification
+
+The editor build succeeded. `HeavensDivide.Progression.RunPreparation` and `HeavensDivide.Progression.RunReports` passed. The UI test exercised the actual Begin Run handler: it requested `/Game/Maps/Lvl_OldVillage` and retained both selected stances. Its 1280x720 preview was inspected; the village name, description, and illustration fit. The broader `HeavensDivide.UI.RunPreparationAndMinimap` suite reported three failures in its existing SoulConvergence selection assertions (before the new travel assertions); those combo checks are outside this map change. Full results: `Saved/OldVillage/RunEntryTests/index.json`. No packaged build was produced.
+
+Boss gate timing: the shared `BP_BossToriiGate` had a five-second test override. Its saved default and both village instances now use 600 seconds of run time (10:00); the native default, village setup helper, and balance tuning use the same value. The saved maps were reloaded and checked. Pausing still pauses the run clock. Timing report: `Saved/OldVillage/GateTiming.json`; pre-change packages are backed up under `Saved/OldVillage/GateTimingBackups`.

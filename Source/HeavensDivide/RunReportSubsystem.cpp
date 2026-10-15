@@ -2,6 +2,7 @@
 #include "ComboAbilityDefinition.h"
 #include "SteamLeaderboardSubsystem.h"
 #include "RunChallengeSubsystem.h"
+#include "RunTravelSubsystem.h"
 #include "SynergyMetaProgressionSubsystem.h"
 #include "TesterBalanceSettings.h"
 #include "SurvivorPlayerController.h"
@@ -15,6 +16,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Misc/PackageName.h"
 
 namespace
 {
@@ -32,9 +34,10 @@ namespace
 const TArray<FRunMapInfo>& RunReports::Maps()
 {
     static const TArray<FRunMapInfo> Values = {
-        {TEXT("FallenGrove"), TEXT("THE FALLEN GROVE"), TEXT("GROVE"), TEXT("bloodshift_fallen_grove_score_v1")},
-        {TEXT("CinderCitadel"), TEXT("CINDER CITADEL"), TEXT("CITADEL"), TEXT("bloodshift_cinder_citadel_score_v1")},
-        {TEXT("HollowMarsh"), TEXT("HOLLOW MARSH"), TEXT("MARSH"), TEXT("bloodshift_hollow_marsh_score_v1")}
+        {TEXT("FallenGrove"), TEXT("OLD VILLAGE"), TEXT("VILLAGE"), TEXT("bloodshift_fallen_grove_score_v1")},
+        {TEXT("MoonlitForest"), TEXT("MOONLIT FOREST"), TEXT("FOREST"), TEXT("bloodshift_moonlit_forest_score_v1")},
+        {TEXT("HollowMarsh"), TEXT("SUNKEN SANCTUARY"), TEXT("RUINS"), TEXT("bloodshift_hollow_marsh_score_v1")},
+        {TEXT("CinderCitadel"), TEXT("EMBER QUARRY"), TEXT("QUARRY"), TEXT("bloodshift_cinder_citadel_score_v1")}
     };
     return Values;
 }
@@ -190,7 +193,9 @@ void URunReportSubsystem::BeginRun(ASurvivorPlayerController* Controller)
     RunBuild = {}; Damage.Reset(); ModifierSnapshot.Reset(); CountedKills.Reset(); CountedObjectives.Reset();
     bActive = true;
     const auto* World = Controller ? Controller->GetWorld() : nullptr;
-    bRanked = World && World->GetMapName().EndsWith(TEXT("Lvl_B1_Lvl1")) && RunChallenges::CanEarnCurrencies(World);
+    const FName PlayedMap = World ? URunTravelSubsystem::GetMapIdForLevel(UGameplayStatics::GetCurrentLevelName(World, true)) : NAME_None;
+    if (!PlayedMap.IsNone()) Run.MapId = PlayedMap;
+    bRanked = !PlayedMap.IsNone() && RunChallenges::CanEarnCurrencies(World);
     bDifficultyEligible=bRanked;
     RankReason = bRanked ? FString() : TEXT("Practice or unsupported map");
     if (GetDefault<UTesterBalanceSettings>()->bEnabled)

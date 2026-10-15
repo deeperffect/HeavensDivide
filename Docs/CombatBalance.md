@@ -96,7 +96,7 @@ Basic attacks deal 6–14 damage; tactical attacks 8–28; major boss attacks 16
 
 - Keep basic population growth and enemy introduction times; composition and density replace HP inflation.
 - Timed threats share a six-enemy ceiling plus per-class caps. Spawn-slot chance is 18%, down from 30%. The separate marching formation is not counted in this ceiling.
-- Blood Shrines: 3 and 5 minutes; boss gate: 8. Technique Trials and Twin Soul trials no longer spawn, including through legacy debug shortcuts. Equip up to five unlocked synergies in New Run; synergies do not appear in run drafts.
+- Blood Shrines: 3 and 5 minutes; boss gate: 10 minutes. Technique Trials and Twin Soul trials no longer spawn, including through legacy debug shortcuts. Equip up to five unlocked synergies in New Run; synergies do not appear in run drafts.
 - Preserve the XP curve and 30-seconds-per-Ember economy. Replace two nonfunctional XP knobs with a working whole-curve multiplier, default 1.0.
 - Full permanent damage × ordinary cadence is approximately **2.08×** fresh-save output before stance-specific utility (1.17 shared damage × 1.33 character damage × 1.14 shared cadence × 1.17 character cadence). Projectile count exists only on the Barrage branch. See [MetaSkillTree.md](MetaSkillTree.md) for all six stance paths and their distinct mechanics.
 

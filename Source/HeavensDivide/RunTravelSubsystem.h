@@ -32,6 +32,10 @@ class HEAVENSDIVIDE_API URunTravelSubsystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 public:
+	// Shared destination for Begin Run, Restart Run, and New Run.
+	static constexpr const TCHAR* StartingLevel = TEXT("/Game/Maps/Lvl_OldVillage");
+	static FName GetStartingLevel(const UObject* WorldContextObject);
+	static FName GetMapIdForLevel(const FString& LevelName);
 	bool CaptureFromController(ASurvivorPlayerController* Controller);
 	bool RestoreToController(ASurvivorPlayerController* Controller);
 	bool HasPendingRestore() const { return Snapshot.bValid; }

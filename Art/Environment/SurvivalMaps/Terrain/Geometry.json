@@ -1,0 +1,26 @@
+{
+  "SM_MoonlitForest_Ground": {
+    "vertices": 5060,
+    "triangles": 9808
+  },
+  "SM_MoonlitForest_Surroundings": {
+    "vertices": 10201,
+    "triangles": 18976
+  },
+  "SM_SunkenSanctuary_Ground": {
+    "vertices": 7060,
+    "triangles": 13606
+  },
+  "SM_SunkenSanctuary_Surroundings": {
+    "vertices": 10201,
+    "triangles": 18492
+  },
+  "SM_EmberQuarry_Ground": {
+    "vertices": 7391,
+    "triangles": 14406
+  },
+  "SM_EmberQuarry_Surroundings": {
+    "vertices": 10201,
+    "triangles": 18472
+  }
+}

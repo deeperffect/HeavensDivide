@@ -71,6 +71,8 @@ bool FUpgradeCardLayoutTest::RunTest(const FString&)
    const auto& FG = Fit->GetPaintSpaceGeometry();
    const FVector2D Top = FG.AbsoluteToLocal(TG.LocalToAbsolute(FVector2D::ZeroVector));
    const FVector2D Bottom = FG.AbsoluteToLocal(TG.LocalToAbsolute(TG.GetLocalSize()));
+   if (Top.X < -1 || Top.Y < -1 || Bottom.X > FG.GetLocalSize().X + 1 || Bottom.Y > FG.GetLocalSize().Y + 1)
+    AddInfo(FString::Printf(TEXT("Text fit batch=%d card=%d top=%s bottom=%s desired=%s"),Batch,I,*Top.ToString(),*Bottom.ToString(),*Text->GetDesiredSize().ToString()));
    if (Batch == 0)
    {
     AddInfo(FString::Printf(TEXT("Card %d: text %s fit %s top %s bottom %s"), I, *TG.GetLocalSize().ToString(), *FG.GetLocalSize().ToString(), *Top.ToString(), *Bottom.ToString()));
@@ -79,7 +81,8 @@ bool FUpgradeCardLayoutTest::RunTest(const FString&)
    }
    TestTrue(TEXT("Description stays inside its allotted frame"), Top.X >= -1 && Top.Y >= -1 && Bottom.X <= FG.GetLocalSize().X + 1 && Bottom.Y <= FG.GetLocalSize().Y + 1);
    TestTrue(TEXT("Description has visible layout"), TG.GetLocalSize().Y > 0 && FG.GetLocalSize().Y > 0);
-   TestTrue(*FString::Printf(TEXT("Full description fits without truncation: %s"), *Cards[FMath::Min(Batch * 3 + I, Cards.Num() - 1)]->UpgradeId.ToString()), Text->GetDesiredSize().Y <= FG.GetLocalSize().Y + 1);
+   const FVector2D DesiredBottom = FG.AbsoluteToLocal(TG.LocalToAbsolute(Text->GetDesiredSize()));
+   TestTrue(*FString::Printf(TEXT("Full description fits without truncation: %s"), *Cards[FMath::Min(Batch * 3 + I, Cards.Num() - 1)]->UpgradeId.ToString()), DesiredBottom.Y <= FG.GetLocalSize().Y + 1);
    auto* Art = Widget->WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeArtwork_%d"), I));
    auto* Panel = Widget->WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeArtworkContainer_%d"), I));
    const auto& AG = Art->GetPaintSpaceGeometry();

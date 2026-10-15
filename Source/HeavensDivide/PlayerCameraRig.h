@@ -9,6 +9,7 @@
 class ACharacterBase;
 class UCameraComponent;
 class USpringArmComponent;
+class UCameraOcclusionComponent;
 
 UCLASS()
 class HEAVENSDIVIDE_API APlayerCameraRig : public AActor
@@ -47,6 +48,9 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<UCameraComponent> Camera;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Camera")
+	TObjectPtr<UCameraOcclusionComponent> OcclusionFade;
 
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Camera")
 	TObjectPtr<ACharacterBase> FollowTarget;

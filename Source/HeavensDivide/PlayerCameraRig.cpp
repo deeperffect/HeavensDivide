@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "PlayerCameraRig.h"
+#include "CameraOcclusionComponent.h"
 
 #include "Camera/CameraComponent.h"
 #include "CharacterBase.h"
@@ -33,6 +34,8 @@ APlayerCameraRig::APlayerCameraRig()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(CameraBoom);
 	Camera->bUsePawnControlRotation = false;
+	OcclusionFade = CreateDefaultSubobject<UCameraOcclusionComponent>(TEXT("OcclusionFade"));
+	OcclusionFade->AddTickPrerequisiteComponent(CameraBoom);
 }
 
 void APlayerCameraRig::Tick(float DeltaSeconds)

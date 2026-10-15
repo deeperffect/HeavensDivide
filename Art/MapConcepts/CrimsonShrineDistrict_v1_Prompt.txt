@@ -1,0 +1,24 @@
+Generation mode: built-in image_gen
+Input: user-supplied League of Legends Swarm map screenshot, used as layout reference.
+Output: CrimsonShrineDistrict_v1.png
+Purpose: concept reference only; no Unreal level changes.
+
+Use case: stylized-concept.
+Asset type: environment and level-layout reference image for the Unreal Engine survivor-action game Heavens Divide / Bloodshift.
+Input image 1 is a LAYOUT REFERENCE ONLY: the user's overhead League of Legends Swarm map screenshot. Create a new original fantasy environment with very similar broad spatial organization and gameplay readability, reimagined as a Japanese shrine district appropriate for samurai and ninja combat.
+
+Create one polished, detailed, stylized 3D game-environment concept, wide landscape 16:9, high oblique overhead / near-orthographic camera matching the reference. Show the ENTIRE bounded map in one view, all edges visible, centered with a small dark desaturated blue background margin. This is a useful level-building reference with clearly visible traversable ground, not a cinematic landscape.
+
+Layout:
+- Near-square contiguous arena footprint viewed from above, about 150 metres across in suggested scale. Flat connected combat ground, broad generously wide looping stone routes and multiple cross-connections, large uncluttered fighting spaces.
+- CENTER: a compact circular Blood Shrine altar with a small crimson spirit flame and carved stone ring, occupying only a small fraction of a very wide open circular crossroads. Players can move freely around it in all directions. Roads radiate northwest, northeast, southeast and southwest.
+- LEFT THIRD: long lush shrine garden with two broad grassy combat clearings, sparse edge clusters of bamboo, pines and a few crimson maples, a small rectangular jade-water basin in the upper clearing. Low garden walls and wooden boundary buildings along the far left perimeter. Wide earth paths loop through the garden with several broad openings onto the central north-south stone avenue. Keep tree canopies off the main fighting areas.
+- UPPER CENTER / UPPER RIGHT: a large open ceremonial stone-and-muted-terracotta courtyard with a circular inset stone emblem and sparse grass islands. Along the very top boundary stand a main tiled-roof shrine hall, lower side halls and red torii gateways. Buildings stay at the boundary, with an ample clear forecourt below them. The north-south avenue separates the left gardens from this court.
+- RIGHT THIRD: a compact ruined temple service / forge quarter, corresponding to the reference's denser industrial district. Three or four low separated obstacle islands of roofed workshops, stone foundations, copper braziers, storage sheds and broken masonry. Broad navigable lanes visibly loop around every island and connect to center and south; no maze or narrow alleys. Architecture remains Japanese fantasy, no modern industry.
+- LOWER CENTER: a distinct angular terracotta-and-stone training court with a few flat grass insets, surrounded by a wide continuous walking loop connecting center to the eastern quarter.
+- LOWER LEFT: teal water outside a strong diagonal stone embankment; the diagonal waterfront forms the arena boundary, with a wide walkable promenade on the inland side. The water does not cut the playable ground in half.
+- Outer border formed by low stone walls, rock ledges, shrine fences and boundary buildings, with readable gateway breaks. Subtle secondary shrine markers may sit at edges of two clearings.
+
+Style: attractive hand-painted stylized game art translated into a crisp 3D environment render, chunky clean silhouettes, softly bevelled stone, restrained texture detail. Mossy jade grass, warm ochre dirt, cool slate and lavender-grey flagstones, muted terracotta courtyards, dark blue tiled roofs, weathered red wood, sparse warm amber lanterns. Warm daylight and cool fill, short soft shadows, no heavy fog. Ground remains quieter and less saturated than major landmarks for enemy and attack readability.
+
+Constraints: preserve the supplied map's overall distribution of open spaces, avenue network, landmark positions, waterfront corner and contrast between green western district and built-up eastern district. At least roughly two thirds of playable interior reads as clear ground. Keep buildings modest and concentrated along borders and in the small eastern obstacle islands. Every district connects through generous openings; no bridge bottlenecks. No characters, enemies, HUD, labels, text, logos, watermarks, sci-fi skyscrapers, asphalt, neon billboards or modern cars. Entire map visible, no cropped corners, no exploded view, no floating islands, no dramatic perspective, no oversized central temple.

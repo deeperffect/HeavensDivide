@@ -3,6 +3,9 @@
 #include "ObjectiveIntroWidget.h"
 #include "ObjectiveGuidanceSubsystem.h"
 #include "ObjectiveGuidanceWidget.h"
+#include "BossToriiGate.h"
+#include "NiagaraComponent.h"
+#include "ObjectiveInteractionComponent.h"
 #include "MinimapMarkerComponent.h"
 #include "SurvivalFieldObjective.h"
 #include "BloodShrine.h"
@@ -10,6 +13,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "EnemyBase.h"
 #include "EnemySpawner.h"
+#include "EncounterWall.h"
 #include "CharacterBase.h"
 #include "SurvivorPlayerController.h"
 #include "Components/TextRenderComponent.h"
@@ -19,6 +23,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
+#include "Engine/StaticMesh.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/WorldSettings.h"
 #include "Kismet/GameplayStatics.h"
@@ -53,6 +58,12 @@ bool FObjectiveIntroTest::RunTest(const FString&)
     FVector ArrowTarget;
     TestTrue(TEXT("Arrow guides distant players to the new circle"),Guidance->FindGuidanceTarget(Zone,FVector(2000,0,0),ArrowTarget));
     TestFalse(TEXT("Arrow clears at interaction distance"),Guidance->FindGuidanceTarget(Zone,FVector(100,0,0),ArrowTarget));
+    Guidance->AdvanceLifetimes(9.99f);
+    TestEqual(TEXT("Spawn arrow remains for the first ten seconds"),Guidance->GetTrackedCount(),1);
+    Guidance->AdvanceLifetimes(.02f);
+    TestEqual(TEXT("Spawn arrow expires after ten seconds"),Guidance->GetTrackedCount(),0);
+    Guidance->Announce(Zone);
+    TestEqual(TEXT("Duplicate announcements cannot restart an expired arrow"),Guidance->GetTrackedCount(),0);
     TestEqual(TEXT("Circle uses 1.5 times the original radius"),Zone->Radius,1200.f);
     TestNotNull(TEXT("Circle has a real activation mesh"),Zone->ActivationMesh->GetStaticMesh().Get());
     TestFalse(TEXT("Circle has no world instruction label"),Zone->FindComponentByClass<UTextRenderComponent>()->IsVisible());
@@ -111,12 +122,15 @@ bool FObjectiveIntroTest::RunTest(const FString&)
     Ground->SetCollisionResponseToAllChannels(ECR_Block);Ground->RegisterComponent();Floor->SetActorLocation(FVector(0,0,-10));
     auto* Trap=World->SpawnActor<ASurvivalFieldObjective>(FVector(0,0,5),FRotator::ZeroRotator);
     TestTrue(TEXT("Wall event spawns a complete ring"),Trap->InitializeWallTrap(Spawner));
-    TestTrue(TEXT("Wall event shows the same paused intro"),PC->IsObjectiveIntroPlaying() && UGameplayStatics::IsGamePaused(World));
-    Trap->Tick(10.f);TestEqual(TEXT("Wall lifetime cannot elapse during its intro"),Trap->Age,0.f);
+    TestFalse(TEXT("Wall ring rises before the intro pauses the world"),PC->IsObjectiveIntroPlaying() || UGameplayStatics::IsGamePaused(World));
+    Trap->Tick(.01f);Trap->Tick(Trap->WallWaveSeconds+Trap->WallRiseSeconds+.01f);
+    TestTrue(TEXT("Wall intro appears only after the reveal finishes"),PC->IsObjectiveIntroPlaying() && UGameplayStatics::IsGamePaused(World));
+    for(auto Wall:Trap->Walls) TestTrue(TEXT("All walls are visible and solid behind the intro"),Wall->Stone->IsVisible() && Wall->Barrier->IsCollisionEnabled());
+    const float RevealAge=Trap->Age;
+    Trap->Tick(10.f);TestEqual(TEXT("Wall lifetime cannot elapse during its intro"),Trap->Age,RevealAge);
     PC->UpdateObjectiveIntro(UObjectiveIntroWidget::Duration);
     TestFalse(TEXT("Wall intro unpauses automatically"),UGameplayStatics::IsGamePaused(World));
-    TestTrue(TEXT("Wall arrow points to its boundary while the player is enclosed"),Guidance->FindGuidanceTarget(Trap,FVector::ZeroVector,ArrowTarget));
-    TestTrue(TEXT("Boundary target lies on the ring"),FMath::IsNearlyEqual(float(FVector::Dist2D(Trap->GetActorLocation(),ArrowTarget)),Trap->Radius));
+    TestFalse(TEXT("Wall event never displays a guidance arrow"),Guidance->FindGuidanceTarget(Trap,FVector::ZeroVector,ArrowTarget));
     TestFalse(TEXT("Wall arrow disappears after escaping"),Guidance->FindGuidanceTarget(Trap,FVector(2000,0,0),ArrowTarget));
     Trap->DispatchBeginPlay();Trap->Tick(10.f);
     TestFalse(TEXT("Wall lifetime begins after its intro"),Trap->IsActorBeingDestroyed());
@@ -138,6 +152,19 @@ bool FObjectiveIntroTest::RunTest(const FString&)
     TestTrue(TEXT("Text dissolves from left to right"),UObjectiveIntroWidget::LetterOpacity(3.75f,.1f)<UObjectiveIntroWidget::LetterOpacity(3.75f,.9f));
     TestEqual(TEXT("Text is gone before resuming"),UObjectiveIntroWidget::LetterOpacity(UObjectiveIntroWidget::Duration,1.f),0.f);
 
+    // Portal alignment must use the authored pose, not the temporarily lowered
+    // mesh during the interaction component's emergence animation.
+    auto* Gate=World->SpawnActor<ABossToriiGate>();
+    auto* GateMesh=Gate->FindComponentByClass<UStaticMeshComponent>();
+    auto* Portal=Gate->FindComponentByClass<UNiagaraComponent>();
+    auto* GateInteraction=Gate->FindComponentByClass<UObjectiveInteractionComponent>();
+    GateMesh->SetStaticMesh(LoadObject<UStaticMesh>(nullptr,TEXT("/Engine/BasicShapes/Cube.Cube")));
+    GateMesh->SetRelativeScale3D(FVector(4,1,8));GateMesh->SetRelativeLocation(FVector(0,0,400));
+    Gate->DispatchBeginPlay();
+    TestTrue(TEXT("Portal follows the gate during its rise"),Portal->GetAttachParent()==GateMesh);
+    GateInteraction->TickComponent(1.f,LEVELTICK_All,nullptr);
+    TestTrue(TEXT("Portal remains centered above ground after emergence"),FMath::IsNearlyEqual(Portal->GetComponentLocation().Z,304.,1.));
+    Gate->Destroy();
     PC->CancelObjectiveIntro();World->DestroyWorld(false);GEngine->DestroyWorldContext(World);
     return true;
 }

@@ -35,6 +35,10 @@ ABossToriiGate::ABossToriiGate()
 
 void ABossToriiGate::BeginPlay()
 {
+	// Component BeginPlay lowers the visual for its emergence animation. Align
+	// against the authored pose first, then let the effect follow the rising gate.
+	AlignPortalToGate();
+	if (UnlockVFX && GateVisual) UnlockVFX->AttachToComponent(GateVisual, FAttachmentTransformRules::KeepWorldTransform);
 	Super::BeginPlay();
 	// The gate owns activation, even if Auto Activate was changed in the Blueprint.
 	if (UnlockVFX) UnlockVFX->DeactivateImmediate();
@@ -42,6 +46,16 @@ void ABossToriiGate::BeginPlay()
 	PollUnlockState();
 	if(ObjectiveInteraction)ObjectiveInteraction->SetUnavailablePresentation(GateState==EBossToriiGateState::Locked,FText::FromString(TEXT("SEALED")));
 	if (GateState == EBossToriiGateState::Locked) GetWorldTimerManager().SetTimer(UnlockPollTimer, this, &ABossToriiGate::PollUnlockState, 0.25f, true);
+}
+
+void ABossToriiGate::AlignPortalToGate()
+{
+	if (!GateVisual || !GateVisual->GetStaticMesh() || !UnlockVFX) return;
+	const FBox Bounds=GateVisual->CalcBounds(GateVisual->GetComponentTransform()).GetBox();
+	FVector Center=Bounds.GetCenter();
+	// The roof occupies the top quarter; the walk-through opening is below it.
+	Center.Z=Bounds.Min.Z+Bounds.GetSize().Z*.38;
+	UnlockVFX->SetWorldLocation(Center);
 }
 
 void ABossToriiGate::EndPlay(const EEndPlayReason::Type EndPlayReason)

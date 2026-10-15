@@ -38,6 +38,7 @@ public:
     UFUNCTION(BlueprintPure, Category="Run|Challenges") bool CanEditModifiers() const;
     int32 GetUnlockedRank(FName Id) const;
     bool SetMap(FName Id);
+    FName GetMapId() const { return MapId; }
     void BeginRun();
     bool ApplyEnemy(AEnemyBase* Enemy);
     bool ApplySpawner(AEnemySpawner* Spawner);

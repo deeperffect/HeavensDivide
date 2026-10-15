@@ -19,8 +19,20 @@ bool IsAvailable(AActor* Objective)
 
 void UObjectiveGuidanceSubsystem::Announce(AActor* Objective)
 {
-    if(!IsAvailable(Objective) || Objectives.Contains(Objective)) return;
+    if(!IsAvailable(Objective) || ArrowSecondsRemaining.Contains(Objective)) return;
+    if(const auto* Field=Cast<ASurvivalFieldObjective>(Objective); Field && Field->IsWallTrap()) return;
+    ArrowSecondsRemaining.Add(Objective,ArrowDuration);
     Objectives.Add(Objective);PendingPopups.Add(Objective);
+}
+
+void UObjectiveGuidanceSubsystem::AdvanceLifetimes(float Delta)
+{
+    for(auto It=ArrowSecondsRemaining.CreateIterator();It;++It)
+    {
+        if(!IsAvailable(It.Key().Get())) It.RemoveCurrent();
+        else It.Value()=FMath::Max(0.f,It.Value()-FMath::Max(0.f,Delta));
+    }
+    Objectives.RemoveAll([this](const auto& Entry){return ArrowSecondsRemaining.FindRef(Entry)<=0.f;});
 }
 
 bool UObjectiveGuidanceSubsystem::FindGuidanceTarget(AActor* Objective,const FVector& Player,FVector& Target)
@@ -30,14 +42,7 @@ bool UObjectiveGuidanceSubsystem::FindGuidanceTarget(AActor* Objective,const FVe
     Target=Marker->GetMarkerWorldLocation();
     if(const auto* Field=Cast<ASurvivalFieldObjective>(Objective))
     {
-        if(Field->IsWallTrap())
-        {
-            if(FVector::DistSquared2D(Player,Target)>FMath::Square(Field->Radius+120.f)) return false;
-            FVector Direction=(Player-Target).GetSafeNormal2D();
-            if(Direction.IsNearlyZero()) Direction=FVector::ForwardVector;
-            Target+=Direction*Field->Radius;
-            return true;
-        }
+        if(Field->IsWallTrap()) return false;
         if(Field->IsHoldActive() && Field->ContainsPlayer(Player)) return false;
     }
     else if(Marker->GetMarkerState()==EMinimapMarkerState::Active) return false;
@@ -54,6 +59,7 @@ void UObjectiveGuidanceSubsystem::Tick(float Delta)
     if(PC->IsObjectiveIntroPlaying() || PC->IsSelectingUpgrade() || UGameplayStatics::IsGamePaused(PC)
         || UGameplayStatics::GetGlobalTimeDilation(PC)<.01f) return;
     if(!PC->GetPawn()) return;
+    AdvanceLifetimes(Delta);
     if(!Widget && !Objectives.IsEmpty())
     {
         Widget=CreateWidget<UObjectiveGuidanceWidget>(PC);
@@ -101,5 +107,5 @@ void UObjectiveGuidanceSubsystem::Deinitialize()
 void UObjectiveGuidanceSubsystem::ClearPresentation()
 {
     if(Widget) { Widget->RemoveFromParent();Widget=nullptr; }
-    Objectives.Reset();PendingPopups.Reset();PopupOwner.Reset();
+    Objectives.Reset();PendingPopups.Reset();PopupOwner.Reset();ArrowSecondsRemaining.Reset();
 }

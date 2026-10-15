@@ -1,0 +1,26 @@
+Generation mode: built-in image_gen, edit
+Input: CrimsonShrineDistrict_v1.png
+Output: CrimsonShrineDistrict_v2_OldVillage.png
+Purpose: concept reference only; no Unreal level changes.
+
+Use case: style-transfer.
+Asset type: revised game map environment concept for Heavens Divide / Bloodshift.
+Input image 1 is the EDIT TARGET: CrimsonShrineDistrict_v1, the previous overhead map concept.
+
+User request: make this map feel much less futuristic and more like the old days. Rework it as an old rural Japanese shrine village in a grounded, preindustrial samurai-era fantasy world. This must be a clearly noticeable era and material change across the entire map, not a small color adjustment.
+
+Preserve: the same wide landscape aspect ratio, high overhead near-orthographic view, contiguous near-square map footprint, western gardens and pool, northern shrine courtyard, small central circular landmark, eastern clusters of buildings, lower training clearing, southwest diagonal waterfront, and the broad looping routes connecting all these areas. Maintain ample clear ground for swarm combat and wide lanes around obstacles. Keep the whole map readable.
+
+Changes:
+Replace the broad perfectly engineered grey streets with wide worn ochre dirt tracks, compacted earth, gravel, and intermittent irregular old flagstones with softened mossy edges. Remove ALL thin gold lane lines, road-like surface markings, crisp concrete curbs, painted geometric islands, hexagonal paving and precision circular metal-looking rings. Paths keep their original connectivity and generous width but their edges become organic and timeworn.
+Replace the central glowing red energy device with a small ancient stone shrine altar: a rough low circular stone foundation, simple carved standing stone, weathered wood, sacred rope and a tiny votive candle or subdued charcoal incense bowl. No energy beam, neon, metallic machinery or technological glow. Leave plenty of open fighting space around it.
+Northern plaza becomes a large worn earth-and-aged-stone ceremonial clearing with a faint old stone circle, a little moss and scattered worn pavers, no modern municipal-plaza geometry. Main shrine is modest and old, with sun-bleached timber, faded vermilion accents, heavy weathered ceramic roof tiles and old stone steps.
+Eastern area becomes humble timber houses, rustic blacksmith sheds and storehouses, some with straw-thatched roofs, others faded dark clay tiles. Remove oversized furnace machinery, shiny bronze devices and all industrial-looking contraptions. Small simple masonry hearths, wood piles, wooden carts and barrels sit tightly against building walls, never cluttering combat lanes.
+Southern angular paved training area becomes a broad natural compacted-earth training clearing, with sparse patchy grass around the edges and a few weathered flat stones, still framed by the original circulation loop.
+Western garden becomes more natural and old: uneven low fieldstone borders, earthy paths, bamboo and pines at the perimeter, a weathered stone-edged pond instead of a geometric modern fountain. Keep the two large open grassy clearings.
+Waterfront and outer boundary use rough stacked fieldstone embankments and old timber fencing, less imposing and less perfectly machined than the current battlements.
+Use only a few small stone lanterns, paper lanterns under roof eaves and subtle warm candlelight. Reduce decorative banners, identical fixtures and shiny ornament. Make the place feel inhabited for generations, without turning it into rubble.
+
+Style: polished hand-painted stylized 3D game art, clear chunky shapes, restrained detail on playable surfaces, soft warm afternoon daylight, earthy ochre and muted olive greens, grey mossy stone, brown aged wood, faded red shrine details, subdued teal water. Retain readable game-map proportions and original composition.
+Framing: pull back just enough to include the complete main temple roof and all land-map corners with a small dark blue background margin.
+Avoid: modern or futuristic elements, energy cores, glowing runes, sci-fi symmetry, road markings, asphalt, pristine monumental paving, concrete highways, giant industrial furnaces, new towers, characters, UI, labels, text, logos, watermarks, dramatic perspective, excessive clutter.

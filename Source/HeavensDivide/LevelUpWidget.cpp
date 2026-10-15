@@ -12,12 +12,14 @@
 #include "Components/Image.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
+#include "Components/RetainerBox.h"
 #include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "PlayerUpgradeComponent.h"
 #include "SurvivorPlayerController.h"
 
@@ -31,6 +33,7 @@ void ULevelUpWidget::NativeOnInitialized()
 
 void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayerController)
 {
+	ResetChoiceExit();
 	SurvivorPlayerController = InPlayerController;
 	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
 	bCategoryChoiceCommitted = false;
@@ -44,6 +47,7 @@ void ULevelUpWidget::InitializeLevelUpWidget(ASurvivorPlayerController* InPlayer
 
 void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* InPlayerController)
 {
+	ResetChoiceExit();
 	SurvivorPlayerController = InPlayerController;
 	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
 	bCategoryChoiceCommitted = true;
@@ -59,6 +63,7 @@ void ULevelUpWidget::InitializeDirectUpgradeWidget(ASurvivorPlayerController* In
 
 void ULevelUpWidget::InitializeSynergyDiscoveryWidget(ASurvivorPlayerController* InPlayerController)
 {
+	ResetChoiceExit();
 	SurvivorPlayerController = InPlayerController;
 	PlayerUpgrades = SurvivorPlayerController ? SurvivorPlayerController->GetPlayerUpgrades() : nullptr;
 	bCategoryChoiceCommitted = true;
@@ -152,6 +157,7 @@ int32 ULevelUpWidget::GetVisibleChoiceCount() const
 
 void ULevelUpWidget::MoveControllerFocus(int32 Direction)
 {
+	if (bUpgradeChoiceCommitted) return;
 	const int32 ChoiceCount = GetVisibleChoiceCount();
 	if (ChoiceCount <= 0 || Direction == 0) return;
 	MouseHoveredButton = nullptr;
@@ -200,6 +206,7 @@ void ULevelUpWidget::RefreshChoiceScales()
 
 void ULevelUpWidget::RefreshMouseHoveredButton()
 {
+	if (bUpgradeChoiceCommitted) return;
 	UButton* NewHoveredButton = nullptr;
 	for (UButton* Button : FocusableChoiceButtons)
 	{
@@ -240,6 +247,7 @@ void ULevelUpWidget::RebuildFocusableChoices()
 
 FReply ULevelUpWidget::HandleControllerKey(const FKeyEvent& InKeyEvent)
 {
+	if (bUpgradeChoiceCommitted) return FReply::Handled();
 	const FKey Key = InKeyEvent.GetKey();
 	if (Key == EKeys::R || Key == EKeys::Gamepad_FaceButton_Left)
 	{
@@ -388,8 +396,102 @@ bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 
 	UE_LOG(LogTemp, Log, TEXT("UPGRADE SELECTED: %s"), SelectedUpgrade ? *SelectedUpgrade->DisplayName.ToString() : TEXT("None"));
 	UE_LOG(LogTemp, Log, TEXT("New upgrade level = %d"), PlayerUpgrades->GetUpgradeLevel(SelectedUpgrade));
-	OnSelectionCompleted.Broadcast();
+	BeginChoiceExit(ChoiceIndex);
 	return true;
+}
+
+void ULevelUpWidget::BeginChoiceExit(int32 SelectedIndex)
+{
+	bChoiceExitActive = true;
+	ChoiceExitElapsed = 0.f;
+	ChoiceExitSelectedIndex = SelectedIndex;
+	ChoiceExitVisuals.Reset();
+	MouseHoveredButton = nullptr;
+	SetMenuFocusedButton(nullptr);
+	RefreshDraftTools();
+	for (int32 Index = 0; Index < 3; ++Index)
+	{
+		UWidget* Visual = WidgetTree ? WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeCardSize_%d"), Index)) : nullptr;
+		ChoiceExitVisuals.Add(Visual);
+		if (Visual) Visual->SetRenderTransformPivot(FVector2D(.5f,.5f));
+		if (auto* Button = WidgetTree ? WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeButton_%d"), Index)) : nullptr)
+			if (Button->IsVisible()) Button->SetVisibility(ESlateVisibility::HitTestInvisible);
+	}
+	if (auto* Retainer = WidgetTree ? Cast<URetainerBox>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeSelectionRetainer_%d"), SelectedIndex))) : nullptr)
+	{
+		if (auto* Effect = LoadObject<UMaterialInterface>(nullptr,TEXT("/Game/HeavensDivide/Materials/UI/M_UpgradeCardSelectionDissolve.M_UpgradeCardSelectionDissolve")))
+		{
+			Retainer->SetEffectMaterial(Effect);
+			Retainer->SetRetainRendering(true);
+			ChoiceExitMaterial = Retainer->GetEffectMaterial();
+			if (ChoiceExitMaterial) ChoiceExitMaterial->SetScalarParameterValue(TEXT("Progress"),0.f);
+			Retainer->RequestRender();
+		}
+	}
+	UpdateChoiceExit(0.f);
+}
+
+void ULevelUpWidget::UpdateChoiceExit(float RealDeltaTime)
+{
+	if (!bChoiceExitActive) return;
+	ChoiceExitElapsed += FMath::Max(0.f,RealDeltaTime);
+	const float Fade = FMath::Clamp(ChoiceExitElapsed / UnselectedFadeSeconds,0.f,1.f);
+	const float Dissolve = FMath::Clamp((ChoiceExitElapsed-SelectedHoldSeconds)/SelectedDissolveSeconds,0.f,1.f);
+	for (int32 Index = 0; Index < ChoiceExitVisuals.Num(); ++Index)
+	{
+		UWidget* Visual = ChoiceExitVisuals[Index];
+		if (!Visual) continue;
+		if (Index == ChoiceExitSelectedIndex)
+		{
+			const float Emphasis = FMath::SmoothStep(0.f,SelectedHoldSeconds,ChoiceExitElapsed);
+			Visual->SetRenderScale(FVector2D(1.f+.035f*Emphasis));
+			Visual->SetRenderTranslation(FVector2D(0.f,-18.f*Dissolve));
+			Visual->SetRenderOpacity(ChoiceExitMaterial ? 1.f : 1.f-Dissolve);
+		}
+		else Visual->SetRenderOpacity(1.f-FMath::SmoothStep(0.f,1.f,Fade));
+	}
+	if (ChoiceExitMaterial) ChoiceExitMaterial->SetScalarParameterValue(TEXT("Progress"),Dissolve);
+	if (ChoiceExitElapsed >= SelectedHoldSeconds+SelectedDissolveSeconds)
+	{
+		// Completion may synchronously reuse this widget for the next queued offer.
+		bChoiceExitActive = false;
+		OnSelectionCompleted.Broadcast();
+	}
+}
+
+void ULevelUpWidget::ResetChoiceExit()
+{
+	bChoiceExitActive = false;
+	ChoiceExitElapsed = 0.f;
+	ChoiceExitSelectedIndex = INDEX_NONE;
+	ChoiceExitMaterial = nullptr;
+	ChoiceExitVisuals.Reset();
+	if (!WidgetTree) return;
+	for (int32 Index=0;Index<3;++Index)
+	{
+		if (auto* Visual=WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeCardSize_%d"),Index)))
+		{
+			Visual->SetRenderOpacity(1.f);
+			Visual->SetRenderTransform(FWidgetTransform());
+		}
+		if (auto* Retainer=Cast<URetainerBox>(WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeSelectionRetainer_%d"),Index))))
+			Retainer->SetRetainRendering(false);
+		if (auto* Button=WidgetTree->FindWidget(*FString::Printf(TEXT("UpgradeButton_%d"),Index)))
+			if (Button->GetVisibility()==ESlateVisibility::HitTestInvisible) Button->SetVisibility(ESlateVisibility::Visible);
+	}
+}
+
+void ULevelUpWidget::NativeTick(const FGeometry& Geometry,float DeltaTime)
+{
+	Super::NativeTick(Geometry,DeltaTime);
+	// UMG supplies Slate time here, independent of the frozen gameplay clock.
+	UpdateChoiceExit(DeltaTime);
+}
+
+void ULevelUpWidget::NativeDestruct()
+{
+	ResetChoiceExit();
+	Super::NativeDestruct();
 }
 
 int32 ULevelUpWidget::GetUpgradeLevel(UUpgradeDefinition* Upgrade) const
@@ -726,7 +828,12 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 
 		UOverlay* CardLayers = WidgetTree->ConstructWidget<UOverlay>(
 			UOverlay::StaticClass(), *FString::Printf(TEXT("UpgradeCardLayers_%d"), Index));
-		AuthoredCardSize->SetContent(CardLayers);
+		URetainerBox* Retainer = WidgetTree->ConstructWidget<URetainerBox>(
+			URetainerBox::StaticClass(), *FString::Printf(TEXT("UpgradeSelectionRetainer_%d"), Index));
+		Retainer->SetTextureParameter(TEXT("CardTexture"));
+		Retainer->SetRetainRendering(false);
+		Retainer->SetContent(CardLayers);
+		AuthoredCardSize->SetContent(Retainer);
 		UpgradeButton->SetContent(CardSize);
 
 		UVerticalBox* CardContent = WidgetTree->ConstructWidget<UVerticalBox>(
@@ -805,7 +912,17 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		DescriptionBounds->SetWidthOverride(TextWidth);
 		DescriptionBounds->SetHeightOverride(135.f);
 		DescriptionBounds->SetClipping(EWidgetClipping::ClipToBounds);
-		DescriptionBounds->SetContent(UpgradeDescription);
+		// Long descriptions shrink within their allotted space instead of losing lines.
+		UScaleBox* DescriptionScale = WidgetTree->ConstructWidget<UScaleBox>();
+		DescriptionScale->SetStretch(EStretch::ScaleToFit);
+		DescriptionScale->SetStretchDirection(EStretchDirection::DownOnly);
+		DescriptionScale->SetContent(UpgradeDescription);
+		UBorder* DescriptionPadding = WidgetTree->ConstructWidget<UBorder>();
+		DescriptionPadding->SetBrushColor(FLinearColor::Transparent);
+		// Leave room for font hinting as nested UI scales settle after an offer changes.
+		DescriptionPadding->SetPadding(FMargin(14.f));
+		DescriptionPadding->SetContent(DescriptionScale);
+		DescriptionBounds->SetContent(DescriptionPadding);
 		UVerticalBoxSlot* DescriptionSlot = InformationContent->AddChildToVerticalBox(DescriptionBounds);
 		DescriptionSlot->SetSize(FSlateChildSize(ESlateSizeRule::Automatic));
 		DescriptionSlot->SetHorizontalAlignment(HAlign_Fill);

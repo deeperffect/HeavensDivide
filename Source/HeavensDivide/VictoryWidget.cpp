@@ -52,7 +52,7 @@ void UVictoryWidget::HandleNewRun()
 	if (bTravelRequested) return;
 	bTravelRequested = true;
 	PrepareForTravel();
-	UGameplayStatics::OpenLevel(this, TEXT("/Game/Maps/Lvl_B1_Lvl1"));
+	UGameplayStatics::OpenLevel(this, URunTravelSubsystem::GetStartingLevel(this));
 }
 
 void UVictoryWidget::HandleMainMenu()

@@ -70,7 +70,7 @@ void ARangedEnemyBase::UpdateEnemyBehavior(float DeltaSeconds)
 		return;
 	}
 
-	if (IsTargetInAttackRange())
+	if (IsTargetInAttackRange() && HasClearChaseRoute())
 	{
 		StopEnemyMovement();
 		FaceTarget();

@@ -1,6 +1,13 @@
 # Ground texture sources
 
-Level 1 currently uses the restored **September 27 version 2** selected from
+Level 1 currently uses the user's `Materials/StylizedGround/M_StylizedGround_Inst`
+with the existing `T_StylizedGround_*` textures and their user-edited settings.
+The dedicated `M_StylizedGround_SoftBlend` parent enlarges grass to 1,050 cm,
+varies grass/dirt repeats and feathers their transitions. Dirt/stone scale and
+the texture artwork remain intact. See [ground controls](../../Docs/StylizedGround.md)
+and `Saved/GroundBlending` for the current tuning and before/after evidence.
+
+The earlier restored **September 27 version 2** was selected from
 `Saved/StylizedGround/blend_preview_v2.png`: simple grass with small tufts and
 broad angular stones. Its sources are `Previous/Grass_BaseColor_v2.png`,
 `Previous/Dirt_BaseColor_v2.png` and `Previous/Stone_BaseColor_v2.png`.

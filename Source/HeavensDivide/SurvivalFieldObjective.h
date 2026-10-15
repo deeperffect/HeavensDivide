@@ -54,5 +54,6 @@ private:
     float Age=0, Progress=0;
     float WallWaveStartAge=-1.f;
     bool bWallTrap=false, bComplete=false, bSealed=false;
+    bool bWallIntroShown=false;
     bool bHoldInitialized=false, bHoldActive=false, bIntroPending=false;
 };

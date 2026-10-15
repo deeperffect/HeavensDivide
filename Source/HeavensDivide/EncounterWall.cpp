@@ -30,6 +30,9 @@ AEncounterWall::AEncounterWall(const FObjectInitializer& Init):Super(Init)
     Barrier->SetCollisionObjectType(ECC_WorldStatic);
     Barrier->SetCollisionResponseToAllChannels(ECR_Ignore);
     Barrier->SetCollisionResponseToChannel(ECC_Pawn,ECR_Block);
+    Barrier->SetCollisionResponseToChannel(ECC_GameTraceChannel1,ECR_Block);
+    // Temporary seals are handled by sweeps, never runtime navmesh rebuilds.
+    Barrier->SetCanEverAffectNavigation(false);
     Barrier->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     ConfigureRock(0);
 }

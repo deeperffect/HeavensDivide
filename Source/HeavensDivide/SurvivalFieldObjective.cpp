@@ -78,20 +78,17 @@ bool ASurvivalFieldObjective::InitializeWallTrap(AEnemySpawner* Spawner)
     RingMaterial=Ring->CreateDynamicMaterialInstance(0);
     if (RingMaterial) RingMaterial->SetVectorParameterValue(TEXT("Tint"),FLinearColor(1,.3f,.08f));
     UCombatAudioLibrary::PlayEvent(this,TEXT("BossWarning"),GetActorLocation(),false,.65f);
-    if(auto* Guidance=GetWorld()->GetSubsystem<UObjectiveGuidanceSubsystem>()) Guidance->Announce(this);
     auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0));
-    if(PC && PC->TryBeginObjective(this))
-    {
-        bIntroPending=true;
-        if(!PC->ShowObjectiveIntro(this,NSLOCTEXT("Objectives","WallIntro","Survive or break out.. if you can.."),FLinearColor(.85f,.42f,.16f),
-            FSimpleDelegate::CreateUObject(this,&ASurvivalFieldObjective::BeginWall))) BeginWall();
-    }
+    // Reserve the objective while the ring rises, without pausing its reveal.
+    if(PC) PC->TryBeginObjective(this);
     return true;
 }
 void ASurvivalFieldObjective::BeginWall()
 {
     bIntroPending=false;
     Age=0;
+    // Reset the survival clock without restarting the completed reveal wave.
+    WallWaveStartAge=-(WallWaveSeconds+WallRiseSeconds);
     // The ambient wall event only reserves the objective slot during its introduction.
     if(auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0))) PC->EndObjective(this);
 }
@@ -173,9 +170,10 @@ void ASurvivalFieldObjective::Tick(float Delta)
     Super::Tick(Delta);
     auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0));
     if (!PC || !PC->GetPawn() || PC->IsPlayerDead()) { Destroy(); return; }
+    // The intro deliberately freezes a fully visible, solid ring.
+    if (bIntroPending || UGameplayStatics::IsGamePaused(this) || UGameplayStatics::GetGlobalTimeDilation(this)<.01f) return;
     // Neither a menu's near-zero time dilation nor another objective spends progress/lifetime.
-    if (UGameplayStatics::IsGamePaused(this) || UGameplayStatics::GetGlobalTimeDilation(this)<.01f
-        || (PC->IsAnyObjectiveActive() && PC->GetActiveObjective()!=this))
+    if (PC->IsAnyObjectiveActive() && PC->GetActiveObjective()!=this)
     {
         if (bWallTrap) for (auto Wall:Walls) if (IsValid(Wall)) Wall->SetSealed(false);
         bSealed=false;
@@ -186,7 +184,7 @@ void ASurvivalFieldObjective::Tick(float Delta)
     Age+=Delta;
     if (bWallTrap)
     {
-        if (Age>=1.5f && !bSealed)
+        if (!bSealed)
         {
             // Do not raise a wall through a pawn who used the warning to move away.
             bool bOccupied=false;
@@ -200,18 +198,32 @@ void ASurvivalFieldObjective::Tick(float Delta)
         }
         if (bSealed)
         {
+            bool bAllRaised=true;
             for (int32 I=0;I<Walls.Num();++I)
             {
                 AEncounterWall* Wall=Walls[I];
                 if (!IsValid(Wall) || Wall->IsDead()) continue;
                 // The player can reach a later segment while the wave is rising.
                 if (Wall->Barrier->GetCollisionEnabled()==ECollisionEnabled::NoCollision
-                    && Wall->Barrier->Bounds.GetBox().ExpandBy(60).IsInside(PC->GetPawn()->GetActorLocation())) continue;
+                    && Wall->Barrier->Bounds.GetBox().ExpandBy(60).IsInside(PC->GetPawn()->GetActorLocation())) { bAllRaised=false;continue; }
                 const float Delay=WallWaveSeconds*I/FMath::Max(1,Walls.Num()-1);
-                Wall->SetRevealProgress((Age-WallWaveStartAge-Delay)/FMath::Max(.05f,WallRiseSeconds));
+                const float Reveal=(Age-WallWaveStartAge-Delay)/FMath::Max(.05f,WallRiseSeconds);
+                Wall->SetRevealProgress(Reveal);
+                bAllRaised &= Reveal>=1.f;
+            }
+            if(bAllRaised && !bWallIntroShown)
+            {
+                bWallIntroShown=true;
+                if(PC->GetActiveObjective()==this || PC->TryBeginObjective(this))
+                {
+                    bIntroPending=true;
+                    if(!PC->ShowObjectiveIntro(this,NSLOCTEXT("Objectives","WallIntro","Survive or break out.. if you can.."),FLinearColor(.85f,.42f,.16f),
+                        FSimpleDelegate::CreateUObject(this,&ASurvivalFieldObjective::BeginWall))) BeginWall();
+                }
+                else BeginWall();
             }
         }
-        if (Age>=FMath::Max(1.f,WallLifetime)) Destroy();
+        if (!bIntroPending && Age>=FMath::Max(1.f,WallLifetime)) Destroy();
     }
     else
     {
