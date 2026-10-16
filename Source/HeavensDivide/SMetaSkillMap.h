@@ -8,7 +8,7 @@ class SScrollBox;
 struct FMetaSkillNode;
 DECLARE_DELEGATE_OneParam(FOnMetaNodeSelected, FName);
 
-/** Vertical skill forest. The same layout drives connectors, paint, hit tests and navigation. */
+/** Left-to-right skill forest. Layout drives connectors, paint, hit tests and navigation. */
 class SMetaSkillMap : public SLeafWidget
 {
 public:

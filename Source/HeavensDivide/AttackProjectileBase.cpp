@@ -287,7 +287,7 @@ void AAttackProjectileBase::HandleProjectileOverlap(UPrimitiveComponent* Overlap
         }
         FRunDamageScope DamageScope(GameplayOwner && GameplayOwner->IsA<AShadowClone>() ? FName(TEXT("ShadowClone")) : bAssistProjectile ? AssistDamageSource : bBarrageProjectile ? FName(TEXT("Barrage")) : AttackSource == EPlayerAttackSource::Samurai ? FName(TEXT("SamuraiAttack")) : FName(TEXT("NinjaAttack")));
         const FVector JointHitPosition=HitEnemy->GetActorLocation();
-        const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades)) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource);
+        const bool bDamageApplied = AttackSource==EPlayerAttackSource::Ninja ? UNinjaBuildComponent::ApplyEmbeddedHit(HitEnemy,FinalDamage,const_cast<UPlayerUpgradeComponent*>(PlayerUpgrades),true,bBarrageCritical) : HitEnemy->ApplyPlayerDamage(FinalDamage, AttackSource, bBarrageCritical);
         if (bDamageApplied && bBarrageCritical) PlayUpgradeProcVFX(PlayerUpgrades,TEXT("BarrageCritical"),FeedbackLocation);
         if (bDamageApplied && JointOwner.IsValid()) JointOwner->PlayHitImpact(HitEnemy,JointHitPosition);
 		if (bDamageApplied) UImpactFeedbackLibrary::PlayImpactFeedback(this, ImpactFeedback, FeedbackLocation, ImpactNormal,!JointOwner.IsValid());

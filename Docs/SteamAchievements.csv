@@ -1,0 +1,13 @@
+API Name,Display Name,Description,Metric,Goal,Hidden,Set By
+HD_FIRST_RUN,First Steps,"Finish a run, in victory or defeat.",Runs,1,false,Client
+HD_SURVIVE_10,Hold the Line,Survive ten minutes in one run.,LongestRun,600,false,Client
+HD_FIRST_VICTORY,Dawn Breaks,Win your first run.,Wins,1,false,Client
+HD_VESHRA,Break the Stinger,"Defeat Veshra, the Pale Stinger.",Bosses,1,false,Client
+HD_KILLS_1000,Thousand Cuts,"Defeat 1,000 enemies across completed runs.",Kills,1000,false,Client
+HD_ELITES_25,Elite Hunter,Defeat 25 elites across completed runs.,Elites,25,false,Client
+HD_OBJECTIVES_10,Answer the Call,Complete 10 objectives across completed runs.,Objectives,10,false,Client
+HD_DISCOVER_25,Growing Arsenal,Acquire 25 different upgrades or stances in runs.,Discovered,25,false,Client
+HD_MASTER_10,Honed to Perfection,Reach maximum rank on 10 different multi-rank upgrades.,Mastered,10,false,Client
+HD_FIRST_SYNERGY,Two as One,Acquire a synergy in a run.,Synergies,1,false,Client
+HD_FOUR_MAPS,Across the Divide,Win a run on each of the four maps.,Maps,4,false,Client
+HD_CHALLENGE_5,Against the Odds,Win with at least five total challenge ranks enabled.,ChallengeWin,5,false,Client

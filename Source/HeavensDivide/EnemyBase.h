@@ -60,6 +60,7 @@ class HEAVENSDIVIDE_API AEnemyBase : public ACharacter
 	friend class FEnemyDeathTest;
 	friend class FEncounterExpansionTest;
 	friend class FBossSpellPressureTest;
+    friend class FBossChargeTest;
 	friend class FXPRewardGroupingTest;
 	friend class URunChallengeSubsystem;
 	friend class FRunChallengeTest;
@@ -140,7 +141,7 @@ public:
 	virtual void ApplySpawnInstanceModifiers(float HealthMultiplier, float DamageMultiplier, float MovementSpeedMultiplier);
 
 	UFUNCTION(BlueprintCallable, Category = "Enemy|Damage")
-	virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource);
+	virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource, bool bCritical = false);
 	/** Status damage retains damage filtering/death logic but does not start or refresh a hit flash. */
 	bool ApplyStatusDamage(float DamageAmount, EPlayerAttackSource AttackSource);
 	/** Contact on the enemy capsule nearest the attack. Query before applying lethal damage. */

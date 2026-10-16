@@ -65,8 +65,8 @@ void ULevelUpWidget::RefreshDraftTools()
  for (auto* Button : {RerollButton.Get(), BanishButton.Get()})
   if (auto* ContentSlot = Cast<UButtonSlot>(Button->GetContent()->Slot))
    ContentSlot->SetPadding(FMargin(24, 14));
- RerollButton->SetIsEnabled(PlayerUpgrades->CanReroll());
- BanishButton->SetIsEnabled(bBanishMode || PlayerUpgrades->CanBanish());
+ RerollButton->SetIsEnabled(!bChoiceExitActive && PlayerUpgrades->CanReroll());
+ BanishButton->SetIsEnabled(!bChoiceExitActive && (bBanishMode || PlayerUpgrades->CanBanish()));
  RerollButton->SetToolTipText(FText::FromString(TEXT("Replace these choices. [R / X]")));
  BanishButton->SetToolTipText(FText::FromString(bBanishMode ? TEXT("Select a card to banish. Click Banish again to cancel. [B / Y]") : TEXT("Choose a card to remove from this run and replace it. [B / Y]")));
 }
@@ -83,7 +83,7 @@ void ULevelUpWidget::RefreshDraftCards()
 
 void ULevelUpWidget::HandleReroll()
 {
- if (!PlayerUpgrades || !bCategoryChoiceCommitted || bUpgradeChoiceCommitted || bSynergyDiscoveryMode) return;
+ if (!PlayerUpgrades || !bCategoryChoiceCommitted || bUpgradeChoiceCommitted || bChoiceExitActive || bSynergyDiscoveryMode) return;
  if (!PlayerUpgrades->RerollUpgrades()) return;
  if (!RerollButton->IsHovered())
  {
@@ -96,7 +96,7 @@ void ULevelUpWidget::HandleReroll()
 
 void ULevelUpWidget::HandleBanishMode()
 {
- if (!PlayerUpgrades || !bCategoryChoiceCommitted || bUpgradeChoiceCommitted || bSynergyDiscoveryMode) return;
+ if (!PlayerUpgrades || !bCategoryChoiceCommitted || bUpgradeChoiceCommitted || bChoiceExitActive || bSynergyDiscoveryMode) return;
  if (!bBanishMode && !PlayerUpgrades->CanBanish()) return;
  if (!BanishButton->IsHovered())
  {

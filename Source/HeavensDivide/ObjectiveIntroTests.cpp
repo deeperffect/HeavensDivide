@@ -6,6 +6,7 @@
 #include "BossToriiGate.h"
 #include "NiagaraComponent.h"
 #include "ObjectiveInteractionComponent.h"
+#include "ObjectiveBeaconComponent.h"
 #include "MinimapMarkerComponent.h"
 #include "SurvivalFieldObjective.h"
 #include "BloodShrine.h"
@@ -28,6 +29,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
+#include "InputKeyEventArgs.h"
 #include "UObject/UnrealType.h"
 #if WITH_EDITOR
 #include "Slate/WidgetRenderer.h"
@@ -50,7 +52,11 @@ bool FObjectiveIntroTest::RunTest(const FString&)
     auto* PC=World->SpawnActor<ASurvivorPlayerController>();
     PC->SetPlayer(NewObject<ULocalPlayer>(GEngine));PC->PlayerState=World->SpawnActor<APlayerState>();
     auto* Pawn=World->SpawnActor<ACharacterBase>();PC->Possess(Pawn);
-    auto* Zone=World->SpawnActor<ASurvivalFieldObjective>();Zone->InitializeHoldZone();
+    auto* Zone=World->SpawnActor<ASurvivalFieldObjective>();
+    Zone->ObjectiveInteraction->bEnableSpawnEmergence=false;Zone->DispatchBeginPlay();Zone->InitializeHoldZone();
+    TestTrue(TEXT("Available circle displays its persistent overhead marker"),Zone->Beacon->IsArrowVisible()&&Zone->Beacon->IsAuraVisible());
+    TestTrue(TEXT("Circle uses the supplied guardian statue"),Zone->ActivationMesh->GetStaticMesh()->GetPathName().Contains(TEXT("SM_OV_GuardianStatue")));
+    TestTrue(TEXT("Guardian fits the validated objective footprint"),Zone->ActivationMesh->Bounds.BoxExtent.Size2D()<180.);
     auto* Guidance=World->GetSubsystem<UObjectiveGuidanceSubsystem>();
     TestEqual(TEXT("Circle spawn adds guidance"),Guidance->GetTrackedCount(),1);
     Guidance->Announce(Zone);TestEqual(TEXT("Repeated spawn notification is deduplicated"),Guidance->GetTrackedCount(),1);
@@ -73,6 +79,7 @@ bool FObjectiveIntroTest::RunTest(const FString&)
     Zone->AdvanceHold(20,true);TestEqual(TEXT("Inactive circle never progresses"),Zone->GetProgress(),0.f);
     World->GetWorldSettings()->SetTimeDilation(.7f);
     Zone->Interact_Implementation(Pawn);
+    TestTrue(TEXT("Activating the circle retires the arrow but keeps its aura"),!Zone->Beacon->IsArrowVisible()&&Zone->Beacon->IsAuraVisible());
     TestTrue(TEXT("Circle intro freezes the world"),UGameplayStatics::IsGamePaused(World));
     TestTrue(TEXT("Circle owns the objective during the intro"),PC->GetActiveObjective()==Zone);
     TestTrue(TEXT("Circle intro is visible"),PC->IsObjectiveIntroPlaying());
@@ -102,11 +109,26 @@ bool FObjectiveIntroTest::RunTest(const FString&)
     auto* ShrineClass=LoadClass<ABloodShrine>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/Objectives/BP_BloodShrine.BP_BloodShrine_C"));
     TestNotNull(TEXT("Saved Blood Shrine Blueprint loads"),ShrineClass);
     auto* Shrine=World->SpawnActor<ABloodShrine>(ShrineClass?ShrineClass:ABloodShrine::StaticClass());Shrine->EnemySpawner=Spawner;
+    Shrine->FindComponentByClass<UObjectiveInteractionComponent>()->bEnableSpawnEmergence=false;Shrine->DispatchBeginPlay();
+    auto* ShrineBeacon=Shrine->FindComponentByClass<UObjectiveBeaconComponent>();
+    TestNotNull(TEXT("Saved Blood Shrine inherits its beacon"),ShrineBeacon);
+    if(ShrineBeacon)TestTrue(TEXT("Blood Shrine displays an overhead marker before activation"),ShrineBeacon->IsArrowVisible());
     TestTrue(TEXT("Blood Shrine interaction starts"),Shrine->ActivateShrine(Pawn));
+    if(ShrineBeacon)TestTrue(TEXT("Active Blood Shrine keeps only its ground aura"),!ShrineBeacon->IsArrowVisible()&&ShrineBeacon->IsAuraVisible());
     TestTrue(TEXT("Blood Shrine shares the true pause"),UGameplayStatics::IsGamePaused(World));
     TestEqual(TEXT("Shrine shows the full 30 seconds during the intro"),Shrine->GetTimeRemaining(),30.f);
     TestFalse(TEXT("Challenge timer waits for the intro"),World->GetTimerManager().IsTimerActive(Shrine->ChallengeUpdateTimer));
-    PC->UpdateObjectiveIntro(UObjectiveIntroWidget::Duration);
+    PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar,IE_Pressed,1.f));
+    TestTrue(TEXT("Early Space cannot skip the intro"),PC->IsObjectiveIntroPlaying());
+    PC->UpdateObjectiveIntro(.49f);
+    PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar,IE_Pressed,1.f));
+    TestTrue(TEXT("Skip remains locked until half a second"),PC->IsObjectiveIntroPlaying());
+    PC->UpdateObjectiveIntro(.01f);
+    PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar,IE_Repeat,1.f));
+    TestTrue(TEXT("Holding an early press cannot auto-skip"),PC->IsObjectiveIntroPlaying());
+    PC->InputKey(FInputKeyEventArgs::CreateSimulated(EKeys::SpaceBar,IE_Pressed,1.f));
+    TestFalse(TEXT("A fresh Space skips after half a second"),PC->IsObjectiveIntroPlaying());
+    PC->SkipObjectiveIntro(); // Completion must remain safe when invoked twice.
     TestFalse(TEXT("Shrine resumes after the dissolve"),UGameplayStatics::IsGamePaused(World));
     TestEqual(TEXT("Shrine starts with all 30 seconds remaining"),Shrine->GetTimeRemaining(),30.f);
     TestTrue(TEXT("Shrine challenge timer starts after the intro"),World->GetTimerManager().IsTimerActive(Shrine->ChallengeUpdateTimer));
@@ -132,7 +154,9 @@ bool FObjectiveIntroTest::RunTest(const FString&)
     TestFalse(TEXT("Wall intro unpauses automatically"),UGameplayStatics::IsGamePaused(World));
     TestFalse(TEXT("Wall event never displays a guidance arrow"),Guidance->FindGuidanceTarget(Trap,FVector::ZeroVector,ArrowTarget));
     TestFalse(TEXT("Wall arrow disappears after escaping"),Guidance->FindGuidanceTarget(Trap,FVector(2000,0,0),ArrowTarget));
-    Trap->DispatchBeginPlay();Trap->Tick(10.f);
+    Trap->DispatchBeginPlay();
+    TestFalse(TEXT("Wall events never gain objective beacons"),Trap->Beacon->IsArrowVisible()||Trap->Beacon->IsAuraVisible());
+    Trap->Tick(10.f);
     TestFalse(TEXT("Wall lifetime begins after its intro"),Trap->IsActorBeingDestroyed());
     Trap->Tick(10.1f);TestTrue(TEXT("Wall event expires after full gameplay duration"),Trap->IsActorBeingDestroyed());
     TestFalse(TEXT("Wall expiry releases its objective lock"),PC->IsAnyObjectiveActive());

@@ -19,7 +19,7 @@
 #include "SurvivorAbilityComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
-bool UNinjaBuildComponent::ApplyEmbeddedHit(AEnemyBase *Enemy, float Damage, UPlayerUpgradeComponent *U, bool bEmbed)
+bool UNinjaBuildComponent::ApplyEmbeddedHit(AEnemyBase *Enemy, float Damage, UPlayerUpgradeComponent *U, bool bEmbed, bool bCritical)
 {
     if (!Enemy || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Ninja) || !Enemy->GetHealthComponent() ||
         !Enemy->GetHealthComponent()->IsDamageEnabled() || !FMath::IsFinite(Damage) || Damage <= 0)
@@ -29,7 +29,7 @@ bool UNinjaBuildComponent::ApplyEmbeddedHit(AEnemyBase *Enemy, float Damage, UPl
             PC && PC->GetCharacterManager() && PC->GetCharacterManager()->GetNinja())
             if (auto *B = PC->GetCharacterManager()->GetNinja()->FindComponentByClass<UNinjaBuildComponent>())
                 B->StageEmbedded(Enemy, Damage);
-    return Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Ninja);
+    return Enemy->ApplyPlayerDamage(Damage, EPlayerAttackSource::Ninja, bCritical);
 }
 
 void UNinjaBuildComponent::StageEmbedded(AEnemyBase *Enemy, float Damage)

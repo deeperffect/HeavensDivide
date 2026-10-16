@@ -384,7 +384,9 @@ public:
     UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance|Detonation", meta=(ClampMin="1", Units="cm")) float BloodDetonationVFXReferenceRadius = 300.f;
 private:
     UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance") TObjectPtr<UNiagaraSystem> BloodEchoVFX;
-    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance", meta=(ClampMin="0.01")) float BloodEchoDelay = .15f;
+    /** Tint applied before activation to the slash system's User.Color 01 parameter. */
+    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance") FLinearColor BloodEchoColor = FLinearColor(.025f, .20f, 1.f, 1.f);
+    UPROPERTY(EditAnywhere, Category="Samurai|Blood Stance", meta=(ClampMin="0.01")) float BloodEchoDelay = .25f;
     bool bBloodCircularAttack = false;
 
 	void RegisterDoubleCutPrimaryAttack();

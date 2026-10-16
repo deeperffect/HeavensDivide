@@ -207,7 +207,7 @@ Generic cadence translates to attack rate for Blood/Crescent/Barrage, charge spe
 
 **Every permanent purchase costs 3× its previous price.** Skill ranks cost 3 × BaseCost × next rank, including generic stats, stance-specific skills and ability improvements. Stance and synergy unlock prices are also tripled. For example, Living Flame now costs 15 / 30 / 45 Embers for its three ranks. Refund returns the recorded Ember spend, including the original price of older purchases, and keeps purchased stance/synergy unlocks. The 45-node skill catalog is stored in DA_GlobalBalance; the price multiplier applies to its values at runtime. Use Tools/configure_meta_stance_tree.py after rebuilding to install native catalog changes without overwriting other balance rules.
 
-All skill maps grow from top to bottom. Branches share perpendicular connectors and keep each subtree together. Stance trees are vertical three-node chains; Stats and Abilities retain their actual prerequisites. Pan, zoom and keyboard/controller navigation remain available.
+All skill maps now progress left to right. Branches share perpendicular connectors and keep each subtree together. Stance trees are horizontal three-node chains; Stats and Abilities retain their actual prerequisites and scroll vertically through extra branch rows. Bigger rank dots below each skill show learned ranks in solid gold and unlearned ranks as empty rings. Keyboard/controller navigation remains available; zoom and drag panning are disabled.
 
 Loadout revision validation: the Development Editor build and all **16 targeted automation checks** passed. Coverage includes every permanent rank's 3× price, original-price refunds, starting equipment, the five-synergy limit (including restored runs), draft exclusion, combo selection and the 20-second wall expiry. New Run and vertical skill-tree captures were visually reviewed at 1280x720 and larger sizes. Reports are under `Saved/LoadoutRevision`, with the consolidated result in `ValidationSummary.json`. Validation used isolated automation saves; no packaged build or full-run difficulty playtest was performed.
 
@@ -282,3 +282,38 @@ Its common resources from regular enemies and rarer resources from bosses also s
 Routine enemy population targets and caps are about 10% lower, with spawn and pressure-event intervals divided by 0.9 (10% fewer spawn opportunities). The hard alive limit is 144, down from 160. The opening maintained population is 36, down from 40; later phases retain their timing and enemy mix. Small tactical caps keep their integer counts.
 
 All 21 active mob, elite and tactical enemy types have 10% more fixed HP. Their damage and XP rewards are preserved. Bosses, test dummies, walls and urns retain their HP. The approximate full-population health budget is 0.9 x 1.1 = 0.99 of the previous budget, with fewer bodies and tougher individual enemies. This is a tuning estimate, not an FPS or win-rate measurement. Targets are in Tools/enemy_pressure_tuning.json; apply them with Tools/apply_enemy_pressure_followup.py.
+
+
+## Bleed radius and Veshra charge (2026-10-16)
+
+Blood Transfer and Blood Detonation now use their authored radius multiplied only by `1 + BloodTransferArea rank magnitude`. Generic attack area, stance attack-area multipliers, and Samurai Area no longer affect either radius. Detonation's visual radius uses this same value. Overkill Burst retains its existing attack-area scaling.
+
+Veshra adds a charge sequence as the second ability in each spell rotation. Each rush locks a straight direction toward the player during its ground warning. Phase one has two rushes; phase two (below 50% health) has four. There is one second between the end of a rush and the start of the next; this pause is also the next rush's warning. Defaults: 3,600 cm/s, up to 1,800 cm per rush, 25 contact damage, 900 cm/s horizontal push plus a small lift. Contact is limited to one hit per rush and respects damage immunity. Swept movement stops at solid obstacles and authored arena bounds. Stopping combat/death cancels the sequence.
+
+Phase-two rushes leave a 200 cm-wide trail, sampled every 160 cm rather than every frame. Each patch is immediately damaging and lasts three seconds. Trail damage is 10 per existing persistent-hazard tick; the normal player damage grace period applies. Trail patches use the existing global hazard cap and cleanup.
+
+## Objective visibility and card rarity effects (2026-10-16)
+
+The Ember Circle uses the supplied mossy stone guardian (`SM_OV_GuardianStatue`) instead of the Blood Shrine mesh. Its grounded height is 260 cm, bounded to fit the existing objective placement clearance. The objective radius, interaction, hold time and rewards are unchanged.
+
+Available Ember Circles and Blood Shrines have a bobbing overhead arrow and animated ground rings: gold for the guardian, crimson for the shrine. The camera-facing arrow is positioned above each model's actual bounds, follows its spawn emergence and remains readable through intervening props. Activation hides the arrow while the ground aura remains; completion/failure removes the effect unless the shrine permits reactivation. These persistent local markers are separate from the existing ten-second directional arrows. Wall events have no beacon. Each beacon uses two nonblocking, shadow-free surfaces animated in materials, with no lights, particles or component tick.
+
+Arrow orientation follows the projected line back to the objective in the current view, including perspective views near screen edges. The adjustment and bobbing remain in the material, without adding a camera-tracking tick.
+
+Rolled-rarity upgrade cards use a procedural animated frame instead of the old material with a missing texture. Rare has a blue halo, Epic a wider violet halo, and Legendary the widest gold halo with stronger moving highlights. The glow extends around the full frame, with a transparent centre for readable text. UI time drives animation while gameplay is paused. Common/unranked offers stay unembellished; roll chances, magnitudes, category artwork and selection/dissolve timing are unchanged. Asset regeneration and backups are handled by `Tools/create_objective_and_rarity_presentation.py`.
+
+## Boss rush and death follow-up (2026-10-16)
+
+Veshra's rush movement is now 3,600 cm/s, twice the previous 1,800 cm/s, in both phases. Pauses between consecutive charges are one second in both phases; each pause includes the next charge's warning. The initial warning, charge distance, charge counts, contact damage, pushback and three-second phase-two trails are unchanged. The native default, saved boss Blueprint and placed arena boss agree on movement speed; `Tools/apply_boss_charge_speed.py` applies the saved-asset change with backups.
+
+The death montage keeps its final pose instead of automatically blending back to locomotion idle. A separate cleanup timer removes the boss after the full clip, just before the existing victory freeze; interruption and level cleanup still remove the presentation safely.
+
+Validation: the Development Editor build and all eight focused checks pass across the original suite and targeted reruns (`Saved/ObjectivePresentation/ValidationSummary.json`). These cover objective activation and beacon lifetime, circle progress, card layout and selection, animated rarity frames while gameplay is frozen, doubled rush movement with wall/bounds checks, and the death pose through final cleanup. Objective markers were visually reviewed with orthographic and two angled perspective cameras; card previews show all three rarity tiers. No packaged build or long-run FPS benchmark was performed.
+
+## Selected and banished card dissolve (2026-10-16)
+
+Selected cards hold for 0.22 seconds, then dissolve over 0.64 seconds (twice the previous 0.32 seconds). The advancing edge has a bright gold glow and pale gold core; unselected cards still fade in 0.16 seconds. Gameplay remains frozen until selection finishes, including queued reward choices.
+
+Banishing uses the same hold and dissolve timing, with a flickering red-orange edge and a dark charred band ahead of it. Only the banished card burns; the other choices remain visible. The banish and replacement are committed once, while the old artwork stays onscreen until the burn finishes. Selection, reroll and banish inputs are blocked during the effect. Its replacement then appears and the draft stays open without consuming the level. Both variants share one retainer material, driven by UI time while gameplay is paused; `Tools/setup_upgrade_selection_effect.py` regenerates it with a backup.
+
+Validation: Development Editor build and four focused checks pass (level-up timing/queue, banish flow, card layout and rendered dissolve previews). The gold and burn variants were visually reviewed at intact, partial and fully dissolved states. Reports and previews: `Saved/CardDissolve/ValidationSummary.json`.

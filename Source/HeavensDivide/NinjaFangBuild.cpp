@@ -94,7 +94,7 @@ float UNinjaBuildComponent::FangHit(ANinjaBuildProjectile* P, AEnemyBase* Enemy)
     const int32 Count = ++FangVictimHits.FindOrAdd(Enemy);
     const FVector Position = Enemy->GetActorLocation() + FVector(0, 0, 45);
     FRunDamageScope DamageScope(P->bCloneProjectile ? FName(TEXT("ShadowClone")) : P->bAssistProjectile ? P->AssistDamageSource : FName(TEXT("ReturningFang")));
-    const float Dealt = Hit(Enemy, HitDamage, false, P->bAssistProjectile);
+    const float Dealt = Hit(Enemy, HitDamage, false, P->bAssistProjectile, false, Critical);
     P->bFangHitThisTrip |= Dealt > 0;
     if (Dealt > 0 && Critical) PlayUpgradeProcVFX(Upgrades(), TEXT("FangDeadeye"), Position);
     if (Dealt > 0 && Has(TEXT("RelentlessFang")) && P->Streak == FMath::RoundToInt(Tune(TEXT("RelentlessFang"), TEXT("StreakCap"), 5.f)))

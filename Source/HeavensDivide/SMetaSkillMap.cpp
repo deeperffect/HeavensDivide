@@ -9,12 +9,43 @@
 #include "InputCoreTypes.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Fonts/FontMeasure.h"
+#include "Widgets/SToolTip.h"
+#include "Widgets/Text/STextBlock.h"
+#include "Widgets/Layout/SBorder.h"
 
 namespace
 {
+ class SSkillDescriptionFrame : public SBorder
+ {
+ public:
+  SLATE_BEGIN_ARGS(SSkillDescriptionFrame) {} SLATE_ARGUMENT(FString, Description) SLATE_END_ARGS()
+  void Construct(const FArguments& Args)
+  {
+   SBorder::Construct(SBorder::FArguments().BorderImage(FCoreStyle::Get().GetBrush("WhiteBrush"))
+    .BorderBackgroundColor(FLinearColor(.025f,.055f,.065f)).Padding(18,14)
+    [SNew(STextBlock).Font(BloodshiftMenu::BodyFont(16)).ColorAndOpacity(BloodshiftMenu::Paper).WrapTextAt(320)
+     .Text(FText::FromString(Args._Description))]);
+  }
+  virtual int32 OnPaint(const FPaintArgs& Args,const FGeometry& Geometry,const FSlateRect& Culling,
+   FSlateWindowElementList& Out,int32 Layer,const FWidgetStyle& Style,bool Enabled) const override
+  {
+   const int32 Last=SBorder::OnPaint(Args,Geometry,Culling,Out,Layer,Style,Enabled);
+   const FVector2D Size=Geometry.GetLocalSize();
+   // Draw inside the allotted bounds: fractional DPI/window rounding cannot clip the right edge.
+   const float Inset=1.5f;
+   TArray<FVector2D> Frame{{Inset,Inset},{Size.X-Inset,Inset},{Size.X-Inset,Size.Y-Inset},
+    {Inset,Size.Y-Inset},{Inset,Inset}};
+   FLinearColor Color=BloodshiftMenu::Gold;Color.A*=Style.GetColorAndOpacityTint().A;
+   FSlateDrawElement::MakeLines(Out,Last+1,Geometry.ToPaintGeometry(),Frame,ESlateDrawEffect::None,Color,true,1.5f);
+   return Last+1;
+  }
+ };
  const FLinearColor Ivory(.90f,.88f,.80f);
  const FLinearColor Gold=BloodshiftMenu::Gold;
- constexpr double LabelTop=54.;
+ constexpr double RankTop=56.;
+ constexpr double RankRadius=7.;
+ constexpr double RankSpacing=22.;
+ constexpr double LabelTop=76.;
  FLinearColor PathColor(int32 Branch)
  {
   if(Branch==1)return FLinearColor(.85f,.24f,.18f);
@@ -78,38 +109,39 @@ void SMetaSkillMap::BuildLayout()
   Roots.StableSort([&](FName A,FName B){return Order(A)<Order(B);});
   for(auto& Group:Children)Group.Value.StableSort([&](FName A,FName B){return Order(A)<Order(B);});
  }
- // Reserve each complete subtree a contiguous span. Siblings cannot interleave with another branch.
- constexpr double LeafSpan=136.,SiblingGap=16.,RootGap=70.;
- TMap<FName,double> Widths;
+ // Progress left to right; reserve a vertical lane for each complete subtree.
+ // Keep full-size nodes and scroll extra branches instead of shrinking dense pages.
+ constexpr double LeafSpan=170.,SiblingGap=20.,RootGap=60.,LevelStep=280.;
+ TMap<FName,double> Heights;
  TFunction<double(FName)> MeasureSubtree=[&](FName Id)
  {
-  double Width=0.;
-  for(FName Child:Children.FindRef(Id))Width+=MeasureSubtree(Child)+(Width>0.?SiblingGap:0.);
-  Width=FMath::Max(LeafSpan,Width);Widths.Add(Id,Width);return Width;
+  double Height=0.;
+  for(FName Child:Children.FindRef(Id))Height+=MeasureSubtree(Child)+(Height>0.?SiblingGap:0.);
+  Height=FMath::Max(LeafSpan,Height);Heights.Add(Id,Height);return Height;
  };
- double TotalWidth=0.;
- for(FName Root:Roots)TotalWidth+=MeasureSubtree(Root)+(TotalWidth>0.?RootGap:0.);
- const double LevelStep=MaxDepth?FMath::Clamp(760./MaxDepth,240.,260.):140.;
- CanvasSize=FVector2D(FMath::Max(1020.,TotalWidth+96.),FMath::Max(850.,340.+MaxDepth*LevelStep));
- TFunction<double(FName,double)> PlaceSubtree=[&](FName Id,double Left)
+ double TotalHeight=0.;
+ for(FName Root:Roots)TotalHeight+=MeasureSubtree(Root)+(TotalHeight>0.?RootGap:0.);
+ CanvasSize=FVector2D(FMath::Max(1020.,320.+MaxDepth*LevelStep),FMath::Max(420.,TotalHeight+230.));
+ const double FirstX=(CanvasSize.X-MaxDepth*LevelStep)*.5;
+ TFunction<void(FName,double)> PlaceSubtree=[&](FName Id,double Top)
  {
   const auto Branch=Children.FindRef(Id);
-  double X=Left+Widths.FindRef(Id)*.5;
+  // Align each parent with its first child so the entry skill is visible on opening a page.
+  const double Y=Top+45.;
   if(!Branch.IsEmpty())
   {
-   double Cursor=Left;
+   double Cursor=Top;
    for(int32 I=0;I<Branch.Num();++I)
    {
     PlaceSubtree(Branch[I],Cursor);
-    Cursor+=Widths.FindRef(Branch[I])+SiblingGap;
+    Cursor+=Heights.FindRef(Branch[I])+SiblingGap;
    }
   }
-  LayoutPositions.Add(Id,FVector2D(X,145.+Depth.FindRef(Id)*LevelStep));
-  LabelWidths.Add(Id,FMath::Clamp(Widths.FindRef(Id)-16.,120.,240.));
-  return X;
+  LayoutPositions.Add(Id,FVector2D(FirstX+Depth.FindRef(Id)*LevelStep,Y));
+  LabelWidths.Add(Id,220.);
  };
- double Cursor=(CanvasSize.X-TotalWidth)*.5;
- for(FName Root:Roots){PlaceSubtree(Root,Cursor);Cursor+=Widths.FindRef(Root)+RootGap;}
+ double Cursor=140.;
+ for(FName Root:Roots){PlaceSubtree(Root,Cursor);Cursor+=Heights.FindRef(Root)+RootGap;}
  Invalidate(EInvalidateWidgetReason::Layout);
 }
 FVector2D SMetaSkillMap::DisplayPosition(const FMetaSkillNode& Node) const
@@ -128,15 +160,9 @@ double SMetaSkillMap::NodeLabelWidth(FName Id) const
 TArray<FVector2D> SMetaSkillMap::ConnectorPath(const FMetaSkillNode& Parent,const FMetaSkillNode& Child) const
 {
  const FVector2D A=DisplayPosition(Parent),B=DisplayPosition(Child);
- int32 FontSize;double LineHeight;
- const auto Lines=NodeLabelLines(Parent,FontSize,LineHeight);
- const double Radius=NodeRadius(Parent);
- // Join the actual rings. The outgoing stem skirts the label, keeping the whole route continuous.
- const double LabelBottom=A.Y+LabelTop+Lines.Num()*LineHeight;
- const double Side=A.X+NodeLabelWidth(Parent.Id)*.5+10.;
- const double BusY=FMath::Max(A.Y+190.,LabelBottom+20.);
- return {{A.X,A.Y+Radius},{A.X,A.Y+Radius+8.},{Side,A.Y+Radius+8.},
-     {Side,LabelBottom+8.},{A.X,LabelBottom+8.},{A.X,BusY},{B.X,BusY},{B.X,B.Y-NodeRadius(Child)}};
+ // Ring-to-ring horizontal routes leave names and rank markers below each skill unobstructed.
+ const double BusX=A.X+140.;
+ return {{A.X+NodeRadius(Parent),A.Y},{BusX,A.Y},{BusX,B.Y},{B.X-NodeRadius(Child),B.Y}};
 }
 TArray<FString> SMetaSkillMap::NodeLabelLines(const FMetaSkillNode& Node,int32& FontSize,double& LineHeight) const
 {
@@ -173,7 +199,12 @@ void SMetaSkillMap::SetHoveredNode(FName Id)
 	if(Hovered==Id)return;
 	Hovered=Id;
 	const auto* Node=MetaSkillTree::Find(Id);
-	SetToolTipText(Node?FText::FromString(Node->Name+TEXT("\n")+MetaSkillTree::Scope(*Node)+TEXT("\n")+MetaSkillTree::Description(*Node)):FText::GetEmpty());
+	if(Node)
+    {
+        SetToolTip(SNew(SToolTip).BorderImage(FCoreStyle::Get().GetBrush("NoBrush")).TextMargin(2)
+            [SNew(SSkillDescriptionFrame).Description(MetaSkillTree::Description(*Node))]);
+    }
+    else SetToolTip(nullptr);
 	Refresh();
 }
 TSet<FName> SMetaSkillMap::GetHighlightedAncestors() const
@@ -196,7 +227,13 @@ TSet<FName> SMetaSkillMap::GetHighlightedAncestors() const
 FName SMetaSkillMap::HitNode(const FGeometry& G,FVector2D P) const
 {
 	const FVector2D MapPoint=ToMap(G,P);
-	for(const auto& N:MetaSkillTree::Nodes()) if(IsNodeVisible(N.Id)&&FVector2D::Distance(MapPoint,DisplayPosition(N))<=(NodeRadius(N)+6.f))return N.Id;
+	for(const auto& N:MetaSkillTree::Nodes()) if(IsNodeVisible(N.Id))
+    {
+        const FVector2D Offset=MapPoint-DisplayPosition(N);
+        const bool bRankRow=FMath::Abs(Offset.Y-RankTop)<=RankRadius+5. &&
+            FMath::Abs(Offset.X)<=(N.MaxRank-1)*RankSpacing*.5+RankRadius+5.;
+        if(Offset.Size()<=NodeRadius(N)+6.f||bRankRow)return N.Id;
+    }
 	return NAME_None;
 }
 FReply SMetaSkillMap::OnMouseMove(const FGeometry& G,const FPointerEvent& E)
@@ -294,7 +331,7 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
   const FVector2D Extent=FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(Value,Font);
   Text(P-FVector2D(Extent.X*.5,0),Value,Size,Color);
  };
- // Keep the engraved frame, with a quiet rectangular field that reinforces downward progression.
+ // Keep the engraved frame around the horizontally progressing branches.
  for(int32 Corner=0;Corner<4;++Corner)
  {
   auto At=[&](float X,float Y){return FVector2D(Corner&1?CanvasSize.X-X:X,Corner&2?CanvasSize.Y-Y:Y);};
@@ -302,7 +339,7 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
   Stroke({At(21,84),At(21,34),At(34,21),At(84,21)},Alpha(Gold,.2f));
   for(float D:{42.f,63.f,84.f})Stroke({At(D,9),At(D+7,16),At(D,23),At(D-7,16),At(D,9)},Alpha(Ivory,.12f));
  }
- if(!bStatsLayout)Stroke({{CanvasSize.X*.5-90,101},{CanvasSize.X*.5+90,101}},Alpha(Gold,.25f));
+ Stroke({{CanvasSize.X*.5-90,101},{CanvasSize.X*.5+90,101}},Alpha(Gold,.25f));
  const TSet<FName> Ancestors=GetHighlightedAncestors();
  // Paint highlighted paths last so a shared branch bus cannot hide the selected prerequisite route.
  for(int32 Pass=0;Pass<2;++Pass)
@@ -409,8 +446,10 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
 		}
 		for(int32 I=0;I<N.MaxRank;++I)
 		{
-			const float A=FMath::DegreesToRadians(N.MaxRank==1?90.f:65.f+I*25.f);
-			Disc(P+FVector2D(FMath::Cos(A),FMath::Sin(A))*(Radius+5),2.1f,I<Rank?Ivory:FLinearColor(.18f,.18f,.16f),6);
+            const FVector2D Dot=P+FVector2D((I-(N.MaxRank-1)*.5)*RankSpacing,RankTop);
+            const bool bLearned=I<Rank;
+            Disc(Dot,RankRadius,bLearned?Gold:FLinearColor(.012f,.025f,.03f),6);
+            Arc(Dot,RankRadius,0,360,bLearned?Ivory:Alpha(Ivory,.6f),bLearned?1.5f:1.8f,6);
 		}
 		{
             int32 LabelSize;double LineHeight;
@@ -418,25 +457,17 @@ int32 SMetaSkillMap::OnPaint(const FPaintArgs&,const FGeometry& G,const FSlateRe
 			for(int32 I=0;I<Lines.Num();++I)CenterText(P+FVector2D(0,LabelTop+I*LineHeight),Lines[I],LabelSize,Rank>0||bOpen?Ivory:Alpha(Ivory,.6f));
 		}
 	}
+ CenterText({CanvasSize.X*.5,65},FilterTitle.IsEmpty()?TEXT("SKILL TREE"):FilterTitle.ToUpper(),21,Gold);
  if(bStatsLayout)
  {
+  // Small, fixed legend replaces column headings now that branches run across rows.
   for(int32 Group=0;Group<3;++Group)
   {
-   double Min=TNumericLimits<double>::Max(),Max=-TNumericLimits<double>::Max(),Top=TNumericLimits<double>::Max();
-   for(const auto& Node:MetaSkillTree::Nodes())if(IsNodeVisible(Node.Id))
-   {
-    const int32 Order=Node.Target==EUpgradeStatTarget::Samurai?0:Node.Target==EUpgradeStatTarget::Ninja?2:1;
-    if(Order==Group)
-    {
-     const auto P=DisplayPosition(Node);
-     if(P.Y<Top){Top=P.Y;Min=Max=P.X;}
-     else if(P.Y==Top){Min=FMath::Min(Min,P.X);Max=FMath::Max(Max,P.X);}
-    }
-   }
-   if(Min<=Max)CenterText({(Min+Max)*.5,65},Group==0?TEXT("SAMURAI"):Group==1?TEXT("SHARED"):TEXT("NINJA"),21,Gold);
+   const double X=CanvasSize.X*.5+(Group-1)*145.;
+   Disc({X-46.,122.},3.f,PathColor(Group==0?1:Group==2?2:0),5);
+   Text({X-36.,111.},Group==0?TEXT("SAMURAI"):Group==1?TEXT("SHARED"):TEXT("NINJA"),12,Alpha(Ivory,.8f));
   }
  }
- else CenterText({CanvasSize.X*.5,65},FilterTitle.IsEmpty()?TEXT("SKILL TREE"):FilterTitle.ToUpper(),21,Gold);
  CenterText({CanvasSize.X*.5,CanvasSize.Y-35},TEXT("A permanent legacy, one skill at a time"),14,Alpha(Ivory,.5f));
  return Layer+7;
 }

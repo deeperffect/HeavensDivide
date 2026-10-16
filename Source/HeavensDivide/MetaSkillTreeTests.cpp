@@ -303,6 +303,11 @@ bool FMetaSkillTreeTest::RunTest(const FString&)
         Capture(TEXT("Root.Area"),{1280,720},TEXT("MenuTreePolish/StatsScrolled1280.png"),EMetaTreePage::Stats,210.f);
         Capture(TEXT("Bond.Relay"),{1280,720},TEXT("MenuTreePolish/AbilitiesHighlighted1280.png"));
 
+        Meta->CurrentSave->SkillRanks.Add(TEXT("Blood.Edge"),2);
+        Meta->CurrentSave->SkillRanks.Add(TEXT("Blood.Reach"),1);
+        Meta->CurrentSave->SkillRanks.Add(TEXT("Blood.Vein"),1);
+        Capture(TEXT("Blood.Reach"),{1280,720},TEXT("MenuTreePolish/HorizontalRanks1280.png"));
+
         Capture(TEXT("Barrage.Twin"),{1920,1080},TEXT("MetaTreeRedesign/BarragePreview.png"));
         Capture(TEXT("Iaijutsu.Focus"),{1444,976},TEXT("MetaTreeRedesign/MenuBoundsPreview.png"));
         Capture(TEXT("Shuriken.Grind"),{1280,720},TEXT("MetaTreeRedesign/SmallPreview.png"));

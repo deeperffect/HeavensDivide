@@ -22,6 +22,7 @@
 #include "Animation/AnimMontage.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
+#include "TimerManager.h"
 
 AFinalBossBase::AFinalBossBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -99,6 +100,7 @@ void AFinalBossBase::BeginPlay()
 
 void AFinalBossBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	GetWorldTimerManager().ClearTimer(BossDeathCleanupTimer);
 	CleanupCurrentAttack(true);
 	Super::EndPlay(EndPlayReason);
 }
@@ -143,10 +145,10 @@ void AFinalBossBase::ForcePhase2()
 	if (!IsDead() && !bPhase2Active && !bPhase2TransitionQueued) QueuePhase2Transition();
 }
 
-bool AFinalBossBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource)
+bool AFinalBossBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource, bool bCritical)
 {
 	if (BossState == EFinalBossState::PhaseTransition && bPhase2InvulnerableDuringTransition) return false;
-	return Super::ApplyPlayerDamage(DamageAmount, AttackSource);
+	return Super::ApplyPlayerDamage(DamageAmount, AttackSource, bCritical);
 }
 
 void AFinalBossBase::Tick(float DeltaSeconds)
@@ -885,6 +887,11 @@ void AFinalBossBase::BeginDeathPresentation_Implementation()
 	UAnimInstance* Anim = GetMesh() ? GetMesh()->GetAnimInstance() : nullptr;
 	if (Anim && DeathMontage && Anim->Montage_Play(DeathMontage) > 0.0f)
 	{
+        // Keep full montage weight at the final death pose. Automatic blend-out
+        // otherwise reveals the locomotion graph's idle pose before cleanup.
+        if (auto* Instance = Anim->GetActiveInstanceForMontage(DeathMontage)) Instance->bEnableAutoBlendOut = false;
+        GetWorldTimerManager().SetTimer(BossDeathCleanupTimer, this, &AFinalBossBase::DestroyAfterDeath,
+            FMath::Max(.05f, GetDeathPresentationSeconds()-.05f), false);
         // This path bypasses the normal dissolve component, and victory may pause the world.
         if (EnemyDeathComponent && EnemyDeathComponent->DeathSound)
             UGameplayStatics::PlaySound2D(this, EnemyDeathComponent->DeathSound);

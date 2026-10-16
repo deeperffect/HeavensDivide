@@ -137,6 +137,11 @@ bool FRunPreparationTest::RunTest(const FString&)
     TestTrue(TEXT("Default pair can replace stale selection after reset"),Loadout->SetStances(TEXT("BattleStance"),TEXT("BarrageStance")));
     TestTrue(TEXT("Default pair applies after reset"),Loadout->ApplyToFreshRun(ResetPC->GetPlayerUpgrades()));
     ResetPC->Destroy();
+    // Objective scheduling now requires a supported floor, just like real maps.
+    auto* Floor=W->SpawnActor<AActor>();auto* Ground=NewObject<UBoxComponent>(Floor);Floor->SetRootComponent(Ground);
+    Floor->Tags.Add(TEXT("SurvivalMapGround"));Ground->SetBoxExtent(FVector(12000,10000,10));
+    Ground->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);Ground->SetCollisionResponseToAllChannels(ECR_Block);
+    Ground->RegisterComponent();Floor->SetActorLocation(FVector(4000,0,-10));
     auto* Source=W->SpawnActor<AEnemySpawner>();
     Source->DispatchBeginPlay();Source->SetSpawningEnabled(false);
     ++GFrameCounter;W->GetTimerManager().Tick(0.f);
@@ -221,8 +226,14 @@ bool FRunPreparationVisualTest::RunTest(const FString&)
     };
     Render(Screen,{1600,900},TEXT("NewRunDefault1600.png"));
     Render(Screen,{1280,720},TEXT("NewRunDefault1280.png"));
-    Screen->SelectSetupPage(ERunSetupPage::SynergiesAndCombo);
+    Screen->ConfirmRun();
+    TestTrue(TEXT("Next does not travel before loadout review"),GEngine->GetWorldContextFromWorldChecked(W).TravelURL.IsEmpty());
     TestEqual(TEXT("Powers subpage opens on the retained widget"),Screen->GetSetupPage(),ERunSetupPage::SynergiesAndCombo);
+    Screen->NativeOnPreviewKeyDown(FGeometry(),FKeyEvent(EKeys::Escape,FModifierKeysState(),0,false,0,0));
+    TestEqual(TEXT("Back on loadout returns to map selection"),Screen->GetSetupPage(),ERunSetupPage::ArenaAndStances);
+    Screen->ConfirmRun();
+    TestEqual(TEXT("Next returns to the retained loadout"),Screen->GetSetupPage(),ERunSetupPage::SynergiesAndCombo);
+
     TestEqual(TEXT("Only owned default synergy appears"),Screen->GetVisibleSynergyCount(),1);
     TestTrue(TEXT("Default Tag Team is visibly selected"),Screen->IsSynergySelected(TEXT("TagTeam")));
     TestFalse(TEXT("Locked synergy cannot be selected through the UI"),Screen->SetSynergySelected(TEXT("Handoff"),true));

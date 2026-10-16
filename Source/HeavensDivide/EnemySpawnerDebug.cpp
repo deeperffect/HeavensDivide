@@ -249,11 +249,7 @@ AEnemyBase* AEnemySpawner::SpawnStressEnemy()
 		return nullptr;
 	}
 
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = this;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-	AEnemyBase* SpawnedEnemy = GetWorld()->SpawnActor<AEnemyBase>(EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
+	AEnemyBase* SpawnedEnemy = SpawnEnemyAtValidatedLocation(EnemyClass, SpawnLocation);
 	if (!SpawnedEnemy)
 	{
 		return nullptr;

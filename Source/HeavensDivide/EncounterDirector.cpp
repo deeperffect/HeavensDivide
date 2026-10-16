@@ -95,8 +95,7 @@ bool AEncounterDirector::SpawnMarch()
     for (FVector P:Positions)
     {
 
-        FActorSpawnParameters Params; Params.Owner=Spawner.Get(); Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding;
-        if (auto* E=GetWorld()->SpawnActor<ATacticalEnemy>(MarchingEnemyClass,P,Travel.Rotation(),Params))
+        if (auto* E=Cast<ATacticalEnemy>(Spawner->SpawnEnemyAtValidatedLocation(MarchingEnemyClass,P+FVector(0,0,2),Travel.Rotation())))
         {
             E->ApplySpawnDifficultyScaling(1.f,1+Minutes*.015f);
             E->InitializeMarch(Travel,2.5f*FMath::Min(330.f,235.f+Minutes*8),3600,1.4f); Marchers.Add(E);
@@ -128,8 +127,7 @@ bool AEncounterDirector::SpawnUrn(bool bMagnet)
         FVector Found;
         if(!Spawner->ValidateEncounterLocation(Desired,SpawnClass,Found) || !CombatGround::IsInsideArena(GetWorld(),Found,60)) continue;
         if(FVector::Dist2D(Found,PC->GetPawn()->GetActorLocation())<550) continue;
-        FActorSpawnParameters Params; Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-        if(auto* Urn=GetWorld()->SpawnActor<AHealingUrn>(SpawnClass,Found,FRotator(0,FMath::FRandRange(0.f,360.f),0),Params))
+        if(auto* Urn=Cast<AHealingUrn>(Spawner->SpawnEnemyAtValidatedLocation(SpawnClass,Found+FVector(0,0,2),FRotator(0,FMath::FRandRange(0.f,360.f),0))))
         {
             if (!CombatGround::IsInsideArena(GetWorld(),Urn->GetActorLocation(),Urn->GetCapsuleComponent()->GetScaledCapsuleRadius())) { Urn->Destroy(); continue; }
             Urn->SetLifeSpan(100); ActiveUrns.Add(Urn); return true;

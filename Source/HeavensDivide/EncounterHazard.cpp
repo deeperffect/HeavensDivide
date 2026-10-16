@@ -110,6 +110,13 @@ void AEncounterHazard::Initialize(AActor* Source, EEncounterShape Shape, float I
 bool AEncounterHazard::HasVisibleWarning() const
 { return Material && GroundSurface && GroundSurface->GetStaticMesh(); }
 
+void AEncounterHazard::ActivateAsTrail()
+{
+    Warning=0; Delay=0; bImpacted=true; ActiveTime=3.f;
+    if(Material) { Material->SetScalarParameterValue(TEXT("Impact"),1); Material->SetScalarParameterValue(TEXT("FillAmount"),1); }
+    ImpactColumn->SetVisibility(false); SetLifeSpan(3.f);
+}
+
 bool AEncounterHazard::ContainsPoint(FVector Point, float Padding) const
 {
     if (FMath::Abs(Point.Z-GetActorLocation().Z)>UBloodshiftBalanceData::Get()->HazardVerticalTolerance) return false;
@@ -128,7 +135,7 @@ void AEncounterHazard::Tick(float Delta)
     Age += FMath::Max(0.f,Delta);
     GroundSurface->SetVisibility(Age >= Delay);
     const float Time = Age-Delay;
-    if (Material) Material->SetScalarParameterValue(TEXT("FillAmount"),FMath::Clamp(Time/Warning,0.f,1.f));
+    if (Material) Material->SetScalarParameterValue(TEXT("FillAmount"),Warning>0?FMath::Clamp(Time/Warning,0.f,1.f):1.f);
     if (Time < Warning || !HasVisibleWarning()) return;
     // An attack whose entire active window elapsed during a hitch must not hit
     // on a frame in which the player never saw its impact.

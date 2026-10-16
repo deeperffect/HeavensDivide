@@ -160,9 +160,14 @@ bool FLevelUpPresentationTest::RunTest(const FString&)
 	PC->LevelUpWidget->UpdateChoiceExit(.20f);
 	TestNotNull(TEXT("Selected card has its dissolve effect"),PC->LevelUpWidget->ChoiceExitMaterial.Get());
 	if(PC->LevelUpWidget->ChoiceExitMaterial)
-		TestTrue(TEXT("Selected card dissolves after holding"),PC->LevelUpWidget->ChoiceExitMaterial->K2_GetScalarParameterValue(TEXT("Progress"))>.4f);
+	{
+		TestTrue(TEXT("Selected dissolve advances at half its former speed"),FMath::IsNearlyEqual(PC->LevelUpWidget->ChoiceExitMaterial->K2_GetScalarParameterValue(TEXT("Progress")),.15f/.64f));
+		TestEqual(TEXT("Selected card uses gold instead of banish flames"),PC->LevelUpWidget->ChoiceExitMaterial->K2_GetScalarParameterValue(TEXT("Burn")),0.f);
+	}
 	RenderChoices(TEXT("UpgradeSelectionDissolve.png"));
-	PC->LevelUpWidget->UpdateChoiceExit(.20f);
+	PC->LevelUpWidget->UpdateChoiceExit(.48f);
+	TestEqual(TEXT("Selection remains frozen through the extended dissolve"),PC->PendingLevelUpChoices,2);
+	PC->LevelUpWidget->UpdateChoiceExit(.02f);
 	TestEqual(TEXT("First choice consumes only one queued level"), PC->PendingLevelUpChoices, 1);
 	TestEqual(TEXT("Shrine reward waits for all queued levels"), PC->PendingBloodShrineRewards, 1);
 	TestFalse(TEXT("Consecutive choices do not replay presentation"), PC->bLevelUpPresentationActive);
@@ -173,7 +178,7 @@ bool FLevelUpPresentationTest::RunTest(const FString&)
 	TestTrue(TEXT("Second queued category remains selectable"), PC->LevelUpWidget->SelectCategoryChoice(1));
 	TestTrue(TEXT("Second queued upgrade remains selectable"), PC->LevelUpWidget->SelectUpgradeChoice(0));
 	TestTrue(TEXT("Second exit still reserves input"),PC->IsSelectingUpgrade());
-	PC->LevelUpWidget->UpdateChoiceExit(.6f);
+	PC->LevelUpWidget->UpdateChoiceExit(.87f);
 	TestEqual(TEXT("Both level-up choices finish"), PC->PendingLevelUpChoices, 0);
 	// The saved pool may have no eligible Blood Pacts, in which case the existing
 	// reward flow skips it automatically instead of leaving the player frozen.

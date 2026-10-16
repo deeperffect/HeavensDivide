@@ -106,7 +106,7 @@ void UEnemyStatusEffectComponent::TryBloodDetonation()
  if (!Upgrades || !Enemy || !Upgrades->HasUpgradeId(TEXT("BloodDetonation")) ||
      BleedState.Stacks < UpgradeBalance::BloodCap(Upgrades)) return;
  const float Damage = UpgradeBalance::Value(Upgrades, TEXT("BloodDetonation"), TEXT("DamageMultiplier"), 2.f) * CalculateRemainingStatusDamage(EEnemyStatusEffect::Bleed);
- const float Radius = UpgradeBalance::Value(Upgrades, TEXT("BloodDetonation"), TEXT("Radius"), 300.f) * SamuraiArea(Upgrades) * (1.f + UpgradeBalance::Rank(Upgrades, TEXT("BloodTransferArea"), .1f));
+ const float Radius = UpgradeBalance::Value(Upgrades, TEXT("BloodDetonation"), TEXT("Radius"), 300.f) * (1.f + UpgradeBalance::Rank(Upgrades, TEXT("BloodTransferArea"), .1f));
  const FVector Origin=Enemy->GetActorLocation();
  auto* PC=Cast<ASurvivorPlayerController>(Upgrades->GetOwner());
  auto* Samurai=PC&&PC->GetCharacterManager()?PC->GetCharacterManager()->GetSamurai():nullptr;
@@ -162,7 +162,7 @@ void UEnemyStatusEffectComponent::TransferBleedOnDeath()
  if(!Enemy||!Upgrades||!HasStatus(EEnemyStatusEffect::Bleed)||!Upgrades->HasUpgradeId(TEXT("BattleStance"))||
     !Upgrades->HasUpgradeId(TEXT("BloodTransfer"))||Upgrades->HasUpgradeId(TEXT("BloodDetonation")))return;
  const auto* Card=Upgrades->FindUpgradeDefinition(TEXT("BloodTransfer"));
- const float Radius=FMath::Max(0.f,Card?Card->GetBalanceValue(TEXT("Radius"),300.f):300.f)*SamuraiArea(Upgrades)
+ const float Radius=FMath::Max(0.f,Card?Card->GetBalanceValue(TEXT("Radius"),300.f):300.f)
     *(1.f+UpgradeBalance::Rank(Upgrades, TEXT("BloodTransferArea"), .1f));
  auto Targets=NearbySamuraiTargets(Enemy,Radius);
  if(Targets.IsEmpty()||BleedState.RemainingDuration<=0)return;

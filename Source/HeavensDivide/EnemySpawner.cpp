@@ -387,11 +387,7 @@ AEnemyBase* AEnemySpawner::SpawnEnemyFromEntry(const FEnemySpawnEntry& SpawnEntr
 		return nullptr;
 	}
 
-	FActorSpawnParameters SpawnParameters;
-	SpawnParameters.Owner = this;
-	SpawnParameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-	AEnemyBase* SpawnedEnemy = GetWorld()->SpawnActor<AEnemyBase>(SpawnEntry.EnemyClass, SpawnLocation, FRotator::ZeroRotator, SpawnParameters);
+	AEnemyBase* SpawnedEnemy = SpawnEnemyAtValidatedLocation(SpawnEntry.EnemyClass, SpawnLocation);
 	if (!SpawnedEnemy)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("EnemySpawner %s failed to spawn %s."), *GetNameSafe(this), *GetNameSafe(SpawnEntry.EnemyClass.Get()));
@@ -475,10 +471,7 @@ AEnemyBase* AEnemySpawner::SpawnEventEnemy(TSubclassOf<AEnemyBase> EnemyClass, i
 		return nullptr;
 	}
 
-	FActorSpawnParameters Parameters;
-	Parameters.Owner = this;
-	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-	AEnemyBase* Enemy = GetWorld()->SpawnActor<AEnemyBase>(EnemyClass, SpawnLocation, FRotator::ZeroRotator, Parameters);
+	AEnemyBase* Enemy = SpawnEnemyAtValidatedLocation(EnemyClass, SpawnLocation);
 	if (!Enemy)
 	{
 		return nullptr;

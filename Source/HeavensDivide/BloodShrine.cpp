@@ -16,6 +16,7 @@
 #include "ObjectiveInteractionComponent.h"
 #include "TimerManager.h"
 #include "RunChallengeSubsystem.h"
+#include "ObjectiveBeaconComponent.h"
 
 ABloodShrine::ABloodShrine()
 {
@@ -40,6 +41,9 @@ ABloodShrine::ABloodShrine()
 	ObjectiveInteraction->SetupAttachment(SceneRoot);
 	ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Blood Shrine")),300.0f,1.0f,240.0f);
 	ObjectiveInteraction->SetPresentationVisual(ShrineMesh);
+    Beacon=CreateDefaultSubobject<UObjectiveBeaconComponent>(TEXT("ObjectiveBeacon"));
+    Beacon->Configure(ShrineMesh,FLinearColor(1.f,.035f,.08f));
+    Beacon->SetBeaconState(true,true);
 }
 
 void ABloodShrine::BeginPlay()
@@ -107,6 +111,7 @@ bool ABloodShrine::ActivateShrine(APawn* InteractingPawn)
 	bRewardRequested = false;
 	CurrentBlood = 0;
 	ShrineState = EBloodShrineState::Active;
+    Beacon->SetBeaconState(true,false);
 	MinimapMarker->SetMarkerState(EMinimapMarkerState::Active);
 	if (ObjectiveInteraction) ObjectiveInteraction->HidePrompt();
     bIntroPending = true;
@@ -239,6 +244,7 @@ void ABloodShrine::SucceedChallenge()
 
 	EndChallenge();
 	ShrineState = EBloodShrineState::Success;
+    Beacon->SetBeaconState(false,false);
 	RunReports::ObjectiveCompleted(this);
 	RunChallenges::AwardCurrencies(this,10,2); // Commit earnings before delayed reward UI or a subsequent death.
     bAllowReactivation=false;
@@ -268,6 +274,7 @@ void ABloodShrine::FailChallenge(bool bShowFailure)
 
 	EndChallenge();
 	ShrineState = EBloodShrineState::Failed;
+    Beacon->SetBeaconState(bAllowReactivation,bAllowReactivation);
 	MinimapMarker->SetMarkerState(bAllowReactivation ? EMinimapMarkerState::Available : EMinimapMarkerState::Failed);
 	if (StatusWidget)
 	{

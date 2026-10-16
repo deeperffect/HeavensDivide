@@ -12,6 +12,7 @@ class HEAVENSDIVIDE_API UObjectiveIntroWidget : public UUserWidget
 public:
     UObjectiveIntroWidget(const FObjectInitializer& Init);
     static constexpr float RevealSeconds = 1.2f;
+    static constexpr float SkipDelaySeconds = .5f;
     static constexpr float HoldSeconds = 2.0f;
     static constexpr float DissolveSeconds = 1.1f;
     static constexpr float Duration = RevealSeconds + HoldSeconds + DissolveSeconds;

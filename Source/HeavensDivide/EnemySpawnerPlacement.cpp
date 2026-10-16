@@ -10,6 +10,8 @@
 #include "HAL/IConsoleManager.h"
 #include "Stats/Stats.h"
 #include "Kismet/GameplayStatics.h"
+#include "CombatGround.h"
+#include "EngineUtils.h"
 
 TAutoConsoleVariable<int32> CVarDebugEnemySpawnGround(
 	TEXT("hd.DebugEnemySpawnGround"),
@@ -18,6 +20,30 @@ TAutoConsoleVariable<int32> CVarDebugEnemySpawnGround(
 
 static constexpr float EnemySpawnWalkableGroundNormalZ = 0.7f;
 static constexpr ECollisionChannel EnemySpawnGroundTraceChannel = ECC_GameTraceChannel2;
+static void TraceSpawnGround(UWorld* World, TArray<FHitResult>& Hits, const FVector& Start,
+    const FVector& End, FCollisionQueryParams Params);
+
+AEnemyBase* AEnemySpawner::SpawnEnemyAtValidatedLocation(TSubclassOf<AEnemyBase> EnemyClass, const FVector& Location, const FRotator& Rotation) const
+{
+    if (!GetWorld() || !EnemyClass) return nullptr;
+    FActorSpawnParameters Params;
+    Params.Owner=const_cast<AEnemySpawner*>(this);
+    // DontSpawnIfColliding also checks the unregistered CDO, whose cached
+    // geometry ignores authored root scale and rejects smaller enemies on clear
+    // floor. Check the constructed actor, then forbid the adjustment it permits.
+    Params.SpawnCollisionHandlingOverride=ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+    auto* Enemy=GetWorld()->SpawnActor<AEnemyBase>(EnemyClass,Location,Rotation,Params);
+    // BeginPlay seats lightweight enemies on the same floor, removing our 2 cm
+    // contact allowance. Permit only that downward settle, never an XY shift
+    // or an upward relocation onto scenery.
+    const FVector Delta=Enemy ? Enemy->GetActorLocation()-Location : FVector::ZeroVector;
+    if (Enemy && (Delta.SizeSquared2D()>.01f || Delta.Z < -2.1f || Delta.Z > .1f))
+    {
+        Enemy->Destroy();
+        return nullptr;
+    }
+    return Enemy;
+}
 
 bool AEnemySpawner::ProjectEncounterGround(const FVector& Desired, FVector& OutGround) const
 {
@@ -35,16 +61,51 @@ bool AEnemySpawner::ValidateEncounterLocation(const FVector& Desired, TSubclassO
     // A formation cannot tolerate navigation moving individual members sideways.
     if (FVector::DistSquared2D(Desired, Ground) > FMath::Square(35.f)) return false;
     OutLocation = Ground + FVector(0,0,HalfHeight);
-    return IsSpawnLocationInsideArena(OutLocation) && IsSpawnLocationCollisionFree(OutLocation, EnemyClass);
+    return IsSpawnLocationInsideArena(OutLocation) && CombatGround::IsInsideArena(GetWorld(),OutLocation,Radius)
+        && HasGroundSupport(Ground,Radius) && IsSpawnLocationCollisionFree(OutLocation, EnemyClass);
 }
 
-static bool IsValidEnemySpawnGroundHit(const FHitResult& HitResult)
+bool AEnemySpawner::IsValidSpawnGround(const FHitResult& HitResult) const
 {
+	if (!HasAuthoredSpawnGround.IsSet())
+	{
+		HasAuthoredSpawnGround = false;
+		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
+			if (It->ActorHasTag(TEXT("SurvivalMapGround"))) { HasAuthoredSpawnGround = true; break; }
+	}
 	AActor* HitActor = HitResult.GetActor();
 	return HitResult.bBlockingHit
 		&& HitResult.GetComponent()
+		&& (!HasAuthoredSpawnGround.GetValue() || (HitActor && HitActor->ActorHasTag(TEXT("SurvivalMapGround"))))
 		&& (!HitActor || (!Cast<AEnemyBase>(HitActor) && !Cast<ACharacterBase>(HitActor)))
 		&& HitResult.ImpactNormal.Z >= EnemySpawnWalkableGroundNormalZ;
+}
+
+bool AEnemySpawner::HasGroundSupport(const FVector& Ground, float Radius) const
+{
+    if (!GetWorld()) return false;
+    FCollisionQueryParams Query(SCENE_QUERY_STAT(SpawnFootprint), false, this);
+    // Short traces never accept a prop roof high above the actual landing floor.
+    for (const FVector& Direction : {FVector(1,0,0),FVector(-1,0,0),FVector(0,1,0),FVector(0,-1,0)})
+    {
+        const FVector Edge=Ground+Direction*FMath::Max(0.f,Radius)*.9f;
+        TArray<FHitResult> Hits;
+        TraceSpawnGround(GetWorld(),Hits,Edge+FVector(0,0,25),Edge-FVector(0,0,35),Query);
+        if (!Hits.ContainsByPredicate([this](const FHitResult& Hit){return IsValidSpawnGround(Hit);})) return false;
+    }
+    return true;
+}
+
+bool AEnemySpawner::ValidateObjectiveLocation(const FVector& Desired, float Radius, float Height, FVector& OutGround) const
+{
+    Radius=FMath::Max(1.f,Radius); Height=FMath::Max(1.f,Height);
+    if (!ProjectEncounterGround(Desired,OutGround) || !CombatGround::IsInsideArena(GetWorld(),OutGround,Radius)
+        || !HasGroundSupport(OutGround,Radius)) return false;
+    FCollisionQueryParams Query(SCENE_QUERY_STAT(ObjectiveSpawnClearance),false,this);
+    const FVector Center=OutGround+FVector(0,0,Height*.5f+8.f);
+    const FCollisionShape Shape=FCollisionShape::MakeBox(FVector(Radius,Radius,Height*.5f));
+    return !GetWorld()->OverlapBlockingTestByChannel(Center,FQuat::Identity,ECC_Pawn,Shape,Query)
+        && !GetWorld()->OverlapBlockingTestByChannel(Center,FQuat::Identity,ECC_GameTraceChannel1,Shape,Query);
 }
 
 // Multi-channel traces stop at the first blocker, even when that hit is later rejected.
@@ -99,8 +160,10 @@ bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubc
 			continue;
 		}
 
-		const FVector ActorLocation = ProjectedLocation + FVector(0.0f, 0.0f, CapsuleHalfHeight);
-		if (!IsSpawnLocationInsideArena(ActorLocation))
+		// Keep the capsule just above the floor contact tolerance so the engine's
+		// final collision check does not need to move it off its validated point.
+		const FVector ActorLocation = ProjectedLocation + FVector(0.0f, 0.0f, CapsuleHalfHeight + 2.f);
+		if (!IsSpawnLocationInsideArena(ActorLocation) || !CombatGround::IsInsideArena(GetWorld(),ActorLocation,CapsuleRadius))
 		{
 			++ArenaFailures;
 			if (bDebugSpawnValidation)
@@ -110,7 +173,7 @@ bool AEnemySpawner::FindSpawnLocation(const FVector& ActivePlayerLocation, TSubc
 			continue;
 		}
 
-		if (!IsSpawnLocationCollisionFree(ActorLocation, EnemyClass))
+		if (!HasGroundSupport(ProjectedLocation,CapsuleRadius) || !IsSpawnLocationCollisionFree(ActorLocation, EnemyClass))
 		{
 			++CollisionFailures;
 			if (bDebugSpawnValidation)
@@ -211,7 +274,7 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	bool bHitGround = false;
 	for (const FHitResult& HitResult : HitResults)
 	{
-		if (IsValidEnemySpawnGroundHit(HitResult))
+		if (IsValidSpawnGround(HitResult))
 		{
 			GroundHit = HitResult;
 			bHitGround = true;
@@ -262,7 +325,7 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	bool bHitNavGround = false;
 	for (const FHitResult& HitResult : NavGroundHits)
 	{
-		if (IsValidEnemySpawnGroundHit(HitResult))
+		if (IsValidSpawnGround(HitResult))
 		{
 			NavGroundHit = HitResult;
 			bHitNavGround = true;
@@ -284,6 +347,10 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 	}
 
 	OutProjectedLocation = FVector(NavLocation.Location.X, NavLocation.Location.Y, NavGroundHit.Location.Z);
+    // A projection onto nearby floor must not be moved back onto a roof by the
+    // second downward trace, or snap across a fence to an unrelated ledge.
+    if (FMath::Abs(OutProjectedLocation.Z-NavLocation.Location.Z)>45.f
+        || FVector::DistSquared2D(CandidateLocation,OutProjectedLocation)>FMath::Square(100.f)) return false;
 	if (FMath::Abs(OutProjectedLocation.Z - CandidateLocation.Z) > 25.0f && CVarDebugEnemySpawnGround.GetValueOnGameThread() != 0)
 	{
 		UE_LOG(LogTemp, Log, TEXT("EnemySpawner spawn ground Z adjusted CandidateZ=%.2f GroundZ=%.2f NavZ=%.2f HitActor=%s HitComponent=%s ImpactNormal=%s"),
@@ -299,7 +366,8 @@ bool AEnemySpawner::ProjectSpawnLocationToNavigation(const FVector& CandidateLoc
 
 bool AEnemySpawner::IsSpawnLocationInsideArena(const FVector& Location) const
 {
-	return !ActiveSpawnArea || ActiveSpawnArea->ContainsSpawnLocation(Location, SpawnEdgePadding);
+	return ActiveSpawnArea ? ActiveSpawnArea->ContainsSpawnLocation(Location, SpawnEdgePadding)
+        : CombatGround::IsInsideArena(GetWorld(),Location,SpawnEdgePadding);
 }
 
 bool AEnemySpawner::IsSpawnLocationCollisionFree(const FVector& Location, TSubclassOf<AEnemyBase> EnemyClass) const
@@ -320,7 +388,9 @@ bool AEnemySpawner::IsSpawnLocationCollisionFree(const FVector& Location, TSubcl
 
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(EnemySpawnerCapsuleValidation), false, this);
 	FCollisionResponseParams ResponseParams;
-	return !World->OverlapBlockingTestByChannel(
+	return !World->OverlapBlockingTestByChannel(ValidationLocation,FQuat::Identity,ECC_GameTraceChannel1,
+        FCollisionShape::MakeCapsule(CapsuleRadius,ValidationHalfHeight),QueryParams,ResponseParams)
+        && !World->OverlapBlockingTestByChannel(
 		ValidationLocation,
 		FQuat::Identity,
 		ECC_Pawn,
@@ -341,7 +411,11 @@ void AEnemySpawner::GetEnemyCapsuleDimensions(TSubclassOf<AEnemyBase> EnemyClass
 		return;
 	}
 
-	OutRadius = FMath::Max(1.0f, CapsuleComponent->GetUnscaledCapsuleRadius());
-	OutHalfHeight = FMath::Max(OutRadius, CapsuleComponent->GetUnscaledCapsuleHalfHeight());
+	// CDO scene components have no registered world transform. Their cached
+	// GetScaledCapsule* values therefore omit Blueprint root scale (e.g. the
+	// grunt's 1.08 scale) and place the live capsule inside the floor.
+	const float ShapeScale = CapsuleComponent->GetRelativeScale3D().GetAbsMin();
+	OutRadius = FMath::Max(1.0f, CapsuleComponent->GetUnscaledCapsuleRadius() * ShapeScale);
+	OutHalfHeight = FMath::Max(OutRadius, CapsuleComponent->GetUnscaledCapsuleHalfHeight() * ShapeScale);
 }
 

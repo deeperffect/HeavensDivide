@@ -15,7 +15,7 @@ public:
     AHealingUrn(const FObjectInitializer& Init = FObjectInitializer::Get());
     virtual void BeginPlay() override;
     virtual void Tick(float Delta) override;
-    virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource) override;
+    virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource, bool bCritical = false) override;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly) TObjectPtr<UStaticMeshComponent> Pot;
     UPROPERTY(EditAnywhere, BlueprintReadWrite) TSubclassOf<AHealingPickup> HealingClass;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Reward") bool bDropsMagnet=false;

@@ -135,13 +135,17 @@ protected:
 
 private:
 	friend class FLevelUpPresentationTest;
-	void BeginChoiceExit(int32 SelectedIndex);
+    friend class FDraftToolsTest;
+    friend class FCardDissolveVisualTest;
+    friend class FRarityGlowVisualTest;
+	void BeginChoiceExit(int32 SelectedIndex, bool bBanish = false);
 	void UpdateChoiceExit(float RealDeltaTime);
 	void ResetChoiceExit();
 	static constexpr float UnselectedFadeSeconds = .16f;
 	static constexpr float SelectedHoldSeconds = .22f;
-	static constexpr float SelectedDissolveSeconds = .32f;
+	static constexpr float SelectedDissolveSeconds = .64f;
 	bool bChoiceExitActive = false;
+	bool bChoiceExitBanish = false;
 	float ChoiceExitElapsed = 0.f;
 	int32 ChoiceExitSelectedIndex = INDEX_NONE;
 	UPROPERTY(Transient) TArray<TObjectPtr<class UWidget>> ChoiceExitVisuals;
@@ -162,6 +166,8 @@ private:
 	UTexture2D* GetCategoryBorder(EUpgradeCategory Category) const;
 	void EnsureUpgradeCardVisualStructure();
 	void RefreshUpgradeCardVisuals();
+    void UpdateRarityAnimation(float DeltaTime);
+    float RarityAnimationTime = 0.f;
 	UTexture2D* GetCardBorderForCategory(EUpgradeCategory Category) const;
 	UMaterialInterface* GetRarityMaterial(EUpgradeRarity Rarity) const;
 	void EnsureSynergyDiscoveryPresentation();

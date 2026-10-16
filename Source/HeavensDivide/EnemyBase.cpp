@@ -8,6 +8,7 @@
 #include "TesterBalanceSettings.h"
 #include "BalanceLabDirector.h"
 #include "CombatGround.h"
+#include "EnemySpawner.h"
 
 #include "HealingPickupDropSubsystem.h"
 
@@ -450,7 +451,7 @@ bool AEnemyBase::ApplyStatusDamage(float DamageAmount, EPlayerAttackSource Attac
 	return ApplyPlayerDamage(DamageAmount, AttackSource);
 }
 
-bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource)
+bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource, bool bCritical)
 {
 	if (!CanReceivePlayerDamage(AttackSource) || !HealthComponent)
 	{
@@ -459,8 +460,17 @@ bool AEnemyBase::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource Attac
 
 	FRunDamageScope DamageScope(AttackSource == EPlayerAttackSource::Ninja ? FName(TEXT("NinjaAttack")) : FName(TEXT("SamuraiAttack")), true, true);
 	const float PreviousHealth = HealthComponent->GetCurrentHealth();
+	const FVector NumberPosition = GetActorLocation() + FVector(0, 0, GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * .65f);
 	HealthComponent->ApplyDamage(DamageAmount * GetIaijutsuDamageMultiplier());
-	return HealthComponent->GetCurrentHealth() < PreviousHealth;
+	const float ActualDamage = PreviousHealth - HealthComponent->GetCurrentHealth();
+	if (ActualDamage > 0.f)
+	{
+		if (!IsValid(CachedSurvivorController))
+			CachedSurvivorController = Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this, 0));
+		if (CachedSurvivorController)
+			CachedSurvivorController->ShowEnemyDamageNumber(this, NumberPosition, ActualDamage, bCritical, bSuppressHitFlash);
+	}
+	return ActualDamage > 0.f;
 }
 
 void AEnemyBase::GetImpactContact(FVector AttackLocation, FVector& Location, FVector& Normal) const
@@ -974,9 +984,25 @@ void AEnemyBase::SpawnExperiencePickup()
 	{
         FVector Location=CombatGround::ClampInsideArena(GetWorld(),GetActorLocation(),80.f);
         FVector Ground;
-        if(CombatGround::FindSurface(GetWorld(),Location,this,Ground))Location=Ground+FVector(0,0,3);
+        AEnemySpawner* Placement=nullptr;
+        for(TActorIterator<AEnemySpawner> It(GetWorld());It;++It){Placement=*It;break;}
+        bool bClear=false;
+        if(Placement)
+        {
+            // An elite can die while pressed against a house. Search nearby
+            // clear floor instead of putting its reward on the roof or in a wall.
+            for(int32 Attempt=0;Attempt<49 && !bClear;++Attempt)
+            {
+                const float Angle=Attempt*2.39996323f;
+                const float Radius=Attempt==0 ? 0.f : 140.f*(1+(Attempt-1)/8);
+                const FVector Candidate=Location+FVector(FMath::Cos(Angle),FMath::Sin(Angle),0)*Radius;
+                bClear=Placement->ValidateObjectiveLocation(Candidate,90.f,180.f,Ground);
+            }
+        }
+        else bClear=CombatGround::FindSurface(GetWorld(),Location,this,Ground);
+        if(bClear)Location=Ground+FVector(0,0,3);
 		const TSubclassOf<AEliteRewardChest> ChestClass=EliteRewardChestClass?EliteRewardChestClass:TSubclassOf<AEliteRewardChest>(AEliteRewardChest::StaticClass());
-		if(auto* Chest=GetWorld()->SpawnActor<AEliteRewardChest>(ChestClass,Location,FRotator::ZeroRotator,SpawnParameters))
+		if(auto* Chest=bClear ? GetWorld()->SpawnActor<AEliteRewardChest>(ChestClass,Location,FRotator::ZeroRotator,SpawnParameters) : nullptr)
 		{
 			Chest->InitializeReward(XPReward,ExperiencePickupClass,CachedPlayerExperienceComponent,ObservedCharacterManager);
 			return;

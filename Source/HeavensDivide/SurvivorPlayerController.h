@@ -78,6 +78,7 @@ public:
 	ASurvivorPlayerController();
 
 	virtual void PlayerTick(float DeltaTime) override;
+	virtual bool InputKey(const FInputKeyEventArgs& Params) override;
     virtual void UpdateCameraManager(float DeltaSeconds) override;
 
 	void SetCameraFollowTarget(ACharacterBase* NewFollowTarget);
@@ -146,6 +147,7 @@ public:
 
     bool ShowObjectiveIntro(AActor* Objective, const FText& Message, FLinearColor Accent, FSimpleDelegate OnFinished);
     bool IsObjectiveIntroPlaying() const { return ObjectiveIntroWidget != nullptr; }
+    void SkipObjectiveIntro();
 
 	UFUNCTION(BlueprintPure, Category = "Player|Swap")
 	bool CanSwap() const;
@@ -213,6 +215,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Player|Health")
 	void ApplyDamageToPlayer(float DamageAmount);
+
+	void ShowEnemyDamageNumber(AEnemyBase* Enemy, FVector Position, float ActualDamage, bool bCritical, bool bStatus);
 
 	UFUNCTION(BlueprintCallable, Category = "Player|Rewards")
 	void RequestBloodShrineUpgradeReward(int32 UpgradeChoiceCount = 3);

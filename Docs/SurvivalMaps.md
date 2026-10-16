@@ -1,5 +1,23 @@
 # Additional survival maps
 
+## Current scenery and collision repair
+
+The saved Old Village, Moonlit Forest, Sunken Sanctuary and Ember Quarry maps now use the targeted `repair_map_scenery.py` and `finish_map_scenery.py` pass. This supersedes the older broad prop boxes and nonblocking perimeter scenery described below. It preserves supplied TripoAI models and the authored playable layout. The 25 visible procedural ground/backdrop and primitive filler pieces were replaced with existing asset meshes. Original floor geometry remains hidden solely for physics/navigation, preserving coastlines, reservoir holes and enemy spawn limits. Shared vendor packages are unchanged; isolated copies live under `/Game/HeavensDivide/Environment/SceneryRepair`.
+
+Ancient_Ruins leaf clusters require their material's billboard vertex positioning. Disabling all world-position offsets caused the broken, perforated canopies. Prepared foliage now keeps that positioning, disables wind through isolated instance parameters, and retains camera fading. Broadleaf trees use intact near LODs and fitted trunk collision. Shrubs use small base colliders inside their visible foliage instead of collision against moving leaf cards. Small loose props and flat paving remain nonblocking.
+
+The pass removed 638 redundant prop/foliage proxy actors. Solid props and perimeter rocks use fitted mesh collision, with two-sided query geometry for open-backed scenery; the quarry retains its shared reduced sandstone collider. The three newer maps have 82 visible, low stone boundary sections from Ancient_Ruins in place of their invisible perimeter walls. Old Village retains its existing roofed boundary walls and outer safety collision. Navigation is baked and static; this adds no per-frame collision generation or actor ticks.
+
+The arena navigation bake now flood-fills polygon links from PlayerStart and marks disconnected polygons as NavArea_Null before saving. This excludes enclosed building interiors and isolated pockets behind rocks from navigation projection and enemy spawning. It changes no player collision and performs no work at runtime. `finish_map_navigation.py` applies the bake to the four saved maps; `check_map_connectivity.py` checks the complete 225 cm navigation grid after reloading. These arenas intentionally have one connected play surface; maps designed with teleport-only regions would require additional seeds.
+
+`restore_foliage_parameters.py` preserves the vendor shader's wind wavelengths, mask scales and distances. Only wind intensity, weight and speed are disabled. Zeroing every parameter with “wind” in its name can zero shader divisors and corrupt opacity, even when vertex positioning is enabled.
+
+The four prepared Stylized_Village tree meshes also enable Nanite **Preserve Area**. The original meshes had shape preservation disabled, allowing distant Nanite simplification to remove most of the green canopy. This setting fixes the distant silhouette while retaining Nanite and the original vendor leaf texture. It is part of `finish_map_scenery.py`; `fix_tree_nanite_area.py` applies it independently. Close foliage and distant overview renders were inspected separately.
+
+The final saved-map gameplay pass checked 19,256 ground positions and all 261 boundary sweeps. All 32 objective routes and all 15,186 projected open-ground route queries connected to the player. Each map spawned 36 enemies while the shared clock advanced. An independent reload checked 16,285 navigation samples with no disconnected destinations. The editor build passed. Reports: `FinalVisualValidation.json`, `Connectivity.json`, and `Build.log` under `Saved/MapSceneryAudit`. `FoliageFinalReview.json` records the final saved tree settings and overview renders; those render-only changes retain the previously tested trunk collision and baked navigation.
+
+Run `Tools/Run-OldVillage.ps1 -Script validate_map_scenery.py -Render` to reload all four maps, verify source/visibility and collision settings, check objective routes, sweep the complete boundaries, scan open ground on a 225 cm grid, test run startup and capture previews. Reports and pre-edit backups are under `Saved/MapSceneryAudit`; reviewed images are under `Art/Environment/SceneryRepair/Previews`. These map checks are not a full-combat frame-time benchmark. Reapply the repair and finishing scripts after using an older full-map generator.
+
 Four destinations are selectable in New Run. Begin Run, Restart Run and the victory screen use the selected destination. Old Village remains the initial selection and its level is not modified by this rework.
 
 ## Revision two

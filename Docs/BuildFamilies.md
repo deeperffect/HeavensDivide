@@ -70,7 +70,7 @@ Each stack deals **12.5% of its applying hit's damage over the base 3 seconds**,
 | Blood Rush | Killing a bleeding enemy while Samurai is active grants +20% movement speed for 3 seconds. Refreshes without stacking, also triggers on lethal Blood Detonation, and ends on swap. Uses one expiry timer. |
 | Blood Transfer | On a bleeding enemy's death, copy its stacks and per-stack damage to nearby valid enemies, respecting their stack cap. Base radius 300 cm, scaled by Samurai area. |
 | Double Cut | Every fourth committed attack becomes a full-damage 360-degree slash, using the existing circular slash montage. |
-| Echoing Slash | 15% chance to repeat the committed attack after 0.15 seconds for 50% damage, showing only Niagara slash VFX. Echoes apply Bleed/Marked Blade, can independently crit, advance Double Cut and normal attack counters, and can call assists. Echoes cannot produce further echoes. |
+| Echoing Slash | 15% chance to repeat the committed attack after 0.25 seconds for 50% damage, showing blue Niagara slash VFX. Echoes apply Bleed/Marked Blade, can independently crit, advance Double Cut and normal attack counters, and can call assists. Echoes cannot produce further echoes. |
 | Critical Strike | 15% chance for double attack damage. |
 | Ninja Assist | 5% chance per attack to request the Ninja's equipped assist attack. A busy assist cannot overlap itself. |
 
@@ -99,7 +99,7 @@ Blood Shrine objectives offer these one-time tradeoffs only when Blood Stance is
 - **Frenzied Blood**: +40% attack speed and -25% attack damage.
 - **Blood Detonation**: reaching maximum stacks consumes Bleed and immediately explodes for **200% of its remaining damage**, hitting the affected enemy and nearby valid enemies. Disables Blood Transfer. Transfer-area ranks increase the explosion radius. Explosion damage applies no Bleed.
 
-Tradeoff stat modifiers multiply after additive upgrades. The three tradeoffs can combine across Shrine rewards. In **BP_Samurai > AutoAttackComponent > Samurai > Blood Stance**, **Blood Echo VFX** and **Blood Echo Delay** control echo presentation.
+Tradeoff stat modifiers multiply after additive upgrades. The three tradeoffs can combine across Shrine rewards. In **BP_Samurai > AutoAttackComponent > Samurai > Blood Stance**, **Blood Echo VFX**, **Blood Echo Color**, and **Blood Echo Delay** control echo presentation. Echo color is applied to `User.Color 01` before activation, leaving the shared source Niagara asset unchanged.
 
 ### Iaijutsu Stance: directional spectral dash attacks
 

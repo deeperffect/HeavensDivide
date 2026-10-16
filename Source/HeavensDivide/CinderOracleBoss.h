@@ -117,14 +117,32 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Oracle|Eclipse", meta=(ClampMin="1"))
     float EclipseLaneWidth = 110.0f;
     UFUNCTION(BlueprintCallable, Category="Oracle|Testing") void CastAbility(int32 Ability);
+    UPROPERTY(EditAnywhere, Category="Oracle|Charge") float ChargeSpeed = 3600.f;
+    UPROPERTY(EditAnywhere, Category="Oracle|Charge") float ChargeDistance = 1800.f;
+    UPROPERTY(EditAnywhere, Category="Oracle|Charge") float ChargeContactDamage = 25.f;
+    UPROPERTY(EditAnywhere, Category="Oracle|Charge") float ChargePushSpeed = 900.f;
+    UPROPERTY(EditAnywhere, Category="Oracle|Charge") float ChargeTrailDamage = 10.f;
+    virtual FVector GetVelocity() const override;
 protected:
     virtual void UpdateEnemyBehavior(float Delta) override;
-    virtual bool ShouldSkipMovement() const override { return !bOracleActive || CastRecovery>0; }
+    virtual bool ShouldSkipMovement() const override { return !bOracleActive || CastRecovery>0 || ChargesRemaining>0; }
     virtual void HandleDeath() override;
 private:
     TWeakObjectPtr<class AEnemyAttackCue> CastCue;
     friend class FEncounterExpansionTest;
     friend class FBossSpellPressureTest;
+    friend class FBossChargeTest;
+    void BeginChargeSequence();
+    void PrepareCharge(float WarningSeconds);
+    void TickCharge(float Delta);
+    void EndCharge();
+    void CancelCharge();
+    void HitChargePlayer(FVector Before, FVector After);
+    int32 ChargesRemaining = 0;
+    float ChargeWait = 0, ChargeRemainingDistance = 0, TrailDistance = 0;
+    bool bCharging = false, bChargeEnraged = false, bChargeHitPlayer = false;
+    FVector ChargeDirection = FVector::ForwardVector;
+    TWeakObjectPtr<class AEncounterHazard> ChargeWarning;
     bool bOracleActive = false;
     float NextCast = 2, CastRecovery = 0;
     int32 SpellIndex = 0;

@@ -6,6 +6,8 @@
 #include "CharacterManagerComponent.h"
 #include "EnemySpawner.h"
 #include "CombatGround.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "HealthComponent.h"
 #include "NinjaTechniqueTrial.h"
@@ -190,20 +192,41 @@ AActor* ARunObjectiveDirector::SpawnObjective(TSubclassOf<AActor> ObjectiveClass
 	if (Candidates.IsEmpty()) Candidates = GetUnusedCandidates();
 	UE_LOG(LogTemp, Log, TEXT("[ObjectiveDirector] Candidates Type=%s Total=%d Used=%d Preferred=%d"), ObjectiveName, SpawnPoints.Num(), SpawnPoints.Num() - UnusedCandidates.Num(), Candidates.Num());
 	ShufflePoints(Candidates);
+	// If preferred clearings are occupied, still try every other unused marker
+	// before deferring the milestone. Preference must never force a blocked spawn.
+	TArray<AObjectiveSpawnPoint*> FallbackCandidates = UnusedCandidates;
+	ShufflePoints(FallbackCandidates);
+	for (AObjectiveSpawnPoint* Point : FallbackCandidates) Candidates.AddUnique(Point);
 	UObjectiveDirectorRunStateSubsystem* State = GetWorld()->GetSubsystem<UObjectiveDirectorRunStateSubsystem>();
+	FBox VisualBounds(ForceInit);
+	TArray<UStaticMeshComponent*> Visuals;
+	ObjectiveClass->GetDefaultObject<AActor>()->GetComponents(Visuals);
+	for (const auto* Visual : Visuals)
+		if (Visual->GetStaticMesh() && Visual->IsVisible())
+		{
+			FTransform Transform = Visual->GetRelativeTransform();
+			for (const USceneComponent* Parent=Visual->GetAttachParent(); Parent; Parent=Parent->GetAttachParent())
+				Transform = Transform * Parent->GetRelativeTransform();
+			VisualBounds += Visual->GetStaticMesh()->GetBoundingBox().TransformBy(Transform);
+		}
+	const float Footprint = VisualBounds.IsValid ? FMath::Max(220.f,float(FMath::Max(VisualBounds.Min.Size2D(),VisualBounds.Max.Size2D()))+40.f) : 220.f;
+	const float Height = VisualBounds.IsValid ? FMath::Max(400.f,float(VisualBounds.GetSize().Z)+30.f) : 400.f;
+	const float FloorOffset = VisualBounds.IsValid ? -VisualBounds.Min.Z+5.f : 5.f;
 	for (AObjectiveSpawnPoint* Point : Candidates)
 	{
-        if (!IsValid(Point) || !CombatGround::IsInsideArena(GetWorld(),Point->GetActorLocation(),180.f)) continue;
+        FVector Ground;
+        if (!IsValid(Point) || !RunTimeSource
+            || !RunTimeSource->ValidateObjectiveLocation(Point->GetActorLocation(),Footprint,Height,Ground)) continue;
 		// ObjectiveSpawnPoint uses a scaled editor billboard as its root component.
 		// Preserve the marker's placement, but never propagate that visualization
 		// scale into runtime objective actors.
 		const FTransform ObjectiveSpawnTransform(
 			Point->GetActorQuat(),
-			Point->GetActorLocation(),
+			Ground + FVector(0,0,FloorOffset),
 			FVector::OneVector);
 		FActorSpawnParameters Params;
 		Params.Owner = this;
-		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding;
 		AActor* Spawned = GetWorld()->SpawnActor<AActor>(ObjectiveClass, ObjectiveSpawnTransform, Params);
 		if (!Spawned)
 		{

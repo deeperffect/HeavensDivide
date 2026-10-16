@@ -15,6 +15,7 @@
 #include "Components/Button.h"
 #include "Components/HorizontalBox.h"
 #include "Components/TextBlock.h"
+#include "Materials/MaterialInstanceDynamic.h"
 #include "Slate/WidgetRenderer.h"
 #include "Engine/TextureRenderTarget2D.h"
 #include "ImageUtils.h"
@@ -68,7 +69,7 @@ bool FDraftToolsTest::RunTest(const FString&)
  auto* Widget = CreateWidget<ULevelUpWidget>(GI, WidgetClass);
  if (!TestNotNull(TEXT("Authored level-up widget"), Widget)) return false;
  // Cache Slate before initialization, matching the controller's real viewport lifecycle.
- Widget->TakeWidget();
+ const auto DraftSlate=Widget->TakeWidget();
  Widget->InitializeDirectUpgradeWidget(PC);
  auto* Reroll = Cast<UButton>(Widget->WidgetTree->FindWidget(TEXT("DraftReroll")));
  auto* Banish = Cast<UButton>(Widget->WidgetTree->FindWidget(TEXT("DraftBanish")));
@@ -77,7 +78,7 @@ bool FDraftToolsTest::RunTest(const FString&)
  {
   if (!FApp::CanEverRender()) return;
   FWidgetRenderer Renderer(false);
-  auto* Target = Renderer.DrawWidget(Widget->TakeWidget(), FVector2D(1920,1080));
+  auto* Target = Renderer.DrawWidget(DraftSlate, FVector2D(1920,1080));
   TArray<FColor> Pixels;
   FReadSurfaceDataFlags Flags; Flags.SetLinearToGamma(false);
   if (TestTrue(TEXT("UI render readable"), Target && Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels, Flags)))
@@ -159,11 +160,36 @@ bool FDraftToolsTest::RunTest(const FString&)
  if (Banish) Banish->OnClicked.Broadcast();
  Render(TEXT("DraftToolsBanish.png"));
  const FName UIBanned = Upgrades->CurrentUpgradeChoices[0]->UpgradeId;
+ const FText OldTitle=Widget->UpgradeTitleTexts[0]->GetText();
  TestTrue(TEXT("Banish mode card click succeeds"), Widget->SelectUpgradeChoice(0));
  TestTrue(TEXT("UI banishes chosen card"), Upgrades->BanishedUpgrades.Contains(UIBanned));
  TestEqual(TEXT("UI banish does not grant upgrade"), Upgrades->GetUpgradeLevelById(UIBanned), 0);
  TestTrue(TEXT("Level-up remains open after banish"), Upgrades->IsDraftToolOffer());
+ TestTrue(TEXT("Banish starts its burn presentation"),Widget->bChoiceExitActive&&Widget->bChoiceExitBanish);
+ TestTrue(TEXT("Old artwork stays until burn finishes"),Widget->UpgradeTitleTexts[0]->GetText().EqualTo(OldTitle));
+ TestFalse(TEXT("Double click cannot select the incoming replacement"),Widget->SelectUpgradeChoice(0));
+ const int32 RerollsBeforeBurn=Upgrades->GetRerollsRemaining();
+ Widget->HandleReroll();Widget->HandleBanishMode();
+ TestEqual(TEXT("Reroll input is ignored during burning"),Upgrades->GetRerollsRemaining(),RerollsBeforeBurn);
+ TestFalse(TEXT("Banish input is ignored during burning"),Widget->bBanishMode);
+ TestTrue(TEXT("Draft tools are disabled during burning"),!Reroll->GetIsEnabled()&&!Banish->GetIsEnabled());
+ Widget->UpdateChoiceExit(.54f);
+ TestEqual(TEXT("Untouched cards stay visible during banish"),Widget->ChoiceExitVisuals[1]->GetRenderOpacity(),1.f);
+ if(TestNotNull(TEXT("Burn effect is available"),Widget->ChoiceExitMaterial.Get()))
+ {
+  TestEqual(TEXT("Banish uses ember-red burn variant"),Widget->ChoiceExitMaterial->K2_GetScalarParameterValue(TEXT("Burn")),1.f);
+  TestTrue(TEXT("Burn reaches halfway in real UI time"),FMath::IsNearlyEqual(Widget->ChoiceExitMaterial->K2_GetScalarParameterValue(TEXT("Progress")),.5f,KINDA_SMALL_NUMBER));
+ }
+ Widget->UpdateChoiceExit(.31f);
+ TestTrue(TEXT("Replacement waits for full burn duration"),Widget->bChoiceExitActive);
+ Widget->UpdateChoiceExit(.02f);
+ TestFalse(TEXT("Finished banish releases its input guard"),Widget->bChoiceExitActive);
+ TestFalse(TEXT("Banish does not commit an upgrade selection"),Widget->bUpgradeChoiceCommitted);
+ TestTrue(TEXT("Replacement title appears after burning"),Widget->UpgradeTitleTexts[0]->GetText().EqualTo(Upgrades->CurrentUpgradeChoices[0]->DisplayName));
+ TestTrue(TEXT("Draft tools are restored after burning"),Reroll->GetIsEnabled()&&Banish->GetIsEnabled());
+ TestEqual(TEXT("Only one banish is consumed"),Upgrades->GetBanishesRemaining(),1);
  TestTrue(TEXT("Replacement can still be selected"), Widget->SelectUpgradeChoice(0));
+ if(Widget->ChoiceExitMaterial)TestEqual(TEXT("Selecting after banish resets the effect to gold"),Widget->ChoiceExitMaterial->K2_GetScalarParameterValue(TEXT("Burn")),0.f);
  MetaSkillTree::Refund(*Meta->CurrentSave);
  Meta->SaveMetaProgression(); Meta->LoadMetaProgression();
  TestEqual(TEXT("Skill refund removes reroll charges"), Next->GetRerollsRemaining(), 0);

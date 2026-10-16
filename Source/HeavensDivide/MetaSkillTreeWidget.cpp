@@ -238,30 +238,6 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
   [SNew(STextBlock).Font(MenuFont(15)).ColorAndOpacity(FSlateColor::UseForeground())
    .Text_Lambda([this,Meta](){const int32 Cost=Meta()?Meta()->GetSkillCost(Selected):0;return FText::FromString(Cost>0?FString::Printf(TEXT("LEARN / %d EMBERS"),Cost):TEXT("FULLY LEARNED"));})];
  SkillMap->SetInspectTarget(LearnButton);
- auto Inspector=SNew(SVerticalBox)
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)
-  [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Ember).Text_Lambda([this](){return FText::FromString(OpenStance.IsNone()?FString(PageName(CurrentPage)):MetaSkillTree::StanceName(OpenStance).ToUpper()+TEXT(" / STANCE SKILLS"));})]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,16)
-  [SNew(STextBlock).Font(MenuFont(25,true)).ColorAndOpacity(Paper).WrapTextAt(300).Text_Lambda([Node](){return FText::FromString(Node()?Node()->Name:TEXT("Choose a skill"));})]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)[SNew(BloodshiftMenu::SOrnamentDivider)]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)
-  [SNew(STextBlock).Font(MenuFont(16)).ColorAndOpacity(Ember).Text_Lambda([this,Meta,Node](){return FText::FromString(Node()&&Meta()?FString::Printf(TEXT("RANK %d / %d"),Meta()->GetSkillRank(Selected),Node()->MaxRank):TEXT(""));})]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,24)
-  [SNew(STextBlock).Font(MenuFont(17)).ColorAndOpacity(Paper).WrapTextAt(300).Text_Lambda([Node](){return FText::FromString(Node()?MetaSkillTree::Description(*Node()):TEXT("Inspect a skill on the map."));})]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,10)
-  [SNew(STextBlock).Font(MenuFont(15)).ColorAndOpacity(Ember).WrapTextAt(300).Text_Lambda([Node](){return FText::FromString(Node()?MetaSkillTree::Scope(*Node()):TEXT("PERMANENT PASSIVE"));})]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)
-  [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Muted).WrapTextAt(300).Text_Lambda([Node]()
-   {
-    const auto* Skill=Node();
-    if(Skill&&(Skill->Effect==TEXT("ComboUnlock")||Skill->Effect.ToString().StartsWith(TEXT("ComboChoice."))))return FText::FromString(TEXT("Equip in Loadout."));
-    if(Skill&&Skill->Effect.ToString().StartsWith(TEXT("Combo")))return FText::FromString(TEXT("Applies to all equipped combos."));
-    return FText::FromString(Skill&&!Skill->RequiredStance.IsNone()?TEXT("Active when this stance is selected, including while the hero assists."):TEXT("Applies automatically in every new run."));
-   })]
-  +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,18)
-  [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Muted).WrapTextAt(300)
-   .Text_Lambda([Meta,Node](){if(!Node()||!Meta())return FText::GetEmpty();FString Text;if(Node()->Prerequisites.IsEmpty())Text=TEXT("Starting skill / No prerequisite.");else{Text=TEXT("REQUIRES ONE RANK IN\n");for(FName Id:Node()->Prerequisites)Text+=(Meta()->GetSkillRank(Id)>0?TEXT("Learned: "):TEXT("Required: "))+(MetaSkillTree::Find(Id)?MetaSkillTree::Find(Id)->Name:Id.ToString())+TEXT("\n");}return FText::FromString(Text);})]
-  +SVerticalBox::Slot().AutoHeight()[SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Ember).WrapTextAt(300).Text_Lambda([this,Meta](){return FText::FromString(Meta()?Meta()->GetSkillPurchaseBlock(Selected):TEXT("Progression unavailable."));})];
  auto Header=SNew(SHorizontalBox);
  if(!OpenStance.IsNone())Header->AddSlot().AutoWidth().Padding(0,0,20,0)
   [SNew(SButton).ButtonStyle(&MenuActionStyle).ContentPadding(FMargin(16,8)).OnClicked_Lambda([this](){return CloseTree();})[SNew(STextBlock).Text(FText::FromString(TEXT("ALL STANCES"))).Font(MenuFont(14)).ColorAndOpacity(FSlateColor::UseForeground())]];
@@ -271,17 +247,13 @@ TSharedRef<SWidget> UMetaSkillTreeWidget::BuildSkillPage()
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,CurrentPage==EMetaTreePage::Abilities?12:0)[Categories]
   +SVerticalBox::Slot().AutoHeight().Padding(0,0,0,12)[Header]
   +SVerticalBox::Slot().FillHeight(1)
+  [SAssignNew(SkillScroll,SScrollBox).Orientation(Orient_Vertical).ScrollBarAlwaysVisible(true).AllowOverscroll(EAllowOverscroll::No).ScrollBarRightClickDragAllowed(false)+SScrollBox::Slot()[SkillMap.ToSharedRef()]]
+  +SVerticalBox::Slot().AutoHeight().Padding(0,12,0,0)
   [SNew(SHorizontalBox)
-   +SHorizontalBox::Slot().FillWidth(1).Padding(0,0,24,0)[SAssignNew(SkillScroll,SScrollBox).Orientation(Orient_Vertical).ScrollBarAlwaysVisible(true).AllowOverscroll(EAllowOverscroll::No).ScrollBarRightClickDragAllowed(false)+SScrollBox::Slot()[SkillMap.ToSharedRef()]]
-   +SHorizontalBox::Slot().AutoWidth()[SNew(SBox).WidthOverride(370)
-    [SNew(SOverlay)
-     +SOverlay::Slot()[SNew(BloodshiftMenu::SInsetSurface).Visibility(EVisibility::HitTestInvisible)]
-     +SOverlay::Slot().Padding(25)
-     [SNew(SVerticalBox)
-      +SVerticalBox::Slot().FillHeight(1)[SNew(SScrollBox)+SScrollBox::Slot()[Inspector]]
-      +SVerticalBox::Slot().AutoHeight().Padding(0,14,0,0)[LearnButton.ToSharedRef()]]]]]
-  +SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Right).Padding(0,12,0,0)
-  [SNew(STextBlock).Text(FText::FromString(TEXT("Scroll: up / down    Arrows: select    Enter: learn"))).Font(MenuFont(13)).ColorAndOpacity(Muted)];
+   +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center).Padding(0,0,20,0)
+   [SNew(STextBlock).Font(MenuFont(14)).ColorAndOpacity(Muted).AutoWrapText(true)
+    .Text_Lambda([this,Meta,Node](){if(!Meta()||!Node())return FText::GetEmpty();const FString Block=Meta()->GetSkillPurchaseBlock(Selected);return FText::FromString(Block.IsEmpty()?TEXT("Gold dots: learned ranks    Arrows: select    Enter: learn    Scroll for more branches."):Block);})]
+   +SHorizontalBox::Slot().AutoWidth()[LearnButton.ToSharedRef()]];
 }
 
 TSharedRef<SWidget> UMetaSkillTreeWidget::RebuildWidget()

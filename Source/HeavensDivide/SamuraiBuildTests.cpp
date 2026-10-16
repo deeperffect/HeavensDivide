@@ -17,6 +17,11 @@
 #include "UObject/UnrealType.h"
 #include "TimerManager.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "UObject/UObjectIterator.h"
+#include "Animation/AnimMontage.h"
+#include "Misc/App.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FSamuraiBuildsTest,"HeavensDivide.Combat.SamuraiBuilds",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FSamuraiBuildsTest::RunTest(const FString&)
@@ -176,6 +181,24 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
  TestTrue(TEXT("Delayed blast hits enemies entering original radius"),FMath::IsNearlyEqual(Entering->GetHealthComponent()->GetCurrentHealth(),9925.f,.02f));
  TestEqual(TEXT("Enemies leaving before detonation escape"),Leaving->GetHealthComponent()->GetCurrentHealth(),10000.f);
  Attack->BloodDetonationExplosionDelay=0.f;
+ // Generic attack area must not reach a target outside the bleed-only radius.
+ for(bool Detonate:{false,true})
+ {
+  U->RestoreRunState(Empty);U->AcquireUpgrade(Card(TEXT("BattleStance")));
+  U->AcquireUpgrade(Card(Detonate?TEXT("BloodDetonation"):TEXT("BloodTransfer")));
+  FCharacterStatModifier Area;Area.ModifierId=TEXT("BleedRadiusRegression");Area.SourceId=Area.ModifierId;
+  Area.Stat=ECharacterStatType::AttackAreaMultiplier;Area.Operation=EStatModifierOperation::Multiply;Area.Value=3;Stats->AddModifier(Area);
+  const FVector Center(Detonate?85000:80000,0,0);
+  auto* Outside=Spawn(Center+FVector(420,0,0),10000);
+  auto Trigger=[&]() {auto* Victim=Spawn(Center,10000);for(int32 I=0;I<(Detonate?5:1);++I)Victim->GetStatusEffectComponent()->ApplyStatus(EEnemyStatusEffect::Bleed,U,EPlayerAttackSource::Samurai,false,80);if(!Detonate)Victim->ApplyPlayerDamage(20000,EPlayerAttackSource::Samurai);};
+  Trigger();
+  TestFalse(TEXT("Attack area cannot expand bleed transfer"),Outside->HasStatus(EEnemyStatusEffect::Bleed));
+  TestEqual(TEXT("Attack area cannot expand bleed detonation"),Outside->GetHealthComponent()->GetCurrentHealth(),10000.f);
+  for(int32 I=0;I<5;++I)U->AcquireUpgrade(Card(TEXT("BloodTransferArea")));
+  Trigger();
+  TestTrue(TEXT("Dedicated bleed radius expands the actual affected area"),Detonate?Outside->GetHealthComponent()->GetCurrentHealth()<10000.f:Outside->HasStatus(EEnemyStatusEffect::Bleed));
+  Stats->ClearModifiersFromSource(Area.SourceId);
+ }
  U->RestoreRunState(Empty);U->AcquireUpgrade(Card(TEXT("BattleStance")));U->AcquireUpgrade(Card(TEXT("DoubleCut")));
  Attack->DoubleCutPrimaryAttackCounter=0;
  TestEqual(TEXT("Double Cut starts every four attacks"),Attack->GetDoubleCutThreshold(),4);
@@ -189,10 +212,24 @@ bool FSamuraiBuildsTest::RunTest(const FString&)
  TestFalse(TEXT("Double Cut schedules no extra attack"),Attack->bDoubleCutFollowUpPending);
  auto* EchoTarget=Spawn(FVector(18200,0,0),10000);
  const FVector BeforeEcho=Samurai->GetActorLocation();
+ auto* SavedSamurai=LoadClass<ASamuraiCharacter>(nullptr,TEXT("/Game/HeavensDivide/Blueprints/PlayerCharacters/BP_Samurai.BP_Samurai_C"))->GetDefaultObject<ASamuraiCharacter>();
+ const auto* SavedAttack=SavedSamurai->FindComponentByClass<UAutoAttackComponent>();
+ TestTrue(TEXT("Saved Echoing Slash delay is 0.25 seconds"),FMath::IsNearlyEqual(SavedAttack->BloodEchoDelay,.25f));
+ Attack->BloodEchoVFX=SavedAttack->BloodEchoVFX;Attack->BloodEchoColor=SavedAttack->BloodEchoColor;
+ Attack->AttackMontage=SavedAttack->AttackMontage;
  Attack->ExecuteBloodEcho(BeforeEcho,FVector::ForwardVector,40.f,100.f,false);
  TestEqual(TEXT("Echo deals captured half damage"),EchoTarget->GetHealthComponent()->GetCurrentHealth(),9960.f);
  TestTrue(TEXT("Echo applies Blood Stance Bleed"),EchoTarget->HasStatus(EEnemyStatusEffect::Bleed));
  TestEqual(TEXT("Echo leaves player position unchanged"),Samurai->GetActorLocation(),BeforeEcho);
+ int32 EchoEffects=0;
+ for(TObjectIterator<UNiagaraComponent> It;It;++It)
+  if(It->GetWorld()==World&&It->GetAsset()==Attack->BloodEchoVFX&&It->IsActive())
+  {
+   bool Valid=false;const auto Color=It->GetVariableColor(TEXT("User.Color 01"),Valid);
+   TestTrue(TEXT("Live echo slash is tinted blue before activation"),Valid&&Color.B>.9f&&Color.R<.1f&&Color.G<.4f);
+   ++EchoEffects;
+  }
+ if(FApp::CanEverRender())TestTrue(TEXT("Echo presentation uses the saved Niagara effect"),EchoEffects>0);
  for(int32 Rank=1;Rank<=3;++Rank)
  {
   TestTrue(TEXT("Useful frequency rank is acquired"),U->AcquireUpgrade(Card(TEXT("DoubleCutFrequency"))));

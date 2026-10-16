@@ -99,6 +99,16 @@ int32 UObjectiveIntroWidget::NativePaint(const FPaintArgs& Args, const FGeometry
     }
     Layer += 2;
 
+    if (Elapsed >= SkipDelaySeconds)
+    {
+        FSlateFontInfo HintFont = Font; HintFont.Size = 16;
+        const FText Hint = NSLOCTEXT("Objectives", "SkipIntro", "SPACE  Skip");
+        const FVector2D Size = FSlateApplication::Get().GetRenderer()->GetFontMeasureService()->Measure(Hint, HintFont);
+        FSlateDrawElement::MakeText(Out, Layer++, G.ToPaintGeometry(Size, FSlateLayoutTransform(Scale,
+            FVector2D((View.X-Size.X*Scale)*.5, View.Y*.72))), Hint, HintFont, ESlateDrawEffect::None,
+            FLinearColor(1.f,.94f,.82f,Envelope*.75f));
+    }
+
     // Animated smoke atlas puffs follow the same horizontal front on entry AND exit.
     const bool bDissolving = Elapsed >= RevealSeconds + HoldSeconds;
     const float Sweep = bDissolving ? (Elapsed - RevealSeconds - HoldSeconds) / DissolveSeconds : Elapsed / RevealSeconds;

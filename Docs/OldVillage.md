@@ -1,5 +1,9 @@
 # Old Village environment
 
+Run polish (2026-10-16): Mitko Igra loops and keeps its playback position while muted. Enemy spawn attempts require authored floor, a supported capsule footprint, matching navigation height, arena containment, and clearance against both Pawn and Enemy blockers. Capsule dimensions include Blueprint root scale; final collision handling cannot move a spawn onto scenery or outside its validated point, except for the normal 2 cm downward floor seating. Shrine placement checks the scaled model footprint and skips occupied markers; failed attempts retry. Elite chests search nearby clear floor when a death occurs against solid scenery. These checks run only during placement. Objective descriptions accept a fresh Space press after 0.5 real seconds and resume through the normal completion path. Camera occlusion dissolves only the upper half of prepared scenery, with a soft midpoint edge and unchanged collision.
+
+The current four-map foliage/collision repair is documented at the top of `Docs/SurvivalMaps.md`. It preserves this map's supplied Tripo kit and manual playable placements, replaces visible procedural ground and primitive filler with supplied meshes, retains the original floor only as hidden physics/navigation, and replaces oversized prop collision with fitted geometry. Use `validate_map_scenery.py -Render` through `Run-OldVillage.ps1` for the current saved-map review; older rebuild/review sections below describe their historical passes.
+
 Open **`/Game/Maps/Lvl_OldVillage`** for the dressed village, or **`/Game/Maps/Lvl_OldVillage_Blockout`** for the matching layout blockout. Begin Run, Restart Run, and New Run now use the dressed village. The menu destination is **OLD VILLAGE**, described as **Thatched homes. Restless spirits.**, with a thatched-house illustration. The blockout remains an editor-only alternative.
 
 The layout follows `Art/MapConcepts/CrimsonShrineDistrict_v2_OldVillage.png` and the original Swarm reference: a central circular landmark, western gardens and pond, northern shrine court, eastern workshop quarter, southern training enclosure, and a diagonal southwest waterfront. The footprint is approximately 184 by 184 metres with the southwest corner cut away, doubling the original playable surface area. Main roads are roughly 10-13 metres wide and link into a loop around the southern quarter.
@@ -76,7 +80,7 @@ Camera validation detected the obstructing main shrine and restored zero active 
 
 After saving navigation and fade setup, spawning/timer checks passed again in both maps: each reached 36 living enemies at `00:06`, with the HUD and controller clocks matching the spawner. All ground, connecting-route, and boundary collision probes passed again.
 
-The editor also reports a missing texture in the existing `M_UI_UpgradeRarityGlow` UI material. That shared UI asset was not changed by this environment pass.
+The missing texture previously reported in `M_UI_UpgradeRarityGlow` was resolved in the 2026-10-16 objective/card presentation pass: rarity glows now use a texture-free animated frame material.
 
 ## Expanded-map validation
 

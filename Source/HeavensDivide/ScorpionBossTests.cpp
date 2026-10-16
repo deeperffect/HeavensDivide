@@ -81,10 +81,15 @@ bool FScorpionBossTest::RunTest(const FString&)
         TestTrue(TEXT("Victory presentation waits for the death clip"),W->GetTimerManager().TimerExists(PC->VictoryPresentationTimerHandle));
         Mesh->TickAnimation(1.4f,false);Mesh->RefreshBoneTransforms();
         TestTrue(TEXT("Death animation lowers the scorpion body"),Mesh->GetSocketLocation(TEXT("Thorax")).Z<BodyZ-35);
+        // Continue past the authored blend-out window and end of the animation.
+        // The corpse must stay collapsed until the independent cleanup timer.
+        Mesh->TickAnimation(Duration-1.4f+.2f,false);Mesh->RefreshBoneTransforms();
+        TestTrue(TEXT("Finished death animation cannot return to idle"),Mesh->GetSocketLocation(TEXT("Thorax")).Z<BodyZ-35);
         ++GFrameCounter;W->GetTimerManager().Tick(.001f);
         ++GFrameCounter;W->GetTimerManager().Tick(Duration-.15f);
         TestTrue(TEXT("Victory does not freeze early"),UGameplayStatics::GetGlobalTimeDilation(W)>.99f);
         ++GFrameCounter;W->GetTimerManager().Tick(.2f);
+        TestTrue(TEXT("Death cleanup still runs without montage auto blend-out"),Boss->IsActorBeingDestroyed());
         TestTrue(TEXT("Victory freezes only after the collapse"),UGameplayStatics::GetGlobalTimeDilation(W)<.001f);
     }
     W->DestroyWorld(false);GEngine->DestroyWorldContext(W);

@@ -1,4 +1,5 @@
 #include "MainMenuWidget.h"
+#include "SCollectionJournal.h"
 #include "RunReportView.h"
 #include "DisplaySettingsView.h"
 #include "Components/ScaleBoxSlot.h"
@@ -445,106 +446,16 @@ void UMainMenuWidget::AddSecondaryPageDivider(UVerticalBox* Panel)
 
 UVerticalBox* UMainMenuWidget::BuildCollectionPanel()
 {
-    UVerticalBox* Panel = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("CollectionPanel"));
-    auto MakeText = [this](FName Name, const FString& Value, int32 Size, FLinearColor Color, bool bHeading = false)
-    {
-        UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), Name);
-        Text->SetText(FText::FromString(Value)); Text->SetColorAndOpacity(Color);
-        FSlateFontInfo Font = bHeading && SecondaryHeadingFont.FontObject ? SecondaryHeadingFont : BloodshiftMenu::BodyFont(Size);
-        Font.Size = Size; Text->SetFont(Font);
-        return Text;
-    };
-    Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionHeading"), TEXT("THE COLLECTION"), 34, BloodshiftMenu::Paper, true));
-    Panel->AddChildToVerticalBox(MakeText(TEXT("CollectionSubtitle"), TEXT("Unlock stances and synergies in the Skill Tree."), 18, BloodshiftMenu::Muted))
-        ->SetPadding(FMargin(0, 8, 0, 2));
-    AddSecondaryPageDivider(Panel);
-    UHorizontalBox* Tabs = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CollectionTabs"));
-    Panel->AddChildToVerticalBox(Tabs)->SetPadding(FMargin(0, 0, 0, 16));
-    auto AddTab = [this, Tabs, MakeText](FName Name, const FString& Label)
-    {
-        UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
-        Button->SetStyle(BloodshiftMenu::ActionStyle());
-        UTextBlock* Text = MakeText(NAME_None, Label, 17, BloodshiftMenu::Paper);
-        Text->SetColorAndOpacity(FSlateColor::UseForeground()); Button->SetContent(Text);
-        Tabs->AddChildToHorizontalBox(Button)->SetPadding(FMargin(0, 0, 12, 0));
-        return Button;
-    };
-    SamuraiCollectionTab = AddTab(TEXT("SamuraiCollectionTab"), TEXT("SAMURAI"));
-    NinjaCollectionTab = AddTab(TEXT("NinjaCollectionTab"), TEXT("NINJA"));
-    SynergyCollectionTab = AddTab(TEXT("SynergyCollectionTab"), TEXT("SYNERGIES"));
-    SamuraiCollectionTab->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleSamuraiCollectionTab);
-    NinjaCollectionTab->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleNinjaCollectionTab);
-    SynergyCollectionTab->OnClicked.AddDynamic(this, &UMainMenuWidget::HandleSynergyCollectionTab);
-
-    UHorizontalBox* Body = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("CollectionBody"));
-    Panel->AddChildToVerticalBox(Body)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-    UVerticalBox* Library = WidgetTree->ConstructWidget<UVerticalBox>();
-    Body->AddChildToHorizontalBox(Library)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-    USizeBox* ScrollSize = WidgetTree->ConstructWidget<USizeBox>();
-    ScrollSize->SetWidthOverride(704);
-    UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass(), TEXT("CollectionScroll"));
-    Scroll->SetScrollBarVisibility(ESlateVisibility::Visible);
-    Scroll->SetScrollbarThickness(FVector2D(5, 5));
-    ScrollSize->SetContent(Scroll);
-    Library->AddChildToVerticalBox(ScrollSize)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-    SynergyCollectionGrid = WidgetTree->ConstructWidget<UUniformGridPanel>(UUniformGridPanel::StaticClass(), TEXT("CollectionGrid"));
-    Scroll->AddChild(SynergyCollectionGrid);
-    CollectionDiscoveryCountText = MakeText(TEXT("CollectionDiscoveryCount"), TEXT(""), 18, BloodshiftMenu::Paper);
-    Library->AddChildToVerticalBox(CollectionDiscoveryCountText)->SetPadding(FMargin(0, 20, 0, 0));
-    CollectionProgressText = MakeText(TEXT("CollectionDiscoveryProgress"), TEXT(""), 16, BloodshiftMenu::Gold);
-    Library->AddChildToVerticalBox(CollectionProgressText)->SetPadding(FMargin(0, 6, 0, 0));
-
-    USizeBox* Details = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("CollectionDetailsPanel"));
-    Details->SetWidthOverride(380);
-    Body->AddChildToHorizontalBox(Details)->SetPadding(FMargin(28, 0, 0, 0));
-    UOverlay* CardLayers = WidgetTree->ConstructWidget<UOverlay>(); Details->SetContent(CardLayers);
-    UNativeWidgetHost* CardFrame = WidgetTree->ConstructWidget<UNativeWidgetHost>();
-    CardFrame->SetContent(SNew(BloodshiftMenu::SInsetSurface)); CardFrame->SetVisibility(ESlateVisibility::HitTestInvisible);
-    auto* CardFrameSlot = CardLayers->AddChildToOverlay(CardFrame);
-    CardFrameSlot->SetHorizontalAlignment(HAlign_Fill); CardFrameSlot->SetVerticalAlignment(VAlign_Fill);
-    UBorder* Card = WidgetTree->ConstructWidget<UBorder>();
-    Card->SetBrushColor(FLinearColor::Transparent); Card->SetPadding(FMargin(26));
-    auto* CardSlot = CardLayers->AddChildToOverlay(Card);
-    CardSlot->SetHorizontalAlignment(HAlign_Fill); CardSlot->SetVerticalAlignment(VAlign_Fill);
-    UScrollBox* DetailScroll = WidgetTree->ConstructWidget<UScrollBox>();
-    DetailScroll->SetScrollbarThickness(FVector2D(4, 4)); Card->SetContent(DetailScroll);
-    UVerticalBox* DetailStack = WidgetTree->ConstructWidget<UVerticalBox>(); DetailScroll->AddChild(DetailStack);
-    DetailStack->AddChildToVerticalBox(MakeText(NAME_None, TEXT("TECHNIQUE DETAILS"), 13, BloodshiftMenu::Muted))
-        ->SetPadding(FMargin(0, 0, 0, 16));
-    CollectionDetailName = MakeText(TEXT("CollectionDetailName"), TEXT(""), 26, BloodshiftMenu::Paper, true);
-    CollectionDetailName->SetAutoWrapText(true); CollectionDetailName->SetWrapTextAt(310);
-    DetailStack->AddChildToVerticalBox(CollectionDetailName)->SetPadding(FMargin(0, 0, 0, 22));
-    USizeBox* IconSize = WidgetTree->ConstructWidget<USizeBox>();
-    IconSize->SetWidthOverride(CollectionDetailsArtworkSize.X); IconSize->SetHeightOverride(CollectionDetailsArtworkSize.Y);
-    CollectionDetailIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("CollectionDetailIcon"));
-    IconSize->SetContent(CollectionDetailIcon);
-    auto* IconSlot = DetailStack->AddChildToVerticalBox(IconSize);
-    IconSlot->SetHorizontalAlignment(HAlign_Center); IconSlot->SetPadding(FMargin(0, 0, 0, 24));
-    CollectionDetailDescription = MakeText(TEXT("CollectionDetailDescription"), TEXT(""), 20, BloodshiftMenu::Paper);
-    CollectionDetailDescription->SetAutoWrapText(true); CollectionDetailDescription->SetWrapTextAt(310);
-    DetailStack->AddChildToVerticalBox(CollectionDetailDescription);
-    AddSecondaryPageDivider(DetailStack);
-    CollectionDetailStats = MakeText(TEXT("CollectionDetailStats"), TEXT(""), 16, BloodshiftMenu::Muted);
-    CollectionDetailStats->SetAutoWrapText(true); DetailStack->AddChildToVerticalBox(CollectionDetailStats);
+    auto* Panel=WidgetTree->ConstructWidget<UVerticalBox>();
+    auto* Host=WidgetTree->ConstructWidget<UNativeWidgetHost>();
+    Host->SetContent(SAssignNew(CollectionJournal,SCollectionJournal).GameInstance(GetGameInstance()));
+    Panel->AddChildToVerticalBox(Host)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
     return Panel;
 }
 
 void UMainMenuWidget::RefreshCollection()
 {
-	if (!SynergyCollectionGrid || !CollectionDiscoveryCountText || !CollectionProgressText)
-	{
-		return;
-	}
-	USynergyMetaProgressionSubsystem* Meta = GetGameInstance()
-		? GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>() : nullptr;
-	if (!Meta)
-	{
-		CollectionDiscoveryCountText->SetText(FText::FromString(TEXT("COLLECTION UNAVAILABLE")));
-		CollectionProgressText->SetText(FText::GetEmpty());
-		return;
-	}
-
-	RebuildCollectionGrid();
+    if(CollectionJournal) CollectionJournal->Refresh();
 }
 
 void UMenuKeybindSelector::InitializeBinding(UMainMenuWidget* Owner,FName Action)
@@ -1101,7 +1012,7 @@ void UMainMenuWidget::ShowCollectionPanel()
 	if (MenuSwitcher) MenuSwitcher->SetActiveWidgetIndex(0);
 	SetCollectionVisible(true);
 	RefreshCollection();
-	if (CollectionTileButtons.Num() > 0 && CollectionTileButtons[0]) CollectionTileButtons[0]->SetUserFocus(GetOwningPlayer());
+	if (CollectionJournal) CollectionJournal->FocusFirst();
 }
 
 void UMainMenuWidget::OpenInRunSettings(FSimpleDelegate OnClosed)
@@ -1304,6 +1215,9 @@ FReply UMainMenuWidget::NativeOnPreviewKeyDown(const FGeometry& InGeometry, cons
 {
 	if(IsSelectingKeybind())return FReply::Unhandled();
 	bShowFocusHighlight = true;
+    // Let the setup child close a dropdown or return from loadout before the menu handles Back.
+    if(MenuSwitcher && StanceSelectionPage && MenuSwitcher->GetActiveWidget()==StanceSelectionPage)
+        return Super::NativeOnPreviewKeyDown(InGeometry,InKeyEvent);
 	if (InKeyEvent.GetKey() == EKeys::Escape || InKeyEvent.GetKey() == EKeys::Gamepad_FaceButton_Right)
 	{
 		if (bResetConfirmationOpen)

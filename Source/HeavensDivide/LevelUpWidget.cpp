@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "LevelUpWidget.h"
+#include "PlayerUpgradeRules.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -157,7 +158,7 @@ int32 ULevelUpWidget::GetVisibleChoiceCount() const
 
 void ULevelUpWidget::MoveControllerFocus(int32 Direction)
 {
-	if (bUpgradeChoiceCommitted) return;
+	if (bUpgradeChoiceCommitted || bChoiceExitActive) return;
 	const int32 ChoiceCount = GetVisibleChoiceCount();
 	if (ChoiceCount <= 0 || Direction == 0) return;
 	MouseHoveredButton = nullptr;
@@ -192,6 +193,7 @@ void ULevelUpWidget::RefreshControllerFocus()
 
 void ULevelUpWidget::RefreshChoiceScales()
 {
+	if (bChoiceExitActive) return;
 	SetMenuFocusedButton(nullptr);
 	for (int32 Index = 0; Index < FocusableChoiceButtons.Num(); ++Index)
 	{
@@ -206,7 +208,7 @@ void ULevelUpWidget::RefreshChoiceScales()
 
 void ULevelUpWidget::RefreshMouseHoveredButton()
 {
-	if (bUpgradeChoiceCommitted) return;
+	if (bUpgradeChoiceCommitted || bChoiceExitActive) return;
 	UButton* NewHoveredButton = nullptr;
 	for (UButton* Button : FocusableChoiceButtons)
 	{
@@ -247,7 +249,7 @@ void ULevelUpWidget::RebuildFocusableChoices()
 
 FReply ULevelUpWidget::HandleControllerKey(const FKeyEvent& InKeyEvent)
 {
-	if (bUpgradeChoiceCommitted) return FReply::Handled();
+	if (bUpgradeChoiceCommitted || bChoiceExitActive) return FReply::Handled();
 	const FKey Key = InKeyEvent.GetKey();
 	if (Key == EKeys::R || Key == EKeys::Gamepad_FaceButton_Left)
 	{
@@ -358,6 +360,7 @@ bool ULevelUpWidget::GetOfferForUpgrade(UUpgradeDefinition* Upgrade, FUpgradeOff
 
 bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 {
+	if (bChoiceExitActive) return false;
 	if (bUpgradeChoiceCommitted)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("LevelUpWidget upgrade selection ignored: upgrade already selected for this offer."));
@@ -381,7 +384,9 @@ bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 	{
 		if (!PlayerUpgrades->BanishUpgrade(ChoiceIndex)) return false;
 		bBanishMode = false;
-		RefreshDraftCards();
+		// Keep the old card artwork until its burn finishes. The replacement is
+		// already committed, so no additional input can spend this banish twice.
+		BeginChoiceExit(ChoiceIndex, true);
 		return true;
 	}
 	const bool bSelected = bSynergyDiscoveryMode
@@ -400,9 +405,10 @@ bool ULevelUpWidget::SelectUpgradeChoice(int32 ChoiceIndex)
 	return true;
 }
 
-void ULevelUpWidget::BeginChoiceExit(int32 SelectedIndex)
+void ULevelUpWidget::BeginChoiceExit(int32 SelectedIndex, bool bBanish)
 {
 	bChoiceExitActive = true;
+	bChoiceExitBanish = bBanish;
 	ChoiceExitElapsed = 0.f;
 	ChoiceExitSelectedIndex = SelectedIndex;
 	ChoiceExitVisuals.Reset();
@@ -424,7 +430,11 @@ void ULevelUpWidget::BeginChoiceExit(int32 SelectedIndex)
 			Retainer->SetEffectMaterial(Effect);
 			Retainer->SetRetainRendering(true);
 			ChoiceExitMaterial = Retainer->GetEffectMaterial();
-			if (ChoiceExitMaterial) ChoiceExitMaterial->SetScalarParameterValue(TEXT("Progress"),0.f);
+			if (ChoiceExitMaterial)
+			{
+				ChoiceExitMaterial->SetScalarParameterValue(TEXT("Progress"),0.f);
+				ChoiceExitMaterial->SetScalarParameterValue(TEXT("Burn"), bBanish ? 1.f : 0.f);
+			}
 			Retainer->RequestRender();
 		}
 	}
@@ -444,15 +454,21 @@ void ULevelUpWidget::UpdateChoiceExit(float RealDeltaTime)
 		if (Index == ChoiceExitSelectedIndex)
 		{
 			const float Emphasis = FMath::SmoothStep(0.f,SelectedHoldSeconds,ChoiceExitElapsed);
-			Visual->SetRenderScale(FVector2D(1.f+.035f*Emphasis));
-			Visual->SetRenderTranslation(FVector2D(0.f,-18.f*Dissolve));
+			Visual->SetRenderScale(FVector2D(bChoiceExitBanish ? 1.f-.025f*Dissolve : 1.f+.035f*Emphasis));
+			Visual->SetRenderTranslation(FVector2D(0.f, bChoiceExitBanish ? 0.f : -18.f*Dissolve));
 			Visual->SetRenderOpacity(ChoiceExitMaterial ? 1.f : 1.f-Dissolve);
 		}
-		else Visual->SetRenderOpacity(1.f-FMath::SmoothStep(0.f,1.f,Fade));
+		else Visual->SetRenderOpacity(bChoiceExitBanish ? 1.f : 1.f-FMath::SmoothStep(0.f,1.f,Fade));
 	}
 	if (ChoiceExitMaterial) ChoiceExitMaterial->SetScalarParameterValue(TEXT("Progress"),Dissolve);
 	if (ChoiceExitElapsed >= SelectedHoldSeconds+SelectedDissolveSeconds)
 	{
+		if (bChoiceExitBanish)
+		{
+			ResetChoiceExit();
+			RefreshDraftCards();
+			return;
+		}
 		// Completion may synchronously reuse this widget for the next queued offer.
 		bChoiceExitActive = false;
 		OnSelectionCompleted.Broadcast();
@@ -462,6 +478,7 @@ void ULevelUpWidget::UpdateChoiceExit(float RealDeltaTime)
 void ULevelUpWidget::ResetChoiceExit()
 {
 	bChoiceExitActive = false;
+	bChoiceExitBanish = false;
 	ChoiceExitElapsed = 0.f;
 	ChoiceExitSelectedIndex = INDEX_NONE;
 	ChoiceExitMaterial = nullptr;
@@ -486,6 +503,16 @@ void ULevelUpWidget::NativeTick(const FGeometry& Geometry,float DeltaTime)
 	Super::NativeTick(Geometry,DeltaTime);
 	// UMG supplies Slate time here, independent of the frozen gameplay clock.
 	UpdateChoiceExit(DeltaTime);
+    UpdateRarityAnimation(DeltaTime);
+}
+
+void ULevelUpWidget::UpdateRarityAnimation(float DeltaTime)
+{
+    // Advance with Slate time: rarity glows keep moving while upgrade selection pauses the run.
+    RarityAnimationTime+=FMath::Max(0.f,DeltaTime);
+    for(int32 Index=0;Index<UpgradeRarityGlowImages.Num();++Index)
+        if(auto* Image=UpgradeRarityGlowImages[Index].Get();Image&&Image->IsVisible())
+            if(auto* MID=Image->GetDynamicMaterial())MID->SetScalarParameterValue(TEXT("AnimationTime"),RarityAnimationTime+Index*.53f);
 }
 
 void ULevelUpWidget::NativeDestruct()
@@ -863,10 +890,6 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		UImage* RarityGlow = WidgetTree->ConstructWidget<UImage>(
 			UImage::StaticClass(), *FString::Printf(TEXT("UpgradeRarityGlow_%d"), Index));
 		RarityGlow->SetVisibility(ESlateVisibility::Collapsed);
-		UOverlaySlot* RarityGlowSlot = CardLayers->AddChildToOverlay(RarityGlow);
-		RarityGlowSlot->SetHorizontalAlignment(HAlign_Fill);
-		RarityGlowSlot->SetVerticalAlignment(VAlign_Fill);
-		RarityGlowSlot->SetPadding(FMargin(8.0f));
 
 		UBorder* TextReadabilityLayer = WidgetTree->ConstructWidget<UBorder>(
 			UBorder::StaticClass(), *FString::Printf(TEXT("UpgradeTextLayer_%d"), Index));
@@ -942,6 +965,13 @@ void ULevelUpWidget::EnsureUpgradeCardVisualStructure()
 		BorderSlot->SetHorizontalAlignment(HAlign_Fill);
 		BorderSlot->SetVerticalAlignment(VAlign_Fill);
 
+        // Cover the entire frame and leave room outside it for the soft halo.
+        // This layer has no hit testing and its transparent centre leaves all card text readable.
+        UOverlaySlot* RarityGlowSlot=CardLayers->AddChildToOverlay(RarityGlow);
+        RarityGlowSlot->SetHorizontalAlignment(HAlign_Fill);
+        RarityGlowSlot->SetVerticalAlignment(VAlign_Fill);
+        RarityGlowSlot->SetPadding(FMargin(-18.f));
+
 		UpgradeArtworkImages.Add(Artwork);
 		UpgradeBorderImages.Add(CategoryBorder);
 		UpgradeRarityGlowImages.Add(RarityGlow);
@@ -981,25 +1011,25 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 			DiamondRow->ClearChildren();
 			if (Upgrade)
 			{
-				const int32 MaxLevel = FMath::Max(1, Upgrade->MaxLevel);
-				const int32 LevelAfterSelection = FMath::Clamp(
-					(PlayerUpgrades ? PlayerUpgrades->GetUpgradeLevel(Upgrade) : 0) + 1, 0, MaxLevel);
+				const int32 MaxLevel = FMath::Max(1, PlayerUpgradeRules::UpgradeRankLimit(Upgrade));
+				const int32 OwnedLevel = FMath::Clamp(PlayerUpgrades ? PlayerUpgrades->GetUpgradeLevel(Upgrade) : 0, 0, MaxLevel);
 				// Level progress uses one palette across all categories and rarities.
 				const FLinearColor FilledDiamondColor(0.94f, 0.87f, 0.72f);
 				const FLinearColor EmptyDiamondColor(0.55f, 0.57f, 0.62f);
 				for (int32 DiamondIndex = 0; DiamondIndex < MaxLevel; ++DiamondIndex)
 				{
-					const bool bFilled = DiamondIndex < LevelAfterSelection;
+					const bool bFilled = DiamondIndex <= OwnedLevel;
 					UTextBlock* Diamond = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 					Diamond->SetText(FText::FromString(bFilled ? TEXT("\u25C6") : TEXT("\u25C7")));
 					Diamond->SetColorAndOpacity(FSlateColor(bFilled
 						? FilledDiamondColor
 						: EmptyDiamondColor));
+					Diamond->SetRenderOpacity(DiamondIndex == OwnedLevel ? .5f : 1.f);
 					FSlateFontInfo DiamondFont = Diamond->GetFont();
-					DiamondFont.Size = 19;
+					DiamondFont.Size = MaxLevel>6?14:19;
 					Diamond->SetFont(DiamondFont);
 					UHorizontalBoxSlot* DiamondSlot = DiamondRow->AddChildToHorizontalBox(Diamond);
-					DiamondSlot->SetPadding(FMargin(5.0f, 0.0f));
+					DiamondSlot->SetPadding(FMargin(MaxLevel>6?2.f:5.f, 0.0f));
 				}
 			}
 		}
@@ -1024,6 +1054,8 @@ void ULevelUpWidget::RefreshUpgradeCardVisuals()
 			{
 				UpgradeRarityGlowImages[Index]->SetBrushFromMaterial(RarityMaterial);
 				UpgradeRarityGlowImages[Index]->SetVisibility(ESlateVisibility::HitTestInvisible);
+                if(auto* MID=UpgradeRarityGlowImages[Index]->GetDynamicMaterial())
+                    MID->SetScalarParameterValue(TEXT("AnimationTime"),RarityAnimationTime+Index*.53f);
 			}
 			else
 			{

@@ -88,10 +88,7 @@ AEnemyBase* AEnemySpawner::SpawnSpatialPressureReplacement(const TArray<int32>& 
 		&& !FindSpawnLocation(Player->GetActorLocation(), SpatialPressureGruntClass, SpawnLocation, true, SectorCenter, SectorWidth,
 			MinSpawnDistance, MaxSpawnDistance)) return nullptr;
 
-	FActorSpawnParameters Parameters;
-	Parameters.Owner = this;
-	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-	AEnemyBase* Enemy = GetWorld()->SpawnActor<AEnemyBase>(SpatialPressureGruntClass, SpawnLocation, FRotator::ZeroRotator, Parameters);
+	AEnemyBase* Enemy = SpawnEnemyAtValidatedLocation(SpatialPressureGruntClass, SpawnLocation);
 	if (!Enemy) return nullptr;
 	Enemy->SpawnDefaultController();
 	Enemy->ApplySpawnDifficultyScaling(GetHealthMultiplier(*Definition), GetDamageMultiplier());

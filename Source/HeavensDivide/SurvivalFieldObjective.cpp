@@ -18,6 +18,8 @@
 #include "CombatGround.h"
 #include "ObjectiveInteractionComponent.h"
 #include "ObjectiveGuidanceSubsystem.h"
+#include "ObjectiveBeaconComponent.h"
+#include "Engine/StaticMesh.h"
 
 ASurvivalFieldObjective::ASurvivalFieldObjective()
 {
@@ -37,14 +39,24 @@ ASurvivalFieldObjective::ASurvivalFieldObjective()
     ActivationMesh=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ActivationMesh"));
     ActivationMesh->SetupAttachment(RootComponent);
     ActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> Shrine(TEXT("/Game/Assets/Environment/Objectives/BloodShrine.BloodShrine"));
-    ActivationMesh->SetStaticMesh(Shrine.Object);
-    ActivationMesh->SetRelativeScale3D(FVector(4.f)); // Match the saved Blood Shrine's presentation.
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> Guardian(TEXT("/Game/HeavensDivide/Environment/OldVillage/Meshes/Landmarks/SM_OV_GuardianStatue"));
+    ActivationMesh->SetStaticMesh(Guardian.Object);
+    if(Guardian.Object)
+    {
+        const FBox Bounds=Guardian.Object->GetBoundingBox();
+        // Ground the imported pivot and keep the landmark inside the validated spawn footprint.
+        const float Scale=FMath::Min(260.f/FMath::Max(1.f,float(Bounds.GetSize().Z)),
+            320.f/FMath::Max(1.f,float(Bounds.GetSize().Size2D())));
+        ActivationMesh->SetRelativeScale3D(FVector(Scale));
+        ActivationMesh->SetRelativeLocation(FVector(-Bounds.GetCenter().X,-Bounds.GetCenter().Y,-Bounds.Min.Z)*Scale);
+    }
     ObjectiveInteraction=CreateDefaultSubobject<UObjectiveInteractionComponent>(TEXT("ObjectiveInteraction"));
     ObjectiveInteraction->SetupAttachment(RootComponent);
     ObjectiveInteraction->ConfigureDefaults(FText::FromString(TEXT("Ember Circle")),300.f,1.f,240.f);
     ObjectiveInteraction->SetPresentationVisual(ActivationMesh);
     ActivationMesh->SetHiddenInGame(true);
+    Beacon=CreateDefaultSubobject<UObjectiveBeaconComponent>(TEXT("ObjectiveBeacon"));
+    Beacon->Configure(ActivationMesh,FLinearColor(1.f,.65f,.08f));
     Marker=CreateDefaultSubobject<UMinimapMarkerComponent>(TEXT("Minimap"));
 }
 bool ASurvivalFieldObjective::InitializeWallTrap(AEnemySpawner* Spawner)
@@ -53,6 +65,7 @@ bool ASurvivalFieldObjective::InitializeWallTrap(AEnemySpawner* Spawner)
     bWallTrap=true;
     Ring->SetVisibility(false);
     ActivationMesh->SetHiddenInGame(true);
+    Beacon->SetBeaconState(false,false);
     ObjectiveInteraction->HidePrompt();
     TArray<FVector> Positions;
     const int32 Count=FMath::Clamp(FMath::CeilToInt(2*PI*Radius/200.f),16,64);
@@ -98,6 +111,7 @@ void ASurvivalFieldObjective::InitializeHoldZone()
     bHoldInitialized=true;
     Ring->SetVisibility(false);
     ActivationMesh->SetHiddenInGame(false);
+    Beacon->SetBeaconState(true,true);
     Marker->DisplayName=FText::FromString(TEXT("Ember circle"));
     Ring->SetWorldScale3D(FVector(Radius/50,Radius/50,1));
     Ring->SetMaterial(0,HoldRingMaterial);
@@ -121,6 +135,7 @@ void ASurvivalFieldObjective::Interact_Implementation(APawn* InteractingPawn)
     auto* PC=Cast<ASurvivorPlayerController>(InteractingPawn->GetController());
     if (!PC->TryBeginObjective(this)) return;
     bHoldActive=true;
+    Beacon->SetBeaconState(true,false);
     Ring->SetVisibility(true);
     bIntroPending=true;
     Age=0;
@@ -156,6 +171,7 @@ void ASurvivalFieldObjective::CompleteHold()
     auto* PC=Cast<ASurvivorPlayerController>(UGameplayStatics::GetPlayerController(this,0));
     if (!PC || PC->IsPlayerDead() || !PC->GetExperienceComponent()) return;
     bComplete=true; // Commit before AddXP can synchronously open an upgrade menu.
+    Beacon->SetBeaconState(false,false);
     PC->EndObjective(this);
     Marker->SetMarkerState(EMinimapMarkerState::Completed);
     RunReports::ObjectiveCompleted(this);

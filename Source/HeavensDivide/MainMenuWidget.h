@@ -8,6 +8,7 @@
 #include "Components/InputKeySelector.h"
 #include "MainMenuWidget.generated.h"
 
+class SCollectionJournal;
 class UCheckBox;
 class UImage;
 class UMaterialInterface;
@@ -104,6 +105,7 @@ private:
 	class UBorder* BuildSecondaryPageFrame(UWidget* Content, FName PageName, const FVector2D& PageOffset, const FMargin& ContentPadding, const FLinearColor& FallbackColor, UWidget* Footer = nullptr, FVector2D PageSize = FVector2D(1030.0f, 780.0f), bool bAllowUpscaling = false);
 	void AddSecondaryPageDivider(class UVerticalBox* Panel);
 	class UVerticalBox* BuildCollectionPanel();
+    TSharedPtr<SCollectionJournal> CollectionJournal;
 	class UVerticalBox* BuildSettingsPanel();
 	class UVerticalBox* BuildGeneralSettingsPanel();
 	class UVerticalBox* BuildKeybindPanel();

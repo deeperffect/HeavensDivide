@@ -9,6 +9,10 @@
 #include "Materials/MaterialExpressionGetMaterialAttributes.h"
 #include "Materials/MaterialExpressionSetMaterialAttributes.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionWorldPosition.h"
+#include "Materials/MaterialExpressionObjectPositionWS.h"
+#include "Materials/MaterialExpressionObjectBounds.h"
 #endif
 
 bool UCameraOcclusionMaterialLibrary::PrepareMaterial(UMaterial* Material)
@@ -16,11 +20,12 @@ bool UCameraOcclusionMaterialLibrary::PrepareMaterial(UMaterial* Material)
 #if WITH_EDITOR
     if (!Material || !Material->GetPathName().StartsWith(TEXT("/Game/HeavensDivide/Environment/OldVillage/CameraFade/"))) return false;
     if (Material->BlendMode != BLEND_Opaque && Material->BlendMode != BLEND_Masked) return false;
+    UMaterialExpressionScalarParameter* ExistingFade = nullptr;
     for (UMaterialExpression* Expression : Material->GetExpressions())
         if (auto* Parameter = Cast<UMaterialExpressionScalarParameter>(Expression))
         {
-            if (Parameter->ParameterName == TEXT("HD_CameraOcclusion")) return true;
-            if (Parameter->bUseCustomPrimitiveData && Parameter->PrimitiveDataIndex == UCameraOcclusionComponent::FadeDataIndex) return false;
+            if (Parameter->ParameterName == TEXT("HD_CameraOcclusion")) ExistingFade = Parameter;
+            else if (Parameter->bUseCustomPrimitiveData && Parameter->PrimitiveDataIndex == UCameraOcclusionComponent::FadeDataIndex) return false;
         }
     auto* Function = LoadObject<UMaterialFunction>(nullptr, TEXT("/Engine/Functions/Engine_MaterialFunctions02/Utility/DitherTemporalAA.DitherTemporalAA"));
     if (!Function) return false;
@@ -31,6 +36,37 @@ bool UCameraOcclusionMaterialLibrary::PrepareMaterial(UMaterial* Material)
         Expression->Material = Material;
         Expression->UpdateMaterialExpressionGuid(true, false);
     };
+    auto ApplyHalfMask = [&](UMaterialExpressionMultiply* Strength)
+    {
+        auto* Position = NewObject<UMaterialExpressionWorldPosition>(Material); Add(Position);
+        Position->WorldPositionShaderOffset = WPT_ExcludeAllShaderOffsets;
+        auto* Center = NewObject<UMaterialExpressionObjectPositionWS>(Material); Add(Center);
+        auto* Bounds = NewObject<UMaterialExpressionObjectBounds>(Material); Add(Bounds);
+        auto* Half = NewObject<UMaterialExpressionCustom>(Material);
+        Half->Description = TEXT("HD_UpperHalfOcclusion");
+        Half->OutputType = CMOT_Float1;
+        Half->Code = TEXT("return 0.96 * saturate((Position.z - Center.z) / max(Bounds.z * 0.12, 1.0));");
+        Half->Inputs.SetNum(3);
+        Half->Inputs[0].InputName=TEXT("Position"); Half->Inputs[0].Input.Connect(0,Position);
+        Half->Inputs[1].InputName=TEXT("Center"); Half->Inputs[1].Input.Connect(0,Center);
+        Half->Inputs[2].InputName=TEXT("Bounds"); Half->Inputs[2].Input.Connect(0,Bounds);
+        Add(Half); Strength->B.Connect(0,Half);
+    };
+    if (ExistingFade)
+    {
+        // Migrate the existing mask in place; keep the vendor leaf alpha and
+        // material-attributes wiring exactly as authored.
+        for (UMaterialExpression* Expression : Material->GetExpressions())
+            if (auto* Strength = Cast<UMaterialExpressionMultiply>(Expression))
+                if (Strength->A.Expression == ExistingFade)
+                {
+                    if (auto* Mask = Cast<UMaterialExpressionCustom>(Strength->B.Expression))
+                        if (Mask->Description == TEXT("HD_UpperHalfOcclusion")) return true;
+                    ApplyHalfMask(Strength);
+                    Material->PostEditChange(); Material->MarkPackageDirty(); return true;
+                }
+        return false;
+    }
     auto* Fade = NewObject<UMaterialExpressionScalarParameter>(Material);
     Fade->ParameterName = TEXT("HD_CameraOcclusion");
     Fade->DefaultValue = 0.f;
@@ -38,7 +74,7 @@ bool UCameraOcclusionMaterialLibrary::PrepareMaterial(UMaterial* Material)
     Fade->PrimitiveDataIndex = UCameraOcclusionComponent::FadeDataIndex;
     Add(Fade);
     auto* Strength = NewObject<UMaterialExpressionMultiply>(Material);
-    Strength->A.Connect(0, Fade); Strength->ConstB = 0.92f; Add(Strength);
+    Strength->A.Connect(0, Fade); Add(Strength); ApplyHalfMask(Strength);
     auto* Opacity = NewObject<UMaterialExpressionOneMinus>(Material);
     Opacity->Input.Connect(0, Strength); Add(Opacity);
     auto* Dither = NewObject<UMaterialExpressionMaterialFunctionCall>(Material);

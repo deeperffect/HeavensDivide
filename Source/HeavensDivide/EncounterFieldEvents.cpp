@@ -36,16 +36,16 @@ bool AEncounterDirector::SpawnEmberCircle()
         const float A=FMath::FRandRange(0.f,2*PI);
         const FVector Center=PC->GetPawn()->GetActorLocation()+FVector(FMath::Cos(A),FMath::Sin(A),0)*1100;
         FVector Ground;
-        if (!Spawner->ValidateEncounterLocation(Center,AEncounterWall::StaticClass(),Ground)) continue;
+        if (!Spawner->ValidateObjectiveLocation(Center,180.f,300.f,Ground)) continue;
         bool bValid=true;
         for (int32 I=0; I<12 && bValid; ++I)
         {
             const float T=2*PI*I/12; FVector Edge;
             bValid=Spawner->ValidateEncounterLocation(Center+FVector(FMath::Cos(T),FMath::Sin(T),0)*ASurvivalFieldObjective::HoldZoneRadius,AEncounterWall::StaticClass(),Edge)
-                && FMath::Abs(Edge.Z-Ground.Z)<60;
+                && FMath::Abs(Edge.Z-GetDefault<AEncounterWall>()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()-Ground.Z)<60;
         }
         if (!bValid) continue;
-        Ground.Z-=GetDefault<AEncounterWall>()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()-5;
+        Ground.Z+=5;
         auto* Event=GetWorld()->SpawnActor<ASurvivalFieldObjective>(Ground,FRotator::ZeroRotator);
         if (!Event) return false;
         Event->InitializeHoldZone(); EmberCircle=Event; return true;

@@ -18,6 +18,8 @@ void UAnimNotify_SpawnSamuraiSlashNiagara::Notify(USkeletalMeshComponent* MeshCo
 {
 	Super::Notify(MeshComp, Animation, EventReference);
 
+    if (bMatchMeleeHitbox) return; // Committed damage trace is authoritative.
+
 	if (!MeshComp)
 	{
 		return;
@@ -144,4 +146,29 @@ void UAnimNotify_SpawnSamuraiSlashNiagara::Notify(USkeletalMeshComponent* MeshCo
 	}
 	NiagaraComponent->Activate(true);
 	}
+}
+
+void UAnimNotify_SpawnSamuraiSlashNiagara::SpawnForHitbox(USkeletalMeshComponent* MeshComp,
+    FVector Center, float Radius, FVector Direction, bool bCircular, UNiagaraSystem* OverrideSystem, const FLinearColor* ColorOverride) const
+{
+    UNiagaraSystem* System = OverrideSystem ? OverrideSystem : NiagaraSystem.Get();
+    if (!MeshComp || !System || Radius <= 0.f) return;
+    const auto* Character = Cast<ACharacterBase>(MeshComp->GetOwner());
+    const FQuat FacingDelta = Character ? (Direction.Rotation()-Character->GetVisualForwardVector().Rotation()).Quaternion() : FQuat::Identity;
+    const FQuat Rotation = FacingDelta * MeshComp->GetComponentQuat() * RotationOffset.Quaternion();
+    // World-space size: no inherited character/weapon scale, no second area
+    // multiplier, and no offset drifting outward as area upgrades accumulate.
+    const FVector WorldScale(Radius/FMath::Max(1.f,HitboxReferenceRadius));
+    const int32 Count = bCircular ? 4 : 1;
+    for (int32 Index=0; Index<Count; ++Index)
+    {
+        auto* FX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(MeshComp,System,Center,
+            (FRotator(0,360.f*Index/Count,0).Quaternion()*Rotation).Rotator(),WorldScale,
+            true,false,ENCPoolMethod::AutoRelease,false);
+        if (FX)
+        {
+            if (ColorOverride) FX->SetVariableLinearColor(TEXT("User.Color 01"), *ColorOverride);
+            FX->Activate(true);
+        }
+    }
 }

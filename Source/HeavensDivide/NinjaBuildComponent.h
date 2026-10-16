@@ -66,9 +66,9 @@ class HEAVENSDIVIDE_API UNinjaBuildComponent : public UActorComponent
     float PoisonPoolVFXHeightScale = .005f;
     void ModifyVolley(int32 &Count, float &Spacing);
     void ModifyVolleyWithCounter(int32 &Count, float &Spacing, int32 &Volley);
-    float Hit(AEnemyBase *Enemy, float Damage, bool bEmbed = true, bool bAssist = false, bool bShuriken = false);
+    float Hit(AEnemyBase *Enemy, float Damage, bool bEmbed = true, bool bAssist = false, bool bShuriken = false, bool bCritical = false);
     static bool ApplyEmbeddedHit(AEnemyBase *Enemy, float Damage, UPlayerUpgradeComponent *Upgrades,
-                                 bool bEmbed = true);
+                                 bool bEmbed = true, bool bCritical = false);
     void StageEmbedded(AEnemyBase *Enemy, float Damage);
     UFUNCTION() void ScatterEmbedded(AEnemyBase *Enemy);
     void Scatter(FVector Position, int32 Count, float Damage, float Range);

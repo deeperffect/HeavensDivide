@@ -201,3 +201,8 @@ Portal Close Burst is optional finishing particles, not the portal system itself
 **Portal Burst Time Offset** is in real seconds relative to closing start: `-0.2` fires 0.2 seconds earlier, `0` at closing start, and positive values later. Timing is clamped to the portal lifetime. If a Niagara burst has an internal start delay, use a negative offset or shorten that delay in the effect. The burst still has a 0.6-second lifetime from spawn.
 
 2026-10-08 cloth fade validation: editor build and all seven `HeavensDivide.ImpactFeedback.Swap` tests passed with offscreen rendering enabled. Regression coverage verifies saved clothing shader support, shared body/cloth/weapon fade instances, halfway opacity, character tint, valid trail material parents, and cleanup for both characters. The final run emitted no missing-usage, invalid-material-parent, or translucent-Nanite warnings. This was automated verification, not a manual gameplay playtest. Reports: `Saved/ClothSwapFade/Final`; original material backup: `Saved/ClothSwapFade/M_SwapGhost.before.uasset`.
+
+
+## Current run tuning (2026-10-16)
+
+Samurai and Ninja entrance/departure playback is now 2.5x, with a 0.25-second Ninja drop and 0.3-second fallback walk. Montage-driven walking still follows the complete animation. The enemy/world freeze is unchanged at 0.62 real seconds on both character Blueprints. Swap zoom is zero on the native rig and saved BP_PlayerCameraRig; vignette and arrival effects remain. These values supersede older defaults above.

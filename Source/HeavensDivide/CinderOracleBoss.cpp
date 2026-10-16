@@ -48,7 +48,7 @@ void ACinderOracleBoss::StartBossCombat()
 }
 void ACinderOracleBoss::StopBossCombat()
 {
-    bOracleActive=false; StopEnemyMovement();
+    bOracleActive=false; CancelCharge(); StopEnemyMovement();
     if(CastCue.IsValid())CastCue->Destroy();
     for (TActorIterator<AEncounterHazard> It(GetWorld()); It; ++It) if (It->GetOwner()==this) It->Destroy();
     for (auto& Guardian:Guardians) if (Guardian.IsValid()) Guardian->Destroy();
@@ -66,26 +66,32 @@ void ACinderOracleBoss::Tick(float Delta)
         Embers[I]->SetRelativeLocation(FVector(FMath::Cos(A)*145,FMath::Sin(A)*145,130+20*FMath::Sin(A*2)));
         Embers[I]->SetRelativeScale3D(FVector(CastRecovery>0 ? .60f : .32f));
     }
-    if (!bOracleActive || IsDead() || bGameplaySuspended || IsPlayerTargetDead()) return;
+    if (!bOracleActive || IsDead() || IsPlayerTargetDead()) { CancelCharge(); return; }
+    if (bGameplaySuspended) { CancelCharge(); return; }
+    if (ChargesRemaining>0) { TickCharge(Delta); return; }
     CastRecovery=FMath::Max(0.f,CastRecovery-Delta); NextCast-=Delta;
     if(CastCue.IsValid() && CastRecovery<=.45f)CastCue->Impact();
     if (NextCast<=0 && EnsureTargetFromCharacterManager())
     {
         const bool PhaseTwo=HealthComponent->GetHealthPercent()<EnrageHealthFraction;
-        CastAbility(SpellIndex++ % (PhaseTwo ? 7 : 6));
+        // Preserve the existing spell IDs; add charge early in each rotation.
+        static const int32 PhaseOneDeck[] = {0,7,1,2,3,4,5};
+        static const int32 PhaseTwoDeck[] = {0,7,1,2,3,4,5,6};
+        CastAbility(PhaseTwo ? PhaseTwoDeck[SpellIndex++ % 8] : PhaseOneDeck[SpellIndex++ % 7]);
         NextCast=PhaseTwo ? PhaseTwoInterval : PhaseOneInterval;
     }
 }
 void ACinderOracleBoss::UpdateEnemyBehavior(float Delta)
 {
-    if (!bOracleActive || IsDead() || bGameplaySuspended || !EnsureTargetFromCharacterManager() || CastRecovery>0)
+    if (!bOracleActive || IsDead() || bGameplaySuspended || !EnsureTargetFromCharacterManager() || CastRecovery>0 || ChargesRemaining>0)
     { StopEnemyMovement(); return; }
     if (FVector::DistSquared2D(CurrentTarget->GetActorLocation(),GetActorLocation())>FMath::Square(PreferredDistance)) MoveTowardCurrentTarget();
     else { StopEnemyMovement(); FaceTarget(); }
 }
 void ACinderOracleBoss::CastAbility(int32 Ability)
 {
-    if (!bOracleActive || IsDead() || !EnsureTargetFromCharacterManager()) return;
+    if (!bOracleActive || IsDead() || bGameplaySuspended || ChargesRemaining>0 || !EnsureTargetFromCharacterManager()) return;
+    if (Ability==7) { BeginChargeSequence(); return; }
     StopEnemyMovement(); FaceTarget(); CastRecovery=CastRecoverySeconds;
     if(CastCue.IsValid())CastCue->Destroy();
     CastCue=AEnemyAttackCue::Spawn(this,GetActorLocation()+FVector(0,0,80),55,FMath::Max(.1f,CastRecoverySeconds-.45f),true);

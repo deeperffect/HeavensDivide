@@ -11,6 +11,7 @@ class UMinimapMarkerComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
 class UObjectiveInteractionComponent;
+class UObjectiveBeaconComponent;
 
 UCLASS()
 class HEAVENSDIVIDE_API ASurvivalFieldObjective : public AActor, public IInteractable
@@ -37,6 +38,7 @@ public:
     bool IsHoldActive() const { return bHoldActive; }
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Encounter|Components") TObjectPtr<UStaticMeshComponent> ActivationMesh;
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Encounter|Components") TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
+    UPROPERTY(VisibleAnywhere, Category="Encounter|Components") TObjectPtr<UObjectiveBeaconComponent> Beacon;
     bool ContainsPlayer(const FVector& Point) const;
     void AdvanceHold(float Delta, bool bInside);
 private:

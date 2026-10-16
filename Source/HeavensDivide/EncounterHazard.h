@@ -27,9 +27,12 @@ public:
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> GroundSurface;
     UPROPERTY(VisibleAnywhere) TObjectPtr<UStaticMeshComponent> ImpactColumn;
     bool HasVisibleWarning() const;
+    /** An already telegraphed charge paints a quiet, immediately active ground trail. */
+    void ActivateAsTrail();
 private:
     friend class FEncounterExpansionTest;
     friend class FBossSpellPressureTest;
+    friend class FBossChargeTest;
     UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> Material;
     UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> ImpactMaterial;
     UPROPERTY() TObjectPtr<UMaterialInterface> SurfaceTemplate;

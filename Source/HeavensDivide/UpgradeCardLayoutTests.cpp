@@ -5,6 +5,8 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Components/HorizontalBox.h"
+#include "UObject/UnrealType.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/LocalPlayer.h"
@@ -103,6 +105,29 @@ bool FUpgradeCardLayoutTest::RunTest(const FString&)
    }
   }
  }
+ // Show an offered fourth rank beside three already owned ranks.
+ auto* Ranked=DuplicateObject<UUpgradeDefinition>(Cards[0],U);Ranked->MaxLevel=4;Ranked->UpgradeId=TEXT("RankPreview");
+ TArray<TObjectPtr<UUpgradeDefinition>> Choices{Ranked,Ranked,Ranked};
+ FindFProperty<FArrayProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("CurrentUpgradeChoices"))->CopyCompleteValue(FindFProperty<FArrayProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("CurrentUpgradeChoices"))->ContainerPtrToValuePtr<void>(U),&Choices);
+ FindFProperty<FArrayProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("CurrentPresentationChoices"))->CopyCompleteValue(FindFProperty<FArrayProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("CurrentPresentationChoices"))->ContainerPtrToValuePtr<void>(U),&Choices);
+ FUpgradeOffer RankOffer;RankOffer.UpgradeDefinition=Ranked;RankOffer.ResolvedDescription=Ranked->GetBalanceDescription();
+ TArray<FUpgradeOffer> RankOffers{RankOffer,RankOffer,RankOffer};
+ FindFProperty<FArrayProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("CurrentUpgradeOffers"))->CopyCompleteValue(FindFProperty<FArrayProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("CurrentUpgradeOffers"))->ContainerPtrToValuePtr<void>(U),&RankOffers);
+ TMap<FName,int32> Ranks{{Ranked->UpgradeId,3}};
+ FindFProperty<FMapProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("UpgradeLevels"))->CopyCompleteValue(FindFProperty<FMapProperty>(UPlayerUpgradeComponent::StaticClass(),TEXT("UpgradeLevels"))->ContainerPtrToValuePtr<void>(U),&Ranks);
+ Widget->InitializeDirectUpgradeWidget(PC);
+ auto* Row=Cast<UHorizontalBox>(Widget->WidgetTree->FindWidget(TEXT("UpgradeLevelDiamonds_0")));
+ TestEqual(TEXT("Four diamonds with no extra owned-count label"),Row->GetChildrenCount(),4);
+ for(int32 I=0;I<3;++I)TestEqual(TEXT("Owned diamonds are solid"),Row->GetChildAt(I)->GetRenderOpacity(),1.f);
+ TestEqual(TEXT("Offered rank is half opacity"),Row->GetChildAt(3)->GetRenderOpacity(),.5f);
+ for(int32 I=0;I<8;++I){Widget->ForceLayoutPrepass();Renderer.DrawWindow(Target,Grid,Window,1.f,FVector2D(1920,1080),1.f/60);}
+ const auto& CardGeometry=Widget->WidgetTree->FindWidget(TEXT("UpgradeCardSize_0"))->GetPaintSpaceGeometry();
+ const auto& RankGeometry=Row->GetPaintSpaceGeometry();
+ const FVector2D RankBottom=CardGeometry.AbsoluteToLocal(RankGeometry.LocalToAbsolute(RankGeometry.GetLocalSize()));
+ TestTrue(TEXT("Rank diamonds remain inside the card frame"),RankBottom.Y<CardGeometry.GetLocalSize().Y-10&&RankBottom.X<CardGeometry.GetLocalSize().X-10);
+ TArray<FColor> RankPixels;FReadSurfaceDataFlags RankFlags;RankFlags.SetLinearToGamma(false);
+ if(Target->GameThread_GetRenderTargetResource()->ReadPixels(RankPixels,RankFlags))
+ { TArray64<uint8> PNG;FImageUtils::PNGCompressImageArray(Target->SizeX,Target->SizeY,RankPixels,PNG);FFileHelper::SaveArrayToFile(PNG,*(FPaths::ProjectSavedDir()/TEXT("CollectionCombat/Previews/OwnedRanks.png"))); }
  Widget->ReleaseSlateResources(true);
  World->DestroyWorld(false);
  GEngine->DestroyWorldContext(World);

@@ -154,7 +154,7 @@ void UStanceSelectionWidget::SelectSetupPage(ERunSetupPage Page)
     if (bStarting || SetupPage == Page) return;
     SetupPage = Page;
     if (PageContent) PageContent->SetContent(BuildPage());
-    FocusButton(Page == ERunSetupPage::ArenaAndStances ? 0 : 1);
+    FocusButton(0);
 }
 
 bool UStanceSelectionWidget::IsSynergySelected(FName Id) const
@@ -498,16 +498,14 @@ TSharedRef<SWidget> UStanceSelectionWidget::BuildPage()
     }
     if(!IsStanceAvailable(SelectedSamurai)) SelectedSamurai=TEXT("BattleStance");
     if(!IsStanceAvailable(SelectedNinja)) SelectedNinja=TEXT("BarrageStance");
-    auto ArenaTab = MakeSetupTab(ERunSetupPage::ArenaAndStances);
-    auto SynergyTab = MakeSetupTab(ERunSetupPage::SynergiesAndCombo);
     auto Content = SetupPage == ERunSetupPage::ArenaAndStances ? BuildArenaPage() : BuildSynergyPage();
     auto Back = SNew(SButton).ButtonStyle(&ActionStyle)
-        .OnClicked_Lambda([this]() { if (MenuOwner) MenuOwner->ShowMainPanel(); return FReply::Handled(); })
+        .OnClicked_Lambda([this]() { if (SetupPage == ERunSetupPage::SynergiesAndCombo) SelectSetupPage(ERunSetupPage::ArenaAndStances); else if (MenuOwner) MenuOwner->ShowMainPanel(); return FReply::Handled(); })
         [SNew(STextBlock).Text(FText::FromString(TEXT("BACK"))).Font(Font(17)).ColorAndOpacity(FSlateColor::UseForeground())];
     auto Start = SNew(SButton).ButtonStyle(&ActionStyle)
         .IsEnabled_Lambda([this]() { return CanStartRun(); })
         .OnClicked_UObject(this, &UStanceSelectionWidget::ConfirmRun)
-        [SNew(STextBlock).Text(FText::FromString(TEXT("BEGIN RUN"))).Font(Font(20,true)).ColorAndOpacity(FSlateColor::UseForeground())];
+        [SNew(STextBlock).Text(FText::FromString(SetupPage == ERunSetupPage::ArenaAndStances ? TEXT("NEXT") : TEXT("BEGIN RUN"))).Font(Font(20,true)).ColorAndOpacity(FSlateColor::UseForeground())];
     const float FooterNavigationY = SetupPage == ERunSetupPage::SynergiesAndCombo
         ? FMath::Max(8.f,2.f + 2.f*FMath::DivideAndRoundUp(SynergyDefinitions.Num(),2)) : 8.f;
     AddNavigation(Back,{0,FooterNavigationY}); AddNavigation(Start,{9,FooterNavigationY});
@@ -522,8 +520,7 @@ TSharedRef<SWidget> UStanceSelectionWidget::BuildPage()
             [SNew(SHorizontalBox)
              +SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center)
              [SNew(STextBlock).Text(FText::FromString(TEXT("PREPARE YOUR RUN"))).Font(Font(31,true)).ColorAndOpacity(Paper)]
-             +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[ArenaTab]
-             +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(10,0,0,0)[SynergyTab]]
+             +SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)[SNew(STextBlock).Font(Font(16)).ColorAndOpacity(Muted).Text(FText::FromString(SetupPage == ERunSetupPage::ArenaAndStances ? TEXT("STEP 1 / 2") : TEXT("STEP 2 / 2")))]]
             +SVerticalBox::Slot().AutoHeight().Padding(0,7,0,0)
             [SNew(STextBlock).Text(FText::FromString(SetupPage == ERunSetupPage::ArenaAndStances
                 ? TEXT("Choose your map and difficulty.")
@@ -544,6 +541,8 @@ TSharedRef<SWidget> UStanceSelectionWidget::BuildPage()
 FReply UStanceSelectionWidget::ConfirmRun()
 {
     if (!CanStartRun()) return FReply::Handled();
+    if (SetupPage == ERunSetupPage::ArenaAndStances)
+    { SelectSetupPage(ERunSetupPage::SynergiesAndCombo); return FReply::Handled(); }
     auto* GI = GetGameInstance();
     auto* Loadout = GI ? GI->GetSubsystem<URunLoadoutSubsystem>() : nullptr;
     if (!Loadout || !Loadout->SetStances(SelectedSamurai, SelectedNinja)) return FReply::Handled();
@@ -598,13 +597,8 @@ FReply UStanceSelectionWidget::NativeOnPreviewKeyDown(const FGeometry& Geometry,
         {Picker->SetIsOpen(false);return FReply::Handled();}
         return Super::NativeOnPreviewKeyDown(Geometry,Event);
     }
-    if (Key == EKeys::Gamepad_LeftShoulder || Key == EKeys::Gamepad_RightShoulder)
-    {
-        SelectSetupPage(SetupPage == ERunSetupPage::ArenaAndStances ? ERunSetupPage::SynergiesAndCombo : ERunSetupPage::ArenaAndStances);
-        return FReply::Handled();
-    }
     if (Key == EKeys::Escape || Key == EKeys::Gamepad_FaceButton_Right)
-    { if (MenuOwner) MenuOwner->ShowMainPanel(); return FReply::Handled(); }
+    { if (SetupPage == ERunSetupPage::SynergiesAndCombo) SelectSetupPage(ERunSetupPage::ArenaAndStances); else if (MenuOwner) MenuOwner->ShowMainPanel(); return FReply::Handled(); }
     for (int32 I=0; I<Buttons.Num(); ++I)
         if (Buttons[I] && (Buttons[I]->HasKeyboardFocus() || Buttons[I]->HasAnyUserFocus())) FocusedButton=I;
     if(Key==EKeys::Tab && !Buttons.IsEmpty())

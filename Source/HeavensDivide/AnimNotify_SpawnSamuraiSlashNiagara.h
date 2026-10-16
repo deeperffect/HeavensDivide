@@ -18,8 +18,14 @@ public:
 	UAnimNotify_SpawnSamuraiSlashNiagara();
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
+    void SpawnForHitbox(USkeletalMeshComponent* MeshComp, FVector Center, float Radius,
+        FVector Direction, bool bCircular, UNiagaraSystem* OverrideSystem = nullptr, const FLinearColor* ColorOverride = nullptr) const;
 
 protected:
+    /** The damage trace spawns this effect at its committed center/radius and time. */
+    UPROPERTY(EditAnywhere, Category="Niagara|Hitbox") bool bMatchMeleeHitbox = false;
+    /** Measured maximum radius in centimeters at unit scale, including emitter mesh scaling. */
+    UPROPERTY(EditAnywhere, Category="Niagara|Hitbox", meta=(ClampMin="1")) float HitboxReferenceRadius = 100.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Niagara|Attachment", meta = (ToolTip = "Attach to the character mesh (or its selected socket) instead of the weapon. Applies attack-area scaling directly, without inheriting the weapon's scale."))
 	bool bAttachToCharacterMesh = false;
 

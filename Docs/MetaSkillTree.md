@@ -8,7 +8,9 @@ The four pages are Stances, Synergies, Abilities and Stats. Stances are grouped 
 
 Abilities shows shared skills and three joint recipes together. Soul Convergence includes Crimson Tempest; Eclipse Severance and Lunar Tempest require that root and cost 18 Soul Embers each. Recipe unlocks do not grant passive damage stats. Their stable IDs are `Ability.Combo.[ID]`. Existing authored balance catalogs receive the current combo nodes at runtime while retaining unrelated saved tuning. See [Combo abilities](ComboAbilities.md).
 
-Skill trees grow downward with larger circular symbols and rank pips. The map scrolls vertically with the wheel or scrollbar; zoom and drag panning are disabled. Arrows or D-pad move selection and scroll the selected node into view. Enter/controller A focuses Learn. Home scrolls to the top. Escape/controller Back closes the page or cancels a pending purchase/refund. The selected prerequisite path is gold; hovering another branch does not change it. Connections meet the node rings and route around labels using the same geometry for ordinary and highlighted paths. Labels share a fixed row offset and use measured font line spacing. Stats place Samurai on the left, shared skills in the middle and Ninja on the right, with the shared root centered. The inspector and Learn button remain alongside the scrolling tree.
+Skill trees progress horizontally from left to right. Stance trees form one row; larger Stats and Abilities trees keep branches in separate rows, with vertical scrolling to preserve readable labels. The first skill is visible when the page opens. Rank markers sit below each symbol: learned ranks are solid gold, remaining ranks are dark with a clear light outline. Markers are 14 units across (previously 4.2), spaced 22 units apart, and can be clicked to select their skill.
+
+The wheel or scrollbar scrolls extra branches; zoom and drag panning are disabled. Arrows or D-pad move selection and scroll it into view. Enter/controller A focuses Learn. Home scrolls to the top. Escape/controller Back closes the page or cancels a pending purchase/refund. The selected prerequisite path is gold; hovering another branch does not change it. Horizontal connectors meet node rings and leave names and rank markers unobstructed. Stats order Samurai, shared and Ninja branch rows with a color legend. Hover tooltips contain only the description in a dark, gold-framed box; the Learn button and purchase-block reason remain below the tree.
 
 ## Progression and costs
 
@@ -52,7 +54,7 @@ Purchases and refunds roll back if saving fails. Failed run rewards remain pendi
 
 ## Editing and maintenance
 
-The shipped catalog lives in **/Game/HeavensDivide/Balance/DA_GlobalBalance**, under Skills. Each node exposes Map Position, Required Stance and Passive Effect in addition to its existing price, ranks, magnitude and prerequisites. The current vertical layout derives tiers and branch spacing from prerequisites, fitting width to the page and keeping height scrollable. Node IDs are persistent save identifiers.
+The shipped catalog lives in **/Game/HeavensDivide/Balance/DA_GlobalBalance**, under Skills. Each node exposes Map Position, Required Stance and Passive Effect in addition to its existing price, ranks, magnitude and prerequisites. The horizontal layout derives columns and branch spacing from prerequisites, fitting width to the page and keeping extra rows scrollable. Node IDs are persistent save identifiers; changing the layout does not change purchases or dependencies.
 
 After compiling changed native defaults, run **Tools/configure_meta_stance_tree.py** through Unreal Python to install the default catalog. This backs up the asset and changes only Skills, preserving the other balance settings. Do not rerun it over intentional designer edits unless restoring the native catalog is desired.
 
@@ -78,6 +80,8 @@ The larger tree extends progression length. Its final difficulty and Ember pacin
 The subsequent upgrade-availability pass also passes 13 selected checks (`Saved/TrialRemoval/Verification.json`), including the meta-tree suites. Final rendered layout inspection is recorded in `Saved/MetaTreeRedesign/FinalVisual/index.json`. All supported run upgrades are available independently of permanent skill purchases; Technique and Twin Soul trials are retired.
 
 The Loadout and difficulty-unlock pass builds successfully and passes all nine selected menu/progression checks. Rendered previews include locked stance dropdowns, Samurai/Ninja categories, the Yes/No purchase dialog, and the larger vertical trees. Evidence is `Saved/LoadoutMenus/ValidationSummary.json`; automation uses disposable profiles.
+
+Horizontal-layout update, 2026-10-16: Development Editor build succeeded and all 12 focused UI/combat checks passed (`Saved/FeedbackPolish/Validation.json`). Geometry checks cover every page's left-to-right dependencies, ring-to-ring connectors, separate labels/branches, hit targets including rank dots, and keyboard/controller navigation. Rendered Stats, Abilities and stance pages were inspected at 720p and 1080p; partial and complete ranks are visible in `Saved/MenuTreePolish/HorizontalRanks1280.png`. Tooltip borders passed pixel checks at 100% and 125% scaling. Validation used isolated automation profiles.
 
 The menu/tree polish pass also builds and passes eleven focused checks, including continuous ring endpoints, clear label routing, all page layouts, Samurai/shared/Ninja ordering, combo assist charge and Display controls. D3D12 previews were inspected; evidence is `Saved/MenuTreePolish/ValidationSummary.json`.
 

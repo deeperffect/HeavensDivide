@@ -149,6 +149,7 @@ void UPlayerHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime
 	Super::NativeTick(MyGeometry, InDeltaTime);
 	UpdateComboPresentation();
 	UpdateDamageFeedback(InDeltaTime);
+	UpdateDamageNumbers(InDeltaTime);
 	UpdateSwapPortraitPulse(InDeltaTime);
 	UpdateRunTimerDisplay();
 
@@ -608,6 +609,9 @@ void UPlayerHUDWidget::BindCharacterHealth()
 void UPlayerHUDWidget::UnbindCharacterHealth()
 {
 	DamageVignetteRemaining = 0.0f;
+	LowHealthBlend = LowHealthPhase = 0.f;
+	bCriticalHealth = false;
+	DamageNumbers.Reset();
 	StopHealthChipChase();
 
 	if (PlayerHealth)

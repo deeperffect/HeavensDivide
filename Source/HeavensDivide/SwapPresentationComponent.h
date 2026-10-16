@@ -102,12 +102,12 @@ public:
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Use Arrival Portal Sound.")) TObjectPtr<USoundBase> ArrivalSound;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Sound", meta=(ClampMin="0", ClampMax="2")) float SoundVolume = .65f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ToolTip="Optional full-body, in-place montage. Plays exclusively to its final frame; gameplay notifies and root motion are not used.")) TObjectPtr<UAnimMontage> EntranceMontage;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage's Rate Scale. The freeze duration does not accelerate or truncate the entrance.")) float EntrancePlayRate = 1.35f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage's Rate Scale. The freeze duration does not accelerate or truncate the entrance.")) float EntrancePlayRate = 2.5f;
     // Retained only for loading existing assets; no longer limits playback.
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Entrance duration follows montage length and play rate.")) float EntranceMaxDuration = .25f;
     /** Cosmetic departure played on a temporary visual copy, independently of Tag Team. */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation") TObjectPtr<UAnimMontage> DepartureMontage;
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage Rate Scale. Independent of freeze duration.")) float DeparturePlayRate = 1.35f;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Animation", meta=(ClampMin="0.01", ToolTip="Real-time playback multiplier, combined with the montage Rate Scale. Independent of freeze duration.")) float DeparturePlayRate = 2.5f;
     // Retained only for loading existing assets; no longer limits playback.
     UPROPERTY(meta=(DeprecatedProperty, DeprecationMessage="Departure duration follows montage length and play rate.")) float DepartureMaxDuration = .5f;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Swap|Grand Entrance") bool bShowReadyGlow = true;

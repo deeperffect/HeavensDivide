@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "CombatNumberPresentation.h"
 #include "PlayerHUDWidget.generated.h"
 
 class ACharacterBase;
@@ -63,10 +64,13 @@ class HEAVENSDIVIDE_API UPlayerHUDWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	friend class FPlayerDamageFeedbackTest;
+	friend class FCombatNumbersTest;
+	friend class FCombatFeedbackVisualTest;
 	friend class FSwapPresentationTest;
     friend class FComboHUDTest;
 
 public:
+    void ShowEnemyDamageNumber(AActor* Enemy, FVector Position, float ActualDamage, bool bCritical, bool bStatus);
     UPlayerHUDWidget(const FObjectInitializer& ObjectInitializer);
     UFUNCTION(BlueprintPure, Category="Player HUD|Combo") float GetComboPercent() const;
     UFUNCTION(BlueprintPure, Category="Player HUD|Combo") bool IsComboReady() const;
@@ -268,6 +272,14 @@ protected:
 	float DamageVignetteEdgeSize = 0.20f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Damage Feedback")
 	FLinearColor DamageVignetteColor = FLinearColor(0.8f, 0.015f, 0.025f, 1.0f);
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Damage Numbers")
+	bool bShowDamageNumbers = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Low Health")
+	bool bEnableLowHealthWarning = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Low Health", meta=(ClampMin="0.01", ClampMax="1.0"))
+	float LowHealthThreshold = .30f;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category="Player HUD|Low Health", meta=(ClampMin="0.0", ClampMax="0.4"))
+	float LowHealthEdgeOpacity = .32f;
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	virtual void NativeDestruct() override;
@@ -327,6 +339,13 @@ private:
 	void UpdateDamageFeedback(float DeltaSeconds);
 	float GetDamageFeedbackOpacity() const;
 	float DamageVignetteRemaining = 0.0f;
+	float LowHealthBlend = 0.f;
+	float LowHealthPhase = 0.f;
+	bool bCriticalHealth = false;
+	float GetLowHealthFeedbackOpacity() const;
+	FCombatNumberBuffer DamageNumbers;
+	void UpdateDamageNumbers(float DeltaSeconds);
+	int32 PaintDamageNumbers(const FGeometry& Geometry, FSlateWindowElementList& Out, int32 Layer, float Opacity) const;
 	void EnsureBossHealthPresentation();
 	UFUNCTION() void HandleBossHealthChanged(float CurrentHealth, float MaxHealth, float HealthPercent);
 	UFUNCTION()

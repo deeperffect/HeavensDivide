@@ -315,13 +315,13 @@ void UNinjaBuildComponent::ModifyVolleyWithCounter(int32 &Count, float &Spacing,
     if (Has(TEXT("BarrageProcession"))) Spacing = 0.f;
     Count = FMath::Clamp(Count, 1, 128);
 }
-float UNinjaBuildComponent::Hit(AEnemyBase *Enemy, float Damage, bool bEmbed, bool bAssist, bool bShuriken)
+float UNinjaBuildComponent::Hit(AEnemyBase *Enemy, float Damage, bool bEmbed, bool bAssist, bool bShuriken, bool bCritical)
 {
     if (!Enemy || !Upgrades() || Enemy->IsDead() || !Enemy->CanReceivePlayerDamage(EPlayerAttackSource::Ninja))
         return 0;
     if (Enemy->IsMarked() && Enemy->ConsumeMark())
         Damage *= FMath::Max(1.f,Tune(TEXT("MarkedBlade"),TEXT("NinjaDamageMultiplier"),2.f));
-    if (!ApplyEmbeddedHit(Enemy, Damage, Upgrades(), bEmbed))
+    if (!ApplyEmbeddedHit(Enemy, Damage, Upgrades(), bEmbed, bCritical))
         return 0;
     if ((Attack() && Attack()->ProjectileClass) || (bShuriken && ShurikenHitSound))
     {

@@ -21,6 +21,7 @@ bool FSamuraiSlashScaleTest::RunTest(const FString&)
         if (auto* Candidate = Cast<UAnimNotify_SpawnSamuraiSlashNiagara>(Event.Notify)) Notify = Candidate;
     if (!TestNotNull(TEXT("Area-aware slash notify saved in montage"), Notify)) return false;
     Notify = DuplicateObject<UAnimNotify_SpawnSamuraiSlashNiagara>(Notify, GetTransientPackage());
+    FindFProperty<FBoolProperty>(Notify->GetClass(),TEXT("bMatchMeleeHitbox"))->SetPropertyValue_InContainer(Notify,false);
     const FVector BaseScale = *FindFProperty<FStructProperty>(Notify->GetClass(), TEXT("Scale"))->ContainerPtrToValuePtr<FVector>(Notify);
     const float BonusStrength = *FindFProperty<FFloatProperty>(Notify->GetClass(), TEXT("AreaBonusScaleMultiplier"))->ContainerPtrToValuePtr<float>(Notify);
     *FindFProperty<FStructProperty>(Notify->GetClass(), TEXT("LocationOffset"))->ContainerPtrToValuePtr<FVector>(Notify) = FVector(30, 20, 10);

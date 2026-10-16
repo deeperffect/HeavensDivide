@@ -30,7 +30,7 @@ void AHealingUrn::BeginPlay()
     }
     SetActorTickEnabled(false);
 }
-bool AHealingUrn::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource)
+bool AHealingUrn::ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource, bool bCritical)
 {
     if (!FMath::IsFinite(DamageAmount) || DamageAmount<=0 || !CanReceivePlayerDamage(AttackSource) || !HealthComponent)
         return false;

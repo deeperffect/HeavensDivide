@@ -62,10 +62,11 @@ protected:
 	virtual void HandleDeath() override;
 	virtual void BeginDeathPresentation_Implementation() override;
 	void HandleBossDeathMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	FTimerHandle BossDeathCleanupTimer;
 	// Kept on bosses only; preserves the existing boss Blueprint's serialized choice.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss|Death")
 	TObjectPtr<UAnimMontage> DeathMontage;
-	virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource) override;
+	virtual bool ApplyPlayerDamage(float DamageAmount, EPlayerAttackSource AttackSource, bool bCritical = false) override;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss|General", meta=(ClampMin="1.0")) float BossMaxHealth = 5000.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss|General", meta=(ClampMin="0.0")) float BossBaseDamage = 20.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss|General", meta=(ClampMin="0.0")) float BossMoveSpeed = 350.0f;

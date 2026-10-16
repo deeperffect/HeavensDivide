@@ -1,6 +1,8 @@
 # Samurai autoattack slash
 
-The current burst uses `NS_Slash_10` through the same area-aware notify.
+Current Blood stance alignment (2026-10-16): `NS_Slash_BloodStance` is spawned by the committed damage trace at its exact center and radius. The normal and Double Cut montage notifies use `Match Melee Hitbox`; echoes share that placement. Cosmetic character/weapon size and the former 1.7x area-bonus amplification no longer affect these effects. `Hitbox Reference Radius` is measured from simulated mesh particles by `HeavensDivide.RunFixes.BloodSlashHitbox`. Recalibrate with that test and `Tools/apply_run_fixes.py` after changing the Niagara geometry or particle size. The notes below describe earlier effect assignments.
+
+The earlier burst used `NS_Slash_10` through the same area-aware notify.
 `Tools/configure_samurai_slash10.py` changes only the Niagara System assignment;
 all scaling, offsets, attachment and timing are preserved. The previous montage
 is backed up in `Saved/Backups/SamuraiSlash10`.

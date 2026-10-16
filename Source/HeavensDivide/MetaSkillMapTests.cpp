@@ -3,6 +3,18 @@
 #include "SMetaSkillMap.h"
 #include "InputCoreTypes.h"
 #include "MetaSkillTree.h"
+#include "Widgets/IToolTip.h"
+#include "Widgets/Text/STextBlock.h"
+#if WITH_EDITOR
+#include "Slate/WidgetRenderer.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "ImageUtils.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
+#include "Widgets/Layout/SDPIScaler.h"
+#endif
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FMetaSkillMapHighlightTest,"HeavensDivide.Meta.NodeMapHighlight",EAutomationTestFlags::EditorContext|EAutomationTestFlags::EngineFilter)
 bool FMetaSkillMapHighlightTest::RunTest(const FString&)
@@ -12,6 +24,39 @@ bool FMetaSkillMapHighlightTest::RunTest(const FString&)
 		.Selected_Lambda([&Selection](){return Selection;})
 		.OnSelected_Lambda([&Selection](FName Id){Selection=Id;});
 	Map->SetHoveredNode(TEXT("Fang.Flight"));
+    TestTrue(TEXT("Hovered node has a custom tooltip"),Map->GetToolTip().IsValid());
+    TArray<FString> Texts;
+    TFunction<void(TSharedRef<SWidget>)> ReadText=[&](TSharedRef<SWidget> Widget)
+    {
+        if(Widget->GetType()==TEXT("STextBlock"))Texts.Add(StaticCastSharedRef<STextBlock>(Widget)->GetText().ToString());
+        auto* Children=Widget->GetChildren();for(int32 I=0;I<Children->Num();++I)ReadText(Children->GetChildAt(I));
+    };
+    ReadText(Map->GetToolTip()->GetContentWidget());
+    TestEqual(TEXT("Tooltip contains only one description block"),Texts.Num(),1);
+    if(Texts.Num()==1)TestEqual(TEXT("Tooltip omits upgrade name and scope heading"),Texts[0],MetaSkillTree::Description(*MetaSkillTree::Find(TEXT("Fang.Flight"))));
+ #if WITH_EDITOR
+    if(FParse::Param(FCommandLine::Get(),TEXT("MetaSkillScreenshot"))&&!FParse::Param(FCommandLine::Get(),TEXT("NullRHI")))
+    {
+        FWidgetRenderer Renderer(false);auto Content=Map->GetToolTip()->GetContentWidget();
+        for(float Scale:{1.f,1.25f})
+        {
+            auto Frame=SNew(SDPIScaler).DPIScale(Scale)[Content];Frame->SlatePrepass();
+            const FVector2D Desired=Frame->GetDesiredSize();
+            const FIntPoint Size(FMath::CeilToInt(Desired.X),FMath::CeilToInt(Desired.Y));
+            auto* Target=Renderer.DrawWidget(Frame,FVector2D(Size.X,Size.Y));
+            TArray<FColor> Pixels;FReadSurfaceDataFlags Flags;Flags.SetLinearToGamma(false);
+            if(Target->GameThread_GetRenderTargetResource()->ReadPixels(Pixels,Flags))
+            {
+                const auto GoldAt=[&](int32 X,int32 Y){const auto C=Pixels[Y*Size.X+X];return C.R>C.B+20&&C.G>40;};
+                TestTrue(TEXT("Tooltip has gold border on all four sides, including fractional DPI"),
+                    GoldAt(1,Size.Y/2)&&GoldAt(Size.X-2,Size.Y/2)&&GoldAt(Size.X/2,1)&&GoldAt(Size.X/2,Size.Y-2));
+                TArray64<uint8> PNG;FImageUtils::PNGCompressImageArray(Size.X,Size.Y,Pixels,PNG);
+                FFileHelper::SaveArrayToFile(PNG,*(FPaths::ProjectSavedDir()/FString::Printf(TEXT("CollectionCombat/Previews/SkillTooltip%d.png"),FMath::RoundToInt(Scale*100))));
+            }
+        }
+    }
+
+ #endif
 	auto Path=Map->GetHighlightedAncestors();
 	TestTrue(TEXT("Hover cannot replace the selected Steel path"),Path.Contains(TEXT("Steel.Power")));
 	TestTrue(TEXT("Selected node included"),Path.Contains(TEXT("Steel.Power")));
@@ -62,32 +107,36 @@ bool FMetaSkillMapLayoutTest::RunTest(const FString&)
   {
    const auto& Node=*MetaSkillTree::Find(Ids[I]);
    const FVector2D P=Map->DisplayPosition(Node);
-   TestTrue(TEXT("Every node and label fit the canvas"),P.X>=40 && P.X<=Map->CanvasSize.X-40 && P.Y>=100 && P.Y+92<=Map->CanvasSize.Y-45);
+   int32 LabelSize;double LabelHeight;
+   const auto LabelLines=Map->NodeLabelLines(Node,LabelSize,LabelHeight);
+   TestTrue(TEXT("Every node, rank row and complete label fit the canvas"),P.X-Map->NodeLabelWidth(Node.Id)*.5>=40 &&
+       P.X+Map->NodeLabelWidth(Node.Id)*.5<=Map->CanvasSize.X-40 && P.Y>=150 &&
+       P.Y+76+LabelLines.Num()*LabelHeight<=Map->CanvasSize.Y-45);
    TestEqual(TEXT("Every circle hit-tests to its own skill"),Map->HitNode(G,Map->ToScreen(G,P)),Ids[I]);
+   TestEqual(TEXT("Rank markers also select their skill"),Map->HitNode(G,Map->ToScreen(G,P+FVector2D(0,56))),Ids[I]);
    for(int32 J=I+1;J<Ids.Num();++J)
    {
     const FVector2D Other=Map->DisplayPosition(*MetaSkillTree::Find(Ids[J]));
     TestTrue(TEXT("Node rings and hit targets do not overlap"),FVector2D::Distance(P,Other)>=56.f);
     if(FMath::Abs(P.Y-Other.Y)<1.)
      TestTrue(TEXT("Sibling label columns remain separated"),FMath::Abs(P.X-Other.X)>=(Map->NodeLabelWidth(Ids[I])+Map->NodeLabelWidth(Ids[J]))*.5+12.);
+    if(FMath::Abs(P.X-Other.X)<1.)
+     TestTrue(TEXT("Vertical branch lanes leave room for labels and rank dots"),FMath::Abs(P.Y-Other.Y)>=170.);
    }
    for(FName ParentId:Node.Prerequisites)if(Ids.Contains(ParentId))
    {
     const auto& Parent=*MetaSkillTree::Find(ParentId);
     const FVector2D A=Map->DisplayPosition(Parent);
-    TestTrue(TEXT("Every prerequisite is above its child"),P.Y>A.Y+120.);
+    TestTrue(TEXT("Every prerequisite is to the left of its child"),P.X>A.X+240.);
     const TArray<FVector2D> Points=Map->ConnectorPath(Parent,Node);
-    TestEqual(TEXT("Connector begins on the parent ring"),Points[0],A+FVector2D(0,Parent.MaxRank==1?38:32));
-    TestEqual(TEXT("Connector ends on the child ring"),Points.Last(),P-FVector2D(0,Node.MaxRank==1?38:32));
-    int32 FontSize;double LineHeight;
-    const auto Lines=Map->NodeLabelLines(Parent,FontSize,LineHeight);
-    TestTrue(TEXT("Connected stem passes outside the parent label"),Points[2].X>A.X+Map->NodeLabelWidth(Parent.Id)*.5);
-    TestTrue(TEXT("Connected stem returns below every label line"),Points[3].Y>A.Y+54+Lines.Num()*LineHeight);
+    TestEqual(TEXT("Connector begins on the right of the parent ring"),Points[0],A+FVector2D(Parent.MaxRank==1?38:32,0));
+    TestEqual(TEXT("Connector ends on the left of the child ring"),Points.Last(),P-FVector2D(Node.MaxRank==1?38:32,0));
+    TestTrue(TEXT("Branch bus passes outside parent and child labels"),Points[1].X>A.X+Map->NodeLabelWidth(Parent.Id)*.5 && Points[1].X<P.X-Map->NodeLabelWidth(Node.Id)*.5);
     for(int32 Segment=1;Segment<Points.Num();++Segment)
     {
      const FVector2D Start=Points[Segment-1],End=Points[Segment],Delta=End-Start;
      TestTrue(TEXT("All connector segments are horizontal or vertical"),FMath::Abs(Delta.X)<.01||FMath::Abs(Delta.Y)<.01);
-     TestTrue(TEXT("Connections never travel upward"),Delta.Y>=-.01);
+     TestTrue(TEXT("Connections never travel backward"),Delta.X>=-.01);
      for(FName OtherId:Ids)if(OtherId!=Node.Id&&OtherId!=ParentId)
      {
       const FVector2D Center=Map->DisplayPosition(*MetaSkillTree::Find(OtherId));
@@ -104,7 +153,7 @@ bool FMetaSkillMapLayoutTest::RunTest(const FString&)
    {
     const auto& A=Connections[I];const auto& B=Connections[J];
     if(A.Parent==B.Parent)
-     TestEqual(TEXT("Children share their parent's horizontal branch bus"),A.Points[5].Y,B.Points[5].Y);
+     TestEqual(TEXT("Children share their parent's vertical branch bus"),A.Points[1].X,B.Points[1].X);
     for(int32 AS=1;AS<A.Points.Num();++AS)
      for(int32 BS=1;BS<B.Points.Num();++BS)
      {
@@ -123,25 +172,26 @@ bool FMetaSkillMapLayoutTest::RunTest(const FString&)
    TestEqual(TEXT("Width fitting shares the paint/hit-test transform"),Map->HitNode(G,Map->ToScreen(G,Map->DisplayPosition(*MetaSkillTree::Find(Id)))),Id);
   Map->ResetView();
  };
- // The unfiltered fallback must use the same downward tree layout as every displayed page.
+ // The unfiltered fallback must use the same horizontal tree layout as every displayed page.
  VerifyLayout(AllNodes);
  for(const auto& Page:Pages){Map->SetVisibleNodes(Page.Value,Page.Key);VerifyLayout(Page.Value);}
 
  TArray<FName> Stats;
  for(const auto& Node:MetaSkillTree::Nodes())if(Node.Page==EMetaSkillPage::Stats)Stats.Add(Node.Id);
  Map->SetVisibleNodes(Stats,TEXT("Stats"));
- const double SharedX=Map->DisplayPosition(*MetaSkillTree::Find(TEXT("Root.Vitality"))).X;
- TestEqual(TEXT("Shared root is aligned with the canvas center"),SharedX,Map->CanvasSize.X*.5);
- double SamuraiRight=0.,NinjaLeft=Map->CanvasSize.X,SharedLeft=Map->CanvasSize.X,SharedRight=0.;
+ const auto SharedRoot=Map->DisplayPosition(*MetaSkillTree::Find(TEXT("Root.Vitality")));
+ TestTrue(TEXT("The shared entry skill is visible at the top left on opening"),SharedRoot.X<200. && SharedRoot.Y<200.);
+ double SamuraiBottom=0.,NinjaTop=Map->CanvasSize.Y,SharedTop=Map->CanvasSize.Y,SharedBottom=0.;
  for(FName Id:Stats)
  {
-  const auto* Node=MetaSkillTree::Find(Id);const double X=Map->DisplayPosition(*Node).X;
-  if(Node->Target==EUpgradeStatTarget::Samurai)SamuraiRight=FMath::Max(SamuraiRight,X);
-  else if(Node->Target==EUpgradeStatTarget::Ninja)NinjaLeft=FMath::Min(NinjaLeft,X);
-  else {SharedLeft=FMath::Min(SharedLeft,X);SharedRight=FMath::Max(SharedRight,X);}
+  if(Id==TEXT("Root.Vitality"))continue;
+  const auto* Node=MetaSkillTree::Find(Id);const double Y=Map->DisplayPosition(*Node).Y;
+  if(Node->Target==EUpgradeStatTarget::Samurai)SamuraiBottom=FMath::Max(SamuraiBottom,Y);
+  else if(Node->Target==EUpgradeStatTarget::Ninja)NinjaTop=FMath::Min(NinjaTop,Y);
+  else {SharedTop=FMath::Min(SharedTop,Y);SharedBottom=FMath::Max(SharedBottom,Y);}
  }
- TestTrue(TEXT("Samurai stats occupy the left lane"),SamuraiRight<SharedLeft);
- TestTrue(TEXT("Ninja stats occupy the right lane"),NinjaLeft>SharedRight);
+ TestTrue(TEXT("Samurai stats occupy the upper branch lanes"),SamuraiBottom<SharedTop);
+ TestTrue(TEXT("Ninja stats occupy the lower branch lanes"),NinjaTop>SharedBottom);
 
  return true;
 }
@@ -161,17 +211,17 @@ bool FMetaSkillMapFilterTest::RunTest(const FString&)
   if(Node)
   {
    TestEqual(TEXT("Filtered positions share rendering and hit tests"),Map->HitNode(G,Map->ToScreen(G,Map->DisplayPosition(*Node))),Id);
-   TestEqual(TEXT("A stance grows straight down one column"),Map->DisplayPosition(*Node).X,Map->DisplayPosition(*MetaSkillTree::Find(BloodNodes[0])).X);
+   TestEqual(TEXT("A stance grows left to right on one row"),Map->DisplayPosition(*Node).Y,Map->DisplayPosition(*MetaSkillTree::Find(BloodNodes[0])).Y);
   }
  }
- TestFalse(TEXT("Navigation above the root can reach external controls"),Map->OnKeyDown(G,FKeyEvent(EKeys::Up,FModifierKeysState(),0,false,0,0)).IsEventHandled());
+ TestFalse(TEXT("Navigation left of the root can reach external controls"),Map->OnKeyDown(G,FKeyEvent(EKeys::Left,FModifierKeysState(),0,false,0,0)).IsEventHandled());
  Map->Select(TEXT("Fang.Edge"));
  TestEqual(TEXT("Hidden stance cannot be selected"),Selection,FName(TEXT("Blood.Edge")));
- TestTrue(TEXT("Navigation inside the tree is handled by the map"),Map->OnKeyDown(G,FKeyEvent(EKeys::Down,FModifierKeysState(),0,false,0,0)).IsEventHandled());
+ TestTrue(TEXT("Navigation inside the tree is handled by the map"),Map->OnKeyDown(G,FKeyEvent(EKeys::Right,FModifierKeysState(),0,false,0,0)).IsEventHandled());
  TestEqual(TEXT("Directional selection remains within the stance"),Selection,FName(TEXT("Blood.Reach")));
  TestFalse(TEXT("A different page never appears in the highlight"),Map->GetHighlightedAncestors().Contains(TEXT("Steel.Power")));
  Map->Select(TEXT("Blood.Vein"));
- TestFalse(TEXT("Navigation beyond the tree can reach external controls"),Map->OnKeyDown(G,FKeyEvent(EKeys::Gamepad_DPad_Down,FModifierKeysState(),0,false,0,0)).IsEventHandled());
+ TestFalse(TEXT("Navigation beyond the tree can reach external controls"),Map->OnKeyDown(G,FKeyEvent(EKeys::Gamepad_DPad_Right,FModifierKeysState(),0,false,0,0)).IsEventHandled());
  Map->SetVisibleNodes({},TEXT("Empty"));
  TestTrue(TEXT("Empty pages have no active hit targets"),Map->HitNode(G,{510,425}).IsNone());
  return true;

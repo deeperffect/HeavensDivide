@@ -36,10 +36,10 @@ bool FSwapCameraTest::RunTest(const FString&)
         TestEqual(TEXT("Focus starts without FOV pop"),Rig->Camera->FieldOfView,83.f);
         Rig->UpdateSwapFocus(.06f);
         const float HalfFOV=Rig->Camera->FieldOfView;
-        TestTrue(TEXT("Camera smoothly zooms in"),HalfFOV<83 && HalfFOV>83*(1-Rig->SwapZoomAmount));
+        TestEqual(TEXT("Swap keeps the perspective camera distance unchanged"),HalfFOV,83.f);
         Rig->UpdateSwapFocus(.06f);
         TestTrue(TEXT("Peak focus ignores cosmetic arrival offset"),Rig->GetActorLocation().Equals(Character->GetActorLocation()));
-        TestTrue(TEXT("Orthographic cameras also zoom"),Rig->Camera->OrthoWidth<1500);
+        TestEqual(TEXT("Swap keeps orthographic width unchanged"),Rig->Camera->OrthoWidth,1500.f);
         TestTrue(TEXT("Peak vignette adds a subtle focus accent"),Rig->Camera->PostProcessSettings.VignetteIntensity>.3f);
         Character->SetActorLocation(FVector(100,0,0));
         Character->GetVisualRoot()->SetRelativeLocation(FVector::ZeroVector);

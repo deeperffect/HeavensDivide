@@ -21,7 +21,7 @@ public class HeavensDivide : ModuleRules
 		else PublicDefinitions.Add("WITH_BLOODSHIFT_STEAM=0");
 		if (Target.bBuildEditor)
 		{
-			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "RenderCore", "MetasoundEngine", "NiagaraEditor", "MaterialEditor", "ClothingSystemEditor", "ClothingSystemEditorInterface", "ClothingSystemRuntimeCommon", "ClothingSystemRuntimeInterface", "ChaosCloth" });
+			PrivateDependencyModuleNames.AddRange(new string[] { "UnrealEd", "RenderCore", "RHI", "MetasoundEngine", "NiagaraEditor", "MaterialEditor", "ClothingSystemEditor", "ClothingSystemEditorInterface", "ClothingSystemRuntimeCommon", "ClothingSystemRuntimeInterface", "ChaosCloth" });
 		}
 	}
 }

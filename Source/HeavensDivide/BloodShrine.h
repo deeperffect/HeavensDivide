@@ -16,6 +16,7 @@ class USphereComponent;
 class UStaticMeshComponent;
 class UWidgetComponent;
 class UObjectiveInteractionComponent;
+class UObjectiveBeaconComponent;
 
 UENUM(BlueprintType)
 enum class EBloodShrineState : uint8
@@ -83,6 +84,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Components")
 	TObjectPtr<UObjectiveInteractionComponent> ObjectiveInteraction;
+    UPROPERTY(VisibleAnywhere, Category="Blood Shrine|Components") TObjectPtr<UObjectiveBeaconComponent> Beacon;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Minimap") TObjectPtr<UMinimapMarkerComponent> MinimapMarker;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Blood Shrine|Challenge", meta = (ClampMin = "0.1", UIMin = "0.1"))

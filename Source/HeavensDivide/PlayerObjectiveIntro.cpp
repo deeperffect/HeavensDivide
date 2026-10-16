@@ -2,6 +2,17 @@
 #include "ObjectiveIntroWidget.h"
 #include "Containers/Ticker.h"
 #include "Kismet/GameplayStatics.h"
+#include "InputKeyEventArgs.h"
+
+bool ASurvivorPlayerController::InputKey(const FInputKeyEventArgs& Params)
+{
+    if (IsObjectiveIntroPlaying() && Params.Key == EKeys::SpaceBar)
+    {
+        if (Params.Event == IE_Pressed) SkipObjectiveIntro();
+        return true; // Do not feed this press into dash or other gameplay actions.
+    }
+    return Super::InputKey(Params);
+}
 
 bool ASurvivorPlayerController::ShowObjectiveIntro(AActor* Objective, const FText& Message, FLinearColor Accent, FSimpleDelegate OnFinished)
 {
@@ -60,4 +71,12 @@ void ASurvivorPlayerController::CancelObjectiveIntro()
         ObjectiveIntroWidget = nullptr;
         SetPause(false);
     }
+}
+
+void ASurvivorPlayerController::SkipObjectiveIntro()
+{
+    if (!IsObjectiveIntroPlaying() || ObjectiveIntroElapsed < UObjectiveIntroWidget::SkipDelaySeconds) return;
+    // Use the normal completion path, including owner/run validation and the
+    // single completion delegate that starts the objective's gameplay timer.
+    UpdateObjectiveIntro(UObjectiveIntroWidget::Duration);
 }

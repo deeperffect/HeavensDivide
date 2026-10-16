@@ -187,10 +187,15 @@ class HEAVENSDIVIDE_API AEnemySpawner : public AActor
 public:
     // Encounter formations use exactly the normal spawn ground, arena and clearance rules.
     bool ValidateEncounterLocation(const FVector& Desired, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutLocation) const;
+    /** Spawn at an already validated point; reject any collision-driven relocation. */
+    AEnemyBase* SpawnEnemyAtValidatedLocation(TSubclassOf<AEnemyBase> EnemyClass, const FVector& Location, const FRotator& Rotation = FRotator::ZeroRotator) const;
     float ChooseSwarmDirection() const;
     mutable TArray<int32> CachedSwarmCounts;
     mutable double NextSwarmCountRefresh = -1.0;
     bool ProjectEncounterGround(const FVector& Desired, FVector& OutGround) const;
+    /** Grounded, supported footprint for shrine/activation props; called only on spawn attempts. */
+    UFUNCTION(BlueprintCallable, Category="Spawner|Placement")
+    bool ValidateObjectiveLocation(const FVector& Desired, float Radius, float Height, FVector& OutGround) const;
     bool IsEncounterInsideArena(const FVector& Position) const { return IsSpawnLocationInsideArena(Position); }
 	AEnemySpawner();
 
@@ -477,6 +482,9 @@ protected:
 	bool FindSpawnLocation(const FVector& ActivePlayerLocation, TSubclassOf<AEnemyBase> EnemyClass, FVector& OutSpawnLocation, bool bUseDirectionalArc = false, float DirectionAngleDegrees = 0.0f, float ArcDegrees = 360.0f, float DistanceMin = 0.0f, float DistanceMax = 0.0f) const;
 	bool GenerateCandidateSpawnLocation(const FVector& ActivePlayerLocation, int32 AttemptIndex, int32 AttemptCount, FVector& OutCandidateLocation, bool bUseDirectionalArc = false, float DirectionAngleDegrees = 0.0f, float ArcDegrees = 360.0f, float DistanceMin = 0.0f, float DistanceMax = 0.0f) const;
 	bool ProjectSpawnLocationToNavigation(const FVector& CandidateLocation, FVector& OutProjectedLocation) const;
+	mutable TOptional<bool> HasAuthoredSpawnGround;
+	bool IsValidSpawnGround(const FHitResult& Hit) const;
+	bool HasGroundSupport(const FVector& Ground, float Radius) const;
 	bool IsSpawnLocationInsideArena(const FVector& Location) const;
 	bool IsSpawnLocationCollisionFree(const FVector& Location, TSubclassOf<AEnemyBase> EnemyClass) const;
 	void GetEnemyCapsuleDimensions(TSubclassOf<AEnemyBase> EnemyClass, float& OutRadius, float& OutHalfHeight) const;

@@ -1,4 +1,7 @@
 #include "PlayerUpgradeComponent.h"
+#include "CollectionProgressSubsystem.h"
+#include "RunReportSubsystem.h"
+#include "Engine/GameInstance.h"
 #include "BarrageBuild.h"
 #include "ShurikenBuild.h"
 #include "FangBuild.h"
@@ -154,6 +157,9 @@ bool UPlayerUpgradeComponent::AcquireUpgradeResolved(UUpgradeDefinition* Upgrade
 	}
 
 	FinalizeUpgradeAcquisition(Upgrade, NewLevel);
+    if(auto* GI=GetWorld()?GetWorld()->GetGameInstance():nullptr)
+        if(const auto* Report=GI->GetSubsystem<URunReportSubsystem>();Report && Report->IsActive() && Report->IsRanked())
+            if(auto* Journal=GI->GetSubsystem<UCollectionProgressSubsystem>()) Journal->RecordUpgrade(Upgrade,NewLevel);
 	return true;
 }
 

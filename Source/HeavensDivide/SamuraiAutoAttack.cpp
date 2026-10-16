@@ -25,6 +25,7 @@
 #include "HealthComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "NiagaraSystem.h"
 #include "NinjaCharacter.h"
 #include "PlayerUpgradeComponent.h"
@@ -310,6 +311,15 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
         ? AttackOrigin : AttackOrigin + AttackForward * AttackForwardOffset;
     const float EffectiveAttackRadius =
         GrandEntrance ? GetGrandEntranceRadius(GrandEntrance) : GetEffectiveAttackRadius();
+    if (const UAnimMontage* VisualMontage = bBloodCircularAttack && DoubleCutMontage ? DoubleCutMontage.Get() : AttackMontage.Get())
+        for (const auto& Event : VisualMontage->Notifies)
+            if (const auto* Slash = Cast<UAnimNotify_SpawnSamuraiSlashNiagara>(Event.Notify))
+                if (Slash->bMatchMeleeHitbox)
+                {
+                    Slash->SpawnForHitbox(OwnerCharacter->GetMesh(),HitboxCenter,EffectiveAttackRadius,
+                        AttackForward,GrandEntrance || bBloodCircularAttack);
+                    break;
+                }
     if (GrandEntrance)
     {
         // Spend only at the committed swing, including a legitimate swing that misses.
@@ -415,7 +425,7 @@ bool UAutoAttackComponent::ExecuteMeleeAttackTrace()
         const float HealthBeforeHit =
             Enemy->GetHealthComponent() ? Enemy->GetHealthComponent()->GetCurrentHealth() : 0.f;
         FRunDamageScope DamageScope(bActiveAttackIsAssist ? AssistDamageSource : bDoubleCutFollowUpActive ? FName(TEXT("DoubleCut")) : GrandEntrance ? GrandEntrance->UpgradeId : FName(TEXT("SamuraiAttack")));
-        const bool bApplied = Enemy->ApplyPlayerDamage(Damage, AttackSource);
+        const bool bApplied = Enemy->ApplyPlayerDamage(Damage, AttackSource, bCritical);
         if (bApplied)
         {
             if (bCritical) PlayUpgradeProcVFX(PlayerUpgrades,TEXT("BloodCritical"),Location,60.f);
@@ -874,7 +884,8 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
  auto* U = ResolveSamuraiUpgrades(this,OwnerCharacter);
  if (!U || !U->HasUpgradeId(TEXT("BattleStance")) || (JointSource.IsNone() && (!CanExecuteAttackInCurrentMode() || OwnerCharacter->GetCharacterMode()!=ECharacterMode::Active))) return;
  // Echoes can crit independently, but cannot recursively generate more echoes.
- if(U->HasUpgradeId(TEXT("BloodCritical")) && FMath::FRand() < FMath::Clamp(UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("Chance"), .15f) + UpgradeBalance::Rank(U, TEXT("BloodCriticalChance"), .1f), 0.f, 1.f)) Damage*=UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("DamageMultiplier"), 2.f);
+ const bool bCritical = U->HasUpgradeId(TEXT("BloodCritical")) && FMath::FRand() < FMath::Clamp(UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("Chance"), .15f) + UpgradeBalance::Rank(U, TEXT("BloodCriticalChance"), .1f), 0.f, 1.f);
+ if(bCritical) Damage*=UpgradeBalance::Value(U, TEXT("BloodCritical"), TEXT("DamageMultiplier"), 2.f);
  if(HasDoubleCutUpgrade())
  {
   bCircular |= WillNextSamuraiAttackTriggerDoubleCut();
@@ -883,6 +894,13 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
  const FVector Center = bCircular ? Origin : Origin + Direction*AttackForwardOffset;
  if(BloodEchoVFX && !JointOwner)
  {
+  const UAnimNotify_SpawnSamuraiSlashNiagara* MatchedSlash=nullptr;
+  if (AttackMontage) for (const auto& Event:AttackMontage->Notifies)
+   if (const auto* Slash=Cast<UAnimNotify_SpawnSamuraiSlashNiagara>(Event.Notify))
+    if (Slash->bMatchMeleeHitbox) { MatchedSlash=Slash; break; }
+  if (MatchedSlash) MatchedSlash->SpawnForHitbox(OwnerCharacter->GetMesh(),Center,Radius,Direction,bCircular,BloodEchoVFX,&BloodEchoColor);
+  else
+  {
   FVector VFXOrigin=Origin, VFXScale(Radius/FMath::Max(1.f,AttackRadius));
   FQuat VFXRotation=Direction.ToOrientationQuat();
   // Reuse the normal slash's authored offsets and scale, at the committed lane.
@@ -902,7 +920,12 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
      break;
     }
   for(int32 i=0;i<(bCircular?4:1);++i)
-   UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,BloodEchoVFX,VFXOrigin,(FRotator(0,i*90.f,0).Quaternion()*VFXRotation).Rotator(),VFXScale);
+   if (auto* FX=UNiagaraFunctionLibrary::SpawnSystemAtLocation(this,BloodEchoVFX,VFXOrigin,(FRotator(0,i*90.f,0).Quaternion()*VFXRotation).Rotator(),VFXScale,true,false))
+   {
+    FX->SetVariableLinearColor(TEXT("User.Color 01"),BloodEchoColor);
+    FX->Activate(true);
+   }
+  }
  }
  TArray<AEnemyBase*> Targets;
  if (JointOwner) Targets = JointOwner->GetBloodSlashTargets();
@@ -929,7 +952,7 @@ void UAutoAttackComponent::ExecuteBloodEcho(FVector Origin,FVector Direction,flo
   const float Before=Enemy->GetHealthComponent()->GetCurrentHealth();
   FRunDamageScope DamageScope(JointSource.IsNone() ? FName(TEXT("BloodEcho")) : JointSource);
   const FVector JointHitPosition=Enemy->GetActorLocation();
-  if(Enemy->ApplyPlayerDamage(HitDamage,EPlayerAttackSource::Samurai))
+  if(Enemy->ApplyPlayerDamage(HitDamage,EPlayerAttackSource::Samurai,bCritical))
   {
    if (JointOwner) JointOwner->PlayHitImpact(Enemy,JointHitPosition);
    U->HandleSamuraiDirectHit(Enemy,HitDamage,Before);

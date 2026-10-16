@@ -1,4 +1,5 @@
 #include "RunReportSubsystem.h"
+#include "CollectionProgressSubsystem.h"
 #include "ComboAbilityDefinition.h"
 #include "SteamLeaderboardSubsystem.h"
 #include "RunChallengeSubsystem.h"
@@ -202,6 +203,9 @@ void URunReportSubsystem::BeginRun(ASurvivorPlayerController* Controller)
     {
         bRanked = false; RankReason = TEXT("Tester balance overrides enabled");
     }
+    CaptureBuild(Controller?Controller->GetPlayerUpgrades():nullptr);
+    if(bRanked) if(auto* Journal=GetGameInstance()->GetSubsystem<UCollectionProgressSubsystem>())
+        for(const auto& Pair:RunBuild.Definitions) Journal->RecordUpgrade(Pair.Value,RunBuild.Levels.FindRef(Pair.Key));
     if (auto* Challenges = GetGameInstance()->GetSubsystem<URunChallengeSubsystem>())
         for (const auto& Modifier : RunChallenges::Modifiers())
         {
@@ -246,6 +250,11 @@ void URunReportSubsystem::Finish(ASurvivorPlayerController* Controller, bool bVi
     if(bDifficultyEligible && bVictory)if(auto* Meta=GetGameInstance()->GetSubsystem<USynergyMetaProgressionSubsystem>())Meta->RecordDifficultyVictory(Run.MapId,ModifierSnapshot);
     if (bRanked)
     {
+        if(auto* Journal=GetGameInstance()->GetSubsystem<UCollectionProgressSubsystem>())
+        {
+            for(const auto& Pair:RunBuild.Definitions) Journal->RecordUpgrade(Pair.Value,RunBuild.Levels.FindRef(Pair.Key));
+            Journal->RecordRun(Run);
+        }
         if (auto* Boards = GetGameInstance()->GetSubsystem<URunLeaderboardSubsystem>()) Boards->Submit(Run);
         // Steam bests belong to accounts, while the legacy local board belongs to this device.
         if (auto* Steam = GetGameInstance()->GetSubsystem<USteamLeaderboardSubsystem>()) Steam->SubmitRun(Run);
